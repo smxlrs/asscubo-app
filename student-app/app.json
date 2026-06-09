@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "学联之家",
+    "slug": "union-student-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "union-app",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#A31621",
+          "sounds": []
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.studentunion.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "允许访问相机以上传头像",
+        "NSPhotoLibraryUsageDescription": "允许访问相册以上传头像"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#A31621",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.studentunion.app",
+      "permissions": [
+        "NOTIFICATIONS",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}
