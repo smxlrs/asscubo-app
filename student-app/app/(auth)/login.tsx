@@ -1,141 +1,121 @@
 import React, { useState } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert,
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  Pressable, 
+  StyleSheet, 
+  ActivityIndicator, 
+  KeyboardAvoidingView, 
+  Platform, 
+  TouchableWithoutFeedback, 
+  Keyboard 
 } from 'react-native';
-import { router, Link } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Link, router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
+import { COLORS } from '../../constants/theme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
   const { signIn } = useAuth();
 
-  async function handleLogin() {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('提示', '请输入邮箱和密码');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setErrorMsg('请输入邮箱和密码');
       return;
     }
+    
+    setErrorMsg(null);
     setLoading(true);
-    const { error } = await signIn(email.trim().toLowerCase(), password);
-    setLoading(false);
-    if (error) {
-      Alert.alert('登录失败', error.message === 'Invalid login credentials'
-        ? '邮箱或密码错误，请重试'
-        : error.message);
+    
+    try {
+      const { error } = await signIn(email.trim(), password);
+      if (error) {
+        setErrorMsg(error.message || '登录失败，请检查邮箱或密码');
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (err) {
+      setErrorMsg('网络异常，请稍后再试');
+    } finally {
+      setLoading(false);
     }
-    // On success, AuthContext listener will redirect to tabs
-  }
+  };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#1A0508', '#0F0F0F']}
-        style={StyleSheet.absoluteFillObject}
-      />
-
-      {/* Decorative accent circle */}
-      <View style={styles.accentCircle} />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Logo / Header */}
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.inner}>
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoEmoji}>🎓</Text>
-            </View>
-            <Text style={styles.appName}>学联之家</Text>
-            <Text style={styles.subtitle}>学生学生联合会官方平台</Text>
+            <Text style={styles.logo}>🏠</Text>
+            <Text style={styles.title}>学联官方平台</Text>
+            <Text style={styles.subtitle}>欧洲学生学者联合会官方移动端</Text>
           </View>
 
-          {/* Card */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>欢迎回来</Text>
-            <Text style={styles.cardSubtitle}>使用教育邮箱登录</Text>
+          <View style={styles.form}>
+            {errorMsg && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            )}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>教育邮箱</Text>
-              <TextInput
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>电子邮箱</Text>
+              <TextInput 
                 style={styles.input}
-                placeholder="your.name@stu.edu.cn"
+                placeholder="请输入邮箱地址"
                 placeholderTextColor={COLORS.textMuted}
                 value={email}
                 onChangeText={setEmail}
-                autoCapitalize="none"
                 keyboardType="email-address"
-                autoComplete="email"
+                autoCapitalize="none"
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>密码</Text>
-              <View style={styles.passwordRow}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="请输入密码"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoComplete="password"
-                />
-                <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
-                </TouchableOpacity>
-              </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>登录密码</Text>
+              <TextInput 
+                style={styles.input}
+                placeholder="请输入密码"
+                placeholderTextColor={COLORS.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+              />
             </View>
 
-            <TouchableOpacity
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+            <Pressable 
+              style={[styles.button, loading && styles.buttonDisabled]} 
               onPress={handleLogin}
               disabled={loading}
-              activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={[COLORS.primaryLight, COLORS.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.loginGradient}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.loginButtonText}>登 录</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.buttonText}>登录</Text>
+              )}
+            </Pressable>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>还没有账号？</Text>
-              <View style={styles.dividerLine} />
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>还没有账户？ </Text>
+              <Link href="/(auth)/register" asChild>
+                <Pressable>
+                  <Text style={styles.linkText}>立即注册</Text>
+                </Pressable>
+              </Link>
             </View>
-
-            <Link href="/(auth)/register" asChild>
-              <TouchableOpacity style={styles.registerButton} activeOpacity={0.8}>
-                <Text style={styles.registerButtonText}>注册新账号</Text>
-              </TouchableOpacity>
-            </Link>
           </View>
-
-          <Text style={styles.footer}>仅限持有效教育邮箱的在校学生使用</Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -144,158 +124,92 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  accentCircle: {
-    position: 'absolute',
-    top: -120,
-    left: -80,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: COLORS.primary,
-    opacity: 0.08,
-  },
-  keyboardView: { flex: 1 },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: 80,
-    paddingBottom: 40,
+  inner: {
+    flex: 1,
     justifyContent: 'center',
+    padding: 24,
   },
   header: {
     alignItems: 'center',
-    marginBottom: SPACING.xxl,
+    marginBottom: 40,
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.primarySoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
+  logo: {
+    fontSize: 50,
+    marginBottom: 10,
   },
-  logoEmoji: { fontSize: 40 },
-  appName: {
-    fontSize: SIZES.xxxl,
-    fontFamily: FONTS.bold,
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
     color: COLORS.textPrimary,
-    letterSpacing: 2,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: SIZES.sm,
-    fontFamily: FONTS.regular,
+    fontSize: 14,
     color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-    letterSpacing: 1,
   },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
+  form: {
+    width: '100%',
+  },
+  errorContainer: {
+    backgroundColor: COLORS.error + '20',
+    borderColor: COLORS.error,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
   },
-  cardTitle: {
-    fontSize: SIZES.xxl,
-    fontFamily: FONTS.bold,
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
+  errorText: {
+    color: COLORS.error,
+    fontSize: 14,
+    textAlign: 'center',
   },
-  cardSubtitle: {
-    fontSize: SIZES.md,
-    fontFamily: FONTS.regular,
+  inputContainer: {
+    marginBottom: 18,
+  },
+  inputLabel: {
+    fontSize: 14,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.xl,
-  },
-  inputGroup: { marginBottom: SPACING.base },
-  label: {
-    fontSize: SIZES.sm,
-    fontFamily: FONTS.medium,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    marginBottom: 6,
   },
   input: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.base,
-    paddingVertical: SPACING.md,
-    fontSize: SIZES.base,
-    fontFamily: FONTS.regular,
+    height: 50,
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
     color: COLORS.textPrimary,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    fontSize: 15,
   },
-  passwordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  eyeButton: {
-    padding: SPACING.sm,
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    height: 52,
+  button: {
+    height: 50,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
     justifyContent: 'center',
-  },
-  eyeText: { fontSize: 18 },
-  loginButton: {
-    borderRadius: RADIUS.md,
-    overflow: 'hidden',
-    marginTop: SPACING.md,
-  },
-  loginButtonDisabled: { opacity: 0.6 },
-  loginGradient: {
-    paddingVertical: SPACING.base,
     alignItems: 'center',
-    justifyContent: 'center',
-    height: 52,
+    marginTop: 10,
   },
-  loginButtonText: {
-    fontSize: SIZES.base,
-    fontFamily: FONTS.bold,
-    color: '#FFFFFF',
-    letterSpacing: 3,
+  buttonDisabled: {
+    opacity: 0.7,
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: SPACING.lg,
-    gap: SPACING.sm,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.border,
-  },
-  dividerText: {
-    fontSize: SIZES.sm,
-    fontFamily: FONTS.regular,
-    color: COLORS.textMuted,
-  },
-  registerButton: {
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    paddingVertical: SPACING.md,
-    alignItems: 'center',
-  },
-  registerButtonText: {
-    fontSize: SIZES.base,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.primary,
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   footer: {
-    textAlign: 'center',
-    marginTop: SPACING.xl,
-    fontSize: SIZES.xs,
-    fontFamily: FONTS.regular,
-    color: COLORS.textMuted,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  footerText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
+  linkText: {
+    color: COLORS.primaryLight,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

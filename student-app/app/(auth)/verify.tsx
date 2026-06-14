@@ -7,7 +7,7 @@ import { COLORS, FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
 export default function VerifyScreen() {
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#1A0508', '#0F0F0F']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#1A0508', '#0F0F0F']} style={StyleSheet.absoluteFill} />
       <View style={styles.content}>
         <View style={styles.iconContainer}>
           <Text style={styles.icon}>📬</Text>

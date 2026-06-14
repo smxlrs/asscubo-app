@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { router } from 'expo-router';
 
 type Profile = {
   id: string;
@@ -10,9 +9,7 @@ type Profile = {
   faculty: string | null;
   major: string | null;
   campus: string | null;
-  enrollment_year: number | null;
   role: 'student' | 'admin' | 'super_admin';
-  avatar_url: string | null;
 };
 
 type AuthContextType = {
@@ -20,8 +17,8 @@ type AuthContextType = {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -35,7 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -43,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       else setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -52,22 +47,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setProfile(null);
         setLoading(false);
-        router.replace('/(auth)/login');
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    setProfile(data as Profile);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (!error && data) {
+        setProfile(data as Profile);
+      }
+    } catch (e) {
+      console.error('Error fetching profile:', e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function signIn(email: string, password: string) {
@@ -76,30 +71,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signUp(email: string, password: string, name: string) {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
+    // 1. Sign up the user in Supabase Auth
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password, 
+      options: { 
         data: { name },
-        emailRedirectTo: undefined,
-      },
+        emailRedirectTo: 'exp://192.168.1.25:8081' // Redirect back to Expo Go after verification
+      } 
     });
-    if (!error) {
-      // Update name in profile after signup
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData.user) {
-        await supabase.from('profiles').update({ name }).eq('id', userData.user.id);
+    
+    if (error) return { error };
+
+    // 2. Insert into the profile table if auto-trigger didn't run or to ensure it is populated
+    if (data.user) {
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: data.user.id,
+        name: name,
+        role: 'student'
+      });
+      if (profileError) {
+        console.error('Error writing profile:', profileError);
       }
     }
-    return { error };
+    return { error: null };
   }
 
-  async function signOut() {
-    await supabase.auth.signOut();
+  async function signOut() { 
+    await supabase.auth.signOut(); 
   }
 
-  async function refreshProfile() {
-    if (user) await fetchProfile(user.id);
+  async function refreshProfile() { 
+    if (user) await fetchProfile(user.id); 
   }
 
   return (

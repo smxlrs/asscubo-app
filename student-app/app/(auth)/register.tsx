@@ -1,273 +1,291 @@
 import React, { useState } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert,
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  Pressable, 
+  StyleSheet, 
+  ActivityIndicator, 
+  KeyboardAvoidingView, 
+  Platform, 
+  TouchableWithoutFeedback, 
+  Keyboard 
 } from 'react-native';
-import { router, Link } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Link } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
-
-// 请修改为你们学校的邮箱域名
-const ALLOWED_EMAIL_DOMAIN = '@stu.';
+import { COLORS } from '../../constants/theme';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
   const { signUp } = useAuth();
 
-  function validateEmail(email: string): boolean {
-    return email.toLowerCase().includes(ALLOWED_EMAIL_DOMAIN) &&
-      email.includes('.edu');
-  }
-
-  async function handleRegister() {
-    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
-      Alert.alert('提示', '请填写所有字段');
-      return;
-    }
-    if (!validateEmail(email)) {
-      Alert.alert('邮箱无效', '请使用学校教育邮箱（xxx@stu.xxx.edu.cn）注册');
-      return;
-    }
-    if (password.length < 8) {
-      Alert.alert('密码太短', '密码至少需要8位字符');
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert('密码不一致', '两次输入的密码不匹配');
+  const handleRegister = async () => {
+    if (!name || !email || !password) {
+      setErrorMsg('请填写所有必填字段');
       return;
     }
 
+    if (password.length < 6) {
+      setErrorMsg('密码长度不能少于 6 位');
+      return;
+    }
+
+    setErrorMsg(null);
     setLoading(true);
-    const { error } = await signUp(email.trim().toLowerCase(), password, name.trim());
-    setLoading(false);
 
-    if (error) {
-      if (error.message.includes('already registered')) {
-        Alert.alert('注册失败', '该邮箱已被注册，请直接登录');
+    try {
+      const { error } = await signUp(email.trim(), password, name.trim());
+      if (error) {
+        setErrorMsg(error.message || '注册失败，请重试');
       } else {
-        Alert.alert('注册失败', error.message);
+        setSuccess(true);
       }
-    } else {
-      router.replace('/(auth)/verify');
+    } catch (err) {
+      setErrorMsg('网络异常，请稍后再试');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  if (success) {
+    return (
+      <View style={styles.successContainer}>
+        <Text style={styles.successIcon}>✉️</Text>
+        <Text style={styles.successTitle}>注册申请已提交</Text>
+        <Text style={styles.successText}>
+          我们已向您的邮箱发送了一封验证邮件，请打开邮件并点击其中的验证链接激活账户。
+        </Text>
+        <Text style={styles.successSubtext}>
+          验证成功后，您可以返回此页面进行登录。
+        </Text>
+        <Link href="/(auth)/login" asChild>
+          <Pressable style={styles.successButton}>
+            <Text style={styles.successButtonText}>返回登录</Text>
+          </Pressable>
+        </Link>
+      </View>
+    );
   }
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={['#1A0508', '#0F0F0F']} style={StyleSheet.absoluteFillObject} />
-      <View style={styles.accentCircle} />
-
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Back button */}
-          <Link href="/(auth)/login" asChild>
-            <TouchableOpacity style={styles.backButton}>
-              <Text style={styles.backText}>← 返回登录</Text>
-            </TouchableOpacity>
-          </Link>
-
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.inner}>
           <View style={styles.header}>
-            <Text style={styles.title}>创建账号</Text>
-            <Text style={styles.subtitle}>加入学联之家，连接校园生活</Text>
+            <Text style={styles.title}>创建账户</Text>
+            <Text style={styles.subtitle}>加入学联官方平台</Text>
           </View>
 
-          <View style={styles.card}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>真实姓名</Text>
-              <TextInput
+          <View style={styles.form}>
+            {errorMsg && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            )}
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>姓名 / 昵称</Text>
+              <TextInput 
                 style={styles.input}
                 placeholder="请输入您的姓名"
                 placeholderTextColor={COLORS.textMuted}
                 value={name}
                 onChangeText={setName}
-                autoComplete="name"
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>教育邮箱</Text>
-              <TextInput
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>电子邮箱</Text>
+              <TextInput 
                 style={styles.input}
-                placeholder="xxx@stu.university.edu.cn"
+                placeholder="建议使用您的大学邮箱"
                 placeholderTextColor={COLORS.textMuted}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                autoComplete="email"
               />
-              <Text style={styles.hint}>📧 仅限学校教育邮箱注册</Text>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>设置密码</Text>
-              <TextInput
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>设置密码 (至少 6 位)</Text>
+              <TextInput 
                 style={styles.input}
-                placeholder="至少8位字符"
+                placeholder="请输入密码"
                 placeholderTextColor={COLORS.textMuted}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                autoComplete="new-password"
+                autoCapitalize="none"
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>确认密码</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  confirmPassword && password !== confirmPassword && styles.inputError,
-                ]}
-                placeholder="再次输入密码"
-                placeholderTextColor={COLORS.textMuted}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-              />
-              {confirmPassword && password !== confirmPassword && (
-                <Text style={styles.errorText}>密码不一致</Text>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.registerButton, loading && { opacity: 0.6 }]}
+            <Pressable 
+              style={[styles.button, loading && styles.buttonDisabled]} 
               onPress={handleRegister}
               disabled={loading}
-              activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={[COLORS.primaryLight, COLORS.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.buttonGradient}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.registerButtonText}>注册并发送验证邮件</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.buttonText}>注册</Text>
+              )}
+            </Pressable>
 
-            <Text style={styles.terms}>
-              注册即代表您同意学联平台的使用条款和隐私政策
-            </Text>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>已有账户？ </Text>
+              <Link href="/(auth)/login" asChild>
+                <Pressable>
+                  <Text style={styles.linkText}>立即登录</Text>
+                </Pressable>
+              </Link>
+            </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  accentCircle: {
-    position: 'absolute',
-    top: -100,
-    right: -80,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: COLORS.primary,
-    opacity: 0.07,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: 60,
-    paddingBottom: 40,
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
   },
-  backButton: { marginBottom: SPACING.lg },
-  backText: {
-    color: COLORS.primary,
-    fontSize: SIZES.md,
-    fontFamily: FONTS.medium,
+  header: {
+    alignItems: 'center',
+    marginBottom: 30,
   },
-  header: { marginBottom: SPACING.xl },
   title: {
-    fontSize: SIZES.xxxl,
-    fontFamily: FONTS.bold,
+    fontSize: 28,
+    fontWeight: 'bold',
     color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: SIZES.md,
-    fontFamily: FONTS.regular,
+    fontSize: 14,
     color: COLORS.textSecondary,
   },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
+  form: {
+    width: '100%',
+  },
+  errorContainer: {
+    backgroundColor: COLORS.error + '20',
+    borderColor: COLORS.error,
     borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  inputGroup: { marginBottom: SPACING.base },
-  label: {
-    fontSize: SIZES.sm,
-    fontFamily: FONTS.medium,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  input: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.base,
-    paddingVertical: SPACING.md,
-    fontSize: SIZES.base,
-    fontFamily: FONTS.regular,
-    color: COLORS.textPrimary,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  inputError: { borderColor: COLORS.error },
-  hint: {
-    fontSize: SIZES.xs,
-    fontFamily: FONTS.regular,
-    color: COLORS.textMuted,
-    marginTop: SPACING.xs,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   errorText: {
-    fontSize: SIZES.xs,
-    fontFamily: FONTS.regular,
     color: COLORS.error,
-    marginTop: SPACING.xs,
-  },
-  registerButton: {
-    borderRadius: RADIUS.md,
-    overflow: 'hidden',
-    marginTop: SPACING.md,
-  },
-  buttonGradient: {
-    paddingVertical: SPACING.base,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 52,
-  },
-  registerButtonText: {
-    fontSize: SIZES.base,
-    fontFamily: FONTS.bold,
-    color: '#FFFFFF',
-    letterSpacing: 1,
-  },
-  terms: {
+    fontSize: 14,
     textAlign: 'center',
-    marginTop: SPACING.base,
-    fontSize: SIZES.xs,
-    fontFamily: FONTS.regular,
-    color: COLORS.textMuted,
-    lineHeight: 18,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+  },
+  input: {
+    height: 50,
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    color: COLORS.textPrimary,
+    fontSize: 15,
+  },
+  button: {
+    height: 50,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  footerText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
+  linkText: {
+    color: COLORS.primaryLight,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  successContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  successIcon: {
+    fontSize: 60,
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+  },
+  successText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 12,
+  },
+  successSubtext: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  successButton: {
+    width: '100%',
+    height: 50,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

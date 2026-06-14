@@ -1,99 +1,91 @@
-import { Tabs, Redirect } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
-import { COLORS, FONTS } from '../../constants/theme';
+import { Tabs } from 'expo-router';
+import { View, Text } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
-function TabIcon({ emoji, focused, label }: { emoji: string; focused: boolean; label: string }) {
+function TabIcon({ label, icon, focused, activeColor, inactiveColor }: { label: string; icon: string; focused: boolean; activeColor: string; inactiveColor: string }) {
   return (
-    <View style={[styles.tabIcon, focused && styles.tabIconActive]}>
-      <Text style={styles.tabEmoji}>{emoji}</Text>
-      <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{label}</Text>
+    <View style={{ alignItems: 'center', paddingTop: 6 }}>
+      <Text style={{ fontSize: focused ? 22 : 20 }}>{icon}</Text>
+      <Text style={{ fontSize: 10, color: focused ? activeColor : inactiveColor, marginTop: 2 }}>
+        {label}
+      </Text>
     </View>
   );
 }
 
 export default function TabsLayout() {
-  const { session, loading } = useAuth();
-
-  if (!loading && !session) return <Redirect href="/(auth)/login" />;
+  const { colors, t } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          height: 70,
+          paddingBottom: 0,
+        },
         tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
-        name="home"
+        name="index"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} label="首页" />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label={t('home')} icon="🏠" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="announcements"
+        name="notifications"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📢" focused={focused} label="公告" />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label={t('notifications')} icon="📢" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="events"
+        name="tools"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📅" focused={focused} label="活动" />,
-        }}
-      />
-      <Tabs.Screen
-        name="handbook"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📖" focused={focused} label="手册" />,
-        }}
-      />
-      <Tabs.Screen
-        name="community"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💬" focused={focused} label="社群" />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label={t('tools')} icon="🛠️" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} label="我的" />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label={t('profile')} icon="👤" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="home"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="announcements"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="events"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="community"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: COLORS.surface,
-    borderTopColor: COLORS.border,
-    borderTopWidth: 1,
-    height: 80,
-    paddingBottom: 16,
-    paddingTop: 8,
-  },
-  tabIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    minWidth: 50,
-  },
-  tabIconActive: {
-    backgroundColor: COLORS.primarySoft,
-  },
-  tabEmoji: { fontSize: 20 },
-  tabLabel: {
-    fontSize: 10,
-    fontFamily: FONTS.regular,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  tabLabelActive: {
-    color: COLORS.primary,
-    fontFamily: FONTS.medium,
-  },
-});

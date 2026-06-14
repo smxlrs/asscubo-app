@@ -86,6 +86,7 @@ export type Database = {
           content_url: string | null;
           content_body: string | null;
           parent_id: string | null;
+          is_published: boolean;
           created_at: string;
         };
       };
