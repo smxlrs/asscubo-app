@@ -303,7 +303,8 @@ class MDictBase {
         return key.toLowerCase().trim();
     }
     comp(word1, word2) {
-        return word1.localeCompare(word2);
+        if (word1 === word2) return 0;
+        return word1 < word2 ? -1 : 1;
     }
     // comp2(word1: string, word2: string): number {
     //   // if case-sensitive, the uppercase word is smaller than lowercase word
@@ -430,7 +431,7 @@ class MDictBase {
                 break;
             }
             const keyTextBuffer = keyBlock.subarray(keyStartIndex + this.meta.numWidth, keyEndIndex);
-            const keyText = this.meta.decoder.decode(keyTextBuffer);
+            const keyText = this.meta.decoder.decode(new Uint8Array(keyTextBuffer));
             if (keyList.length > 0) {
                 keyList[keyList.length - 1].recordEndOffset = meaningOffset;
             }
@@ -488,7 +489,7 @@ class MDictBase {
         this._keyHeaderStartOffset = headerByteSize + 4 + 4;
         // header text in utf-16 encoding ending with `\x00\x00`, so minus 2
         // const headerText = common.readUTF16(headerBuffer, 0, headerByteSize - 2);
-        const headerText = UTF_16LE_DECODER.decode(headerBuffer);
+        const headerText = UTF_16LE_DECODER.decode(new Uint8Array(headerBuffer));
         // parse header info
         Object.assign(this.header, common.parseHeader(headerText));
         // set header default configuration
@@ -729,12 +730,12 @@ class MDictBase {
             unpackSize = common.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth));
             indexOffset += this.meta.numWidth;
             if (this.meta.encoding === UTF16) {
-                firstKey = this.meta.decoder.decode(firstWordBuffer);
-                lastKey = this.meta.decoder.decode(lastWordBuffer);
+                firstKey = this.meta.decoder.decode(new Uint8Array(firstWordBuffer));
+                lastKey = this.meta.decoder.decode(new Uint8Array(lastWordBuffer));
             }
             else {
-                firstKey = this.meta.decoder.decode(firstWordBuffer);
-                lastKey = this.meta.decoder.decode(lastWordBuffer);
+                firstKey = this.meta.decoder.decode(new Uint8Array(firstWordBuffer));
+                lastKey = this.meta.decoder.decode(new Uint8Array(lastWordBuffer));
             }
             keyBlockInfoList.push({
                 firstKey,
@@ -1274,7 +1275,7 @@ export class MDX extends Mdict {
         }
         return {
             keyText: word,
-            definition: this.meta.decoder.decode(def)
+            definition: this.meta.decoder.decode(new Uint8Array(def))
         };
     }
     ;
@@ -1292,7 +1293,7 @@ export class MDX extends Mdict {
             const def = this.lookupRecordByKeyBlock(item);
             return {
                 keyText: item.keyText,
-                definition: def ? this.meta.decoder.decode(def) : null
+                definition: def ? this.meta.decoder.decode(new Uint8Array(def)) : null
             };
         });
     }
@@ -1306,7 +1307,7 @@ export class MDX extends Mdict {
         }
         return {
             keyText: keywordItem.keyText,
-            definition: this.meta.decoder.decode(def)
+            definition: this.meta.decoder.decode(new Uint8Array(def))
         };
     }
     /**
@@ -1369,7 +1370,7 @@ export class MDX extends Mdict {
         }
         return {
             keyText: keywordItem.keyText,
-            definition: this.meta.decoder.decode(def)
+            definition: this.meta.decoder.decode(new Uint8Array(def))
         };
     }
     /**

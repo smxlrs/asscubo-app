@@ -53,6 +53,8 @@ const THEMES: ReaderTheme[] = [
   { id: 'dark', name: '极夜黑', backgroundColor: '#121212', textColor: '#B0BEC5', borderColor: '#263238', surfaceColor: '#1E1E1E' }
 ];
 
+let sessionUserSelectedTheme: ReaderTheme | null = null;
+
 const FONT_SIZES = [14, 16, 18, 20, 22, 26, 30]; // Available font sizes
 
 const LINE_SPACINGS = [
@@ -164,7 +166,26 @@ const hyphenateItalianText = (text: string): string => {
   });
 };
 
-const handleOpenLink = (url: string) => {
+const isInternalLink = (url: string): boolean => {
+  if (url.startsWith('handbook://') || url.startsWith('#')) {
+    return true;
+  }
+  if (/^https?:\/\//i.test(url) || url.startsWith('mailto:') || url.includes('@')) {
+    return false;
+  }
+  if (/\b(?:com|org|net|it|edu|cn)\b/i.test(url) && !/^\d+(\.\d+)*$/.test(url)) {
+    return false;
+  }
+  return true;
+};
+
+const handleOpenLink = (url: string, onLinkPress?: (url: string) => void) => {
+  if (isInternalLink(url)) {
+    if (onLinkPress) {
+      onLinkPress(url);
+    }
+    return;
+  }
   const isMail = url.startsWith('mailto:') || (url.includes('@') && !url.startsWith('http'));
   let targetUrl = url;
   if (isMail) {
@@ -253,27 +274,17 @@ const handleMakeCall = (phone: string) => {
   );
 };
 
-// Parser to support bold text, markdown links, emails, URLs, Italian addresses, and phone numbers
-const parseInlineStyles = (text: string, fontSize: number) => {
+const parseInlineStyles = (text: string, fontSize: number, onLinkPress?: (url: string) => void) => {
   const elements: React.ReactNode[] = [];
   let currentIndex = 0;
   
-  // Regex pattern:
-  // Group 1: **bold**
-  // Group 2/3: [linkText](url)
-  // Group 4: raw URL (http/https)
-  // Group 5: raw email address
-  // Group 6: raw website (without protocol, e.g. unibo.it)
-  // Group 7: Italian address (Via/Piazza/Viale/Corso/Largo followed by street info)
-  // Group 8: Phone number (051 landline format)
-  const regex = /\*\*(.*?)\*\*|\[(.*?)\]\((.*?)\)|(https?:\/\/[^\s\)\],，。；;]+)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|\b((?:[a-zA-Z0-9-]+\.)+(?:com|org|net|it|edu|cn)(?:\/[^\s\)\],，。；;]*)?)\b|\b((?:Via|Piazza|Viale|Corso|Largo)\s+[A-Z][a-zA-Z0-9\s'’,.-]{2,30}(?:,\s*\d+|\s+\d+)?(?:,\s*\d{5})?(?:\s+[A-Za-z\s]+)?)\b|\b((?:\+39\s*)?051[\s-]?\d{7})\b/g;
+  const regex = /\*\*(.*?)\*\*|\[(.*?)\]\((.*?)\)|(https?:\/\/[^\s\)\],，。；;]+)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|\b((?:[a-zA-Z0-9-]+\.)+(?:com|org|net|it|edu|cn)(?:\/[^\s\)\],，。；;]*)?)\b|\b((?:Via|Piazza|Viale|Corso|Largo)\s+[A-Z][a-zA-Z0-9\s'’,.-]{2,30}(?:,\s*\d+|\s+\d+)?(?:,\s*\d{5})?(?:\s+[A-Za-z\s]+)?)\b|((?:\+39\s*|\b)(?:051|3\d{2})[\s-]?\d{3}[\s-]?\d{3,4})\b/g;
   let match;
   let keyCount = 0;
   
   while ((match = regex.exec(text)) !== null) {
     const matchIndex = match.index;
     
-    // Add plain text before match
     if (matchIndex > currentIndex) {
       elements.push(
         <Text key={`plain-${keyCount++}`}>
@@ -283,62 +294,56 @@ const parseInlineStyles = (text: string, fontSize: number) => {
     }
     
     if (match[1] !== undefined) {
-      // Bold match
       elements.push(
         <Text key={`bold-${keyCount++}`} style={{ fontWeight: 'bold' }}>
           {hyphenateItalianText(match[1])}
         </Text>
       );
     } else if (match[2] !== undefined && match[3] !== undefined) {
-      // Markdown Link match
       const url = match[3];
       elements.push(
         <Text 
           key={`link-${keyCount++}`} 
           style={{ color: '#3B82F6', textDecorationLine: 'underline', fontWeight: '500' }}
-          onPress={() => handleOpenLink(url)}
+          onPress={() => handleOpenLink(url, onLinkPress)}
         >
           {hyphenateItalianText(match[2])}
         </Text>
       );
     } else if (match[4] !== undefined) {
-      // Raw URL match
       const url = match[4];
       elements.push(
         <Text 
           key={`rawlink-${keyCount++}`} 
           style={{ color: '#3B82F6', textDecorationLine: 'underline', fontWeight: '500' }}
-          onPress={() => handleOpenLink(url)}
+          onPress={() => handleOpenLink(url, onLinkPress)}
         >
           {url}
         </Text>
       );
     } else if (match[5] !== undefined) {
-      // Raw email match
       const email = match[5];
       elements.push(
         <Text 
           key={`email-${keyCount++}`} 
           style={{ color: '#3B82F6', textDecorationLine: 'underline', fontWeight: '500' }}
-          onPress={() => handleOpenLink(email)}
+          onPress={() => handleOpenLink(email, onLinkPress)}
         >
           {email}
         </Text>
       );
     } else if (match[6] !== undefined) {
-      // Raw Website match (e.g. asscubo.it)
       const url = match[6];
       elements.push(
         <Text 
           key={`website-${keyCount++}`} 
           style={{ color: '#3B82F6', textDecorationLine: 'underline', fontWeight: '500' }}
-          onPress={() => handleOpenLink(url)}
+          onPress={() => handleOpenLink(url, onLinkPress)}
         >
           {url}
         </Text>
       );
     } else if (match[7] !== undefined) {
-      // Italian address match
       const address = match[7];
       elements.push(
         <Text 
@@ -350,7 +355,6 @@ const parseInlineStyles = (text: string, fontSize: number) => {
         </Text>
       );
     } else if (match[8] !== undefined) {
-      // Phone number match
       const phone = match[8];
       elements.push(
         <Text 
@@ -366,7 +370,6 @@ const parseInlineStyles = (text: string, fontSize: number) => {
     currentIndex = regex.lastIndex;
   }
   
-  // Add remaining plain text
   if (currentIndex < text.length) {
     elements.push(
       <Text key={`plain-${keyCount++}`}>
@@ -412,15 +415,84 @@ const resolveImageSource = (alt: string, url: string) => {
   return { uri: url };
 };
 
+const findChapterByTarget = (target: string, allChapters: Chapter[]): Chapter | null => {
+  const cleanTarget = target.trim().toLowerCase();
+  if (!cleanTarget) return null;
+
+  const getChapterIndexString = (chap: Chapter): string | null => {
+    if (chap.parent_id) {
+      const parent = allChapters.find(c => c.id === chap.parent_id);
+      if (parent) {
+        const parentIdx = allChapters.findIndex(c => c.id === parent.id);
+        const rootIndex = parentIdx !== -1 ? (parentIdx >= 2 ? parentIdx - 1 : null) : (parent.order_index >= 3 ? parent.order_index - 2 : null);
+        if (rootIndex !== null) {
+          return `${rootIndex}.${chap.order_index}`;
+        }
+      }
+    } else {
+      const parentIdx = allChapters.findIndex(c => c.id === chap.id);
+      const rootIndex = parentIdx !== -1 ? (parentIdx >= 2 ? parentIdx - 1 : null) : (chap.order_index >= 3 ? chap.order_index - 2 : null);
+      if (rootIndex !== null) {
+        return `${rootIndex}`;
+      }
+    }
+    return null;
+  };
+
+  const allNodes: Chapter[] = [];
+  allChapters.forEach(parent => {
+    allNodes.push(parent);
+    if (parent.children) {
+      parent.children.forEach(child => {
+        allNodes.push(child);
+      });
+    }
+  });
+
+  // 1. Match by index string exactly (e.g. "2.2")
+  for (const node of allNodes) {
+    const idxStr = getChapterIndexString(node);
+    if (idxStr && idxStr === cleanTarget) {
+      return node;
+    }
+  }
+
+  // 2. Match by title exactly
+  for (const node of allNodes) {
+    if (node.title.trim().toLowerCase() === cleanTarget) {
+      return node;
+    }
+  }
+
+  // 3. Match by containing title or formatted title
+  for (const node of allNodes) {
+    const idxStr = getChapterIndexString(node);
+    const fullFormatted = `${idxStr || ''} ${node.title}`.toLowerCase();
+    if (fullFormatted.includes(cleanTarget) || node.title.toLowerCase().includes(cleanTarget)) {
+      return node;
+    }
+  }
+
+  return null;
+};
+
 export default function HandbookReaderScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   // Settings states
   const [fontSizeIndex, setFontSizeIndex] = useState(2); // Default is 18px (index 2)
-  const [selectedTheme, setSelectedTheme] = useState<ReaderTheme>(THEMES[2]); // Default is Sepia
+  const [selectedTheme, setSelectedTheme] = useState<ReaderTheme>(() => 
+    sessionUserSelectedTheme || (isDark ? THEMES[3] : THEMES[2])
+  );
   const [lineSpacingIndex, setLineSpacingIndex] = useState(1); // Default is '适中' (index 1)
   const [letterSpacingIndex, setLetterSpacingIndex] = useState(1); // Default is '适中' (index 1)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!sessionUserSelectedTheme) {
+      setSelectedTheme(isDark ? THEMES[3] : THEMES[2]);
+    }
+  }, [isDark]);
 
   // Chapters & Loading states
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -698,6 +770,16 @@ export default function HandbookReaderScreen() {
     );
   };
 
+  const handleInternalLinkPress = (targetUrl: string) => {
+    const target = targetUrl.replace(/^handbook:\/\//, '').replace(/^#/, '');
+    const found = findChapterByTarget(target, chapters);
+    if (found) {
+      handleSelectChapter(found);
+    } else {
+      Alert.alert('提示', `未找到章节 "${target}"`);
+    }
+  };
+
   // Helper to split a block by markdown images and render them as actual components
   const renderBlock = (blockText: string, blockIdx: number, fontSize: number) => {
     const isWestern = !/[\u4e00-\u9fa5]/.test(blockText);
@@ -719,7 +801,7 @@ export default function HandbookReaderScreen() {
         if (textBefore) {
           parts.push(
             <Text key={`text-${blockIdx}-${subIdx++}`} selectable={true} style={[styles.paragraph, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].val, letterSpacing: textLetterSpacing, textAlign: textAlignStyle, marginBottom: fontSize * 0.6 }]}>
-              {parseInlineStyles(textBefore, fontSize)}
+              {parseInlineStyles(textBefore, fontSize, handleInternalLinkPress)}
             </Text>
           );
         }
@@ -754,7 +836,7 @@ export default function HandbookReaderScreen() {
       if (textAfter) {
         parts.push(
           <Text key={`text-${blockIdx}-${subIdx++}`} selectable={true} style={[styles.paragraph, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].val, letterSpacing: textLetterSpacing, textAlign: textAlignStyle, marginBottom: fontSize * 0.6 }]}>
-            {parseInlineStyles(textAfter, fontSize)}
+            {parseInlineStyles(textAfter, fontSize, handleInternalLinkPress)}
           </Text>
         );
       }
@@ -764,11 +846,11 @@ export default function HandbookReaderScreen() {
   };
 
   // Select a chapter to read
-  const handleSelectChapter = (chap: Chapter) => {
+  function handleSelectChapter(chap: Chapter) {
     setCurrentChapter(chap);
     closeDrawer();
     scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-  };
+  }
 
   // Helper to render customized typography elements from markdown content body
   const renderContentBody = () => {
@@ -804,7 +886,7 @@ export default function HandbookReaderScreen() {
         return (
           <React.Fragment key={idx}>
             <Text selectable={true} style={[styles.h3, { fontSize: fontSize * 1.25, color: selectedTheme.textColor, marginTop: fontSize, marginBottom: fontSize * 0.4 }]}>
-              {parseInlineStyles(headerText, fontSize * 1.25)}
+              {parseInlineStyles(headerText, fontSize * 1.25, handleInternalLinkPress)}
             </Text>
             {restText ? renderBlock(restText, idx, fontSize) : null}
           </React.Fragment>
@@ -817,7 +899,7 @@ export default function HandbookReaderScreen() {
         return (
           <React.Fragment key={idx}>
             <Text selectable={true} style={[styles.h2, { fontSize: fontSize * 1.4, color: selectedTheme.textColor, marginTop: fontSize * 1.2, marginBottom: fontSize * 0.5 }]}>
-              {parseInlineStyles(headerText, fontSize * 1.4)}
+              {parseInlineStyles(headerText, fontSize * 1.4, handleInternalLinkPress)}
             </Text>
             {restText ? renderBlock(restText, idx, fontSize) : null}
           </React.Fragment>
@@ -830,7 +912,7 @@ export default function HandbookReaderScreen() {
         return (
           <React.Fragment key={idx}>
             <Text selectable={true} style={[styles.h1, { fontSize: fontSize * 1.6, color: selectedTheme.textColor, marginTop: fontSize * 1.5, marginBottom: fontSize * 0.6 }]}>
-              {parseInlineStyles(headerText, fontSize * 1.6)}
+              {parseInlineStyles(headerText, fontSize * 1.6, handleInternalLinkPress)}
             </Text>
             {restText ? renderBlock(restText, idx, fontSize) : null}
           </React.Fragment>
@@ -859,7 +941,7 @@ export default function HandbookReaderScreen() {
                   <View key={lIdx} style={[styles.listItem, { marginBottom: fontSize * 0.25 }]}>
                     <Text style={[styles.bullet, { fontSize: fontSize, color: selectedTheme.textColor }]}>•</Text>
                     <Text selectable={true} style={[styles.listText, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].listValue, letterSpacing: listLetterSpacing, textAlign: listAlign }]}>
-                      {parseInlineStyles(text, fontSize)}
+                      {parseInlineStyles(text, fontSize, handleInternalLinkPress)}
                     </Text>
                   </View>
                 );
@@ -874,7 +956,7 @@ export default function HandbookReaderScreen() {
                 <View key={lIdx} style={[styles.listItem, { marginBottom: fontSize * 0.25 }]}>
                   <Text style={[styles.bullet, { fontSize: fontSize, color: selectedTheme.textColor, fontWeight: 'bold' }]}>{num}</Text>
                   <Text selectable={true} style={[styles.listText, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].listValue, letterSpacing: listLetterSpacing, textAlign: listAlign }]}>
-                    {parseInlineStyles(text, fontSize)}
+                    {parseInlineStyles(text, fontSize, handleInternalLinkPress)}
                   </Text>
                 </View>
               );
@@ -1178,7 +1260,10 @@ export default function HandbookReaderScreen() {
                         { backgroundColor: theme.backgroundColor, borderColor: isSelected ? '#A31621' : theme.borderColor },
                         isSelected && { borderWidth: 2 }
                       ]}
-                      onPress={() => setSelectedTheme(theme)}
+                      onPress={() => {
+                        setSelectedTheme(theme);
+                        sessionUserSelectedTheme = theme;
+                      }}
                     >
                       <Text style={[
                         styles.themeName, 

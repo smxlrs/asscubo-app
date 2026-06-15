@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Asset } from 'expo-asset';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MDX } from './mdict/mdictReader';
+import * as base64js from 'base64-js';
 
 export type DictionaryInfo = {
   id: string;
@@ -50,6 +51,23 @@ for (let i = 0; i < chars.length; i++) {
 }
 
 function base64ToBytes(b64: string): Uint8Array {
+  // 1. Try modern native Uint8Array.fromBase64 (Hermes/ES2024 native)
+  if (typeof (Uint8Array as any).fromBase64 === 'function') {
+    try {
+      return (Uint8Array as any).fromBase64(b64);
+    } catch (e) {
+      // Fallback
+    }
+  }
+
+  // 2. Try community optimized library base64-js
+  try {
+    return base64js.toByteArray(b64);
+  } catch (e) {
+    // Fallback
+  }
+
+  // 3. Custom JS fallback
   const len = b64.length;
   let placeHolders = 0;
   if (b64[len - 1] === '=') {
@@ -248,7 +266,8 @@ export async function searchWords(query: string, enabledDictIds: string[]): Prom
   // Fetch prefix matching suggestions from each dictionary
   for (const dictId of enabledDictIds) {
     try {
-      const mdx = await getOrLoadMDXInstance(dictId);
+      // Only search in dictionaries that are already loaded in memory to prevent typing lag
+      const mdx = mdxInstances[dictId];
       if (!mdx) continue;
 
       // Query keys starting with prefix from matching key blocks on demand
@@ -260,16 +279,9 @@ export async function searchWords(query: string, enabledDictIds: string[]): Prom
         if (!seen.has(keyText)) {
           seen.add(keyText);
 
-          // Get a quick preview definition
-          let preview = '';
-          const definitionRes = mdx.lookup(keyText);
-          if (definitionRes && definitionRes.definition) {
-            preview = stripHtml(definitionRes.definition);
-          }
-
           allSuggestions.push({
             word: keyText,
-            definition: preview
+            definition: ''
           });
           count++;
           if (count >= 15) break;
@@ -346,4 +358,54 @@ export async function getDefinitions(word: string, enabledDictIds: string[]): Pr
 
   const resolvedResults = await Promise.all(lookupPromises);
   return resolvedResults.filter((r): r is { dict_id: string; definition: string } => r !== null);
+}
+
+// Check if an MDX instance is already loaded in memory
+export function isMDXInstanceLoaded(dictId: string): boolean {
+  return !!mdxInstances[dictId];
+}
+
+// Retrieve definition from a single dictionary
+export async function getSingleDefinition(word: string, dictId: string): Promise<{ dict_id: string; definition: string } | null> {
+  if (!word) return null;
+  const cleanedTarget = cleanWord(word);
+
+  try {
+    const mdx = await getOrLoadMDXInstance(dictId);
+    if (!mdx) return null;
+
+    // Try exact lookup first
+    let res = mdx.lookup(word);
+    if (res && res.definition) {
+      return {
+        dict_id: dictId,
+        definition: res.definition
+      };
+    } else {
+      // Fallback: Try accent-insensitive / case-insensitive search in matching block
+      const keyBlockInfoId = mdx.lookupKeyInfoByWord(word);
+      if (keyBlockInfoId >= 0) {
+        const partialList = mdx.lookupPartialKeyBlockListByKeyInfoId(keyBlockInfoId);
+        const matchedItem = partialList.find((item: any) => {
+          if (!item.cleanKey) {
+            item.cleanKey = cleanWord(item.keyText);
+          }
+          return item.cleanKey === cleanedTarget;
+        });
+
+        if (matchedItem) {
+          const fetchRes = mdx.fetch(matchedItem);
+          if (fetchRes && fetchRes.definition) {
+            return {
+              dict_id: dictId,
+              definition: fetchRes.definition
+            };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error(`Failed to get single definition from ${dictId}:`, e);
+  }
+  return null;
 }

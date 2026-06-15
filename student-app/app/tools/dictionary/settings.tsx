@@ -94,7 +94,7 @@ export default function DictionarySettingsScreen() {
   const handleManualImportPress = () => {
     Alert.alert(
       '导入词典库',
-      '自定义词典功能即将上线！\n\n未来版本中，您可以将外部购买或收集的 .mdx 格式词库文件（如朗氏、意意词典等）放入手机指定的本地文件夹中，App 将自动完成解压和索引入库。\n\n如当前有特定词典的紧急集成需求，欢迎将 mdx 文件发送给学联技术团队，我们将在下个版本为您免费打包编译入系统内置库中。',
+      '自定义词典功能即将上线！\n\n未来版本中，您可以将外部购买或收集的 .mdx 格式词库文件（如朗氏、意意词典等）放入手机指定的本地文件夹中，App 将自动完成解压和索引入库。',
       [{ text: '我知道了', style: 'default' }]
     );
   };

@@ -12,7 +12,7 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,6 +25,8 @@ import {
   loadDictionariesConfig,
   getOrLoadMDXInstance,
   DictionaryInfo,
+  isMDXInstanceLoaded,
+  getSingleDefinition,
 } from '../../../lib/db';
 
 const { width } = Dimensions.get('window');
@@ -58,11 +60,16 @@ const buildHtmlString = (
         </div>
         <div class="dict-body">
           <div class="shadow-container"></div>
-          <template class="definition-template">${defItem.definition}</template>
+          <div class="fallback-container"></div>
         </div>
       </div>
     `;
   }).join('');
+
+  const escapedDefsJson = JSON.stringify(defs.map(d => ({
+    dict_id: d.dict_id,
+    definition: d.definition
+  }))).replace(/</g, '\\u003c');
 
   return `
     <!DOCTYPE html>
@@ -221,137 +228,258 @@ const buildHtmlString = (
       <script>
         // Forward JavaScript runtime errors inside WebView to React Native for easy debugging
         window.onerror = function(message, source, lineno, colno, error) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'error',
-            message: message,
-            line: lineno,
-            col: colno
-          }));
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'error',
+              message: message,
+              line: lineno,
+              col: colno
+            }));
+          }
+          return true;
         };
 
-        // Mount isolated template HTML to Shadow DOM container to prevent outer layout breakage
-        document.querySelectorAll('.dict-card').forEach(card => {
-          const container = card.querySelector('.shadow-container');
-          const template = card.querySelector('.definition-template');
-          const body = card.querySelector('.dict-body');
-          if (container && template) {
-            try {
-              const shadow = container.attachShadow({ mode: 'open' });
-              
-              // Inject scoped CSS inside shadow root for tables, links and text inheritances
-              const style = document.createElement('style');
-              style.textContent = \`
-                :host {
-                  display: block;
-                  padding: 10px 14px;
-                  color: inherit;
-                  background-color: inherit;
-                }
-                table {
-                  width: 100% !important;
-                  border-collapse: collapse;
-                  margin: 6px 0;
-                  font-size: 11.5px;
-                  box-sizing: border-box;
-                  color: inherit;
-                }
-                th, td {
-                  border: 1px solid ${dark ? '#444' : '#ddd'};
-                  padding: 4px 6px;
-                  text-align: left;
-                  color: inherit;
-                }
-                th {
-                  background-color: ${dark ? '#2d2d2d' : '#eee'};
-                  font-weight: bold;
-                }
-                tr:nth-child(even) {
-                  background-color: ${dark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'};
-                }
-                a {
-                  color: #3B82F6;
-                  text-decoration: none;
-                  font-weight: 500;
-                }
-                a:hover {
-                  text-decoration: underline;
-                }
-                span, div, p, td, th {
-                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                }
-                /* Contrast overrides inside Shadow Root for inline styles in dark mode */
-                ${dark ? `
-                  [style*="color: black"], 
-                  [style*="color:#000000"], 
-                  [style*="color:#000"],
-                  [color="black"],
-                  [color="#000000"],
-                  [color="#000"] {
-                    color: #e0e0e0 !important;
-                  }
-                  [style*="background-color: white"],
-                  [style*="background-color:#ffffff"],
-                  [style*="background-color:#fff"],
-                  [bgcolor="white"],
-                  [bgcolor="#ffffff"],
-                  [bgcolor="#fff"] {
-                    background-color: transparent !important;
-                  }
-                ` : ''}
-              \`;
-              shadow.appendChild(style);
+        window.DEFINITIONS_DATA = ${escapedDefsJson};
 
-              const contentDiv = document.createElement('div');
-              contentDiv.innerHTML = template.innerHTML;
-              shadow.appendChild(contentDiv);
-            } catch (err) {
-              console.error('Shadow DOM mounting failed, falling back to direct DOM insertion:', err);
-              // Fallback for browsers/WebViews where attachShadow is not fully functional
-              const contentDiv = document.createElement('div');
-              contentDiv.className = 'dict-content';
-              contentDiv.innerHTML = template.innerHTML;
-              body.appendChild(contentDiv);
-              if (container) {
-                container.style.display = 'none';
-              }
+        function isDarkColor(colorStr) {
+          colorStr = colorStr.trim().toLowerCase();
+          if (!colorStr) return false;
+          if (colorStr === 'black' || colorStr === 'darkgray' || colorStr === 'dimgray' || colorStr === '#0b0b3b' || colorStr === '#0b173b') return true;
+          if (colorStr === 'inherit' || colorStr === 'transparent' || colorStr === 'initial') return false;
+          
+          if (colorStr.indexOf('#') === 0) {
+            var hex = colorStr.substring(1);
+            var r, g, b;
+            if (hex.length === 3) {
+              r = parseInt(hex[0] + hex[0], 16);
+              g = parseInt(hex[1] + hex[1], 16);
+              b = parseInt(hex[2] + hex[2], 16);
+            } else if (hex.length === 6) {
+              r = parseInt(hex.substring(0, 2), 16);
+              g = parseInt(hex.substring(2, 4), 16);
+              b = parseInt(hex.substring(4, 6), 16);
+            } else {
+              return false;
+            }
+            var brightness = Math.sqrt(0.299*r*r + 0.587*g*g + 0.114*b*b);
+            return brightness < 135;
+          }
+          
+          if (colorStr.indexOf('rgb') === 0) {
+            var matches = colorStr.match(/\\d+/g);
+            if (matches && matches.length >= 3) {
+              var r = parseInt(matches[0]);
+              var g = parseInt(matches[1]);
+              var b = parseInt(matches[2]);
+              var brightness = Math.sqrt(0.299*r*r + 0.587*g*g + 0.114*b*b);
+              return brightness < 135;
             }
           }
-        });
+          return false;
+        }
+
+        function isLightColor(colorStr) {
+          colorStr = colorStr.trim().toLowerCase();
+          if (!colorStr) return false;
+          if (colorStr === 'white' || colorStr === 'lightgray' || colorStr === 'whitesmoke') return true;
+          
+          if (colorStr.indexOf('#') === 0) {
+            var hex = colorStr.substring(1);
+            var r, g, b;
+            if (hex.length === 3) {
+              r = parseInt(hex[0] + hex[0], 16);
+              g = parseInt(hex[1] + hex[1], 16);
+              b = parseInt(hex[2] + hex[2], 16);
+            } else if (hex.length === 6) {
+              r = parseInt(hex.substring(0, 2), 16);
+              g = parseInt(hex.substring(2, 4), 16);
+              b = parseInt(hex.substring(4, 6), 16);
+            } else {
+              return false;
+            }
+            var brightness = Math.sqrt(0.299*r*r + 0.587*g*g + 0.114*b*b);
+            return brightness > 200;
+          }
+          
+          if (colorStr.indexOf('rgb') === 0) {
+            var matches = colorStr.match(/\\d+/g);
+            if (matches && matches.length >= 3) {
+              var r = parseInt(matches[0]);
+              var g = parseInt(matches[1]);
+              var b = parseInt(matches[2]);
+              var brightness = Math.sqrt(0.299*r*r + 0.587*g*g + 0.114*b*b);
+              return brightness > 200;
+            }
+          }
+          return false;
+        }
+
+        function adjustColors(root) {
+          var elements = root.querySelectorAll('*');
+          for (var i = 0; i < elements.length; i++) {
+            var el = elements[i];
+            
+            var colorAttr = el.getAttribute('color');
+            if (colorAttr && isDarkColor(colorAttr)) {
+              el.setAttribute('color', '#e2e8f0');
+            }
+            
+            if (el.style && el.style.color && isDarkColor(el.style.color)) {
+              el.style.color = '#e2e8f0';
+            }
+            
+            if (el.style && el.style.backgroundColor && isLightColor(el.style.backgroundColor)) {
+              el.style.backgroundColor = 'transparent';
+            }
+            
+            var bgColorAttr = el.getAttribute('bgcolor');
+            if (bgColorAttr && isLightColor(bgColorAttr)) {
+              el.setAttribute('bgcolor', 'transparent');
+            }
+          }
+        }
+
+        // Mount isolated definition HTML to Shadow DOM container or fallback
+        (function() {
+          var defs = window.DEFINITIONS_DATA || [];
+          defs.forEach(function(defItem) {
+            var card = document.querySelector('.dict-card[data-dict-id="' + defItem.dict_id + '"]');
+            if (!card) return;
+            var container = card.querySelector('.shadow-container');
+            var fallback = card.querySelector('.fallback-container');
+            var html = defItem.definition;
+            
+            if (container) {
+              try {
+                var shadow = container.attachShadow({ mode: 'open' });
+                
+                // Inject scoped CSS inside shadow root
+                var style = document.createElement('style');
+                style.textContent = \`
+                  :host {
+                    display: block;
+                    padding: 10px 14px;
+                    color: inherit;
+                    background-color: inherit;
+                  }
+                  table {
+                    width: 100% !important;
+                    border-collapse: collapse;
+                    margin: 6px 0;
+                    font-size: 11.5px;
+                    box-sizing: border-box;
+                    color: inherit;
+                  }
+                  th, td {
+                    border: 1px solid ${dark ? '#444' : '#ddd'};
+                    padding: 4px 6px;
+                    text-align: left;
+                    color: inherit;
+                  }
+                  th {
+                    background-color: ${dark ? '#2d2d2d' : '#eee'};
+                    font-weight: bold;
+                  }
+                  tr:nth-child(even) {
+                    background-color: ${dark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'};
+                  }
+                  a {
+                    color: #3B82F6;
+                    text-decoration: none;
+                    font-weight: 500;
+                  }
+                  a:hover {
+                    text-decoration: underline;
+                  }
+                  span, div, p, td, th {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                  }
+                  /* Contrast overrides inside Shadow Root for inline styles in dark mode */
+                  ${dark ? `
+                    [style*="color: black"], 
+                    [style*="color:#000000"], 
+                    [style*="color:#000"],
+                    [color="black"],
+                    [color="#000000"],
+                    [color="#000"] {
+                      color: #e0e0e0 !important;
+                    }
+                    [style*="background-color: white"],
+                    [style*="background-color:#ffffff"],
+                    [style*="background-color:#fff"],
+                    [bgcolor="white"],
+                    [bgcolor="#ffffff"],
+                    [bgcolor="#fff"] {
+                      background-color: transparent !important;
+                    }
+                  ` : ''}
+                \`;
+                shadow.appendChild(style);
+
+                var contentDiv = document.createElement('div');
+                contentDiv.innerHTML = html;
+                if (${dark}) {
+                  adjustColors(contentDiv);
+                }
+                shadow.appendChild(contentDiv);
+                if (fallback) {
+                  fallback.style.display = 'none';
+                }
+              } catch (err) {
+                console.error('Shadow DOM mounting failed, falling back to direct DOM insertion:', err);
+                if (fallback) {
+                  fallback.className = 'dict-content';
+                  fallback.innerHTML = html;
+                  if (${dark}) {
+                    adjustColors(fallback);
+                  }
+                }
+                if (container) {
+                  container.style.display = 'none';
+                }
+              }
+            }
+          });
+        })();
 
         // Collapse toggle handler
-        document.querySelectorAll('.dict-header').forEach(header => {
-          header.addEventListener('click', () => {
-            const card = header.closest('.dict-card');
+        document.querySelectorAll('.dict-header').forEach(function(header) {
+          header.addEventListener('click', function() {
+            var card = header.closest('.dict-card');
             card.classList.toggle('collapsed');
-            const dictId = card.getAttribute('data-dict-id');
-            const isCollapsed = card.classList.contains('collapsed');
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'toggleCollapse',
-              dictId: dictId,
-              isCollapsed: isCollapsed
-            }));
+            var dictId = card.getAttribute('data-dict-id');
+            var isCollapsed = card.classList.contains('collapsed');
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'toggleCollapse',
+                dictId: dictId,
+                isCollapsed: isCollapsed
+              }));
+            }
           });
         });
 
-        // Intercept entry links compost bubbles (composition path handles shadow DOM targets)
-        document.addEventListener('click', e => {
-          const path = e.composedPath();
-          let link = null;
-          for (const node of path) {
-            if (node.tagName === 'A') {
-              link = node;
+        // Intercept entry links
+        document.addEventListener('click', function(e) {
+          var path = e.composedPath();
+          var link = null;
+          for (var i = 0; i < path.length; i++) {
+            if (path[i].tagName === 'A') {
+              link = path[i];
               break;
             }
           }
           if (link) {
-            const href = link.getAttribute('href');
-            if (href && href.startsWith('entry://')) {
+            var href = link.getAttribute('href');
+            if (href && href.indexOf('entry://') === 0) {
               e.preventDefault();
-              const word = href.replace('entry://', '');
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'link',
-                word: word
-              }));
+              var word = href.replace('entry://', '');
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'link',
+                  word: word
+                }));
+              }
             }
           }
         });
@@ -375,12 +503,15 @@ export default function DictionaryScreen() {
   const [dictionaries, setDictionaries] = useState<DictionaryInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [backgroundSearching, setBackgroundSearching] = useState(false);
+  const [backgroundProgress, setBackgroundProgress] = useState({ loaded: 0, total: 0 });
   const [history, setHistory] = useState<string[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [collapsedDicts, setCollapsedDicts] = useState<{ [dictId: string]: boolean }>({});
 
   const textInputRef = useRef<TextInput>(null);
+  const currentSearchRef = useRef<string>('');
 
   // Load dictionaries and history on focus (in case config changed in settings)
   useFocusEffect(
@@ -407,11 +538,26 @@ export default function DictionaryScreen() {
             setCollapsedDicts(JSON.parse(storedCollapsed));
           }
 
-          // Pre-load enabled dictionary instances in the background concurrently to eliminate lookup lag
+          // Pre-load enabled dictionary instances sequentially in the background with a delay.
+          // This keeps the JavaScript thread completely free and lag-free for user input at screen entry,
+          // while still populating the loaded caches in the background.
           const enabledIds = dicts.filter(d => d.isEnabled).map(d => d.id);
-          Promise.all(enabledIds.map(id => getOrLoadMDXInstance(id))).catch(err => {
-            console.error('Failed to preload dictionaries in background:', err);
-          });
+          (async () => {
+            // Wait 100ms first to ensure the UI transitions and mounts smoothly
+            await new Promise(resolve => setTimeout(resolve, 100));
+            for (let i = 0; i < enabledIds.length; i++) {
+              const id = enabledIds[i];
+              try {
+                await getOrLoadMDXInstance(id);
+              } catch (err) {
+                console.error(`Failed to preload dictionary ${id}:`, err);
+              }
+              // Wait 600ms between each dictionary loading to give the JS thread breathing room for typing
+              if (i < enabledIds.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 600));
+              }
+            }
+          })();
         } catch (e) {
           console.error('Failed to init dictionary screen:', e);
         } finally {
@@ -473,34 +619,137 @@ export default function DictionaryScreen() {
     await AsyncStorage.removeItem(HISTORY_KEY);
   };
 
-  // Perform word lookup definitions
+  // Perform word lookup definitions progressively
   const handleSearch = async (word: string) => {
     if (!word.trim()) return;
     Keyboard.dismiss();
     setIsFocused(false);
     setSearchQuery(word);
     setActiveWord(word);
+    
+    // Track search sequence to avoid race conditions
+    currentSearchRef.current = word;
+    
+    // Clear old definitions first, and start primary search spinner
+    setDefinitions([]);
     setSearching(true);
+    setBackgroundSearching(false);
 
     try {
-      const defs = await getDefinitions(word, enabledDictIds);
-      setDefinitions(defs);
       await saveToHistory(word);
-    } catch (err) {
-      console.error(err);
-    } finally {
+
+      // Separate enabled dictionaries by their loaded status
+      const loadedDictIds = enabledDictIds.filter(id => isMDXInstanceLoaded(id));
+      const pendingDictIds = enabledDictIds.filter(id => !isMDXInstanceLoaded(id));
+
+      const initialDefs: { dict_id: string; definition: string }[] = [];
+
+      // 1. First stage: Query already loaded dictionaries instantly
+      if (loadedDictIds.length > 0) {
+        const lookupPromises = loadedDictIds.map(async (dictId) => {
+          try {
+            return await getSingleDefinition(word, dictId);
+          } catch (e) {
+            console.error(`Failed to lookup already loaded dict ${dictId}:`, e);
+            return null;
+          }
+        });
+        const results = await Promise.all(lookupPromises);
+        results.forEach(res => {
+          if (res) initialDefs.push(res);
+        });
+      }
+
+      // Check if user has navigated away or searched another word before updating state
+      if (currentSearchRef.current !== word) return;
+
+      // Render initial results instantly and turn off main spinner
+      setDefinitions(initialDefs);
       setSearching(false);
+
+      // 2. Second stage: progressive background querying for pending dictionaries
+      if (pendingDictIds.length > 0) {
+        setBackgroundSearching(true);
+        setBackgroundProgress({ loaded: 0, total: pendingDictIds.length });
+
+        (async () => {
+          let loadedCount = 0;
+          const currentWord = word;
+          
+          for (const dictId of pendingDictIds) {
+            // Stop background loading if search target changed
+            if (currentSearchRef.current !== currentWord) break;
+            
+            try {
+              // Yield control to let React Native UI thread paint and keep animations fluid
+              await new Promise(resolve => setTimeout(resolve, 50));
+              if (currentSearchRef.current !== currentWord) break;
+              
+              const def = await getSingleDefinition(currentWord, dictId);
+              if (currentSearchRef.current !== currentWord) break;
+              
+              if (def) {
+                setDefinitions(prev => {
+                  if (currentSearchRef.current !== currentWord) return prev;
+                  const newDefs = [...prev, def];
+                  // Maintain user preferred dictionary display order
+                  return newDefs.sort((a, b) => {
+                    const idxA = enabledDictIds.indexOf(a.dict_id);
+                    const idxB = enabledDictIds.indexOf(b.dict_id);
+                    return idxA - idxB;
+                  });
+                });
+              }
+            } catch (err) {
+              console.error(`Progressive background lookup error for ${dictId}:`, err);
+            } finally {
+              if (currentSearchRef.current === currentWord) {
+                loadedCount++;
+                setBackgroundProgress({ loaded: loadedCount, total: pendingDictIds.length });
+              }
+            }
+          }
+          
+          if (currentSearchRef.current === currentWord) {
+            setBackgroundSearching(false);
+          }
+        })();
+      }
+    } catch (err) {
+      console.error('Error during progressive search:', err);
+      if (currentSearchRef.current === word) {
+        setSearching(false);
+        setBackgroundSearching(false);
+      }
     }
   };
 
   const handleClearSearch = () => {
+    currentSearchRef.current = '';
     setSearchQuery('');
     setSuggestions([]);
     setDefinitions([]);
     setActiveWord('');
+    setSearching(false);
+    setBackgroundSearching(false);
     setIsFocused(true);
     textInputRef.current?.focus();
   };
+
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // If there is an active word showing definitions, intercept the back action,
+      // clear the search to go back to the wait-for-input state, and prevent screen exit.
+      if (activeWord) {
+        e.preventDefault();
+        handleClearSearch();
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, activeWord]);
 
   const handleWebViewMessage = (event: any) => {
     try {
@@ -653,7 +902,17 @@ export default function DictionaryScreen() {
                 <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 6 }}>
                   {/* Word title banner */}
                   <View style={[styles.wordBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <Text style={[styles.wordTitle, { color: colors.textPrimary }]}>{activeWord}</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <Text style={[styles.wordTitle, { color: colors.textPrimary }]}>{activeWord}</Text>
+                      {backgroundSearching && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <ActivityIndicator size="small" color="#A31621" style={{ marginRight: 6 }} />
+                          <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                            正在检索其余 {backgroundProgress.total - backgroundProgress.loaded} 个词库...
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
 
                   {definitions.length > 0 ? (

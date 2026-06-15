@@ -29,7 +29,7 @@ function newUint8Array(buf, offset, len) {
 }
 
 function readUTF16(buf, offset, length) {
-    return UTF_16LE_DECODER.decode(newUint8Array(buf, offset, length));
+    return UTF_16LE_DECODER.decode(new Uint8Array(newUint8Array(buf, offset, length)));
 }
 
 function getExtension(filename, defaultExt) {
