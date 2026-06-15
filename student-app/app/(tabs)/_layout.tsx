@@ -70,7 +70,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
         toValue: focused ? 1.08 : 1.0,
         duration: 180,
         easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(colorAnim, {
         toValue: focused ? 1 : 0,
