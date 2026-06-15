@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -236,16 +237,7 @@ export default function RateConverterScreen() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border, zIndex: 10 }]}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <View style={{
-            width: 10,
-            height: 10,
-            borderLeftWidth: 2,
-            borderBottomWidth: 2,
-            borderColor: colors.primary,
-            transform: [{ rotate: '45deg' }],
-            marginHorizontal: 8,
-            marginVertical: 4,
-          }} />
+          <MaterialIcons name="arrow-back" size={24} color={colors.primary} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>汇率换算</Text>
         <Pressable style={styles.refreshBtn} onPress={() => fetchRates(true)} disabled={loading}>

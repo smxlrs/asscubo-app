@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useColorScheme, View } from 'react-native';
+import { useColorScheme, View, Platform, NativeModules } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const safeStorage = {
@@ -21,20 +21,22 @@ const safeStorage = {
 };
 
 export type ThemeMode = 'light' | 'dark' | 'system' | 'custom';
-export type Language = 'zh' | 'en' | 'it';
+export type Language = 'zh' | 'zh-Hant' | 'en' | 'it';
+export type LanguageMode = 'system' | 'zh' | 'zh-Hant' | 'en' | 'it';
 
 type ThemeContextType = {
   themeMode: ThemeMode;
   customStart: string;
   customEnd: string;
   language: Language;
+  languageMode: LanguageMode;
   isDark: boolean;
   colors: typeof darkColors;
   t: (key: string) => string;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
   setCustomStart: (time: string) => Promise<void>;
   setCustomEnd: (time: string) => Promise<void>;
-  setLanguage: (lang: Language) => Promise<void>;
+  setLanguage: (lang: LanguageMode) => Promise<void>;
   isReady: boolean;
 };
 
@@ -135,7 +137,7 @@ const translations: Record<Language, Record<string, string>> = {
     regSuccess: '注册成功！',
     
     // New About Subpages & Feedback translation keys
-    appName: '学联官方平台',
+    appName: '博学',
     aboutACSS: '关于学联',
     platformIntro: '平台简介',
     versionLabel: '版本',
@@ -217,7 +219,7 @@ const translations: Record<Language, Record<string, string>> = {
     regSuccess: 'Registered Successfully!',
 
     // New About Subpages & Feedback translation keys
-    appName: 'ACSS Platform',
+    appName: 'Boxue',
     aboutACSS: 'About ACSS',
     platformIntro: 'Platform Intro',
     versionLabel: 'Version',
@@ -299,7 +301,7 @@ const translations: Record<Language, Record<string, string>> = {
     regSuccess: 'Registrato con Successo!',
 
     // New About Subpages & Feedback translation keys
-    appName: 'Piattaforma ACSS',
+    appName: 'Boxue',
     aboutACSS: 'Info ACSS',
     platformIntro: 'Introduzione',
     versionLabel: 'Versione',
@@ -314,8 +316,127 @@ const translations: Record<Language, Record<string, string>> = {
     feedbackSuccess: 'Feedback inviato con successo! Grazie.',
     feedbackError: 'Si prega di compilare tutti i campi',
     acssDescription: "L'Associazione degli Studenti e Studiosi Cinesi in Europa è un'organizzazione dedicata a servire gli studiosi, tutelare i diritti e promuovere scambi culturali e accademici."
+  },
+  'zh-Hant': {
+    home: '首頁',
+    notifications: '通知',
+    tools: '工具',
+    profile: '我的',
+    settings: '設置',
+    about: '關於',
+    logout: '退出登錄',
+    login: '登錄帳戶',
+    guestMode: '遊客模式',
+    loginPrompt: '登錄即可體驗完整功能',
+    hello: '你好，',
+    studentRole: '普通學生學者',
+    adminRole: '管理員',
+    systemSettings: '系統設置',
+    dataStorage: '數據與存儲',
+    legalTerms: '法律與條款',
+    privacyPolicy: '隱私政策',
+    userAgreement: '用戶協議',
+    clearCache: '清除緩存',
+    cacheCleared: '緩存清除成功！',
+    confirmClearCache: '確定要清除應用緩存嗎？',
+    cancel: '取消',
+    confirm: '確定',
+    languageSetting: '語言設置',
+    themeSetting: '主題模式',
+    appInfo: '平台簡介',
+    contactUs: '聯繫我們',
+    officialWebsite: '官方網站',
+    wechatPub: '微信公眾號',
+    serviceEmail: '客服郵箱',
+    copyright: '歐洲學生學者聯合會. \nAll rights reserved.',
+    version: '版本: 1.0.0 (Beta)',
+    aboutDescription: '本應用是由歐洲學生學者聯合會官方出品的一站式校園生活服務平台，旨在為廣大留歐學生學者提供最及時權威的信息資訊、最實用的生活學術工具以及充滿活力的青年社區。',
+    back: '返回',
+    save: '保存',
+    lightMode: '淺色模式',
+    darkMode: '深色模式',
+    systemMode: '跟隨系統',
+    customMode: '自定義時間',
+    customTimeRange: '在此時間段內切換至深色模式。',
+    startTime: '開始時間',
+    endTime: '結束時間',
+    emptyContent: '內容建設中...',
+    noNotifications: '暫無新通知',
+    toolsDeveloping: '工具箱正在研發中...',
+    guestExplore: '暫不登錄，遊客探索',
+    emailLabel: '電子郵箱',
+    passwordLabel: '登錄密碼',
+    emailPlaceholder: '請輸入郵箱地址',
+    passwordPlaceholder: '請輸入密碼',
+    registerLabel: '註冊帳戶',
+    registerLink: '立即註冊',
+    noAccount: '還沒有帳戶？',
+    hasAccount: '已有帳戶？',
+    loginLink: '立即登錄',
+    nameLabel: '姓名 / 暱稱',
+    namePlaceholder: '請輸入您的姓名',
+    emailRegPlaceholder: '建議使用您的大學郵箱',
+    passwordRegPlaceholder: '請輸入密碼 (至少6位)',
+    successRegTitle: '註冊申請已提交',
+    successRegText: '我們已向您的郵箱發送了一封驗證郵件，請打開郵件並點擊其中的驗證鏈接激活帳戶。',
+    successRegSubtext: '驗證成功後，您可以返回此頁面進行登錄。',
+    regSuccess: '註冊成功！',
+    appName: '博學',
+    aboutACSS: '關於學聯',
+    platformIntro: '平台簡介',
+    versionLabel: '版本',
+    feedback: '反饋',
+    checkUpdate: '檢查更新',
+    checkingUpdate: '正在檢查更新...',
+    noUpdate: '當前已是最新版本！',
+    contactInfo: '聯繫方式 (微信/手機/郵箱)',
+    feedbackContent: '反饋內容',
+    submit: '提交',
+    submitting: '提交中...',
+    feedbackSuccess: '反饋提交成功！感謝您的寶貴意見。',
+    feedbackError: '請填寫完整內容',
+    acssDescription: '歐洲學生學者聯合會是由在歐留學的廣大中國學生學者組成的自治組織，致力於服務留學人員，維護合法權益，促進中歐學術文化交流。'
   }
 };
+
+function getSystemLanguage(): Language {
+  let locale = 'zh';
+  try {
+    if (Platform.OS === 'ios') {
+      const settings = NativeModules.SettingsManager?.settings;
+      locale = settings?.AppleLocale || settings?.AppleLanguages?.[0] || 'zh';
+    } else if (Platform.OS === 'android') {
+      locale = NativeModules.I18nManager?.localeIdentifier || 'zh';
+    }
+  } catch (e) {
+    console.warn('Failed to get system language, falling back to zh:', e);
+  }
+
+  const cleanLocale = locale.replace('_', '-').toLowerCase();
+
+  if (
+    cleanLocale.includes('zh-hant') || 
+    cleanLocale.includes('-tw') || 
+    cleanLocale.includes('-hk') || 
+    cleanLocale.includes('-mo')
+  ) {
+    return 'zh-Hant';
+  }
+
+  if (cleanLocale.startsWith('zh')) {
+    return 'zh';
+  }
+
+  if (cleanLocale.startsWith('en')) {
+    return 'en';
+  }
+
+  if (cleanLocale.startsWith('it')) {
+    return 'it';
+  }
+
+  return 'zh';
+}
 
 const ThemeContext = createContext<ThemeContextType>({} as ThemeContextType);
 
@@ -323,7 +444,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
   const [customStart, setCustomStartState] = useState('20:00');
   const [customEnd, setCustomEndState] = useState('07:00');
-  const [language, setLanguageState] = useState<Language>('zh');
+  const [languageMode, setLanguageModeState] = useState<LanguageMode>('system');
   const [isReady, setIsReady] = useState(false);
   const [tick, setTick] = useState(0);
 
@@ -335,12 +456,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const savedMode = await safeStorage.getItem('theme_mode');
         const savedStart = await safeStorage.getItem('custom_start');
         const savedEnd = await safeStorage.getItem('custom_end');
-        const savedLang = await safeStorage.getItem('language');
+        const savedLang = await safeStorage.getItem('language'); // Legacy
+        const savedLangMode = await safeStorage.getItem('language_mode');
 
         if (savedMode) setThemeModeState(savedMode as ThemeMode);
         if (savedStart) setCustomStartState(savedStart);
         if (savedEnd) setCustomEndState(savedEnd);
-        if (savedLang) setLanguageState(savedLang as Language);
+
+        let initialMode: LanguageMode = 'system';
+        if (savedLangMode) {
+          initialMode = savedLangMode as LanguageMode;
+        } else if (savedLang) {
+          initialMode = savedLang as LanguageMode;
+        }
+        setLanguageModeState(initialMode);
       } catch (e) {
         console.error('Failed to load theme settings', e);
       } finally {
@@ -383,8 +512,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const isDark = getIsDark();
   const colors = isDark ? darkColors : lightColors;
 
+  const getActiveLanguage = (mode: LanguageMode): Language => {
+    if (mode === 'system') {
+      return getSystemLanguage();
+    }
+    return mode;
+  };
+
+  const language = getActiveLanguage(languageMode);
+
   const t = (key: string) => {
-    return translations[language][key] || key;
+    return translations[language]?.[key] || translations['zh'][key] || key;
   };
 
   const setThemeMode = async (mode: ThemeMode) => {
@@ -402,9 +540,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await safeStorage.setItem('custom_end', time);
   };
 
-  const setLanguage = async (lang: Language) => {
-    setLanguageState(lang);
-    await safeStorage.setItem('language', lang);
+  const setLanguage = async (mode: LanguageMode) => {
+    setLanguageModeState(mode);
+    await safeStorage.setItem('language_mode', mode);
   };
 
   if (!isReady) {
@@ -417,6 +555,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       customStart,
       customEnd,
       language,
+      languageMode,
       isDark,
       colors,
       t,

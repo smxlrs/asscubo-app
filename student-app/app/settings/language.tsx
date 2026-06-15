@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { useTheme, Language } from '../../context/ThemeContext';
+import { useTheme, LanguageMode } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LanguageSettingsScreen() {
-  const { colors, t, language, setLanguage } = useTheme();
+  const { colors, t, languageMode, setLanguage } = useTheme();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -33,17 +33,19 @@ export default function LanguageSettingsScreen() {
         </View>
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {([
+            { id: 'system', label: t('systemMode') },
             { id: 'zh', label: '简体中文' },
+            { id: 'zh-Hant', label: '繁體中文' },
             { id: 'en', label: 'English' },
             { id: 'it', label: 'Italiano' }
-          ] as { id: Language; label: string }[]).map((lang) => (
+          ] as { id: LanguageMode; label: string }[]).map((lang) => (
             <Pressable 
               key={lang.id}
               style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
               onPress={() => setLanguage(lang.id)}
             >
               <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{lang.label}</Text>
-              {language === lang.id && (
+              {languageMode === lang.id && (
                 <Text style={[styles.checkmark, { color: colors.primaryLight }]}>✓</Text>
               )}
             </Pressable>

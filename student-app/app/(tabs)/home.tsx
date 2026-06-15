@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS, SHADOWS } from '../../constants/theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type Article = {
   id: string;
@@ -109,7 +110,7 @@ export default function HomeScreen() {
           <View style={styles.headerContent}>
             <View>
               <Text style={styles.greeting}>{greeting}，{profile?.name || '同学'} 👋</Text>
-              <Text style={styles.headerSubtitle}>学联之家 · 连接校园生活</Text>
+              <Text style={styles.headerSubtitle}>博学 · 连接校园生活</Text>
             </View>
             <TouchableOpacity
               style={styles.avatarButton}
@@ -145,10 +146,10 @@ export default function HomeScreen() {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           {[
-            { icon: '📢', label: '公告', route: '/(tabs)/announcements' },
-            { icon: '📅', label: '活动', route: '/(tabs)/events' },
-            { icon: '📖', label: '手册', route: '/(tabs)/handbook' },
-            { icon: '💬', label: '社群', route: '/(tabs)/community' },
+            { icon: 'bullhorn-outline', label: '公告', route: '/(tabs)/announcements' },
+            { icon: 'calendar-month-outline', label: '活动', route: '/(tabs)/events' },
+            { icon: 'book-open-variant', label: '手册', route: '/(tabs)/handbook' },
+            { icon: 'forum-outline', label: '社群', route: '/(tabs)/community' },
           ].map((item) => (
             <TouchableOpacity
               key={item.label}
@@ -157,7 +158,7 @@ export default function HomeScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.quickActionIcon}>
-                <Text style={styles.quickActionEmoji}>{item.icon}</Text>
+                <MaterialCommunityIcons name={item.icon as any} size={24} color={COLORS.primary} />
               </View>
               <Text style={styles.quickActionLabel}>{item.label}</Text>
             </TouchableOpacity>

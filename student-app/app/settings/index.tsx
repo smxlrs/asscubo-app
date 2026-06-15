@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsIndexScreen() {
-  const { colors, t, themeMode, language } = useTheme();
+  const { colors, t, themeMode, languageMode } = useTheme();
   const [cacheSize, setCacheSize] = useState('12.4 MB');
 
   const handleClearCache = () => {
@@ -30,9 +30,11 @@ export default function SettingsIndexScreen() {
   };
 
   const getLanguageLabel = () => {
-    if (language === 'zh') return '简体中文';
-    if (language === 'en') return 'English';
-    if (language === 'it') return 'Italiano';
+    if (languageMode === 'system') return t('systemMode');
+    if (languageMode === 'zh') return '简体中文';
+    if (languageMode === 'zh-Hant') return '繁體中文';
+    if (languageMode === 'en') return 'English';
+    if (languageMode === 'it') return 'Italiano';
     return '';
   };
 

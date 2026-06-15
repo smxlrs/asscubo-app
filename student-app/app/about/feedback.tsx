@@ -20,48 +20,56 @@ export default function FeedbackScreen() {
   const getWechatLabel = () => {
     if (language === 'it') return 'WeChat (Opzionale)';
     if (language === 'en') return 'WeChat (Optional)';
+    if (language === 'zh-Hant') return '微信 (選填)';
     return '微信 (选填)';
   };
 
   const getWechatPlaceholder = () => {
     if (language === 'it') return 'Inserisci WeChat ID';
     if (language === 'en') return 'Enter WeChat ID';
+    if (language === 'zh-Hant') return '請輸入微訊號';
     return '请输入微信号';
   };
 
   const getEmailPlaceholder = () => {
     if (language === 'it') return 'Inserisci l\'indirizzo e-mail';
     if (language === 'en') return 'Enter email address';
+    if (language === 'zh-Hant') return '請輸入郵箱地址';
     return '请输入邮箱地址';
   };
 
   const getFeedbackPlaceholder = () => {
     if (language === 'it') return 'Inserisci il tuo feedback...';
     if (language === 'en') return 'Enter your feedback...';
+    if (language === 'zh-Hant') return '請填寫您的寶貴意見...';
     return '请填写您的宝贵意见...';
   };
 
   const getUploadLabel = () => {
     if (language === 'it') return 'Carica immagine o video';
     if (language === 'en') return 'Upload image or video';
+    if (language === 'zh-Hant') return '上傳圖片或視頻';
     return '上传图片或视频';
   };
 
   const getUploadWarning = () => {
     if (language === 'it') return 'Abbiamo bisogno dell\'autorizzazione per accedere alla galleria.';
     if (language === 'en') return 'We need media library permissions to upload images or videos.';
+    if (language === 'zh-Hant') return '我們需要相冊訪問權限來上傳圖片或視頻。';
     return '我们需要相册访问权限来上传图片或视频。';
   };
 
   const getInvalidEmailWarning = () => {
     if (language === 'it') return 'Inserisci un indirizzo e-mail valido';
     if (language === 'en') return 'Please enter a valid email address';
+    if (language === 'zh-Hant') return '請輸入有效的郵箱地址';
     return '请输入有效的邮箱地址';
   };
 
   const getFillFieldsWarning = () => {
     if (language === 'it') return 'Si prega di inserire l\'e-mail e il contenuto del feedback';
     if (language === 'en') return 'Please fill in your email and feedback content';
+    if (language === 'zh-Hant') return '請填寫郵箱和反饋內容';
     return '请填写邮箱和反馈内容';
   };
 

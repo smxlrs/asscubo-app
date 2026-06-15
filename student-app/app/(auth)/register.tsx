@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -24,6 +25,7 @@ export default function RegisterScreen() {
   const [success, setSuccess] = useState(false);
 
   const { signUp } = useAuth();
+  const { colors } = useTheme();
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
@@ -55,17 +57,19 @@ export default function RegisterScreen() {
 
   if (success) {
     return (
-      <View style={styles.successContainer}>
-        <Text style={styles.successIcon}>✉️</Text>
-        <Text style={styles.successTitle}>注册申请已提交</Text>
-        <Text style={styles.successText}>
+      <View style={[styles.successContainer, { backgroundColor: colors.background }]}>
+        <View style={[styles.logoContainer, { backgroundColor: colors.primarySoft }]}>
+          <MaterialCommunityIcons name="email-open-outline" size={44} color={colors.primary} />
+        </View>
+        <Text style={[styles.successTitle, { color: colors.textPrimary }]}>注册申请已提交</Text>
+        <Text style={[styles.successText, { color: colors.textPrimary }]}>
           我们已向您的邮箱发送了一封验证邮件，请打开邮件并点击其中的验证链接激活账户。
         </Text>
-        <Text style={styles.successSubtext}>
+        <Text style={[styles.successSubtext, { color: colors.textSecondary }]}>
           验证成功后，您可以返回此页面进行登录。
         </Text>
         <Link href="/(auth)/login" asChild>
-          <Pressable style={styles.successButton}>
+          <Pressable style={[styles.successButton, { backgroundColor: colors.primary }]}>
             <Text style={styles.successButtonText}>返回登录</Text>
           </Pressable>
         </Link>
@@ -76,39 +80,39 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
           <View style={styles.header}>
-            <Text style={styles.title}>创建账户</Text>
-            <Text style={styles.subtitle}>加入学联官方平台</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>创建账户</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>加入博学平台</Text>
           </View>
 
           <View style={styles.form}>
             {errorMsg && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{errorMsg}</Text>
+              <View style={[styles.errorContainer, { backgroundColor: colors.error + '15', borderColor: colors.error }]}>
+                <Text style={[styles.errorText, { color: colors.error }]}>{errorMsg}</Text>
               </View>
             )}
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>姓名 / 昵称</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>姓名 / 昵称</Text>
               <TextInput 
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 placeholder="请输入您的姓名"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={name}
                 onChangeText={setName}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>电子邮箱</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>电子邮箱</Text>
               <TextInput 
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 placeholder="建议使用您的大学邮箱"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -117,11 +121,11 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>设置密码 (至少 6 位)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>设置密码 (至少 6 位)</Text>
               <TextInput 
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 placeholder="请输入密码"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -130,7 +134,7 @@ export default function RegisterScreen() {
             </View>
 
             <Pressable 
-              style={[styles.button, loading && styles.buttonDisabled]} 
+              style={[styles.button, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]} 
               onPress={handleRegister}
               disabled={loading}
             >
@@ -142,10 +146,10 @@ export default function RegisterScreen() {
             </Pressable>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>已有账户？ </Text>
+              <Text style={[styles.footerText, { color: colors.textSecondary }]}>已有账户？ </Text>
               <Link href="/(auth)/login" asChild>
                 <Pressable>
-                  <Text style={styles.linkText}>立即登录</Text>
+                  <Text style={[styles.linkText, { color: colors.primaryLight }]}>立即登录</Text>
                 </Pressable>
               </Link>
             </View>
@@ -159,7 +163,6 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   inner: {
     flex: 1,
@@ -171,28 +174,23 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: COLORS.textPrimary,
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    fontSize: 13,
   },
   form: {
     width: '100%',
   },
   errorContainer: {
-    backgroundColor: COLORS.error + '20',
-    borderColor: COLORS.error,
     borderWidth: 1,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   errorText: {
-    color: COLORS.error,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -201,22 +199,17 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: COLORS.textSecondary,
     marginBottom: 6,
   },
   input: {
     height: 50,
-    backgroundColor: COLORS.surface,
-    borderColor: COLORS.border,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 16,
-    color: COLORS.textPrimary,
     fontSize: 15,
   },
   button: {
     height: 50,
-    backgroundColor: COLORS.primary,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -234,51 +227,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 24,
   },
   footerText: {
-    color: COLORS.textSecondary,
     fontSize: 14,
   },
   linkText: {
-    color: COLORS.primaryLight,
     fontSize: 14,
     fontWeight: 'bold',
   },
   successContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
-  successIcon: {
-    fontSize: 60,
-    marginBottom: 20,
+  logoContainer: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   successTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   successText: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
     marginBottom: 12,
   },
   successSubtext: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    fontSize: 13,
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
   },
   successButton: {
     width: '100%',
     height: 50,
-    backgroundColor: COLORS.primary,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',

@@ -2,34 +2,43 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
 
 export default function VerifyScreen() {
+  const { colors, isDark } = useTheme();
+
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={['#1A0508', '#0F0F0F']} style={StyleSheet.absoluteFill} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <LinearGradient 
+        colors={isDark ? ['#1A0508', '#0F0F0F'] : ['#FFF5F6', '#F5F7FA']} 
+        style={StyleSheet.absoluteFill} 
+      />
       <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Text style={styles.icon}>📬</Text>
+        <View style={[styles.iconContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+          <MaterialCommunityIcons name="email-open-outline" size={48} color={colors.primary} />
         </View>
-        <Text style={styles.title}>验证您的邮箱</Text>
-        <Text style={styles.description}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>验证您的邮箱</Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           我们已向您的教育邮箱发送了一封验证邮件。{'\n\n'}
           请点击邮件中的链接完成验证后，再回来登录。
         </Text>
-        <View style={styles.tipCard}>
-          <Text style={styles.tipTitle}>📋 注意事项</Text>
-          <Text style={styles.tipText}>• 验证邮件可能需要几分钟才能到达</Text>
-          <Text style={styles.tipText}>• 请检查垃圾邮件文件夹</Text>
-          <Text style={styles.tipText}>• 验证链接有效期为 24 小时</Text>
+        
+        <View style={[styles.tipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.tipTitle, { color: colors.textPrimary }]}>注意事项</Text>
+          <Text style={[styles.tipText, { color: colors.textSecondary }]}>• 验证邮件可能需要几分钟才能到达</Text>
+          <Text style={[styles.tipText, { color: colors.textSecondary }]}>• 请检查垃圾邮件文件夹</Text>
+          <Text style={[styles.tipText, { color: colors.textSecondary }]}>• 验证链接有效期为 24 小时</Text>
         </View>
+
         <TouchableOpacity
           style={styles.button}
           onPress={() => router.replace('/(auth)/login')}
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={[COLORS.primaryLight, COLORS.primaryDark]}
+            colors={[colors.primaryLight, colors.primary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
@@ -43,7 +52,9 @@ export default function VerifyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { 
+    flex: 1, 
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -51,51 +62,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: RADIUS.xl,
-    backgroundColor: COLORS.surface,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     borderWidth: 1,
-    borderColor: COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.xl,
   },
-  icon: { fontSize: 50 },
   title: {
     fontSize: SIZES.xxl,
     fontFamily: FONTS.bold,
-    color: COLORS.textPrimary,
     marginBottom: SPACING.base,
     textAlign: 'center',
   },
   description: {
     fontSize: SIZES.base,
     fontFamily: FONTS.regular,
-    color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: SPACING.xl,
   },
   tipCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
     width: '100%',
     marginBottom: SPACING.xl,
   },
   tipTitle: {
     fontSize: SIZES.md,
     fontFamily: FONTS.semiBold,
-    color: COLORS.textPrimary,
     marginBottom: SPACING.sm,
   },
   tipText: {
     fontSize: SIZES.md,
     fontFamily: FONTS.regular,
-    color: COLORS.textSecondary,
     marginBottom: SPACING.xs,
     lineHeight: 22,
   },

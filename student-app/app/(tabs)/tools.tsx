@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions } from 'react
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2;
@@ -41,7 +42,7 @@ export default function ToolsScreen() {
       id: 'handbook',
       title: '新生手册',
       description: '博洛尼亚大学中国学联新生手册，让你在博洛尼亚生活得更舒适，更开心。',
-      icon: '📖',
+      icon: 'book-open-variant',
       route: '/tools/handbook',
       badge: '推荐',
       color: '#A31621',
@@ -50,7 +51,7 @@ export default function ToolsScreen() {
       id: 'dictionary',
       title: '词典',
       description: '意汉、汉意、动词变位、动词搭配以及同义词等查询。',
-      icon: '✍️',
+      icon: 'translate',
       route: '/tools/dictionary',
       color: '#3B82F6',
     },
@@ -58,15 +59,23 @@ export default function ToolsScreen() {
       id: 'rate',
       title: '汇率换算',
       description: `今日实时汇率：1 EUR = ${eurToCny.toFixed(4)} CNY`,
-      icon: '💶',
+      icon: 'currency-eur',
       route: '/tools/rate',
       color: '#10B981',
+    },
+    {
+      id: 'classroom',
+      title: '空教室查询',
+      description: '实时查询博洛尼亚大学空闲教室，考前自习或讨论的好去处。',
+      icon: 'school-outline',
+      route: '/tools/classroom',
+      color: '#8B5CF6',
     },
     {
       id: 'faq',
       title: '常见问答',
       description: '居留、签证、租房等常见疑难一网打尽',
-      icon: '💡',
+      icon: 'help-circle-outline',
       color: '#F59E0B',
     }
   ];
@@ -109,7 +118,7 @@ export default function ToolsScreen() {
               )}
               
               <View style={[styles.iconContainer, { backgroundColor: tool.color + '15' }]}>
-                <Text style={styles.icon}>{tool.icon}</Text>
+                <MaterialCommunityIcons name={tool.icon as any} size={24} color={tool.color} />
               </View>
 
               <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{tool.title}</Text>

@@ -9,11 +9,13 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   TouchableWithoutFeedback, 
-  Keyboard 
+  Keyboard,
+  Image
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -22,6 +24,7 @@ export default function LoginScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const { signIn } = useAuth();
+  const { colors } = useTheme();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -49,29 +52,33 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
           <View style={styles.header}>
-            <Text style={styles.logo}>🏠</Text>
-            <Text style={styles.title}>学联官方平台</Text>
-            <Text style={styles.subtitle}>欧洲学生学者联合会官方移动端</Text>
+            <Image 
+              source={require('../../assets/images/logo.png')} 
+              style={styles.logoImage} 
+              resizeMode="contain"
+            />
+            <Text style={[styles.title, { color: colors.textPrimary }]}>博学</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>博洛尼亚大学中国学联官方移动端</Text>
           </View>
 
           <View style={styles.form}>
             {errorMsg && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{errorMsg}</Text>
+              <View style={[styles.errorContainer, { backgroundColor: colors.error + '15', borderColor: colors.error }]}>
+                <Text style={[styles.errorText, { color: colors.error }]}>{errorMsg}</Text>
               </View>
             )}
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>电子邮箱</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>电子邮箱</Text>
               <TextInput 
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 placeholder="请输入邮箱地址"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -80,11 +87,11 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>登录密码</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>登录密码</Text>
               <TextInput 
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 placeholder="请输入密码"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -93,7 +100,7 @@ export default function LoginScreen() {
             </View>
 
             <Pressable 
-              style={[styles.button, loading && styles.buttonDisabled]} 
+              style={[styles.button, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]} 
               onPress={handleLogin}
               disabled={loading}
             >
@@ -105,10 +112,10 @@ export default function LoginScreen() {
             </Pressable>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>还没有账户？ </Text>
+              <Text style={[styles.footerText, { color: colors.textSecondary }]}>还没有账户？ </Text>
               <Link href="/(auth)/register" asChild>
                 <Pressable>
-                  <Text style={styles.linkText}>立即注册</Text>
+                  <Text style={[styles.linkText, { color: colors.primaryLight }]}>立即注册</Text>
                 </Pressable>
               </Link>
             </View>
@@ -122,7 +129,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   inner: {
     flex: 1,
@@ -133,33 +139,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logo: {
-    fontSize: 50,
-    marginBottom: 10,
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    marginBottom: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: COLORS.textPrimary,
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    fontSize: 13,
   },
   form: {
     width: '100%',
   },
   errorContainer: {
-    backgroundColor: COLORS.error + '20',
-    borderColor: COLORS.error,
     borderWidth: 1,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   errorText: {
-    color: COLORS.error,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -168,22 +171,17 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: COLORS.textSecondary,
     marginBottom: 6,
   },
   input: {
     height: 50,
-    backgroundColor: COLORS.surface,
-    borderColor: COLORS.border,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 16,
-    color: COLORS.textPrimary,
     fontSize: 15,
   },
   button: {
     height: 50,
-    backgroundColor: COLORS.primary,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -201,14 +199,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 24,
   },
   footerText: {
-    color: COLORS.textSecondary,
     fontSize: 14,
   },
   linkText: {
-    color: COLORS.primaryLight,
     fontSize: 14,
     fontWeight: 'bold',
   },

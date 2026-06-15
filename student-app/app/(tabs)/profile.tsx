@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
@@ -29,7 +30,9 @@ export default function ProfileScreen() {
         {user ? (
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.userInfo}>
-              <Text style={[styles.avatar, { backgroundColor: colors.surfaceElevated }]}>👤</Text>
+              <View style={[styles.avatarContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <MaterialCommunityIcons name="account" size={32} color={colors.textSecondary} />
+              </View>
               <View style={styles.userDetails}>
                 <Text style={[styles.welcome, { color: colors.textPrimary }]}>
                   {t('hello')}{profile?.name || '同学'}
@@ -47,7 +50,9 @@ export default function ProfileScreen() {
         ) : (
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.userInfo}>
-              <Text style={[styles.avatar, { backgroundColor: colors.surfaceElevated }]}>👤</Text>
+              <View style={[styles.avatarContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <MaterialCommunityIcons name="account-outline" size={32} color={colors.textMuted} />
+              </View>
               <View style={styles.userDetails}>
                 <Text style={[styles.welcome, { color: colors.textPrimary }]}>{t('guestMode')}</Text>
                 <Text style={[styles.email, { color: colors.textSecondary }]}>{t('loginPrompt')}</Text>
@@ -61,13 +66,13 @@ export default function ProfileScreen() {
 
         <View style={[styles.menuSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/settings')}>
-            <Text style={styles.menuIcon}>⚙️</Text>
+            <MaterialCommunityIcons name="cog-outline" size={22} color={colors.textSecondary} style={styles.menuIcon} />
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('settings')}</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
           <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/about')}>
-            <Text style={styles.menuIcon}>ℹ️</Text>
+            <MaterialCommunityIcons name="information-outline" size={22} color={colors.textSecondary} style={styles.menuIcon} />
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('about')}</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
@@ -102,12 +107,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  avatar: {
-    fontSize: 40,
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 16,
-    padding: 8,
-    borderRadius: 99,
-    overflow: 'hidden',
   },
   userDetails: {
     flex: 1,
@@ -162,7 +169,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   menuIcon: {
-    fontSize: 18,
     marginRight: 12,
   },
   menuLabel: {

@@ -15,9 +15,11 @@ import {
   Alert,
   Platform,
   LayoutAnimation,
-  UIManager
+  UIManager,
+  TextInput,
+  PanResponder
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -54,6 +56,21 @@ const THEMES: ReaderTheme[] = [
 ];
 
 let sessionUserSelectedTheme: ReaderTheme | null = null;
+let sessionLastChapterId: string | null = null;
+let sessionLastScrollY: number = 0;
+let isFirstLoad = true;
+
+const getSearchSnippet = (content?: string, keyword?: string) => {
+  if (!content || !keyword) return '';
+  const cleanText = content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ');
+  const idx = cleanText.toLowerCase().indexOf(keyword.toLowerCase());
+  if (idx === -1) {
+    return cleanText.substring(0, 80) + '...';
+  }
+  const start = Math.max(0, idx - 30);
+  const end = Math.min(cleanText.length, idx + 50);
+  return (start > 0 ? '...' : '') + cleanText.substring(start, end) + (end < cleanText.length ? '...' : '');
+};
 
 const FONT_SIZES = [14, 16, 18, 20, 22, 26, 30]; // Available font sizes
 
@@ -478,6 +495,7 @@ const findChapterByTarget = (target: string, allChapters: Chapter[]): Chapter | 
 
 export default function HandbookReaderScreen() {
   const { colors, isDark } = useTheme();
+  const navigation = useNavigation();
 
   // Settings states
   const [fontSizeIndex, setFontSizeIndex] = useState(2); // Default is 18px (index 2)
@@ -498,6 +516,80 @@ export default function HandbookReaderScreen() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Lifecycle reset for isFirstLoad
+  useEffect(() => {
+    isFirstLoad = true;
+  }, []);
+
+  // Update sessionLastChapterId whenever currentChapter changes
+  useEffect(() => {
+    if (currentChapter) {
+      sessionLastChapterId = currentChapter.id;
+    }
+  }, [currentChapter]);
+
+  // Restore scroll Y position on first load
+  useEffect(() => {
+    if (currentChapter && isFirstLoad) {
+      const timer = setTimeout(() => {
+        if (sessionLastScrollY > 0) {
+          scrollViewRef.current?.scrollTo({ y: sessionLastScrollY, animated: false });
+        }
+        isFirstLoad = false;
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [currentChapter]);
+
+  // Search State variables
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Chapter[]>([]);
+
+  // Flatten all chapters for easy searching
+  const flatChapters = React.useMemo(() => {
+    const list: Chapter[] = [];
+    const traverse = (chaps: Chapter[]) => {
+      chaps.forEach(c => {
+        list.push(c);
+        if (c.children) {
+          traverse(c.children);
+        }
+      });
+    };
+    traverse(chapters);
+    return list;
+  }, [chapters]);
+
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    if (!text.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const query = text.toLowerCase();
+    const results = flatChapters.filter(c => {
+      const matchesTitle = c.title.toLowerCase().includes(query);
+      const matchesContent = c.content_body ? c.content_body.toLowerCase().includes(query) : false;
+      return matchesTitle || matchesContent;
+    });
+    setSearchResults(results);
+  };
+
+  const handleSearchResultPress = (chap: Chapter) => {
+    if (chap.parent_id) {
+      setExpandedGroups(prev => ({
+        ...prev,
+        [chap.parent_id!]: true
+      }));
+    }
+    setCurrentChapter(chap);
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+  };
 
   const getRootChapterIndex = (chap: Chapter) => {
     const idx = chapters.findIndex(c => c.id === chap.id);
@@ -630,12 +722,29 @@ export default function HandbookReaderScreen() {
 
         setChapters(processed as Chapter[]);
         
-        // Load first child chapter as default
-        if (processed[0] && processed[0].children && processed[0].children[0]) {
-          setCurrentChapter(processed[0].children[0]);
-        } else {
-          setCurrentChapter(processed[0]);
+        // Load last viewed chapter if available, otherwise default to first
+        let defaultChapter: Chapter | null = null;
+        if (sessionLastChapterId) {
+          const allChapters: Chapter[] = [];
+          const traverse = (list: any[]) => {
+            list.forEach(c => {
+              allChapters.push(c);
+              if (c.children) traverse(c.children);
+            });
+          };
+          traverse(processed);
+          defaultChapter = allChapters.find(c => c.id === sessionLastChapterId) || null;
         }
+
+        if (!defaultChapter) {
+          if (processed[0] && processed[0].children && processed[0].children[0]) {
+            defaultChapter = processed[0].children[0] as Chapter;
+          } else {
+            defaultChapter = processed[0] as Chapter;
+          }
+        }
+        
+        setCurrentChapter(defaultChapter);
       } catch (err) {
         console.warn('Using local fallback handbook data:', err);
         setChapters([]);
@@ -647,9 +756,22 @@ export default function HandbookReaderScreen() {
     fetchHandbook();
   }, []);
 
-  // Handle hardware back press on Android (close drawer or settings first)
+  // Disable native iOS swipe-back when modals are open
   useEffect(() => {
-    const handleBackButton = () => {
+    navigation.setOptions({
+      gestureEnabled: !isSearchOpen && !isDrawerOpen && !isSettingsOpen
+    });
+  }, [navigation, isSearchOpen, isDrawerOpen, isSettingsOpen]);
+
+  // Android Back Handler for physical back button or Android back gesture
+  useEffect(() => {
+    const handleBackPress = () => {
+      if (isSearchOpen) {
+        setIsSearchOpen(false);
+        setSearchQuery('');
+        setSearchResults([]);
+        return true; // prevent default
+      }
       if (isDrawerOpen) {
         closeDrawer();
         return true;
@@ -658,18 +780,63 @@ export default function HandbookReaderScreen() {
         closeSettings();
         return true;
       }
-      return false; // Exit screen
+      return false; // run default back
     };
 
-    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackButton);
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
     return () => {
-      if (subscription && typeof subscription.remove === 'function') {
-        subscription.remove();
-      } else {
-        (BackHandler as any).removeEventListener('hardwareBackPress', handleBackButton);
-      }
+      subscription.remove();
     };
-  }, [isDrawerOpen, isSettingsOpen]);
+  }, [isSearchOpen, isDrawerOpen, isSettingsOpen]);
+
+  // Handle swipe back (iOS) / hardware back press (Android) fallback
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (isSearchOpen) {
+        e.preventDefault();
+        setIsSearchOpen(false);
+        setSearchQuery('');
+        setSearchResults([]);
+        return;
+      }
+      if (isDrawerOpen) {
+        e.preventDefault();
+        closeDrawer();
+        return;
+      }
+      if (isSettingsOpen) {
+        e.preventDefault();
+        closeSettings();
+        return;
+      }
+    });
+    return unsubscribe;
+  }, [navigation, isSearchOpen, isDrawerOpen, isSettingsOpen]);
+
+  // Mutable ref to avoid stale closure inside PanResponder
+  const searchStateRef = useRef({ isSearchOpen });
+  searchStateRef.current = { isSearchOpen };
+
+  // Custom PanResponder to handle iOS-like swipe to close search modal
+  const searchPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt, gestureState) => {
+        // Capture touch starting near the left edge of the screen
+        return searchStateRef.current.isSearchOpen && gestureState.x0 < 40;
+      },
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Trigger if moving horizontally to the right
+        return searchStateRef.current.isSearchOpen && gestureState.x0 < 40 && gestureState.dx > 10 && Math.abs(gestureState.dy) < 30;
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx > 60 || gestureState.vx > 0.3) {
+          setIsSearchOpen(false);
+          setSearchQuery('');
+          setSearchResults([]);
+        }
+      },
+    })
+  ).current;
 
   // Drawer actions
   const openDrawer = () => {
@@ -1015,16 +1182,7 @@ export default function HandbookReaderScreen() {
             <Text style={[styles.headerIcon, { color: selectedTheme.textColor }]}>☰</Text>
           </Pressable>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <View style={{
-              width: 10,
-              height: 10,
-              borderLeftWidth: 2,
-              borderBottomWidth: 2,
-              borderColor: '#A31621',
-              transform: [{ rotate: '45deg' }],
-              marginHorizontal: 8,
-              marginVertical: 4,
-            }} />
+            <MaterialIcons name="arrow-back" size={24} color="#A31621" />
           </Pressable>
         </View>
 
@@ -1032,9 +1190,14 @@ export default function HandbookReaderScreen() {
           {currentChapter ? getFormattedChapterTitle(currentChapter) : '新生手册'}
         </Text>
 
-        <Pressable style={styles.iconButton} onPress={openSettings}>
-          <Text style={[styles.fontSettingIcon, { color: selectedTheme.textColor }]}>Aa</Text>
-        </Pressable>
+        <View style={styles.headerRight}>
+          <Pressable style={styles.iconButton} onPress={() => setIsSearchOpen(true)}>
+            <MaterialIcons name="search" size={22} color={selectedTheme.textColor} />
+          </Pressable>
+          <Pressable style={styles.iconButton} onPress={openSettings}>
+            <Text style={[styles.fontSettingIcon, { color: selectedTheme.textColor }]}>Aa</Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Reader Content Body */}
@@ -1042,6 +1205,12 @@ export default function HandbookReaderScreen() {
         ref={scrollViewRef}
         contentContainerStyle={styles.scrollContent} 
         showsVerticalScrollIndicator={false}
+        onScroll={(event) => {
+          if (!isFirstLoad) {
+            sessionLastScrollY = event.nativeEvent.contentOffset.y;
+          }
+        }}
+        scrollEventThrottle={16}
       >
         {currentChapter && currentChapter.parent_id && (
           <Text style={[styles.parentChapterLabel, { color: selectedTheme.textColor + '80' }]}>
@@ -1333,6 +1502,98 @@ export default function HandbookReaderScreen() {
               </View>
             </View>
           </Animated.View>
+        </View>
+      )}
+
+      {/* Search Modal Overlay */}
+      {isSearchOpen && (
+        <View 
+          style={[styles.searchModalContainer, { backgroundColor: selectedTheme.backgroundColor }]}
+          {...searchPanResponder.panHandlers}
+        >
+          <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+            {/* Search Header */}
+            <View style={[styles.searchHeader, { backgroundColor: selectedTheme.surfaceColor, borderBottomColor: selectedTheme.borderColor }]}>
+            <MaterialIcons name="search" size={20} color={selectedTheme.textColor} style={{ marginRight: 8 }} />
+            <TextInput
+              style={[styles.searchInput, { color: selectedTheme.textColor }]}
+              placeholder="搜索手册内容..."
+              placeholderTextColor={selectedTheme.textColor + '80'}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoFocus={true}
+              clearButtonMode="while-editing"
+            />
+            <Pressable 
+              style={styles.searchCancelBtn} 
+              onPress={() => {
+                setIsSearchOpen(false);
+                setSearchQuery('');
+                setSearchResults([]);
+              }}
+            >
+              <Text style={{ color: '#A31621', fontWeight: 'bold', fontSize: 14 }}>取消</Text>
+            </Pressable>
+          </View>
+
+          {/* Search Results */}
+          <ScrollView 
+            style={styles.searchResultsScroll} 
+            contentContainerStyle={styles.searchResultsContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {searchResults.length === 0 ? (
+              searchQuery.trim() ? (
+                <View style={styles.searchEmpty}>
+                  <Text style={[styles.searchEmptyText, { color: selectedTheme.textColor + '60' }]}>未找到相关内容</Text>
+                </View>
+              ) : (
+                <View style={styles.searchIntro}>
+                  <Text style={[styles.searchIntroText, { color: selectedTheme.textColor + '60' }]}>
+                    支持快速检索章节标题与手册正文
+                  </Text>
+                </View>
+              )
+            ) : (
+              searchResults.map(chap => {
+                const isTitleMatch = chap.title.toLowerCase().includes(searchQuery.toLowerCase());
+                const snippet = getSearchSnippet(chap.content_body, searchQuery);
+
+                return (
+                  <Pressable
+                    key={chap.id}
+                    style={({ pressed }) => [
+                      styles.searchResultCard,
+                      { 
+                        backgroundColor: selectedTheme.surfaceColor, 
+                        borderColor: selectedTheme.borderColor,
+                        opacity: pressed ? 0.8 : 1
+                      }
+                    ]}
+                    onPress={() => handleSearchResultPress(chap)}
+                  >
+                    <View style={styles.searchCardHeader}>
+                      <Text style={[styles.searchCardTitle, { color: selectedTheme.textColor }]} numberOfLines={1}>
+                        {getFormattedChapterTitle(chap)}
+                      </Text>
+                      {isTitleMatch && (
+                        <View style={[styles.matchTag, { backgroundColor: '#A31621' + '15' }]}>
+                          <Text style={[styles.matchTagText, { color: '#A31621' }]}>标题匹配</Text>
+                        </View>
+                      )}
+                    </View>
+                    {snippet ? (
+                      <Text style={[styles.searchCardSnippet, { color: selectedTheme.textColor + '90' }]} numberOfLines={2}>
+                        {snippet}
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })
+            )}
+          </ScrollView>
+          </SafeAreaView>
         </View>
       )}
     </SafeAreaView>
@@ -1754,6 +2015,97 @@ const styles = StyleSheet.create({
   },
   hubCardPreview: {
     fontSize: 13,
+    lineHeight: 18,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchModalContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
+  searchHeader: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 15,
+    paddingVertical: 8,
+  },
+  searchCancelBtn: {
+    paddingLeft: 16,
+    paddingVertical: 8,
+  },
+  searchResultsScroll: {
+    flex: 1,
+  },
+  searchResultsContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  searchEmpty: {
+    paddingVertical: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchEmptyText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  searchIntro: {
+    paddingVertical: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchIntroText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  searchResultCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  searchCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  searchCardTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    flex: 1,
+    marginRight: 8,
+  },
+  matchTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  matchTagText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  searchCardSnippet: {
+    fontSize: 12,
     lineHeight: 18,
   },
 });
