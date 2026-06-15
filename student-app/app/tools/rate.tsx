@@ -133,7 +133,7 @@ export default function RateConverterScreen() {
         recalculate(inputValues[activeCurrency] || '0', activeCurrency, data.rates);
         
         if (isManual) {
-          showToast('✓ 汇率已更新至最新');
+          showToast('✓ 数据已刷新');
         }
       } else {
         if (isManual) {

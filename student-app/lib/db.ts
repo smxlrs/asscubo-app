@@ -50,16 +50,11 @@ for (let i = 0; i < chars.length; i++) {
 }
 
 function base64ToBytes(b64: string): Uint8Array {
-  const str = b64.replace(/\s/g, '');
-  const len = str.length;
-  if (len % 4 !== 0) {
-    throw new Error('Invalid base64 string length');
-  }
-  
+  const len = b64.length;
   let placeHolders = 0;
-  if (str[len - 1] === '=') {
+  if (b64[len - 1] === '=') {
     placeHolders = 1;
-    if (str[len - 2] === '=') {
+    if (b64[len - 2] === '=') {
       placeHolders = 2;
     }
   }
@@ -69,10 +64,10 @@ function base64ToBytes(b64: string): Uint8Array {
   
   for (let i = 0; i < len; i += 4) {
     const chunk = 
-      (lookup[str.charCodeAt(i)] << 18) |
-      (lookup[str.charCodeAt(i + 1)] << 12) |
-      (lookup[str.charCodeAt(i + 2)] << 6) |
-      lookup[str.charCodeAt(i + 3)];
+      (lookup[b64.charCodeAt(i)] << 18) |
+      (lookup[b64.charCodeAt(i + 1)] << 12) |
+      (lookup[b64.charCodeAt(i + 2)] << 6) |
+      lookup[b64.charCodeAt(i + 3)];
       
     bytes[g++] = (chunk >> 16) & 0xff;
     if (g < bytes.length) bytes[g++] = (chunk >> 8) & 0xff;
@@ -136,7 +131,7 @@ export async function initDatabase(): Promise<any> {
 }
 
 // Lazy load MDX instance
-async function getOrLoadMDXInstance(dictId: string): Promise<MDX | null> {
+export async function getOrLoadMDXInstance(dictId: string): Promise<MDX | null> {
   if (mdxInstances[dictId]) {
     return mdxInstances[dictId];
   }
@@ -306,20 +301,18 @@ export async function getDefinitions(word: string, enabledDictIds: string[]): Pr
   if (!word || enabledDictIds.length === 0) return [];
   const cleanedTarget = cleanWord(word);
 
-  const results: { dict_id: string; definition: string }[] = [];
-
-  for (const dictId of enabledDictIds) {
+  const lookupPromises = enabledDictIds.map(async (dictId) => {
     try {
       const mdx = await getOrLoadMDXInstance(dictId);
-      if (!mdx) continue;
+      if (!mdx) return null;
 
       // Try exact lookup first
       let res = mdx.lookup(word);
       if (res && res.definition) {
-        results.push({
+        return {
           dict_id: dictId,
           definition: res.definition
-        });
+        };
       } else {
         // Fallback: Try accent-insensitive / case-insensitive search in matching block
         const keyBlockInfoId = mdx.lookupKeyInfoByWord(word);
@@ -335,10 +328,10 @@ export async function getDefinitions(word: string, enabledDictIds: string[]): Pr
           if (matchedItem) {
             const fetchRes = mdx.fetch(matchedItem);
             if (fetchRes && fetchRes.definition) {
-              results.push({
+              return {
                 dict_id: dictId,
                 definition: fetchRes.definition
-              });
+              };
             }
           }
         }
@@ -346,7 +339,9 @@ export async function getDefinitions(word: string, enabledDictIds: string[]): Pr
     } catch (e) {
       console.error(`Failed to get definition from ${dictId}:`, e);
     }
-  }
+    return null;
+  });
 
-  return results;
+  const resolvedResults = await Promise.all(lookupPromises);
+  return resolvedResults.filter((r): r is { dict_id: string; definition: string } => r !== null);
 }

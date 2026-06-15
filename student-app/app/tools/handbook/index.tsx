@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '../../../lib/supabase';
@@ -1133,7 +1134,7 @@ export default function HandbookReaderScreen() {
             <View style={styles.settingsHeader}>
               <Text style={[styles.settingsPanelTitle, { color: selectedTheme.textColor }]}>阅读选项</Text>
               <Pressable style={styles.closeSettingsBtn} onPress={closeSettings}>
-                <Text style={{ fontSize: 24, color: selectedTheme.textColor }}>×</Text>
+                <MaterialIcons name="close" size={20} color={selectedTheme.textColor} />
               </Pressable>
             </View>
 

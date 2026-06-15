@@ -23,6 +23,7 @@ import {
   searchWords,
   getDefinitions,
   loadDictionariesConfig,
+  getOrLoadMDXInstance,
   DictionaryInfo,
 } from '../../../lib/db';
 
@@ -56,7 +57,8 @@ const buildHtmlString = (
           </svg>
         </div>
         <div class="dict-body">
-          ${defItem.definition}
+          <div class="shadow-container"></div>
+          <template class="definition-template">${defItem.definition}</template>
         </div>
       </div>
     `;
@@ -136,7 +138,9 @@ const buildHtmlString = (
       }
 
       .dict-body {
-        padding: 8px 10px;
+        /* Set base background white and text dark so that dark mode invert filters look perfect */
+        background-color: #ffffff;
+        color: #333333;
         overflow-x: auto;
       }
 
@@ -148,52 +152,10 @@ const buildHtmlString = (
         transform: rotate(-90deg);
       }
 
-      /* Tables & Grids inside MDX content */
-      table {
-        width: 100% !important;
-        border-collapse: collapse;
-        margin: 6px 0;
-        font-size: 11.5px;
-        box-sizing: border-box;
-      }
-
-      th, td {
-        border: 1px solid var(--border-color);
-        padding: 4px 6px;
-        text-align: left;
-      }
-
-      th {
-        background-color: var(--border-color);
-        font-weight: bold;
-      }
-
-      tr:nth-child(even) {
-        background-color: rgba(0, 0, 0, 0.02);
-      }
-
-      /* Link overriding */
-      a {
-        color: #3B82F6;
-        text-decoration: none;
-        font-weight: 500;
-      }
-      
-      a:hover {
-        text-decoration: underline;
-      }
-
       /* Invert HTML bodies for Dark Mode (smart filter) */
       ${dark ? `
         body.dark-mode .dict-body {
           filter: invert(0.9) hue-rotate(180deg);
-          background-color: #111;
-        }
-        body.dark-mode .dict-body img {
-          filter: invert(1) hue-rotate(180deg);
-        }
-        body.dark-mode tr:nth-child(even) {
-          background-color: rgba(255, 255, 255, 0.03);
         }
       ` : ''}
     </style>
@@ -202,6 +164,65 @@ const buildHtmlString = (
       ${cardsHtml}
       
       <script>
+        // Mount isolated template HTML to Shadow DOM container to prevent outer layout breakage
+        document.querySelectorAll('.dict-card').forEach(card => {
+          const container = card.querySelector('.shadow-container');
+          const template = card.querySelector('.definition-template');
+          if (container && template) {
+            const shadow = container.attachShadow({ mode: 'open' });
+            shadow.appendChild(template.content.cloneNode(true));
+            
+            // Inject scoped CSS inside shadow root for tables, links and text inheritances
+            const style = document.createElement('style');
+            style.textContent = \`
+              table {
+                width: 100% !important;
+                border-collapse: collapse;
+                margin: 6px 0;
+                font-size: 11.5px;
+                box-sizing: border-box;
+                color: inherit;
+              }
+              th, td {
+                border: 1px solid #ddd;
+                padding: 4px 6px;
+                text-align: left;
+                color: inherit;
+              }
+              th {
+                background-color: #eee;
+                font-weight: bold;
+              }
+              tr:nth-child(even) {
+                background-color: rgba(0, 0, 0, 0.02);
+              }
+              a {
+                color: #3B82F6;
+                text-decoration: none;
+                font-weight: 500;
+              }
+              a:hover {
+                text-decoration: underline;
+              }
+              /* Text alignments and baseline inheritance */
+              span, div, p, td, th {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              }
+              /* Dark Mode overrides inside Shadow Root */
+              :host-context(.dark-mode) th, :host-context(.dark-mode) td {
+                border-color: #444;
+              }
+              :host-context(.dark-mode) th {
+                background-color: #2a2a2a;
+              }
+              :host-context(.dark-mode) tr:nth-child(even) {
+                background-color: rgba(255, 255, 255, 0.03);
+              }
+            \`;
+            shadow.appendChild(style);
+          }
+        });
+
         // Collapse toggle handler
         document.querySelectorAll('.dict-header').forEach(header => {
           header.addEventListener('click', () => {
@@ -217,14 +238,18 @@ const buildHtmlString = (
           });
         });
 
-        // Intercept entry links
+        // Intercept entry links compost bubbles (composition path handles shadow DOM targets)
         document.addEventListener('click', e => {
-          let target = e.target;
-          while (target && target.tagName !== 'A') {
-            target = target.parentElement;
+          const path = e.composedPath();
+          let link = null;
+          for (const node of path) {
+            if (node.tagName === 'A') {
+              link = node;
+              break;
+            }
           }
-          if (target) {
-            const href = target.getAttribute('href');
+          if (link) {
+            const href = link.getAttribute('href');
             if (href && href.startsWith('entry://')) {
               e.preventDefault();
               const word = href.replace('entry://', '');
@@ -286,6 +311,12 @@ export default function DictionaryScreen() {
           if (storedCollapsed) {
             setCollapsedDicts(JSON.parse(storedCollapsed));
           }
+
+          // Pre-load enabled dictionary instances in the background concurrently to eliminate lookup lag
+          const enabledIds = dicts.filter(d => d.isEnabled).map(d => d.id);
+          Promise.all(enabledIds.map(id => getOrLoadMDXInstance(id))).catch(err => {
+            console.error('Failed to preload dictionaries in background:', err);
+          });
         } catch (e) {
           console.error('Failed to init dictionary screen:', e);
         } finally {
