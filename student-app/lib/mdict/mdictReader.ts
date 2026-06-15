@@ -25,7 +25,7 @@ export class FileScanner {
   }
 
   readBuffer(offset: number, length: number): Uint8Array {
-    return this.buffer.subarray(offset, offset + length);
+    return this.buffer.slice(offset, offset + length);
   }
 
   readNumber(offset: number, length: number): DataView {

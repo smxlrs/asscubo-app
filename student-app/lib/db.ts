@@ -171,6 +171,8 @@ export async function getOrLoadMDXInstance(dictId: string): Promise<MDX | null> 
       const base64 = await FileSystem.readAsStringAsync(localPath, { encoding: 'base64' });
       const bytes = base64ToBytes(base64);
       console.log(`Decoded base64 for ${dictId} in ${Date.now() - startLoad}ms. File size: ${bytes.length} bytes.`);
+      console.log(`First 20 bytes for ${dictId}:`, Array.from(bytes.subarray(0, 20)));
+      console.log(`Last 20 bytes for ${dictId}:`, Array.from(bytes.subarray(bytes.length - 20)));
       
       const startParse = Date.now();
       const mdx = new MDX(bytes, undefined);

@@ -138,9 +138,8 @@ const buildHtmlString = (
       }
 
       .dict-body {
-        /* Set base background white and text dark so that dark mode invert filters look perfect */
-        background-color: #ffffff;
-        color: #333333;
+        background-color: ${dark ? '#1e1e1e' : '#ffffff'};
+        color: ${dark ? '#e0e0e0' : '#333333'};
         overflow-x: auto;
       }
 
@@ -152,10 +151,66 @@ const buildHtmlString = (
         transform: rotate(-90deg);
       }
 
-      /* Invert HTML bodies for Dark Mode (smart filter) */
+      /* Fallback styles in case Shadow DOM is not supported */
+      .dict-content {
+        padding: 10px 14px;
+      }
+
+      .dict-content table {
+        width: 100% !important;
+        border-collapse: collapse;
+        margin: 6px 0;
+        font-size: 11.5px;
+        box-sizing: border-box;
+        color: inherit;
+      }
+
+      .dict-content th, .dict-content td {
+        border: 1px solid ${dark ? '#444' : '#ddd'};
+        padding: 4px 6px;
+        text-align: left;
+        color: inherit;
+      }
+
+      .dict-content th {
+        background-color: ${dark ? '#2d2d2d' : '#eee'};
+        font-weight: bold;
+      }
+
+      .dict-content tr:nth-child(even) {
+        background-color: ${dark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'};
+      }
+
+      .dict-content a {
+        color: #3B82F6;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .dict-content a:hover {
+        text-decoration: underline;
+      }
+
+      /* Native contrast overrides for hardcoded black text and white backgrounds in dark mode */
       ${dark ? `
-        body.dark-mode .dict-body {
-          filter: invert(0.9) hue-rotate(180deg);
+        .dict-content * {
+          text-shadow: none !important;
+        }
+        .dict-content [style*="color: black"], 
+        .dict-content [style*="color:#000000"], 
+        .dict-content [style*="color:#000"],
+        .dict-content [color="black"],
+        .dict-content [color="#000000"],
+        .dict-content [color="#000"] {
+          color: #e0e0e0 !important;
+        }
+        .dict-content [style*="background-color: white"],
+        .dict-content [style*="background-color:#ffffff"],
+        .dict-content [style*="background-color:#fff"],
+        .dict-content [bgcolor="white"],
+        .dict-content [bgcolor="#ffffff"],
+        .dict-content [bgcolor="#fff"] {
+          background-color: transparent !important;
         }
       ` : ''}
     </style>
@@ -164,62 +219,102 @@ const buildHtmlString = (
       ${cardsHtml}
       
       <script>
+        // Forward JavaScript runtime errors inside WebView to React Native for easy debugging
+        window.onerror = function(message, source, lineno, colno, error) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'error',
+            message: message,
+            line: lineno,
+            col: colno
+          }));
+        };
+
         // Mount isolated template HTML to Shadow DOM container to prevent outer layout breakage
         document.querySelectorAll('.dict-card').forEach(card => {
           const container = card.querySelector('.shadow-container');
           const template = card.querySelector('.definition-template');
+          const body = card.querySelector('.dict-body');
           if (container && template) {
-            const shadow = container.attachShadow({ mode: 'open' });
-            shadow.appendChild(template.content.cloneNode(true));
-            
-            // Inject scoped CSS inside shadow root for tables, links and text inheritances
-            const style = document.createElement('style');
-            style.textContent = \`
-              table {
-                width: 100% !important;
-                border-collapse: collapse;
-                margin: 6px 0;
-                font-size: 11.5px;
-                box-sizing: border-box;
-                color: inherit;
+            try {
+              const shadow = container.attachShadow({ mode: 'open' });
+              
+              // Inject scoped CSS inside shadow root for tables, links and text inheritances
+              const style = document.createElement('style');
+              style.textContent = \`
+                :host {
+                  display: block;
+                  padding: 10px 14px;
+                  color: inherit;
+                  background-color: inherit;
+                }
+                table {
+                  width: 100% !important;
+                  border-collapse: collapse;
+                  margin: 6px 0;
+                  font-size: 11.5px;
+                  box-sizing: border-box;
+                  color: inherit;
+                }
+                th, td {
+                  border: 1px solid ${dark ? '#444' : '#ddd'};
+                  padding: 4px 6px;
+                  text-align: left;
+                  color: inherit;
+                }
+                th {
+                  background-color: ${dark ? '#2d2d2d' : '#eee'};
+                  font-weight: bold;
+                }
+                tr:nth-child(even) {
+                  background-color: ${dark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'};
+                }
+                a {
+                  color: #3B82F6;
+                  text-decoration: none;
+                  font-weight: 500;
+                }
+                a:hover {
+                  text-decoration: underline;
+                }
+                span, div, p, td, th {
+                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                }
+                /* Contrast overrides inside Shadow Root for inline styles in dark mode */
+                ${dark ? `
+                  [style*="color: black"], 
+                  [style*="color:#000000"], 
+                  [style*="color:#000"],
+                  [color="black"],
+                  [color="#000000"],
+                  [color="#000"] {
+                    color: #e0e0e0 !important;
+                  }
+                  [style*="background-color: white"],
+                  [style*="background-color:#ffffff"],
+                  [style*="background-color:#fff"],
+                  [bgcolor="white"],
+                  [bgcolor="#ffffff"],
+                  [bgcolor="#fff"] {
+                    background-color: transparent !important;
+                  }
+                ` : ''}
+              \`;
+              shadow.appendChild(style);
+
+              const contentDiv = document.createElement('div');
+              contentDiv.innerHTML = template.innerHTML;
+              shadow.appendChild(contentDiv);
+            } catch (err) {
+              console.error('Shadow DOM mounting failed, falling back to direct DOM insertion:', err);
+              // Fallback for browsers/WebViews where attachShadow is not fully functional
+              const contentDiv = document.createElement('div');
+              contentDiv.className = 'dict-content';
+              contentDiv.innerHTML = template.innerHTML;
+              body.appendChild(contentDiv);
+              if (container) {
+                container.style.display = 'none';
               }
-              th, td {
-                border: 1px solid #ddd;
-                padding: 4px 6px;
-                text-align: left;
-                color: inherit;
-              }
-              th {
-                background-color: #eee;
-                font-weight: bold;
-              }
-              tr:nth-child(even) {
-                background-color: rgba(0, 0, 0, 0.02);
-              }
-              a {
-                color: #3B82F6;
-                text-decoration: none;
-                font-weight: 500;
-              }
-              a:hover {
-                text-decoration: underline;
-              }
-              /* Text alignments and baseline inheritance */
-              span, div, p, td, th {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-              }
-              /* Dark Mode overrides inside Shadow Root */
-              :host-context(.dark-mode) th, :host-context(.dark-mode) td {
-                border-color: #444;
-              }
-              :host-context(.dark-mode) th {
-                background-color: #2a2a2a;
-              }
-              :host-context(.dark-mode) tr:nth-child(even) {
-                background-color: rgba(255, 255, 255, 0.03);
-              }
-            \`;
-            shadow.appendChild(style);
+            }
           }
         });
 
@@ -255,7 +350,7 @@ const buildHtmlString = (
               const word = href.replace('entry://', '');
               window.ReactNativeWebView.postMessage(JSON.stringify({
                 type: 'link',
-                word: decodeURIComponent(word)
+                word: word
               }));
             }
           }
@@ -419,6 +514,8 @@ export default function DictionaryScreen() {
         });
       } else if (data.type === 'link') {
         handleSearch(data.word);
+      } else if (data.type === 'error') {
+        console.warn(`[WebView JS Error] ${data.message} at line ${data.line}:${data.col}`);
       }
     } catch (e) {
       console.error('Failed to parse WebView message:', e);
