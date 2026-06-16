@@ -1,5 +1,8 @@
 name: EAS Build (APK + IPA)
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # 修复 Node.js 20 废弃警告
+
 on:
   workflow_dispatch:
     inputs:
@@ -31,11 +34,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    defaults:
-      run:
-        working-directory: student-app
 
     steps:
+      - name: 🔧 Fix git safe.directory (prevent exit 128)
+        run: git config --global --add safe.directory '*'
+
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
@@ -49,17 +52,20 @@ jobs:
           cache-dependency-path: student-app/package-lock.json
 
       - name: 📦 Install dependencies
+        working-directory: student-app
         run: npm ci
 
       - name: 🔧 Install EAS CLI
         run: npm install -g eas-cli@latest
 
       - name: 🔑 Verify Expo login
-        run: eas whoami
+        working-directory: student-app
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas whoami
 
       - name: 🌍 Create .env file
+        working-directory: student-app
         run: |
           echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" > .env
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
@@ -76,8 +82,9 @@ jobs:
           fi
 
       # ── Android ──────────────────────────────────────────────
-      - name: 🤖 Build Android & Download APK
+      - name: 🤖 Build Android
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        working-directory: student-app
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
@@ -86,38 +93,46 @@ jobs:
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
             --wait \
-            --json > /tmp/android_build.json 2>&1 || true
-
-          cat /tmp/android_build.json
+            --json 2>&1 | tee /tmp/android_build.json
 
           BUILD_URL=$(python3 -c "
           import json, sys
           try:
-            data = json.load(open('/tmp/android_build.json'))
-            item = data[0] if isinstance(data, list) else data
-            url = item.get('artifacts', {}).get('buildUrl') or item.get('url', '')
-            print(url)
-          except: pass
+            lines = open('/tmp/android_build.json').read()
+            # find JSON in output
+            import re
+            matches = re.findall(r'\[.*\]|\{.*\}', lines, re.DOTALL)
+            for m in matches:
+              try:
+                data = json.loads(m)
+                item = data[0] if isinstance(data, list) else data
+                url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url','')
+                if url: print(url); break
+              except: pass
+          except Exception as e: print('', file=sys.stderr)
           " 2>/dev/null || echo "")
 
-          if [ -n "$BUILD_URL" ]; then
-            echo "Downloading APK from: $BUILD_URL"
-            curl -L -o /tmp/android-release.apk "$BUILD_URL"
-            cp /tmp/android-release.apk ../android-release.apk
+          if [ -n "\$BUILD_URL" ]; then
+            echo "📥 Downloading APK..."
+            curl -L -o android-release.apk "\$BUILD_URL"
+            echo "✅ APK ready"
+          else
+            echo "⚠️ No download URL found – check https://expo.dev/accounts/${{ secrets.EXPO_USERNAME }}/projects/union-student-app/builds"
           fi
 
-      - name: 📤 Upload APK to GitHub Artifacts
+      - name: 📤 Upload APK to GitHub
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         uses: actions/upload-artifact@v4
         with:
           name: android-apk-${{ steps.vars.outputs.profile }}-build${{ github.run_number }}
-          path: android-release.apk
+          path: student-app/android-release.apk
           if-no-files-found: warn
           retention-days: 30
 
       # ── iOS ──────────────────────────────────────────────────
-      - name: 🍎 Build iOS & Download IPA
+      - name: 🍎 Build iOS
         if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
+        working-directory: student-app
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
@@ -126,28 +141,32 @@ jobs:
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
             --wait \
-            --json > /tmp/ios_build.json 2>&1 || true
+            --json 2>&1 | tee /tmp/ios_build.json
 
           BUILD_URL=$(python3 -c "
-          import json
+          import json, re
           try:
-            data = json.load(open('/tmp/ios_build.json'))
-            item = data[0] if isinstance(data, list) else data
-            print(item.get('artifacts', {}).get('buildUrl') or item.get('url', ''))
+            lines = open('/tmp/ios_build.json').read()
+            for m in re.findall(r'\[.*\]|\{.*\}', lines, re.DOTALL):
+              try:
+                data = json.loads(m)
+                item = data[0] if isinstance(data, list) else data
+                url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url','')
+                if url: print(url); break
+              except: pass
           except: pass
           " 2>/dev/null || echo "")
 
-          if [ -n "$BUILD_URL" ]; then
-            curl -L -o /tmp/ios-release.ipa "$BUILD_URL"
-            cp /tmp/ios-release.ipa ../ios-release.ipa
+          if [ -n "\$BUILD_URL" ]; then
+            curl -L -o ios-release.ipa "\$BUILD_URL"
           fi
 
-      - name: 📤 Upload IPA to GitHub Artifacts
+      - name: 📤 Upload IPA to GitHub
         if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa-${{ steps.vars.outputs.profile }}-build${{ github.run_number }}
-          path: ios-release.ipa
+          path: student-app/ios-release.ipa
           if-no-files-found: warn
           retention-days: 30
 
