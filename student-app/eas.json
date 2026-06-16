@@ -7,12 +7,10 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "buildType": "apk"
       },
       "ios": {
-        "simulator": false,
-        "enterpriseProvisioning": "universal"
+        "simulator": false
       }
     },
     "production": {
