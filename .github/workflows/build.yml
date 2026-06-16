@@ -103,32 +103,35 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
+          # --json sends clean JSON to stdout; logs go to stderr
           eas build \
             --platform android \
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
             --wait \
-            --json 2>&1 | tee /tmp/android_build.json
+            --json > /tmp/android_build.json
 
-          BUILD_URL=$(python3 -c "
-          import json, re, sys
+          echo "=== EAS JSON output ==="
+          cat /tmp/android_build.json
+
+          BUILD_URL=$(python3 << 'PYEOF'
+          import json, sys
           try:
-            text = open('/tmp/android_build.json').read()
-            for m in re.findall(r'\[.*?\]|\{.*?\}', text, re.DOTALL):
-              try:
-                data = json.loads(m)
-                item = data[0] if isinstance(data, list) else data
-                url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url','')
-                if url: print(url); sys.exit(0)
-              except: pass
-          except: pass
-          " 2>/dev/null || echo "")
+              data = json.load(open('/tmp/android_build.json'))
+              item = data[0] if isinstance(data, list) else data
+              url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url', '')
+              if url: print(url)
+          except Exception as e:
+              print(f"error: {e}", file=sys.stderr)
+          PYEOF
+          )
 
-          if [ -n "$BUILD_URL" ]; then
-            echo "📥 Downloading APK from $BUILD_URL"
-            curl -L -o android-release.apk "$BUILD_URL"
+          echo "Build URL: $BUILD_URL"
+          if [ -n "$BUILD_URL" ] && [ "$BUILD_URL" != "None" ]; then
+            curl -L -f -o android-release.apk "$BUILD_URL"
+            echo "✅ APK: $(ls -lh android-release.apk)"
           else
-            echo "⚠️ No URL found. Check: https://expo.dev/accounts/${{ secrets.EXPO_USERNAME }}/projects/union-student-app/builds"
+            echo "⚠️ Download from: https://expo.dev/accounts/${{ secrets.EXPO_USERNAME }}/projects/union-student-app/builds"
           fi
 
       - name: 📤 Upload APK
