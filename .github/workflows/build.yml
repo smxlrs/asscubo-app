@@ -1,0 +1,95 @@
+name: EAS Build (APK + IPA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: '打包平台'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+      profile:
+        description: '打包配置（preview=测试版APK, production=正式包）'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    name: EAS Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: student-app
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: student-app/package-lock.json
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔧 Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🌍 Create .env file
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" > .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: 🎯 Set platform & profile
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "platform=all"       >> $GITHUB_OUTPUT
+            echo "profile=production" >> $GITHUB_OUTPUT
+          else
+            echo "platform=${{ github.event.inputs.platform }}" >> $GITHUB_OUTPUT
+            echo "profile=${{ github.event.inputs.profile }}"   >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🤖 Build Android
+        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        run: |
+          eas build \
+            --platform android \
+            --profile ${{ steps.vars.outputs.profile }} \
+            --non-interactive \
+            --no-wait
+
+      - name: 🍎 Build iOS
+        if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
+        run: |
+          eas build \
+            --platform ios \
+            --profile ${{ steps.vars.outputs.profile }} \
+            --non-interactive \
+            --no-wait
+
+      - name: ✅ Done
+        run: |
+          echo "=================================="
+          echo "构建任务已提交到 EAS 云端！约 10~15 分钟后完成。"
+          echo "下载地址: https://expo.dev/accounts/${{ secrets.EXPO_USERNAME }}/projects/union-student-app/builds"
+          echo "=================================="
