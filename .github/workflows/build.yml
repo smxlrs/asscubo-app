@@ -66,7 +66,7 @@ jobs:
       # ── Step 4: npm ci ───────────────────────────────────────
       - name: 📦 Install dependencies
         working-directory: student-app
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       # ── Step 5: EAS CLI ──────────────────────────────────────
       - name: 🔧 Install EAS CLI
