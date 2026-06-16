@@ -1,8 +1,5 @@
 name: EAS Build (APK + IPA)
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # 修复 Node.js 20 废弃警告
-
 on:
   workflow_dispatch:
     inputs:
@@ -16,7 +13,7 @@ on:
           - ios
           - all
       profile:
-        description: '打包配置（preview=测试APK, production=正式包）'
+        description: '打包配置'
         required: true
         default: 'preview'
         type: choice
@@ -33,17 +30,31 @@ jobs:
     name: EAS Build
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
 
     steps:
-      - name: 🔧 Fix git safe.directory (prevent exit 128)
-        run: git config --global --add safe.directory '*'
-
-      - name: 📥 Checkout repository
+      # ── Step 1: Checkout ─────────────────────────────────────
+      - name: 📥 Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          persist-credentials: false   # 不让 checkout 自动配置 git credential
+          fetch-depth: 1               # 只要最新一个 commit，不需要完整历史
 
+      # ── Step 2: 诊断 git 状态 ────────────────────────────────
+      - name: 🔍 Debug git & environment
+        run: |
+          echo "=== git version ==="
+          git --version
+          echo "=== whoami ==="
+          whoami
+          echo "=== workspace ==="
+          ls -la $GITHUB_WORKSPACE
+          echo "=== git status ==="
+          git status || echo "git status failed"
+          echo "=== git log ==="
+          git log --oneline -3 || echo "git log failed"
+
+      # ── Step 3: Node.js ──────────────────────────────────────
       - name: 🟢 Setup Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -51,10 +62,12 @@ jobs:
           cache: npm
           cache-dependency-path: student-app/package-lock.json
 
+      # ── Step 4: npm ci ───────────────────────────────────────
       - name: 📦 Install dependencies
         working-directory: student-app
         run: npm ci
 
+      # ── Step 5: EAS CLI ──────────────────────────────────────
       - name: 🔧 Install EAS CLI
         run: npm install -g eas-cli@latest
 
@@ -64,12 +77,14 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas whoami
 
-      - name: 🌍 Create .env file
+      # ── Step 6: .env ─────────────────────────────────────────
+      - name: 🌍 Create .env
         working-directory: student-app
         run: |
           echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" > .env
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
 
+      # ── Step 7: Build ─────────────────────────────────────────
       - name: 🎯 Set platform & profile
         id: vars
         run: |
@@ -81,7 +96,6 @@ jobs:
             echo "profile=${{ github.event.inputs.profile }}"   >> $GITHUB_OUTPUT
           fi
 
-      # ── Android ──────────────────────────────────────────────
       - name: 🤖 Build Android
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         working-directory: student-app
@@ -96,31 +110,27 @@ jobs:
             --json 2>&1 | tee /tmp/android_build.json
 
           BUILD_URL=$(python3 -c "
-          import json, sys
+          import json, re, sys
           try:
-            lines = open('/tmp/android_build.json').read()
-            # find JSON in output
-            import re
-            matches = re.findall(r'\[.*\]|\{.*\}', lines, re.DOTALL)
-            for m in matches:
+            text = open('/tmp/android_build.json').read()
+            for m in re.findall(r'\[.*?\]|\{.*?\}', text, re.DOTALL):
               try:
                 data = json.loads(m)
                 item = data[0] if isinstance(data, list) else data
                 url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url','')
-                if url: print(url); break
+                if url: print(url); sys.exit(0)
               except: pass
-          except Exception as e: print('', file=sys.stderr)
+          except: pass
           " 2>/dev/null || echo "")
 
-          if [ -n "\$BUILD_URL" ]; then
-            echo "📥 Downloading APK..."
-            curl -L -o android-release.apk "\$BUILD_URL"
-            echo "✅ APK ready"
+          if [ -n "$BUILD_URL" ]; then
+            echo "📥 Downloading APK from $BUILD_URL"
+            curl -L -o android-release.apk "$BUILD_URL"
           else
-            echo "⚠️ No download URL found – check https://expo.dev/accounts/${{ secrets.EXPO_USERNAME }}/projects/union-student-app/builds"
+            echo "⚠️ No URL found. Check: https://expo.dev/accounts/${{ secrets.EXPO_USERNAME }}/projects/union-student-app/builds"
           fi
 
-      - name: 📤 Upload APK to GitHub
+      - name: 📤 Upload APK
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         uses: actions/upload-artifact@v4
         with:
@@ -129,7 +139,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      # ── iOS ──────────────────────────────────────────────────
       - name: 🍎 Build iOS
         if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
         working-directory: student-app
@@ -144,24 +153,24 @@ jobs:
             --json 2>&1 | tee /tmp/ios_build.json
 
           BUILD_URL=$(python3 -c "
-          import json, re
+          import json, re, sys
           try:
-            lines = open('/tmp/ios_build.json').read()
-            for m in re.findall(r'\[.*\]|\{.*\}', lines, re.DOTALL):
+            text = open('/tmp/ios_build.json').read()
+            for m in re.findall(r'\[.*?\]|\{.*?\}', text, re.DOTALL):
               try:
                 data = json.loads(m)
                 item = data[0] if isinstance(data, list) else data
                 url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url','')
-                if url: print(url); break
+                if url: print(url); sys.exit(0)
               except: pass
           except: pass
           " 2>/dev/null || echo "")
 
-          if [ -n "\$BUILD_URL" ]; then
-            curl -L -o ios-release.ipa "\$BUILD_URL"
+          if [ -n "$BUILD_URL" ]; then
+            curl -L -o ios-release.ipa "$BUILD_URL"
           fi
 
-      - name: 📤 Upload IPA to GitHub
+      - name: 📤 Upload IPA
         if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
         uses: actions/upload-artifact@v4
         with:
@@ -169,6 +178,3 @@ jobs:
           path: student-app/ios-release.ipa
           if-no-files-found: warn
           retention-days: 30
-
-      - name: ✅ Done
-        run: echo "构建完成！在本次 Actions 页面右上角 Artifacts 区域下载 APK/IPA"
