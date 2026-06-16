@@ -30,7 +30,7 @@ jobs:
     name: EAS Build
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # 允许上传到 GitHub Releases
+      contents: write
     defaults:
       run:
         working-directory: student-app
@@ -39,7 +39,7 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # EAS 需要完整 git 历史获取 commit 信息
+          fetch-depth: 0
 
       - name: 🟢 Setup Node.js 22
         uses: actions/setup-node@v4
@@ -51,11 +51,13 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
 
-      - name: 🔧 Setup Expo & EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: 🔧 Install EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: 🔑 Verify Expo login
+        run: eas whoami
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🌍 Create .env file
         run: |
@@ -73,75 +75,81 @@ jobs:
             echo "profile=${{ github.event.inputs.profile }}"   >> $GITHUB_OUTPUT
           fi
 
-      # ── Android：构建并等待完成，然后下载 APK ─────────────────
+      # ── Android ──────────────────────────────────────────────
       - name: 🤖 Build Android & Download APK
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          BUILD_URL=$(eas build \
+          eas build \
             --platform android \
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
             --wait \
-            --json \
-            | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          item = data[0] if isinstance(data, list) else data
-          print(item.get('artifacts', {}).get('buildUrl', '') or item.get('url', ''))
+            --json > /tmp/android_build.json 2>&1 || true
+
+          cat /tmp/android_build.json
+
+          BUILD_URL=$(python3 -c "
+          import json, sys
+          try:
+            data = json.load(open('/tmp/android_build.json'))
+            item = data[0] if isinstance(data, list) else data
+            url = item.get('artifacts', {}).get('buildUrl') or item.get('url', '')
+            print(url)
+          except: pass
           " 2>/dev/null || echo "")
 
-          echo "Android build URL: $BUILD_URL"
-
           if [ -n "$BUILD_URL" ]; then
-            curl -L -o ../android-release.apk "$BUILD_URL"
-            echo "✅ APK downloaded successfully"
-          else
-            echo "⚠️ Could not get download URL, check expo.dev manually"
+            echo "Downloading APK from: $BUILD_URL"
+            curl -L -o /tmp/android-release.apk "$BUILD_URL"
+            cp /tmp/android-release.apk ../android-release.apk
           fi
 
-      - name: 📤 Upload Android APK to GitHub
-        if: (steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all') && hashFiles('../android-release.apk') != ''
+      - name: 📤 Upload APK to GitHub Artifacts
+        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk-${{ steps.vars.outputs.profile }}-${{ github.run_number }}
+          name: android-apk-${{ steps.vars.outputs.profile }}-build${{ github.run_number }}
           path: android-release.apk
+          if-no-files-found: warn
           retention-days: 30
 
-      # ── iOS：构建并等待完成，然后下载 IPA ────────────────────
+      # ── iOS ──────────────────────────────────────────────────
       - name: 🍎 Build iOS & Download IPA
         if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          BUILD_URL=$(eas build \
+          eas build \
             --platform ios \
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
             --wait \
-            --json \
-            | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          item = data[0] if isinstance(data, list) else data
-          print(item.get('artifacts', {}).get('buildUrl', '') or item.get('url', ''))
+            --json > /tmp/ios_build.json 2>&1 || true
+
+          BUILD_URL=$(python3 -c "
+          import json
+          try:
+            data = json.load(open('/tmp/ios_build.json'))
+            item = data[0] if isinstance(data, list) else data
+            print(item.get('artifacts', {}).get('buildUrl') or item.get('url', ''))
+          except: pass
           " 2>/dev/null || echo "")
 
-          echo "iOS build URL: $BUILD_URL"
-
           if [ -n "$BUILD_URL" ]; then
-            curl -L -o ../ios-release.ipa "$BUILD_URL"
-            echo "✅ IPA downloaded successfully"
+            curl -L -o /tmp/ios-release.ipa "$BUILD_URL"
+            cp /tmp/ios-release.ipa ../ios-release.ipa
           fi
 
-      - name: 📤 Upload iOS IPA to GitHub
-        if: (steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all') && hashFiles('../ios-release.ipa') != ''
+      - name: 📤 Upload IPA to GitHub Artifacts
+        if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ipa-${{ steps.vars.outputs.profile }}-${{ github.run_number }}
+          name: ios-ipa-${{ steps.vars.outputs.profile }}-build${{ github.run_number }}
           path: ios-release.ipa
+          if-no-files-found: warn
           retention-days: 30
 
-      - name: ✅ Summary
-        run: |
-          echo "=================================="
-          echo "构建完成！在本次 Actions 运行页面的"
-          echo "右上角 Artifacts 区域可直接下载 APK/IPA"
-          echo "=================================="
+      - name: ✅ Done
+        run: echo "构建完成！在本次 Actions 页面右上角 Artifacts 区域下载 APK/IPA"
