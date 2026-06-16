@@ -57,3 +57,6 @@ check_db_sizes.mjs
 test_*.mjs
 handbook_insert.sql
 scratch/
+
+# handbook source files (large LaTeX/PDF, not needed in repo)
+handbook_source/

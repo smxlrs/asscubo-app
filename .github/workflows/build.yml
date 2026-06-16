@@ -37,8 +37,9 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
         with:
-          persist-credentials: false   # 不让 checkout 自动配置 git credential
-          fetch-depth: 1               # 只要最新一个 commit，不需要完整历史
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false   # handbook_source 不是真正的 submodule
 
       # ── Step 2: 诊断 git 状态 ────────────────────────────────
       - name: 🔍 Debug git & environment
