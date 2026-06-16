@@ -39,3 +39,21 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# local env files
+.env
+.env*
+
+# development/database utility scripts (contain hardcoded credentials)
+check_chars.js
+check_database.js
+check_exact_fields.js
+check_verb_conjugations.mjs
+get_all_published.js
+build_dicts_db.mjs
+build_dicts_compressed_db.mjs
+check_all_dicts.mjs
+check_db_sizes.mjs
+test_*.mjs
+handbook_insert.sql
+scratch/

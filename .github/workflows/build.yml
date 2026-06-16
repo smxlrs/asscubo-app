@@ -13,7 +13,7 @@ on:
           - ios
           - all
       profile:
-        description: '打包配置（preview=测试版APK, production=正式包）'
+        description: '打包配置（preview=测试APK, production=正式包）'
         required: true
         default: 'preview'
         type: choice
@@ -29,6 +29,8 @@ jobs:
   build:
     name: EAS Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 允许上传到 GitHub Releases
     defaults:
       run:
         working-directory: student-app
@@ -36,6 +38,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # EAS 需要完整 git 历史获取 commit 信息
 
       - name: 🟢 Setup Node.js 22
         uses: actions/setup-node@v4
@@ -69,27 +73,75 @@ jobs:
             echo "profile=${{ github.event.inputs.profile }}"   >> $GITHUB_OUTPUT
           fi
 
-      - name: 🤖 Build Android
+      # ── Android：构建并等待完成，然后下载 APK ─────────────────
+      - name: 🤖 Build Android & Download APK
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         run: |
-          eas build \
+          BUILD_URL=$(eas build \
             --platform android \
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
-            --no-wait
+            --wait \
+            --json \
+            | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          item = data[0] if isinstance(data, list) else data
+          print(item.get('artifacts', {}).get('buildUrl', '') or item.get('url', ''))
+          " 2>/dev/null || echo "")
 
-      - name: 🍎 Build iOS
+          echo "Android build URL: $BUILD_URL"
+
+          if [ -n "$BUILD_URL" ]; then
+            curl -L -o ../android-release.apk "$BUILD_URL"
+            echo "✅ APK downloaded successfully"
+          else
+            echo "⚠️ Could not get download URL, check expo.dev manually"
+          fi
+
+      - name: 📤 Upload Android APK to GitHub
+        if: (steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all') && hashFiles('../android-release.apk') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ steps.vars.outputs.profile }}-${{ github.run_number }}
+          path: android-release.apk
+          retention-days: 30
+
+      # ── iOS：构建并等待完成，然后下载 IPA ────────────────────
+      - name: 🍎 Build iOS & Download IPA
         if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
         run: |
-          eas build \
+          BUILD_URL=$(eas build \
             --platform ios \
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
-            --no-wait
+            --wait \
+            --json \
+            | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          item = data[0] if isinstance(data, list) else data
+          print(item.get('artifacts', {}).get('buildUrl', '') or item.get('url', ''))
+          " 2>/dev/null || echo "")
 
-      - name: ✅ Done
+          echo "iOS build URL: $BUILD_URL"
+
+          if [ -n "$BUILD_URL" ]; then
+            curl -L -o ../ios-release.ipa "$BUILD_URL"
+            echo "✅ IPA downloaded successfully"
+          fi
+
+      - name: 📤 Upload iOS IPA to GitHub
+        if: (steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all') && hashFiles('../ios-release.ipa') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-${{ steps.vars.outputs.profile }}-${{ github.run_number }}
+          path: ios-release.ipa
+          retention-days: 30
+
+      - name: ✅ Summary
         run: |
           echo "=================================="
-          echo "构建任务已提交到 EAS 云端！约 10~15 分钟后完成。"
-          echo "下载地址: https://expo.dev/accounts/${{ secrets.EXPO_USERNAME }}/projects/union-student-app/builds"
+          echo "构建完成！在本次 Actions 运行页面的"
+          echo "右上角 Artifacts 区域可直接下载 APK/IPA"
           echo "=================================="
