@@ -1,0 +1,100 @@
+name: EAS Build (APK + IPA)
+
+on:
+  # 手动触发（在 GitHub 仓库页面 Actions 标签下点 "Run workflow"）
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: '打包平台'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+      profile:
+        description: '打包配置'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+
+  # 推送 tag（如 v1.0.0）时自动触发正式包
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    name: EAS Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: student-app
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: student-app/package-lock.json
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔧 Setup Expo & EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # 将 Supabase 等环境变量写入 .env 文件（EAS Build 云端需要）
+      - name: 🌍 Create .env file
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      # 确定打包平台（手动触发用 input，tag 触发打全平台）
+      - name: 🎯 Determine platform
+        id: platform
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "platform=all" >> $GITHUB_OUTPUT
+            echo "profile=production" >> $GITHUB_OUTPUT
+          else
+            echo "platform=${{ github.event.inputs.platform }}" >> $GITHUB_OUTPUT
+            echo "profile=${{ github.event.inputs.profile }}" >> $GITHUB_OUTPUT
+          fi
+
+      # ---------- Android APK ----------
+      - name: 🤖 Build Android (APK)
+        if: steps.platform.outputs.platform == 'all' || steps.platform.outputs.platform == 'android'
+        run: |
+          eas build \
+            --platform android \
+            --profile ${{ steps.platform.outputs.profile }} \
+            --non-interactive \
+            --no-wait
+
+      # ---------- iOS IPA ----------
+      - name: 🍎 Build iOS (IPA)
+        if: steps.platform.outputs.platform == 'all' || steps.platform.outputs.platform == 'ios'
+        run: |
+          eas build \
+            --platform ios \
+            --profile ${{ steps.platform.outputs.profile }} \
+            --non-interactive \
+            --no-wait
+
+      - name: ✅ Build submitted to EAS
+        run: |
+          echo "构建任务已提交到 EAS 云端服务器！"
+          echo "请前往 https://expo.dev/accounts/[你的账号]/projects/union-student-app/builds 查看进度"
+          echo "完成后可在该页面直接下载 APK 和 IPA 文件"
