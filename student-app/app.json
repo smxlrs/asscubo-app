@@ -47,9 +47,11 @@
       "bundler": "metro"
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "your-eas-project-id"
+        "projectId": "30915e7c-2905-4e7b-81b1-277f9d93128c"
       }
-    }
+    },
+    "owner": "smxlrs"
   }
 }
