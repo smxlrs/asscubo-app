@@ -509,9 +509,22 @@ export default function DictionaryScreen() {
   const [isFocused, setIsFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [collapsedDicts, setCollapsedDicts] = useState<{ [dictId: string]: boolean }>({});
+  const collapsedDictsRef = useRef<{ [dictId: string]: boolean }>({});
 
   const textInputRef = useRef<TextInput>(null);
   const currentSearchRef = useRef<string>('');
+
+  const webViewSource = useMemo(() => {
+    return {
+      html: buildHtmlString(
+        definitions,
+        dictionaries,
+        collapsedDictsRef.current,
+        colors,
+        isDark
+      )
+    };
+  }, [definitions, dictionaries, colors, isDark]);
 
   // Load dictionaries and history on focus (in case config changed in settings)
   useFocusEffect(
@@ -535,7 +548,9 @@ export default function DictionaryScreen() {
           // Load collapsed state of dictionaries
           const storedCollapsed = await AsyncStorage.getItem('user_dictionary_collapsed');
           if (storedCollapsed) {
-            setCollapsedDicts(JSON.parse(storedCollapsed));
+            const parsed = JSON.parse(storedCollapsed);
+            setCollapsedDicts(parsed);
+            collapsedDictsRef.current = parsed;
           }
 
           // Pre-load enabled dictionary instances sequentially in the background with a delay.
@@ -756,11 +771,10 @@ export default function DictionaryScreen() {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'toggleCollapse') {
         const { dictId, isCollapsed } = data;
-        setCollapsedDicts(prev => {
-          const updated = { ...prev, [dictId]: isCollapsed };
-          AsyncStorage.setItem('user_dictionary_collapsed', JSON.stringify(updated));
-          return updated;
-        });
+        const updated = { ...collapsedDictsRef.current, [dictId]: isCollapsed };
+        collapsedDictsRef.current = updated;
+        setCollapsedDicts(updated);
+        AsyncStorage.setItem('user_dictionary_collapsed', JSON.stringify(updated));
       } else if (data.type === 'link') {
         handleSearch(data.word);
       } else if (data.type === 'error') {
@@ -918,15 +932,7 @@ export default function DictionaryScreen() {
                   {definitions.length > 0 ? (
                     <WebView
                       style={{ flex: 1, backgroundColor: 'transparent' }}
-                      source={{
-                        html: buildHtmlString(
-                          definitions,
-                          dictionaries,
-                          collapsedDicts,
-                          colors,
-                          isDark
-                        )
-                      }}
+                      source={webViewSource}
                       onMessage={handleWebViewMessage}
                       originWhitelist={['*']}
                       showsVerticalScrollIndicator={false}
