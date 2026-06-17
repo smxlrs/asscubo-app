@@ -441,7 +441,7 @@ function getSystemLanguage(): Language {
 const ThemeContext = createContext<ThemeContextType>({} as ThemeContextType);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
   const [customStart, setCustomStartState] = useState('20:00');
   const [customEnd, setCustomEndState] = useState('07:00');
   const [languageMode, setLanguageModeState] = useState<LanguageMode>('system');
@@ -546,7 +546,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   if (!isReady) {
-    return <View style={{ flex: 1, backgroundColor: '#0A0A0A' }} />;
+    return <View style={{ flex: 1, backgroundColor: systemScheme === 'dark' ? '#0A0A0A' : '#F5F7FA' }} />;
   }
 
   return (

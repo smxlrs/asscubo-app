@@ -1,22 +1,87 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
+
+const GITHUB_REPO = 'smxlrs/asscubo-app';
+const RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+
+/** 比较版本号，如果 latest > current 返回 true */
+function isNewerVersion(latest: string, current: string): boolean {
+  const parse = (v: string) => v.replace(/^v/, '').split('.').map(n => parseInt(n) || 0);
+  const l = parse(latest);
+  const c = parse(current);
+  for (let i = 0; i < 3; i++) {
+    if ((l[i] ?? 0) > (c[i] ?? 0)) return true;
+    if ((l[i] ?? 0) < (c[i] ?? 0)) return false;
+  }
+  return false;
+}
 
 export default function AboutIndexScreen() {
   const { colors, t } = useTheme();
   const [checkingUpdate, setCheckingUpdate] = useState(false);
 
-  const handleCheckUpdate = () => {
+  const currentVersion = Constants.expoConfig?.version ?? '1.0.0';
+
+  const handleCheckUpdate = async () => {
     setCheckingUpdate(true);
-    setTimeout(() => {
-      setCheckingUpdate(false);
+    try {
+      const res = await fetch(RELEASES_API, {
+        headers: { Accept: 'application/vnd.github.v3+json' },
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      const latestTag: string = data.tag_name ?? '';
+      const latestVersion = latestTag.replace(/^v/, '');
+
+      if (!latestVersion) throw new Error('No release found');
+
+      if (isNewerVersion(latestVersion, currentVersion)) {
+        // 找 APK 附件
+        const apkAsset = data.assets?.find((a: { name: string }) =>
+          a.name.endsWith('.apk')
+        );
+        const downloadUrl: string =
+          (apkAsset as { browser_download_url?: string } | undefined)?.browser_download_url ??
+          (data.html_url as string);
+
+        const releaseNotes: string = ((data.body as string) ?? '').slice(0, 300);
+
+        Alert.alert(
+          `🎉 发现新版本 v${latestVersion}`,
+          `当前版本：v${currentVersion}\n最新版本：v${latestVersion}${releaseNotes ? `\n\n${releaseNotes}` : ''}`,
+          [
+            { text: t('cancel'), style: 'cancel' },
+            {
+              text: '立即更新',
+              onPress: () => Linking.openURL(downloadUrl),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(t('checkUpdate'), t('noUpdate'));
+      }
+    } catch (e) {
+      console.warn('Update check failed:', e);
       Alert.alert(
-        t('checkUpdate'), 
-        t('noUpdate') + '\n\n(💡 提示：正式版本发布后，App可通过集成 expo-updates 服务进行无线热更新；或在更新时点击版本号调用浏览器直接下载最新的 APK/IPA 安装包进行升级。)'
+        t('checkUpdate'),
+        '无法连接到服务器，请稍后重试。\n\n您也可以访问 GitHub 手动下载：\nhttps://github.com/' + GITHUB_REPO + '/releases',
+        [
+          { text: t('cancel'), style: 'cancel' },
+          {
+            text: '打开 GitHub',
+            onPress: () => Linking.openURL(`https://github.com/${GITHUB_REPO}/releases`),
+          },
+        ]
       );
-    }, 1200);
+    } finally {
+      setCheckingUpdate(false);
+    }
   };
 
   return (
@@ -43,7 +108,7 @@ export default function AboutIndexScreen() {
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>🏠</Text>
           <Text style={[styles.appName, { color: colors.textPrimary }]}>{t('appName')}</Text>
-          <Text style={[styles.version, { color: colors.textSecondary }]}>Version 1.0.0 (Beta)</Text>
+          <Text style={[styles.version, { color: colors.textSecondary }]}>Version {currentVersion}</Text>
         </View>
 
         <View style={[styles.menuSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -60,13 +125,17 @@ export default function AboutIndexScreen() {
           </Pressable>
 
           {/* 3. Version Update Check */}
-          <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={handleCheckUpdate} disabled={checkingUpdate}>
+          <Pressable
+            style={[styles.menuRow, { borderBottomColor: colors.border }]}
+            onPress={handleCheckUpdate}
+            disabled={checkingUpdate}
+          >
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('versionLabel')}</Text>
             <View style={styles.rowRight}>
               {checkingUpdate ? (
                 <ActivityIndicator size="small" color={colors.primaryLight} style={{ marginRight: 8 }} />
               ) : (
-                <Text style={[styles.rowValue, { color: colors.textSecondary }]}>1.0.0 (Beta)</Text>
+                <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{currentVersion}</Text>
               )}
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>
@@ -102,10 +171,6 @@ const styles = StyleSheet.create({
   backButton: {
     paddingVertical: 8,
     paddingRight: 16,
-  },
-  backText: {
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   headerTitle: {
     fontSize: 18,

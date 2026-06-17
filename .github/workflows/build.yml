@@ -20,6 +20,10 @@ on:
         options:
           - preview
           - production
+      version:
+        description: '版本号（如 1.0.1，填写后自动创建 GitHub Release）'
+        required: false
+        default: ''
 
   push:
     tags:
@@ -30,32 +34,23 @@ jobs:
     name: EAS Build
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write   # 需要 write 权限才能创建 Release
 
     steps:
-      # ── Step 1: Checkout ─────────────────────────────────────
       - name: 📥 Checkout
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          persist-credentials: true
           fetch-depth: 1
-          submodules: false   # handbook_source 不是真正的 submodule
+          submodules: false
 
-      # ── Step 2: 诊断 git 状态 ────────────────────────────────
       - name: 🔍 Debug git & environment
         run: |
           echo "=== git version ==="
           git --version
-          echo "=== whoami ==="
-          whoami
           echo "=== workspace ==="
           ls -la $GITHUB_WORKSPACE
-          echo "=== git status ==="
-          git status || echo "git status failed"
-          echo "=== git log ==="
-          git log --oneline -3 || echo "git log failed"
 
-      # ── Step 3: Node.js ──────────────────────────────────────
       - name: 🟢 Setup Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -63,12 +58,10 @@ jobs:
           cache: npm
           cache-dependency-path: student-app/package-lock.json
 
-      # ── Step 4: npm ci ───────────────────────────────────────
       - name: 📦 Install dependencies
         working-directory: student-app
         run: npm ci --legacy-peer-deps
 
-      # ── Step 5: EAS CLI ──────────────────────────────────────
       - name: 🔧 Install EAS CLI
         run: npm install -g eas-cli@latest
 
@@ -78,32 +71,41 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas whoami
 
-      # ── Step 6: .env ─────────────────────────────────────────
       - name: 🌍 Create .env
         working-directory: student-app
         run: |
           echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" > .env
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
 
-      # ── Step 7: Build ─────────────────────────────────────────
-      - name: 🎯 Set platform & profile
+      - name: 🎯 Set platform, profile & version
         id: vars
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             echo "platform=all"       >> $GITHUB_OUTPUT
             echo "profile=production" >> $GITHUB_OUTPUT
+            # 从 tag 提取版本号，如 refs/tags/v1.0.1 → 1.0.1
+            TAG="${{ github.ref_name }}"
+            echo "version=${TAG#v}"   >> $GITHUB_OUTPUT
+            echo "create_release=true" >> $GITHUB_OUTPUT
           else
             echo "platform=${{ github.event.inputs.platform }}" >> $GITHUB_OUTPUT
             echo "profile=${{ github.event.inputs.profile }}"   >> $GITHUB_OUTPUT
+            VER="${{ github.event.inputs.version }}"
+            echo "version=${VER:-0.0.0}" >> $GITHUB_OUTPUT
+            if [ -n "$VER" ]; then
+              echo "create_release=true" >> $GITHUB_OUTPUT
+            else
+              echo "create_release=false" >> $GITHUB_OUTPUT
+            fi
           fi
 
+      # ── Android ──────────────────────────────────────────────
       - name: 🤖 Build Android
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         working-directory: student-app
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          # --json sends clean JSON to stdout; logs go to stderr
           eas build \
             --platform android \
             --profile ${{ steps.vars.outputs.profile }} \
@@ -131,10 +133,10 @@ jobs:
             curl -L -f -o android-release.apk "$BUILD_URL"
             echo "✅ APK: $(ls -lh android-release.apk)"
           else
-            echo "⚠️ Download from: https://expo.dev/accounts/${{ secrets.EXPO_USERNAME }}/projects/union-student-app/builds"
+            echo "⚠️ Download from expo.dev"
           fi
 
-      - name: 📤 Upload APK
+      - name: 📤 Upload APK Artifact
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         uses: actions/upload-artifact@v4
         with:
@@ -143,6 +145,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      # ── iOS ──────────────────────────────────────────────────
       - name: 🍎 Build iOS
         if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
         working-directory: student-app
@@ -154,27 +157,25 @@ jobs:
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
             --wait \
-            --json 2>&1 | tee /tmp/ios_build.json
+            --json > /tmp/ios_build.json
 
-          BUILD_URL=$(python3 -c "
-          import json, re, sys
+          BUILD_URL=$(python3 << 'PYEOF'
+          import json, sys
           try:
-            text = open('/tmp/ios_build.json').read()
-            for m in re.findall(r'\[.*?\]|\{.*?\}', text, re.DOTALL):
-              try:
-                data = json.loads(m)
-                item = data[0] if isinstance(data, list) else data
-                url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url','')
-                if url: print(url); sys.exit(0)
-              except: pass
-          except: pass
-          " 2>/dev/null || echo "")
+              data = json.load(open('/tmp/ios_build.json'))
+              item = data[0] if isinstance(data, list) else data
+              url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url', '')
+              if url: print(url)
+          except Exception as e:
+              print(f"error: {e}", file=sys.stderr)
+          PYEOF
+          )
 
-          if [ -n "$BUILD_URL" ]; then
-            curl -L -o ios-release.ipa "$BUILD_URL"
+          if [ -n "$BUILD_URL" ] && [ "$BUILD_URL" != "None" ]; then
+            curl -L -f -o ios-release.ipa "$BUILD_URL"
           fi
 
-      - name: 📤 Upload IPA
+      - name: 📤 Upload IPA Artifact
         if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
         uses: actions/upload-artifact@v4
         with:
@@ -182,3 +183,30 @@ jobs:
           path: student-app/ios-release.ipa
           if-no-files-found: warn
           retention-days: 30
+
+      # ── GitHub Release（有版本号时自动发布）────────────────
+      - name: 🚀 Create GitHub Release
+        if: steps.vars.outputs.create_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.vars.outputs.version }}"
+          TAG="v${VERSION}"
+
+          # 整理要附加的文件
+          ASSETS=""
+          [ -f student-app/android-release.apk ] && ASSETS="$ASSETS student-app/android-release.apk"
+          [ -f student-app/ios-release.ipa ]     && ASSETS="$ASSETS student-app/ios-release.ipa"
+
+          # 创建 Release（如果 tag 不存在则自动创建）
+          gh release create "$TAG" \
+            --title "博学 v${VERSION}" \
+            --notes "## 版本 ${VERSION}
+
+          **下载方式：**
+          - **Android** 用户：下载 \`android-release.apk\` 文件安装
+          - **iOS** 用户：下载 \`ios-release.ipa\` 文件安装（需要 AltStore 或越狱）
+
+          > 在 App 内「关于 → 版本」处点击也可检查到此更新。" \
+            $ASSETS \
+            2>&1 || echo "Release creation failed (tag may already exist)"
