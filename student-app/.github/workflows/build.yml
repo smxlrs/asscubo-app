@@ -1,4 +1,4 @@
-name: EAS Build (APK + IPA)
+﻿name: EAS Build + GitHub Release
 
 on:
   workflow_dispatch:
@@ -20,6 +20,10 @@ on:
         options:
           - preview
           - production
+      release_note:
+        description: '版本说明（留空则自动生成）'
+        required: false
+        default: ''
 
   push:
     tags:
@@ -27,86 +31,146 @@ on:
 
 jobs:
   build:
-    name: EAS Build
+    name: EAS Build & Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: student-app
 
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js 22
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: student-app/package-lock.json
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: 🔧 Setup Expo & EAS CLI
+      - name: Setup Expo & EAS CLI
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 🌍 Create .env file
+      - name: Create .env file
         run: |
           echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" > .env
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
 
-      - name: 🎯 Set platform & profile
+      - name: Set build variables
         id: vars
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            echo "platform=all"     >> $GITHUB_OUTPUT
-            echo "profile=production" >> $GITHUB_OUTPUT
+            echo "platform=android"  >> $GITHUB_OUTPUT
+            echo "profile=preview"   >> $GITHUB_OUTPUT
           else
             echo "platform=${{ github.event.inputs.platform }}" >> $GITHUB_OUTPUT
             echo "profile=${{ github.event.inputs.profile }}"   >> $GITHUB_OUTPUT
           fi
+          VERSION=$(node -e "const a=require('./app.json'); console.log(a.expo.version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" = "push" ] && [ -n "${{ github.ref_name }}" ]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          fi
 
-      # ── Android ──────────────────────────────────────────────
-      - name: 🤖 Build Android
+      - name: Build Android (wait)
+        id: android_build
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         run: |
-          eas build \
+          echo "Building Android, please wait..."
+          BUILD_URL=$(eas build \
             --platform android \
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
             --json \
-            --no-wait \
-            | tee /tmp/android-build.json
-          BUILD_ID=$(cat /tmp/android-build.json | python3 -c "import sys,json; data=json.load(sys.stdin); print(data[0]['id'] if isinstance(data,list) else data['id'])" 2>/dev/null || echo "")
-          if [ -n "$BUILD_ID" ]; then
-            echo "🤖 Android Build ID: $BUILD_ID"
-            echo "📥 查看/下载: https://expo.dev/builds/$BUILD_ID"
+            2>/dev/null \
+            | python3 -c "
+          import sys,json
+          data=json.load(sys.stdin)
+          item=data[0] if isinstance(data,list) else data
+          arts=item.get('artifacts',{}) or {}
+          url=arts.get('buildUrl') or item.get('buildUrl','')
+          print(url)
+          " 2>/dev/null || echo "")
+          if [ -z "$BUILD_URL" ]; then
+            echo "ERROR: could not get build URL"
+            exit 1
           fi
+          APK_NAME="boxue-${{ steps.vars.outputs.version }}-android.apk"
+          curl -L -o "/tmp/$APK_NAME" "$BUILD_URL"
+          echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
+          echo "apk_path=/tmp/$APK_NAME" >> $GITHUB_OUTPUT
+          echo "apk_name=$APK_NAME" >> $GITHUB_OUTPUT
 
-      # ── iOS ──────────────────────────────────────────────────
-      - name: 🍎 Build iOS
+      - name: Build iOS (wait)
+        id: ios_build
         if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
         run: |
-          eas build \
+          echo "Building iOS, please wait..."
+          BUILD_URL=$(eas build \
             --platform ios \
             --profile ${{ steps.vars.outputs.profile }} \
             --non-interactive \
             --json \
-            --no-wait \
-            | tee /tmp/ios-build.json
-          BUILD_ID=$(cat /tmp/ios-build.json | python3 -c "import sys,json; data=json.load(sys.stdin); print(data[0]['id'] if isinstance(data,list) else data['id'])" 2>/dev/null || echo "")
-          if [ -n "$BUILD_ID" ]; then
-            echo "🍎 iOS Build ID: $BUILD_ID"
-            echo "📥 查看/下载: https://expo.dev/builds/$BUILD_ID"
+            2>/dev/null \
+            | python3 -c "
+          import sys,json
+          data=json.load(sys.stdin)
+          item=data[0] if isinstance(data,list) else data
+          arts=item.get('artifacts',{}) or {}
+          url=arts.get('buildUrl') or item.get('buildUrl','')
+          print(url)
+          " 2>/dev/null || echo "")
+          if [ -z "$BUILD_URL" ]; then
+            echo "ERROR: could not get iOS build URL"
+            exit 1
           fi
+          IPA_NAME="boxue-${{ steps.vars.outputs.version }}-ios.ipa"
+          curl -L -o "/tmp/$IPA_NAME" "$BUILD_URL"
+          echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
+          echo "ipa_path=/tmp/$IPA_NAME" >> $GITHUB_OUTPUT
+          echo "ipa_name=$IPA_NAME" >> $GITHUB_OUTPUT
 
-      - name: ✅ Done
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: "博学 ${{ steps.vars.outputs.tag }}"
+          body: |
+            ## 博学 App ${{ steps.vars.outputs.tag }}
+
+            ${{ github.event.inputs.release_note != '' && github.event.inputs.release_note || '本次发布由 GitHub Actions 自动构建。' }}
+
+            ---
+            **构建信息**
+            - 版本: `${{ steps.vars.outputs.version }}`
+            - 平台: `${{ steps.vars.outputs.platform }}`
+            - 配置: `${{ steps.vars.outputs.profile }}`
+            - 提交: `${{ github.sha }}`
+
+            **安装说明（Android）**
+            1. 下载下方 `.apk` 文件
+            2. 在手机上允许"安装未知来源应用"
+            3. 打开 APK 安装
+
+            > iOS IPA 需要通过 AltStore / 企业证书安装，暂不支持直接安装。
+          draft: false
+          prerelease: ${{ steps.vars.outputs.profile == 'preview' }}
+          files: |
+            ${{ steps.android_build.outputs.apk_path }}
+            ${{ steps.ios_build.outputs.ipa_path }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Done
         run: |
-          echo "=================================="
-          echo "构建任务已成功提交到 EAS 云端！"
-          echo "约 10~20 分钟后可在以下地址下载："
-          echo "https://expo.dev/accounts/${{ secrets.EXPO_USERNAME }}/projects/union-student-app/builds"
-          echo "=================================="
+          echo "Build complete! Published to GitHub Releases:"
+          echo "https://github.com/${{ github.repository }}/releases/tag/${{ steps.vars.outputs.tag }}"
