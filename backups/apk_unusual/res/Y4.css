@@ -1,0 +1,14 @@
+
+html { 
+	background: white !important;
+}
+
+
+.engine__wrapper__bookingflow .engine__bookingflow .engine__container .wrapper__buy .select__wrapper .first__block,
+.engine__wrapper__bookingflow .engine__bookingflow .engine__container .wrapper__buy .select__wrapper .second__block .third__block {
+    display: none;
+}
+
+select#recentSearch {
+    display: none;
+}

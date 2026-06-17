@@ -72,6 +72,14 @@ export default function ToolsScreen() {
       color: '#8B5CF6',
     },
     {
+      id: 'train',
+      title: t('trainToolTitle') || '意铁看板与车次',
+      description: t('trainToolDesc') || '实时查询意大利火车出发到达大盘，追踪列车晚点及站台状态。',
+      icon: 'train',
+      route: '/tools/train',
+      color: '#E30613',
+    },
+    {
       id: 'faq',
       title: '常见问答',
       description: '居留、签证、租房等常见疑难一网打尽',

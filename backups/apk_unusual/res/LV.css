@@ -1,0 +1,7 @@
+.TI_ButtonContainer, #footerNewSearch, #desktopVersion, #searchNewTripOpenPanelButton, #TI_listaComunicazioniContainer {
+    display: none !important;
+}
+
+.ui-header-fixed, .ui-footer-fixed {
+  position: absolute !important;
+}

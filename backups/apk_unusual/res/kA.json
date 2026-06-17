@@ -1,0 +1,4618 @@
+{
+  "discountCards": [
+    {
+      "ageRange": {
+        "lowerBound": 12,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:GrandEstCartePrimo",
+      "color": "#afcc08",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "70b97678dc83f6bc8f2f2edbe25d33a72d783a30",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Grand-Est – Carte Primo",
+      "nameTranslations": {
+        "de": "Grand-Est – Carte Primo",
+        "en": "Grand-Est – Carte Primo",
+        "es": "Grand-Est – Carte Primo",
+        "fr": "Grand-Est – Carte Primo",
+        "it": "Grand-Est – Carte Primo"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Primo",
+      "shortNameTranslations": {
+        "de": "Primo",
+        "en": "Primo",
+        "es": "Primo",
+        "fr": "Primo",
+        "it": "Primo"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 26,
+        "upperBound": 300
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:OccitanieCarteLibertio",
+      "color": "#d4326c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "385270dd24f03a49eb0c727a739edf4987950cb3",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Occitanie – Carte LibertiO’",
+      "nameTranslations": {
+        "de": "Occitanie – Carte LibertiO’",
+        "en": "Occitanie – Carte LibertiO’",
+        "es": "Occitanie – Carte LibertiO’",
+        "fr": "Occitanie – Carte LibertiO’",
+        "it": "Occitanie – Carte LibertiO’"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "LibertiO’",
+      "shortNameTranslations": {
+        "de": "LibertiO’",
+        "en": "LibertiO’",
+        "es": "LibertiO’",
+        "fr": "LibertiO’",
+        "it": "LibertiO’"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 6,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:db:card:BahnCard50FirstClass",
+      "color": "#6d9c3c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "448551672684d4943b131983051f85cc2930e0db",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": false,
+      "language": "fr",
+      "length": 16,
+      "name": "BahnCard 50 1. Kl.",
+      "nameTranslations": {
+        "de": "BahnCard 50 1. Kl.",
+        "en": "BahnCard 50 1st Class",
+        "es": "BahnCard 50 1.a clase",
+        "fr": "BahnCard 50 1ère",
+        "it": "BahnCard 50 1ᵃ classe"
+      },
+      "operator": "Deutsche Bahn",
+      "prefix": "7081",
+      "scopes": [
+        "DbFull"
+      ],
+      "shortName": "BC 50 1. Kl.",
+      "shortNameTranslations": {
+        "de": "BC 50 1. Kl.",
+        "en": "BC50 1st Class",
+        "es": "BC50 1.a clase",
+        "fr": "BC50 1ère",
+        "it": "BC50 1ᵃ classe"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+      "color": "#836a64",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "eaa6dbfeb4422e1ac328b4245fa8ae084427ff05",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Grand Voyageur Le Club",
+      "nameTranslations": {
+        "de": "Carte Grand Voyageur Le Club",
+        "en": "Carte Grand Voyageur Le Club",
+        "es": "Carte Grand Voyageur Le Club",
+        "fr": "Carte Grand Voyageur Le Club",
+        "it": "Carte Grand Voyageur Le Club"
+      },
+      "numberRequiredStage": "search",
+      "operator": "SNCF",
+      "prefix": "29090109",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "GV Le Club",
+      "shortNameTranslations": {
+        "de": "GV Le Club",
+        "en": "GV Le Club",
+        "es": "GV Le Club",
+        "fr": "GV Le Club",
+        "it": "GV Le Club"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:FamilienOberoesterreich",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "eed679aca6981e32cba80fa9b33df5fd4cf80e94",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "Familienkarte des Landes Oberösterreich",
+      "nameTranslations": {
+        "de": "Familienkarte des Landes Oberösterreich",
+        "en": "Familienkarte des Landes Oberösterreich",
+        "es": "Familienkarte des Landes Oberösterreich",
+        "fr": "Familienkarte des Landes Oberösterreich",
+        "it": "Familienkarte des Landes Oberösterreich"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "Familienkarte des Landes Oberösterreich",
+      "shortNameTranslations": {
+        "de": "Familienkarte des Landes Oberösterreich",
+        "en": "Familienkarte des Landes Oberösterreich",
+        "es": "Familienkarte des Landes Oberösterreich",
+        "fr": "Familienkarte des Landes Oberösterreich",
+        "it": "Familienkarte des Landes Oberösterreich"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:Liberte",
+      "color": "#95416f",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "6d8f580d114a78be2ae3d45e4b2816f93861ebae",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Liberté",
+      "nameTranslations": {
+        "de": "Carte Liberté",
+        "en": "Carte Liberté",
+        "es": "Carte Liberté",
+        "fr": "Carte Liberté",
+        "it": "Carte Liberté"
+      },
+      "numberRequiredStage": "reserve",
+      "operator": "SNCF",
+      "prefix": "29090115",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Liberté",
+      "shortNameTranslations": {
+        "de": "Liberté",
+        "en": "Liberté",
+        "es": "Liberté",
+        "fr": "Liberté",
+        "it": "Liberté"
+      },
+      "validationAlgorithm": "luhn",
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 6,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:db:card:BahnCard50SecondClass",
+      "color": "#6d9c3c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "69d1008f8bfaba6106c47fcb40859614faef7c75",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": false,
+      "language": "fr",
+      "length": 16,
+      "name": "BahnCard 50 2. Kl.",
+      "nameTranslations": {
+        "de": "BahnCard 50 2. Kl.",
+        "en": "BahnCard 50 2nd Class",
+        "es": "BahnCard 50 2.ª clase",
+        "fr": "BahnCard 50 2nde",
+        "it": "BahnCard 50 2ᵃ classe"
+      },
+      "operator": "Deutsche Bahn",
+      "prefix": "7081",
+      "scopes": [
+        "DbFull"
+      ],
+      "shortName": "BC 50 2. Kl.",
+      "shortNameTranslations": {
+        "de": "BC 50 2. Kl.",
+        "en": "BC50 2nd Class",
+        "es": "BC50 2.ª clase",
+        "fr": "BC50 2nde",
+        "it": "BC50 2ᵃ classe"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+      "color": "#99989d",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "c445b496595e689d9ff748b0da21a551f2ee69f1",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "es",
+      "length": 8,
+      "name": "Tarjeta +Renfe Plata",
+      "nameTranslations": {
+        "de": "Tarjeta +Renfe Plata",
+        "en": "Tarjeta +Renfe Plata",
+        "es": "Tarjeta +Renfe Plata",
+        "fr": "Tarjeta +Renfe Plata",
+        "it": "Tarjeta +Renfe Plata"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Renfe",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "+Renfe Plata",
+      "shortNameTranslations": {
+        "de": "+Renfe Plata",
+        "en": "+Renfe Plata",
+        "es": "+Renfe Plata",
+        "fr": "+Renfe Plata",
+        "it": "+Renfe Plata"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+      "color": "#1f6594",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "981d4f7374e07837881de71d962aa6a22c789879",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Carte Famille Nombreuse 30 %",
+      "nameTranslations": {
+        "de": "Carte Famille Nombreuse 30%",
+        "en": "Carte Famille Nombreuse 30%",
+        "es": "Carte Famille Nombreuse 30 %",
+        "fr": "Carte Famille Nombreuse 30 %",
+        "it": "Carte Famille Nombreuse 30%"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Fam. 30 %",
+      "shortNameTranslations": {
+        "de": "Fam. 30%",
+        "en": "Fam. 30%",
+        "es": "Fam. 30 %",
+        "fr": "Fam. 30 %",
+        "it": "Fam. 30%"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+      "color": "#1b72c4",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "53eb4fc0d3ff9be975cdb8310c9fe654740ed6f1",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "name": "Carnet 5 viaggi IC",
+      "nameTranslations": {
+        "de": "Carnet 5 viaggi IC",
+        "en": "Carnet 5 viaggi IC",
+        "es": "Carnet 5 viaggi IC",
+        "fr": "Carnet 5 viaggi IC",
+        "it": "Carnet 5 viaggi IC"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Carnet 5 IC",
+      "shortNameTranslations": {
+        "de": "Carnet 5 IC",
+        "en": "Carnet 5 IC",
+        "es": "Carnet 5 IC",
+        "fr": "Carnet 5 IC",
+        "it": "Carnet 5 IC"
+      },
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:VORTEILScardSenior",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "2dfaf3fe04317e4711cef735ecd8fcad19aa5755",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "VORTEILScard Senior",
+      "nameTranslations": {
+        "de": "VORTEILScard Senior",
+        "en": "VORTEILScard Senior",
+        "es": "VORTEILScard Senior",
+        "fr": "VORTEILScard Senior",
+        "it": "VORTEILScard Senior"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "VORTEILScard Senior",
+      "shortNameTranslations": {
+        "de": "VORTEILScard Senior",
+        "en": "VORTEILScard Senior",
+        "es": "VORTEILScard Senior",
+        "fr": "VORTEILScard Senior",
+        "it": "VORTEILScard Senior"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 60,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:trenitalia:card:CartaArgento",
+      "color": "#c0c0c0",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "d51a3893625fbdfad0d2ebf827f59f05ddcff6a5",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "name": "Carta Argento",
+      "nameTranslations": {
+        "de": "Carta Argento",
+        "en": "Carta Argento",
+        "es": "Carta Argento",
+        "fr": "Carta Argento",
+        "it": "Carta Argento"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Argento",
+      "shortNameTranslations": {
+        "de": "Argento",
+        "en": "Argento",
+        "es": "Argento",
+        "fr": "Argento",
+        "it": "Argento"
+      },
+      "validationRegex": "^[A-Za-z0-9]{1,10}$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+      "color": "#bea34c",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "5c7fd4b4560385e41bab7ee30653479cd858d068",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "es",
+      "length": 8,
+      "name": "Tarjeta +Renfe Oro",
+      "nameTranslations": {
+        "de": "Tarjeta +Renfe Oro",
+        "en": "Tarjeta +Renfe Oro",
+        "es": "Tarjeta +Renfe Oro",
+        "fr": "Tarjeta +Renfe Oro",
+        "it": "Tarjeta +Renfe Oro"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Renfe",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "+Renfe Oro",
+      "shortNameTranslations": {
+        "de": "+Renfe Oro",
+        "en": "+Renfe Oro",
+        "es": "+Renfe Oro",
+        "fr": "+Renfe Oro",
+        "it": "+Renfe Oro"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:cff:card:DemiTarif",
+      "color": "#254693",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "ca4dea17fea52a5aaf45d0f62b4c35f8048fb1a2",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Demi-tarif",
+      "nameTranslations": {
+        "de": "Halbtax",
+        "en": "Half-Fare Card",
+        "es": "Halbtax",
+        "fr": "Demi-tarif",
+        "it": "Metà-prezzo"
+      },
+      "operator": "CFF",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "Demi-tarif",
+      "shortNameTranslations": {
+        "de": "Halbtax",
+        "en": "Half-Fare",
+        "es": "Halbtax",
+        "fr": "Demi-tarif",
+        "it": "Metà-prezzo"
+      },
+      "validationRegex": "^[A-Za-z0-9]{1,8}$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:VORTEILScardJugend",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "d55af1ffc988038c5f36881b075889f9c098ee44",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "VORTEILScard Jugend",
+      "nameTranslations": {
+        "de": "VORTEILScard Jugend",
+        "en": "VORTEILScard Jugend",
+        "es": "VORTEILScard Jugend",
+        "fr": "VORTEILScard Jugend",
+        "it": "VORTEILScard Jugend"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "VORTEILScard Jugend",
+      "shortNameTranslations": {
+        "de": "VORTEILScard Jugend",
+        "en": "VORTEILScard Jugend",
+        "es": "VORTEILScard Jugend",
+        "fr": "VORTEILScard Jugend",
+        "it": "VORTEILScard Jugend"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 27,
+        "upperBound": 60
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:AvantageFamille",
+      "color": "#6c255f",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "9757f112b330bf14cfffd47c39a99859c6e42faa",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Avantage Famille",
+      "nameTranslations": {
+        "de": "Carte Avantage Famille",
+        "en": "Carte Avantage Famille",
+        "es": "Carte Avantage Famille",
+        "fr": "Carte Avantage Famille",
+        "it": "Carte Avantage Famille"
+      },
+      "numberRequiredStage": "reserve",
+      "operator": "SNCF",
+      "prefix": "29090113",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Famille",
+      "shortNameTranslations": {
+        "de": "Famille",
+        "en": "Famille",
+        "es": "Famille",
+        "fr": "Famille",
+        "it": "Famille"
+      },
+      "validationAlgorithm": "luhn",
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:VORTEILScard66",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "629f90382e5b3ceb31f511bef29d9b177a01beca",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "VORTEILScard 66",
+      "nameTranslations": {
+        "de": "VORTEILScard 66",
+        "en": "VORTEILScard 66",
+        "es": "VORTEILScard 66",
+        "fr": "VORTEILScard 66",
+        "it": "VORTEILScard 66"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "VORTEILScard 66",
+      "shortNameTranslations": {
+        "de": "VORTEILScard 66",
+        "en": "VORTEILScard 66",
+        "es": "VORTEILScard 66",
+        "fr": "VORTEILScard 66",
+        "it": "VORTEILScard 66"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 16,
+        "upperBound": 28
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:HappyCard",
+      "color": "#d2e100",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "ebf714356d1868ba5639386b3313a691e355f89c",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 11,
+      "name": "Abonnement TGVmax",
+      "nameTranslations": {
+        "de": "Abonnement TGVmax",
+        "en": "Abonnement TGVmax",
+        "es": "Abonnement TGVmax",
+        "fr": "Abonnement TGVmax",
+        "it": "Abonnement TGVmax"
+      },
+      "numberRequiredStage": "search",
+      "operator": "SNCF",
+      "prefix": "HC",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "TGVmax",
+      "shortNameTranslations": {
+        "de": "TGVmax",
+        "en": "TGVmax",
+        "es": "TGVmax",
+        "fr": "TGVmax",
+        "it": "TGVmax"
+      },
+      "validationRegex": "^HC[0-9]{9}$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:VORTEILScardFamily",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "e5b3707beb161d5a02745e70202d0734adf26583",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "VORTEILScard Family",
+      "nameTranslations": {
+        "de": "VORTEILScard Family",
+        "en": "VORTEILScard Family",
+        "es": "VORTEILScard Family",
+        "fr": "VORTEILScard Family",
+        "it": "VORTEILScard Family"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "VORTEILScard Family",
+      "shortNameTranslations": {
+        "de": "VORTEILScard Family",
+        "en": "VORTEILScard Family",
+        "es": "VORTEILScard Family",
+        "fr": "VORTEILScard Family",
+        "it": "VORTEILScard Family"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 18,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:eurostar:card:FrequentTraveller",
+      "color": "#3d596a",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "687dacf3cde7b3ffb8fffe6d7448a2ab6d847426",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Club Eurostar",
+      "nameTranslations": {
+        "de": "Clubkarte Eurostar",
+        "en": "Club Eurostar",
+        "es": "Tarjeta Club Eurostar",
+        "fr": "Carte Club Eurostar",
+        "it": "Carta Club Eurostar"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Eurostar",
+      "prefix": "308381",
+      "scopes": [
+        "Eurostar",
+        "EurostarOnly"
+      ],
+      "shortName": "Club Eurostar",
+      "shortNameTranslations": {
+        "de": "Club Eurostar",
+        "en": "Club Eurostar",
+        "es": "Club Eurostar",
+        "fr": "Club Eurostar",
+        "it": "Club Eurostar"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 4,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+      "color": "#f8d438",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "23b8b81069ca18a6c520a59e0cffc9d1cdc40480",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Centre-Val de Loire – Carte Rémi Liberté Jeune",
+      "nameTranslations": {
+        "de": "Centre-Val de Loire – Carte Rémi Liberté Jeune",
+        "en": "Centre-Val de Loire – Carte Rémi Liberté Jeune",
+        "es": "Centre-Val de Loire – Carte Rémi Liberté Jeune",
+        "fr": "Centre-Val de Loire – Carte Rémi Liberté Jeune",
+        "it": "Centre-Val de Loire – Carte Rémi Liberté Jeune"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Rémi Liberté Jeune",
+      "shortNameTranslations": {
+        "de": "Rémi Liberté Jeune",
+        "en": "Rémi Liberté Jeune",
+        "es": "Rémi Liberté Jeune",
+        "fr": "Rémi Liberté Jeune",
+        "it": "Rémi Liberté Jeune"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 27,
+        "upperBound": 60
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:AvantageAdulte",
+      "color": "#558fba",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "43a2c16125e2547918b8e155b18caadb08dad5e7",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Avantage Adulte 27-59",
+      "nameTranslations": {
+        "de": "Carte Avantage Adulte 27-59",
+        "en": "Carte Avantage Adulte 27-59",
+        "es": "Carte Avantage Adulte 27-59",
+        "fr": "Carte Avantage Adulte 27-59",
+        "it": "Carte Avantage Adulte 27-59"
+      },
+      "numberRequiredStage": "reserve",
+      "operator": "SNCF",
+      "prefix": "29090108",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Adulte",
+      "shortNameTranslations": {
+        "de": "Adulte",
+        "en": "Adulte",
+        "es": "Adulte",
+        "fr": "Adulte",
+        "it": "Adulte"
+      },
+      "validationAlgorithm": "luhn",
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 6,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:db:card:BahnCard25SecondClass",
+      "color": "#6d9c3c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "d063c17f150c55641f630548580b85fc08dd21a9",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": false,
+      "language": "fr",
+      "length": 16,
+      "name": "BahnCard 25 2. Kl.",
+      "nameTranslations": {
+        "de": "BahnCard 25 2. Kl.",
+        "en": "BahnCard 25 2nd Class",
+        "es": "BahnCard 25 2.ª clase",
+        "fr": "BahnCard 25 2nde",
+        "it": "BahnCard 25 2ᵃ classe"
+      },
+      "operator": "Deutsche Bahn",
+      "prefix": "7081",
+      "scopes": [
+        "DbFull"
+      ],
+      "shortName": "BC 25 2. Kl.",
+      "shortNameTranslations": {
+        "de": "BC 25 2. Kl.",
+        "en": "BC25 2nd Class",
+        "es": "BC25 2.ª clase",
+        "fr": "BC25 2nde",
+        "it": "BC25 2ᵃ classe"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+      "color": "#f8d438",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "6f1d02cbb928f207b5829ba017666d9318ccaf90",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Centre-Val de Loire – Carte Rémi Liberté Sénior",
+      "nameTranslations": {
+        "de": "Centre-Val de Loire – Carte Rémi Liberté Sénior",
+        "en": "Centre-Val de Loire – Carte Rémi Liberté Sénior",
+        "es": "Centre-Val de Loire – Carte Rémi Liberté Sénior",
+        "fr": "Centre-Val de Loire – Carte Rémi Liberté Sénior",
+        "it": "Centre-Val de Loire – Carte Rémi Liberté Sénior"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Rémi Liberté Sénior",
+      "shortNameTranslations": {
+        "de": "Rémi Liberté Sénior",
+        "en": "Rémi Liberté Sénior",
+        "es": "Rémi Liberté Sénior",
+        "fr": "Rémi Liberté Sénior",
+        "it": "Rémi Liberté Sénior"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+      "color": "#6f1b5d",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "af0751c234832511dd82d66449092cb6ed780565",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Pays de la Loire – Carte mobi",
+      "nameTranslations": {
+        "de": "Pays de la Loire – Carte mobi",
+        "en": "Pays de la Loire – Carte mobi",
+        "es": "Pays de la Loire – Carte mobi",
+        "fr": "Pays de la Loire – Carte mobi",
+        "it": "Pays de la Loire – Carte mobi"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "mobi",
+      "shortNameTranslations": {
+        "de": "mobi",
+        "en": "mobi",
+        "es": "mobi",
+        "fr": "mobi",
+        "it": "mobi"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+      "color": "#e19f28",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "f15d64e80907a0d243940ae301ff7becdb73aaf1",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Occitanie – Abonnement Kartatoo Pro",
+      "nameTranslations": {
+        "de": "Occitanie – Abonnement Kartatoo Pro",
+        "en": "Occitanie – Abonnement Kartatoo Pro",
+        "es": "Occitanie – Abonnement Kartatoo Pro",
+        "fr": "Occitanie – Abonnement Kartatoo Pro",
+        "it": "Occitanie – Abonnement Kartatoo Pro"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Kartatoo Pro",
+      "shortNameTranslations": {
+        "de": "Kartatoo Pro",
+        "en": "Kartatoo Pro",
+        "es": "Kartatoo Pro",
+        "fr": "Kartatoo Pro",
+        "it": "Kartatoo Pro"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:ntv:card:ItaloPiu",
+      "color": "#8C000C",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "a99c123d1df628f8c28a27a2e9e41eba0d5b5575",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 7,
+      "name": "Italo Più",
+      "nameTranslations": {
+        "de": "Italo Più",
+        "en": "Italo Più",
+        "es": "Italo Più",
+        "fr": "Italo Più",
+        "it": "Italo Più"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Italo",
+      "scopes": [
+        "Ntv"
+      ],
+      "shortName": "Italo Più",
+      "shortNameTranslations": {
+        "de": "Italo Più",
+        "en": "Italo Più",
+        "es": "Italo Più",
+        "fr": "Italo Più",
+        "it": "Italo Più"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 26,
+        "upperBound": 300
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+      "color": "#2d91a4",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "ff0205a714a396b93a7e6edf5d5fb8c245f0971b",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Pays de la Loire – Carte mezzo",
+      "nameTranslations": {
+        "de": "Pays de la Loire – Carte mezzo",
+        "en": "Pays de la Loire – Carte mezzo",
+        "es": "Pays de la Loire – Carte mezzo",
+        "fr": "Pays de la Loire – Carte mezzo",
+        "it": "Pays de la Loire – Carte mezzo"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "mezzo",
+      "shortNameTranslations": {
+        "de": "mezzo",
+        "en": "mezzo",
+        "es": "mezzo",
+        "fr": "mezzo",
+        "it": "mezzo"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:thalys:card:ThePassPremium",
+      "color": "#2c2a2f",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "a37a2aff2541810c1419a332bbca9512ad44bdcb",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Carte Thalys Premium Pass",
+      "nameTranslations": {
+        "de": "Thalys Premium Pass",
+        "en": "Thalys Premium Pass",
+        "es": "Thalys Premium Pass",
+        "fr": "Carte Thalys Premium Pass",
+        "it": "Thalys Premium Pass"
+      },
+      "operator": "Thalys",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "Premium P.",
+      "shortNameTranslations": {
+        "de": "Premium P.",
+        "en": "Premium P.",
+        "es": "Premium P.",
+        "fr": "Premium P.",
+        "it": "Premium P."
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:CarteFamilleMilitaire",
+      "color": "#1f6594",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "cb28fc6ceaabcffd19942b95685c837fa1e2ff99",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Carte Famille Militaire",
+      "nameTranslations": {
+        "de": "Carte Famille Militaire",
+        "en": "Carte Famille Militaire",
+        "es": "Carte Famille Militaire",
+        "fr": "Carte Famille Militaire",
+        "it": "Carte Famille Militaire"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Fam. Mil.",
+      "shortNameTranslations": {
+        "de": "Fam. Mil.",
+        "en": "Fam. Mil.",
+        "es": "Fam. Mil.",
+        "fr": "Fam. Mil.",
+        "it": "Fam. Mil."
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+      "color": "#1f6594",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "cd6800e0829cf57ec3358314be612a08df9dbee6",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Carte Famille Nombreuse 50 %",
+      "nameTranslations": {
+        "de": "Carte Famille Nombreuse 50%",
+        "en": "Carte Famille Nombreuse 50%",
+        "es": "Carte Famille Nombreuse 50 %",
+        "fr": "Carte Famille Nombreuse 50 %",
+        "it": "Carte Famille Nombreuse 50%"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Fam. 50 %",
+      "shortNameTranslations": {
+        "de": "Fam. 50%",
+        "en": "Fam. 50%",
+        "es": "Fam. 50 %",
+        "fr": "Fam. 50 %",
+        "it": "Fam. 50%"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 12,
+        "upperBound": 27
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:AvantageJeune",
+      "color": "#fb8e63",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "6b8af7cfb85343aa26408c7a2fd1e11a64fb8de2",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Avantage Jeune",
+      "nameTranslations": {
+        "de": "Carte Avantage Jeune",
+        "en": "Carte Avantage Jeune",
+        "es": "Carte Avantage Jeune",
+        "fr": "Carte Avantage Jeune",
+        "it": "Carte Avantage Jeune"
+      },
+      "numberRequiredStage": "reserve",
+      "operator": "SNCF",
+      "prefix": "29090104",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Jeune",
+      "shortNameTranslations": {
+        "de": "Jeune",
+        "en": "Jeune",
+        "es": "Jeune",
+        "fr": "Jeune",
+        "it": "Jeune"
+      },
+      "validationAlgorithm": "luhn",
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+      "color": "#cc1931",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "082066c86e21b79e684accb9163d71a397cfc844",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "name": "Carnet 10 viaggi AV",
+      "nameTranslations": {
+        "de": "Carnet 10 viaggi AV",
+        "en": "Carnet 10 viaggi AV",
+        "es": "Carnet 10 viaggi AV",
+        "fr": "Carnet 10 viaggi AV",
+        "it": "Carnet 10 viaggi AV"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Carnet 10 AV",
+      "shortNameTranslations": {
+        "de": "Carnet 10 AV",
+        "en": "Carnet 10 AV",
+        "es": "Carnet 10 AV",
+        "fr": "Carnet 10 AV",
+        "it": "Carnet 10 AV"
+      },
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+      "color": "#1f6594",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "b383ad593fbe8c5749180d88e8aca733cd450948",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Carte Famille Nombreuse 40 %",
+      "nameTranslations": {
+        "de": "Carte Famille Nombreuse 40%",
+        "en": "Carte Famille Nombreuse 40%",
+        "es": "Carte Famille Nombreuse 40 %",
+        "fr": "Carte Famille Nombreuse 40 %",
+        "it": "Carte Famille Nombreuse 40%"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Fam. 40 %",
+      "shortNameTranslations": {
+        "de": "Fam. 40%",
+        "en": "Fam. 40%",
+        "es": "Fam. 40 %",
+        "fr": "Fam. 40 %",
+        "it": "Fam. 40%"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+      "color": "#488a93",
+      "defaultItineraryDescription": "France entière",
+      "defaultItineraryDescriptionTranslations": {
+        "de": "Ganz Frankreich",
+        "en": "All of France",
+        "es": "Francia entera",
+        "fr": "France entière",
+        "it": "Tutta la Francia"
+      },
+      "hasExpirationDate": true,
+      "hasItinerary": true,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": true,
+      "id": "9a75be4b9ad7bd2bcd1caaad426e6bfc18ff481a",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Abonnement Forfait 1ère",
+      "nameTranslations": {
+        "de": "Abonnement Forfait 1ère",
+        "en": "Abonnement Forfait 1ère",
+        "es": "Abonnement Forfait 1ère",
+        "fr": "Abonnement Forfait 1ère",
+        "it": "Abonnement Forfait 1ère"
+      },
+      "numberRequiredStage": "reserve",
+      "operator": "SNCF",
+      "prefix": "290901",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Forfait 1",
+      "shortNameTranslations": {
+        "de": "Forfait 1",
+        "en": "Forfait 1",
+        "es": "Forfait 1",
+        "fr": "Forfait 1",
+        "it": "Forfait 1"
+      },
+      "validationAlgorithm": "luhn",
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 6,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:db:card:BahnCard25FirstClass",
+      "color": "#6d9c3c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "cdd455aa657529d794947870004a6a56f1dcc4ea",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": false,
+      "language": "fr",
+      "length": 16,
+      "name": "BahnCard 25 1. Kl.",
+      "nameTranslations": {
+        "de": "BahnCard 25 1. Kl.",
+        "en": "BahnCard 25 1st Class",
+        "es": "BahnCard 25 1.a clase",
+        "fr": "BahnCard 25 1ère",
+        "it": "BahnCard 25 1ᵃ classe"
+      },
+      "operator": "Deutsche Bahn",
+      "prefix": "7081",
+      "scopes": [
+        "DbFull"
+      ],
+      "shortName": "BC 25 1. Kl.",
+      "shortNameTranslations": {
+        "de": "BC 25 1. Kl.",
+        "en": "BC25 1st Class",
+        "es": "BC25 1.a clase",
+        "fr": "BC25 1ère",
+        "it": "BC25 1ᵃ classe"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteVoyageur",
+      "color": "#836a64",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "2775b0c3ac68f9b239ce2bbabb05f9c602a0bdc3",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Voyageur",
+      "nameTranslations": {
+        "de": "Carte Voyageur",
+        "en": "Carte Voyageur",
+        "es": "Carte Voyageur",
+        "fr": "Carte Voyageur",
+        "it": "Carte Voyageur"
+      },
+      "numberRequiredStage": "search",
+      "operator": "SNCF",
+      "prefix": "29090109",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Voyageur",
+      "shortNameTranslations": {
+        "de": "Voyageur",
+        "en": "Voyageur",
+        "es": "Voyageur",
+        "fr": "Voyageur",
+        "it": "Voyageur"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 18,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:renfe:card:TarjetaDorada",
+      "color": "#a17338",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "8cb62a38cd27ba9e490be4f059a3aed76635bc58",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "es",
+      "length": 9,
+      "name": "Tarjeta Dorada",
+      "nameTranslations": {
+        "de": "Tarjeta Dorada",
+        "en": "Tarjeta Dorada",
+        "es": "Tarjeta Dorada",
+        "fr": "Tarjeta Dorada",
+        "it": "Tarjeta Dorada"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Renfe",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "Dorada",
+      "shortNameTranslations": {
+        "de": "Dorada",
+        "en": "Dorada",
+        "es": "Dorada",
+        "fr": "Dorada",
+        "it": "Dorada"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 26,
+        "upperBound": 300
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+      "color": "#da0011",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "38589cc66333d22f11a6097386a64d5d1b72156a",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ",
+      "nameTranslations": {
+        "de": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ",
+        "en": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ",
+        "es": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ",
+        "fr": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ",
+        "it": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "illico LIBERTÉ",
+      "shortNameTranslations": {
+        "de": "illico LIBERTÉ",
+        "en": "illico LIBERTÉ",
+        "es": "illico LIBERTÉ",
+        "fr": "illico LIBERTÉ",
+        "it": "illico LIBERTÉ"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+      "color": "#836a64",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "657c41d6a110c2f0cc8e8f25d683e8c629134ca0",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Grand Voyageur Plus",
+      "nameTranslations": {
+        "de": "Carte Grand Voyageur Plus",
+        "en": "Carte Grand Voyageur Plus",
+        "es": "Carte Grand Voyageur Plus",
+        "fr": "Carte Grand Voyageur Plus",
+        "it": "Carte Grand Voyageur Plus"
+      },
+      "numberRequiredStage": "search",
+      "operator": "SNCF",
+      "prefix": "29090109",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "GV Plus",
+      "shortNameTranslations": {
+        "de": "GV Plus",
+        "en": "GV Plus",
+        "es": "GV Plus",
+        "fr": "GV Plus",
+        "it": "GV Plus"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 4,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:trenitalia:card:CartaFreccia",
+      "color": "#c53131",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "8aa89ebe1accfb68bfdc83692fd5140251a1382a",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 9,
+      "name": "CartaFRECCIA",
+      "nameTranslations": {
+        "de": "CartaFRECCIA",
+        "en": "CartaFRECCIA",
+        "es": "CartaFRECCIA",
+        "fr": "CartaFRECCIA",
+        "it": "CartaFRECCIA"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Freccia",
+      "shortNameTranslations": {
+        "de": "Freccia",
+        "en": "Freccia",
+        "es": "Freccia",
+        "fr": "Freccia",
+        "it": "Freccia"
+      },
+      "validationRegex": "^[0-9]{9}$"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 26,
+        "upperBound": 300
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+      "color": "#d0ec0d",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "116ef1ff8db8331704b9c439464f95090c385660",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Hauts-de-France – Ma Carte TER Hauts-de-France",
+      "nameTranslations": {
+        "de": "Hauts-de-France – Ma Carte TER Hauts-de-France",
+        "en": "Hauts-de-France – Ma Carte TER Hauts-de-France",
+        "es": "Hauts-de-France – Ma Carte TER Hauts-de-France",
+        "fr": "Hauts-de-France – Ma Carte TER Hauts-de-France",
+        "it": "Hauts-de-France – Ma Carte TER Hauts-de-France"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Ma Carte TER HdF",
+      "shortNameTranslations": {
+        "de": "Ma Carte TER HdF",
+        "en": "Ma Carte TER HdF",
+        "es": "Ma Carte TER HdF",
+        "fr": "Ma Carte TER HdF",
+        "it": "Ma Carte TER HdF"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 14,
+        "upperBound": 25
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:renfe:card:CarneJoven",
+      "color": "#c9091e",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "a1581167de0eb873880a16f7950c8388656f21ab",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "es",
+      "name": "Carné Joven",
+      "nameTranslations": {
+        "de": "Carné Joven",
+        "en": "Carné Joven",
+        "es": "Carné Joven",
+        "fr": "Carné Joven",
+        "it": "Carné Joven"
+      },
+      "operator": "Renfe",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "Carné Joven",
+      "shortNameTranslations": {
+        "de": "Carné Joven",
+        "en": "Carné Joven",
+        "es": "Carné Joven",
+        "fr": "Carné Joven",
+        "it": "Carné Joven"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 26,
+        "upperBound": 300
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+      "color": "#e94b24",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "98c76393bc90a1465076fc24d532a6a6a20854c8",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Normandie – Carte Tempo +26",
+      "nameTranslations": {
+        "de": "Normandie – Carte Tempo +26",
+        "en": "Normandie – Carte Tempo +26",
+        "es": "Normandie – Carte Tempo +26",
+        "fr": "Normandie – Carte Tempo +26",
+        "it": "Normandie – Carte Tempo +26"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Tempo +26",
+      "shortNameTranslations": {
+        "de": "Tempo +26",
+        "en": "Tempo +26",
+        "es": "Tempo +26",
+        "fr": "Tempo +26",
+        "it": "Tempo +26"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+      "color": "#1f6594",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "4704a45ee1024fd65bc6f33a69cf7f5fe60ba632",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Carte Famille Nombreuse 75 %",
+      "nameTranslations": {
+        "de": "Carte Famille Nombreuse 75%",
+        "en": "Carte Famille Nombreuse 75%",
+        "es": "Carte Famille Nombreuse 75 %",
+        "fr": "Carte Famille Nombreuse 75 %",
+        "it": "Carte Famille Nombreuse 75%"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Fam. 75 %",
+      "shortNameTranslations": {
+        "de": "Fam. 75%",
+        "en": "Fam. 75%",
+        "es": "Fam. 75 %",
+        "fr": "Fam. 75 %",
+        "it": "Fam. 75%"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+      "color": "#f8d438",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "f348eaba367e52cb7716aa514cf889a4cfe32577",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Centre-Val de Loire – Carte Rémi Liberté +",
+      "nameTranslations": {
+        "de": "Centre-Val de Loire – Carte Rémi Liberté +",
+        "en": "Centre-Val de Loire – Carte Rémi Liberté +",
+        "es": "Centre-Val de Loire – Carte Rémi Liberté +",
+        "fr": "Centre-Val de Loire – Carte Rémi Liberté +",
+        "it": "Centre-Val de Loire – Carte Rémi Liberté +"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Rémi Liberté +",
+      "shortNameTranslations": {
+        "de": "Rémi Liberté +",
+        "en": "Rémi Liberté +",
+        "es": "Rémi Liberté +",
+        "fr": "Rémi Liberté +",
+        "it": "Rémi Liberté +"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+      "color": "#488a93",
+      "defaultItineraryDescription": "France entière",
+      "defaultItineraryDescriptionTranslations": {
+        "de": "Ganz Frankreich",
+        "en": "All of France",
+        "es": "Francia entera",
+        "fr": "France entière",
+        "it": "Tutta la Francia"
+      },
+      "hasExpirationDate": true,
+      "hasItinerary": true,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": true,
+      "id": "4ec8c28f3d2596afdffcec3b6dec7e2e8f79a4c6",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Abonnement Forfait 2nde",
+      "nameTranslations": {
+        "de": "Abonnement Forfait 2nde",
+        "en": "Abonnement Forfait 2nde",
+        "es": "Abonnement Forfait 2nde",
+        "fr": "Abonnement Forfait 2nde",
+        "it": "Abonnement Forfait 2nde"
+      },
+      "numberRequiredStage": "reserve",
+      "operator": "SNCF",
+      "prefix": "290901",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Forfait 2",
+      "shortNameTranslations": {
+        "de": "Forfait 2",
+        "en": "Forfait 2",
+        "es": "Forfait 2",
+        "fr": "Forfait 2",
+        "it": "Forfait 2"
+      },
+      "validationAlgorithm": "luhn",
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+      "color": "#cc1931",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "1a113bee3dd6f31c5eb6d929490e4e3a9b9d1e56",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "name": "Carnet 5 viaggi AV",
+      "nameTranslations": {
+        "de": "Carnet 5 viaggi AV",
+        "en": "Carnet 5 viaggi AV",
+        "es": "Carnet 5 viaggi AV",
+        "fr": "Carnet 5 viaggi AV",
+        "it": "Carnet 5 viaggi AV"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Carnet 5 AV",
+      "shortNameTranslations": {
+        "de": "Carnet 5 AV",
+        "en": "Carnet 5 AV",
+        "es": "Carnet 5 AV",
+        "fr": "Carnet 5 AV",
+        "it": "Carnet 5 AV"
+      },
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 12,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+      "color": "#cf222b",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "d91582985046b284797d6d629d326c12342f9b94",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Région Sud (PACA) – Carte ZOU! -26",
+      "nameTranslations": {
+        "de": "Région Sud (PACA) – Carte ZOU! -26",
+        "en": "Région Sud (PACA) – Carte ZOU! -26",
+        "es": "Région Sud (PACA) – Carte ZOU! -26",
+        "fr": "Région Sud (PACA) – Carte ZOU! -26",
+        "it": "Région Sud (PACA) – Carte ZOU! -26"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "ZOU! -26",
+      "shortNameTranslations": {
+        "de": "ZOU! -26",
+        "en": "ZOU! -26",
+        "es": "ZOU! -26",
+        "fr": "ZOU! -26",
+        "it": "ZOU! -26"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 12,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+      "color": "#53b2ab",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "147e1d5c92d809945a6b33cfbac1d9c281788d79",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Pays de la Loire – Abonnement Forfait tutti -26",
+      "nameTranslations": {
+        "de": "Pays de la Loire – Abonnement Forfait tutti -26",
+        "en": "Pays de la Loire – Abonnement Forfait tutti -26",
+        "es": "Pays de la Loire – Abonnement Forfait tutti -26",
+        "fr": "Pays de la Loire – Abonnement Forfait tutti -26",
+        "it": "Pays de la Loire – Abonnement Forfait tutti -26"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Forfait tutti -26",
+      "shortNameTranslations": {
+        "de": "Forfait tutti -26",
+        "en": "Forfait tutti -26",
+        "es": "Forfait tutti -26",
+        "fr": "Forfait tutti -26",
+        "it": "Forfait tutti -26"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:cff:card:DemiTarifRailPlus",
+      "color": "#254693",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "98908e61e59af5df605fc480d80ff3279b82e4da",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Demi-tarif avec RailPlus",
+      "nameTranslations": {
+        "de": "Halbtax mit RailPlus",
+        "en": "Half-Fare Card with RailPlus",
+        "es": "Halbtax con RailPlus",
+        "fr": "Demi-tarif avec RailPlus",
+        "it": "Metà-prezzo con RailPlus"
+      },
+      "operator": "CFF",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "Demi-tarif RP",
+      "shortNameTranslations": {
+        "de": "Halbtax RP",
+        "en": "Half-Fare RP",
+        "es": "Halbtax RP",
+        "fr": "Demi-tarif RP",
+        "it": "Metà-prezzo RP"
+      },
+      "validationRegex": "^[A-Za-z0-9]{1,8}$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:VORTEILScardClassic",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "7091553e967304a3ca99dbd21df13119273a94a2",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "VORTEILScard Classic",
+      "nameTranslations": {
+        "de": "VORTEILScard Classic",
+        "en": "VORTEILScard Classic",
+        "es": "VORTEILScard Classic",
+        "fr": "VORTEILScard Classic",
+        "it": "VORTEILScard Classic"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "VORTEILScard Classic",
+      "shortNameTranslations": {
+        "de": "VORTEILScard Classic",
+        "en": "VORTEILScard Classic",
+        "es": "VORTEILScard Classic",
+        "fr": "VORTEILScard Classic",
+        "it": "VORTEILScard Classic"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:BretagneCarteActuel",
+      "color": "#ea9923",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "0e83c18b31c498088176ff5623dbc92ff435ca2e",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Bretagne – Carte BreizhGo Solidaire",
+      "nameTranslations": {
+        "de": "Bretagne – Carte BreizhGo Solidaire",
+        "en": "Bretagne – Carte BreizhGo Solidaire",
+        "es": "Bretagne – Carte BreizhGo Solidaire",
+        "fr": "Bretagne – Carte BreizhGo Solidaire",
+        "it": "Bretagne – Carte BreizhGo Solidaire"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "BreizhGo Solidaire",
+      "shortNameTranslations": {
+        "de": "BreizhGo Solidaire",
+        "en": "BreizhGo Solidaire",
+        "es": "BreizhGo Solidaire",
+        "fr": "BreizhGo Solidaire",
+        "it": "BreizhGo Solidaire"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:FamilienVorarlberg",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "1a410acdbed85b1a87ff7b73537c8f73dd43d172",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "Vorarlberger Familienpass",
+      "nameTranslations": {
+        "de": "Vorarlberger Familienpass",
+        "en": "Vorarlberger Familienpass",
+        "es": "Vorarlberger Familienpass",
+        "fr": "Vorarlberger Familienpass",
+        "it": "Vorarlberger Familienpass"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "Vorarlberger Familienpass",
+      "shortNameTranslations": {
+        "de": "Vorarlberger Familienpass",
+        "en": "Vorarlberger Familienpass",
+        "es": "Vorarlberger Familienpass",
+        "fr": "Vorarlberger Familienpass",
+        "it": "Vorarlberger Familienpass"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 27,
+        "upperBound": 60
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:AvantageWeekEnd",
+      "color": "#558fba",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "e39ee7f22fad54b32e307838343be867eb62e4bf",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Avantage Week-End",
+      "nameTranslations": {
+        "de": "Carte Avantage Week-End",
+        "en": "Carte Avantage Week-End",
+        "es": "Carte Avantage Week-End",
+        "fr": "Carte Avantage Week-End",
+        "it": "Carte Avantage Week-End"
+      },
+      "numberRequiredStage": "reserve",
+      "operator": "SNCF",
+      "prefix": "29090108",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Week-End",
+      "shortNameTranslations": {
+        "de": "Week-End",
+        "en": "Week-End",
+        "es": "Week-End",
+        "fr": "Week-End",
+        "it": "Week-End"
+      },
+      "validationAlgorithm": "luhn",
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+      "color": "#f8d438",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "063ee5ff677d571bfbaf3c8e12a66b8a1751c26e",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Centre-Val de Loire – Carte Rémi Liberté",
+      "nameTranslations": {
+        "de": "Centre-Val de Loire – Carte Rémi Liberté",
+        "en": "Centre-Val de Loire – Carte Rémi Liberté",
+        "es": "Centre-Val de Loire – Carte Rémi Liberté",
+        "fr": "Centre-Val de Loire – Carte Rémi Liberté",
+        "it": "Centre-Val de Loire – Carte Rémi Liberté"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Rémi Liberté",
+      "shortNameTranslations": {
+        "de": "Rémi Liberté",
+        "en": "Rémi Liberté",
+        "es": "Rémi Liberté",
+        "fr": "Rémi Liberté",
+        "it": "Rémi Liberté"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+      "color": "#1b72c4",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "f35217c8f9439e0a6f1735132f146a5ce608398f",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "name": "Carnet 10 viaggi IC",
+      "nameTranslations": {
+        "de": "Carnet 10 viaggi IC",
+        "en": "Carnet 10 viaggi IC",
+        "es": "Carnet 10 viaggi IC",
+        "fr": "Carnet 10 viaggi IC",
+        "it": "Carnet 10 viaggi IC"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Carnet 10 IC",
+      "shortNameTranslations": {
+        "de": "Carnet 10 IC",
+        "en": "Carnet 10 IC",
+        "es": "Carnet 10 IC",
+        "fr": "Carnet 10 IC",
+        "it": "Carnet 10 IC"
+      },
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:thalys:card:ThePassBusiness",
+      "color": "#2c2a2f",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "4bfcb6e9e96f913bd04979594a422049514c3f85",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Carte Thalys Frequent Pass",
+      "nameTranslations": {
+        "de": "Thalys Frequent Pass",
+        "en": "Thalys Frequent Pass",
+        "es": "Thalys Frequent Pass",
+        "fr": "Carte Thalys Frequent Pass",
+        "it": "Carta Thalys Frequent Pass"
+      },
+      "operator": "Thalys",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "Frequent P.",
+      "shortNameTranslations": {
+        "de": "Frequent P.",
+        "en": "Frequent P.",
+        "es": "Frequent P.",
+        "fr": "Frequent P.",
+        "it": "Frequent P."
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 4,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+      "color": "#e94b24",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "27d5c6e2cd9ee3b046f8423a2084baf5202b8727",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Normandie – Carte Tempo -26",
+      "nameTranslations": {
+        "de": "Normandie – Carte Tempo -26",
+        "en": "Normandie – Carte Tempo -26",
+        "es": "Normandie – Carte Tempo -26",
+        "fr": "Normandie – Carte Tempo -26",
+        "it": "Normandie – Carte Tempo -26"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Tempo -26",
+      "shortNameTranslations": {
+        "de": "Tempo -26",
+        "en": "Tempo -26",
+        "es": "Tempo -26",
+        "fr": "Tempo -26",
+        "it": "Tempo -26"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 12,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+      "color": "#73b532",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "c937784cbe507227d3b4b618440b2e1764c97301",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Pays de la Loire – Carte mezzo-26",
+      "nameTranslations": {
+        "de": "Pays de la Loire – Carte mezzo-26",
+        "en": "Pays de la Loire – Carte mezzo-26",
+        "es": "Pays de la Loire – Carte mezzo-26",
+        "fr": "Pays de la Loire – Carte mezzo-26",
+        "it": "Pays de la Loire – Carte mezzo-26"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "mezzo-26",
+      "shortNameTranslations": {
+        "de": "mezzo-26",
+        "en": "mezzo-26",
+        "es": "mezzo-26",
+        "fr": "mezzo-26",
+        "it": "mezzo-26"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+      "color": "#b55f93",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "e4a4b6772d7609a2b4655089d1b1c96857c467d5",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Bourgogne-Franche-Comté – Carte tarif réduit solidaire",
+      "nameTranslations": {
+        "de": "Bourgogne-Franche-Comté – Carte tarif réduit solidaire",
+        "en": "Bourgogne-Franche-Comté – Carte tarif réduit solidaire",
+        "es": "Bourgogne-Franche-Comté – Carte tarif réduit solidaire",
+        "fr": "Bourgogne-Franche-Comté – Carte tarif réduit solidaire",
+        "it": "Bourgogne-Franche-Comté – Carte tarif réduit solidaire"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Tarif réduit solidaire",
+      "shortNameTranslations": {
+        "de": "Tarif réduit solidaire",
+        "en": "Tarif réduit solidaire",
+        "es": "Tarif réduit solidaire",
+        "fr": "Tarif réduit solidaire",
+        "it": "Tarif réduit solidaire"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 10,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes",
+      "color": "#cf222b",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "307666291664b949db25acad783c2f14cad97f05",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Région Sud (PACA) – Carte ZOU! Études",
+      "nameTranslations": {
+        "de": "Région Sud (PACA) – Carte ZOU! Études",
+        "en": "Région Sud (PACA) – Carte ZOU! Études",
+        "es": "Région Sud (PACA) – Carte ZOU! Études",
+        "fr": "Région Sud (PACA) – Carte ZOU! Études",
+        "it": "Région Sud (PACA) – Carte ZOU! Études"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "ZOU! Études",
+      "shortNameTranslations": {
+        "de": "ZOU! Études",
+        "en": "ZOU! Études",
+        "es": "ZOU! Études",
+        "fr": "ZOU! Études",
+        "it": "ZOU! Études"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 60,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:AvantageSenior",
+      "color": "#9e3a83",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "0e2737bd61c02c7804625319eec2e10004c1ca65",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Avantage Senior",
+      "nameTranslations": {
+        "de": "Carte Avantage Senior",
+        "en": "Carte Avantage Senior",
+        "es": "Carte Avantage Senior",
+        "fr": "Carte Avantage Senior",
+        "it": "Carte Avantage Senior"
+      },
+      "numberRequiredStage": "reserve",
+      "operator": "SNCF",
+      "prefix": "29090105",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Senior",
+      "shortNameTranslations": {
+        "de": "Senior",
+        "en": "Senior",
+        "es": "Senior",
+        "fr": "Senior",
+        "it": "Senior"
+      },
+      "validationAlgorithm": "luhn",
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteGrandVoyageur",
+      "color": "#836a64",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "314ae68d3977b30bd50f6f80aea5a32b25e3c5d6",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte Grand Voyageur",
+      "nameTranslations": {
+        "de": "Carte Grand Voyageur",
+        "en": "Carte Grand Voyageur",
+        "es": "Carte Grand Voyageur",
+        "fr": "Carte Grand Voyageur",
+        "it": "Carte Grand Voyageur"
+      },
+      "numberRequiredStage": "search",
+      "operator": "SNCF",
+      "prefix": "29090109",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "GV",
+      "shortNameTranslations": {
+        "de": "GV",
+        "en": "GV",
+        "es": "GV",
+        "fr": "GV",
+        "it": "GV"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:trenitalia:card:Carnet5ViaggiTH",
+      "color": "#fc3559",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "14aae5cf52a958302b88f45980e2de33498ac288",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "name": "Carnet Thello 5 pour 4",
+      "nameTranslations": {
+        "de": "Carnet Thello 5 pour 4",
+        "en": "Carnet Thello 5 pour 4",
+        "es": "Carnet Thello 5 pour 4",
+        "fr": "Carnet Thello 5 pour 4",
+        "it": "Carnet Thello 5 pour 4"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Carnet 5 TH",
+      "shortNameTranslations": {
+        "de": "Carnet 5 TH",
+        "en": "Carnet 5 TH",
+        "es": "Carnet 5 TH",
+        "fr": "Carnet 5 TH",
+        "it": "Carnet 5 TH"
+      },
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+      "color": "#f1f1f1",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "98268e11699117bd5cbd45326fdee5bb985f21b5",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "name": "Carnet 10 viaggi Frecciabianca",
+      "nameTranslations": {
+        "de": "Carnet 10 viaggi Frecciabianca",
+        "en": "Carnet 10 viaggi Frecciabianca",
+        "es": "Carnet 10 viaggi Frecciabianca",
+        "fr": "Carnet 10 viaggi Frecciabianca",
+        "it": "Carnet 10 viaggi Frecciabianca"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Carnet 10 FB",
+      "shortNameTranslations": {
+        "de": "Carnet 10 FB",
+        "en": "Carnet 10 FB",
+        "es": "Carnet 10 FB",
+        "fr": "Carnet 10 FB",
+        "it": "Carnet 10 FB"
+      },
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:FamilienSalzburg",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "3c6e43a6ad2e22029d367e74c954e20830be1aef",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "Salzburger Familienpass",
+      "nameTranslations": {
+        "de": "Salzburger Familienpass",
+        "en": "Salzburger Familienpass",
+        "es": "Salzburger Familienpass",
+        "fr": "Salzburger Familienpass",
+        "it": "Salzburger Familienpass"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "Salzburger Familienpass",
+      "shortNameTranslations": {
+        "de": "Salzburger Familienpass",
+        "en": "Salzburger Familienpass",
+        "es": "Salzburger Familienpass",
+        "fr": "Salzburger Familienpass",
+        "it": "Salzburger Familienpass"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:FamilienSteir",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "260cebac84694c40a308599d8a8c4628167e3ac9",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "Steir. Familienpass",
+      "nameTranslations": {
+        "de": "Steir. Familienpass",
+        "en": "Steir. Familienpass",
+        "es": "Steir. Familienpass",
+        "fr": "Steir. Familienpass",
+        "it": "Steir. Familienpass"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "Steir. Familienpass",
+      "shortNameTranslations": {
+        "de": "Steir. Familienpass",
+        "en": "Steir. Familienpass",
+        "es": "Steir. Familienpass",
+        "fr": "Steir. Familienpass",
+        "it": "Steir. Familienpass"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 14,
+        "upperBound": 26
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+      "color": "#c9091e",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "95be9b98fc8901530e36e917757fef8ed6e493ec",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "es",
+      "length": 8,
+      "name": "Tarjeta +Renfe Joven 50",
+      "nameTranslations": {
+        "de": "Tarjeta +Renfe Joven 50",
+        "en": "Tarjeta +Renfe Joven 50",
+        "es": "Tarjeta +Renfe Joven 50",
+        "fr": "Tarjeta +Renfe Joven 50",
+        "it": "Tarjeta +Renfe Joven 50"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Renfe",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "+Renfe Joven",
+      "shortNameTranslations": {
+        "de": "+Renfe Joven",
+        "en": "+Renfe Joven",
+        "es": "+Renfe Joven",
+        "fr": "+Renfe Joven",
+        "it": "+Renfe Joven"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 12,
+        "upperBound": 26
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:trenitalia:card:CartaVerde",
+      "color": "#1f8927",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "1086bc4b72a7c513f72a85ef9cf385a02a8a56f7",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "name": "Carta Verde",
+      "nameTranslations": {
+        "de": "Carta Verde",
+        "en": "Carta Verde",
+        "es": "Carta Verde",
+        "fr": "Carta Verde",
+        "it": "Carta Verde"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Verde",
+      "shortNameTranslations": {
+        "de": "Verde",
+        "en": "Verde",
+        "es": "Verde",
+        "fr": "Verde",
+        "it": "Verde"
+      },
+      "validationRegex": "^[A-Za-z0-9]{1,10}$"
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:renfe:card:TarjetaMasRenfePremium",
+      "color": "#f9f9f9",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "940c7bf3a6d21dc98280895e832da421be17bd50",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "es",
+      "length": 8,
+      "name": "Tarjeta +Renfe Premium",
+      "nameTranslations": {
+        "de": "Tarjeta +Renfe Premium",
+        "en": "Tarjeta +Renfe Premium",
+        "es": "Tarjeta +Renfe Premium",
+        "fr": "Tarjeta +Renfe Premium",
+        "it": "Tarjeta +Renfe Premium"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Renfe",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "+Renfe Premium",
+      "shortNameTranslations": {
+        "de": "+Renfe Premium",
+        "en": "+Renfe Premium",
+        "es": "+Renfe Premium",
+        "fr": "+Renfe Premium",
+        "it": "+Renfe Premium"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 12,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+      "color": "#4d1b79",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "53ecd182d89fbabc5602d9aca0f0924bc46abd1c",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Occitanie – Abonnement Kartatoo Études",
+      "nameTranslations": {
+        "de": "Occitanie – Abonnement Kartatoo Études",
+        "en": "Occitanie – Abonnement Kartatoo Études",
+        "es": "Occitanie – Abonnement Kartatoo Études",
+        "fr": "Occitanie – Abonnement Kartatoo Études",
+        "it": "Occitanie – Abonnement Kartatoo Études"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Kartatoo Études",
+      "shortNameTranslations": {
+        "de": "Kartatoo Études",
+        "en": "Kartatoo Études",
+        "es": "Kartatoo Études",
+        "fr": "Kartatoo Études",
+        "it": "Kartatoo Études"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 6,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+      "color": "#6d9c3c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "2e0915b8b459868498e5c4872e380dbfb32517d3",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": false,
+      "language": "fr",
+      "length": 16,
+      "name": "BahnCard 25 Business 2. Kl.",
+      "nameTranslations": {
+        "de": "BahnCard 25 Business 2. Kl.",
+        "en": "BahnCard 25 Business 2nd Class",
+        "es": "BahnCard 25 Business 2.ª clase",
+        "fr": "BahnCard 25 Business 2nde",
+        "it": "BahnCard 25 Business 2ᵃ classe"
+      },
+      "operator": "Deutsche Bahn",
+      "prefix": "7081",
+      "scopes": [
+        "DbFull"
+      ],
+      "shortName": "BB 25 2. Kl.",
+      "shortNameTranslations": {
+        "de": "BB 25 2. Kl.",
+        "en": "BB25 2nd Class",
+        "es": "BB25 2.ª clase",
+        "fr": "BB25 2nde",
+        "it": "BB25 2ᵃ classe"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+      "color": "#d25397",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "6627bca2acd7f277a44c59f55f0288314845d341",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Auvergne-Rhône-Alpes – Carte illico MOBILITÉ",
+      "nameTranslations": {
+        "de": "Auvergne-Rhône-Alpes – Carte illico MOBILITÉ",
+        "en": "Auvergne-Rhône-Alpes – Carte illico MOBILITÉ",
+        "es": "Auvergne-Rhône-Alpes – Carte illico MOBILITÉ",
+        "fr": "Auvergne-Rhône-Alpes – Carte illico MOBILITÉ",
+        "it": "Auvergne-Rhône-Alpes – Carte illico MOBILITÉ"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "illico MOBILITÉ",
+      "shortNameTranslations": {
+        "de": "illico MOBILITÉ",
+        "en": "illico MOBILITÉ",
+        "es": "illico MOBILITÉ",
+        "fr": "illico MOBILITÉ",
+        "it": "illico MOBILITÉ"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 6,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+      "color": "#6d9c3c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "9252610e8a39293c8eaca14eb6a81ebd78b390c2",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": false,
+      "language": "fr",
+      "length": 16,
+      "name": "BahnCard 50 Business 1. Kl.",
+      "nameTranslations": {
+        "de": "BahnCard 50 Business 1. Kl.",
+        "en": "BahnCard 50 Business 1st Class",
+        "es": "BahnCard 50 Business 1.a clase",
+        "fr": "BahnCard 50 Business 1ère",
+        "it": "BahnCard 50 Business 1ᵃ classe"
+      },
+      "operator": "Deutsche Bahn",
+      "prefix": "7081",
+      "scopes": [
+        "DbFull"
+      ],
+      "shortName": "BB 50 1. Kl.",
+      "shortNameTranslations": {
+        "de": "BB 50 1. Kl.",
+        "en": "BB50 1st Class",
+        "es": "BB50 1.a clase",
+        "fr": "BB50 1ère",
+        "it": "BB50 1ᵃ classe"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 26,
+        "upperBound": 300
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:GrandEstCartePresto",
+      "color": "#2f86cd",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "ef701b2ed13a4265ef4fd47d32b153d7554dd1c4",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Grand-Est – Carte Presto",
+      "nameTranslations": {
+        "de": "Grand-Est – Carte Presto",
+        "en": "Grand-Est – Carte Presto",
+        "es": "Grand-Est – Carte Presto",
+        "fr": "Grand-Est – Carte Presto",
+        "it": "Grand-Est – Carte Presto"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Presto",
+      "shortNameTranslations": {
+        "de": "Presto",
+        "en": "Presto",
+        "es": "Presto",
+        "fr": "Presto",
+        "it": "Presto"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 6,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+      "color": "#6d9c3c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "d231bda5b85ddcf1b35770231197f3e9efc6b171",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": false,
+      "language": "fr",
+      "length": 16,
+      "name": "BahnCard 50 Business 2. Kl.",
+      "nameTranslations": {
+        "de": "BahnCard 50 Business 2. Kl.",
+        "en": "BahnCard 50 Business 2nd Class",
+        "es": "BahnCard 50 Business 2.ª clase",
+        "fr": "BahnCard 50 Business 2nde",
+        "it": "BahnCard 50 Business 2ᵃ classe"
+      },
+      "operator": "Deutsche Bahn",
+      "prefix": "7081",
+      "scopes": [
+        "DbFull"
+      ],
+      "shortName": "BB 50 2. Kl.",
+      "shortNameTranslations": {
+        "de": "BB 50 2. Kl.",
+        "en": "BB50 2nd Class",
+        "es": "BB50 2.ª clase",
+        "fr": "BB50 2nde",
+        "it": "BB50 2ᵃ classe"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 4,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+      "color": "#ee003b",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "220f8f936c0e78227dc7ef1a253a677cb48a9bf0",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Hauts-de-France – Ma Carte TER Hauts-de-France -26 ans",
+      "nameTranslations": {
+        "de": "Hauts-de-France – Ma Carte TER Hauts-de-France -26 ans",
+        "en": "Hauts-de-France – Ma Carte TER Hauts-de-France -26 ans",
+        "es": "Hauts-de-France – Ma Carte TER Hauts-de-France -26 ans",
+        "fr": "Hauts-de-France – Ma Carte TER Hauts-de-France -26 ans",
+        "it": "Hauts-de-France – Ma Carte TER Hauts-de-France -26 ans"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Ma Carte TER HdF -26",
+      "shortNameTranslations": {
+        "de": "Ma Carte TER HdF -26",
+        "en": "Ma Carte TER HdF -26",
+        "es": "Ma Carte TER HdF -26",
+        "fr": "Ma Carte TER HdF -26",
+        "it": "Ma Carte TER HdF -26"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 26,
+        "upperBound": 300
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+      "color": "#cf222b",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "1b1e9c678cb42bc1e62f67ef7fecccdd8403f963",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Région Sud (PACA) – Carte ZOU!",
+      "nameTranslations": {
+        "de": "Région Sud (PACA) – Carte ZOU!",
+        "en": "Région Sud (PACA) – Carte ZOU!",
+        "es": "Région Sud (PACA) – Carte ZOU!",
+        "fr": "Région Sud (PACA) – Carte ZOU!",
+        "it": "Région Sud (PACA) – Carte ZOU!"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "ZOU!",
+      "shortNameTranslations": {
+        "de": "ZOU!",
+        "en": "ZOU!",
+        "es": "ZOU!",
+        "fr": "ZOU!",
+        "it": "ZOU!"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:obb:card:FamilienTirol",
+      "color": "#ce1a35",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "68af3c53342170a5bdccdc7ce195d14acd091d72",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "de",
+      "name": "Euregio FamilyPass Tirol",
+      "nameTranslations": {
+        "de": "Euregio FamilyPass Tirol",
+        "en": "Euregio FamilyPass Tirol",
+        "es": "Euregio FamilyPass Tirol",
+        "fr": "Euregio FamilyPass Tirol",
+        "it": "Euregio FamilyPass Tirol"
+      },
+      "operator": "ÖBB",
+      "scopes": [
+        "Obb"
+      ],
+      "shortName": "Euregio FamilyPass Tirol",
+      "shortNameTranslations": {
+        "de": "Euregio FamilyPass Tirol",
+        "en": "Euregio FamilyPass Tirol",
+        "es": "Euregio FamilyPass Tirol",
+        "fr": "Euregio FamilyPass Tirol",
+        "it": "Euregio FamilyPass Tirol"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:renfe:card:TarjetaMasRenfe",
+      "color": "#8c006b",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "70d7ccb25402754f3c8c69cfeb614b88be5cf4a4",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "es",
+      "length": 8,
+      "name": "Tarjeta +Renfe",
+      "nameTranslations": {
+        "de": "Tarjeta +Renfe",
+        "en": "Tarjeta +Renfe",
+        "es": "Tarjeta +Renfe",
+        "fr": "Tarjeta +Renfe",
+        "it": "Tarjeta +Renfe"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Renfe",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "+Renfe",
+      "shortNameTranslations": {
+        "de": "+Renfe",
+        "en": "+Renfe",
+        "es": "+Renfe",
+        "fr": "+Renfe",
+        "it": "+Renfe"
+      }
+    },
+    {
+      "canBeDisabled": true,
+      "code": "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+      "color": "#f1f1f1",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "06f09685a30e29c48eb9d6552e7f9fd2ba25381e",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": true,
+      "language": "fr",
+      "name": "Carnet 5 viaggi Frecciabianca",
+      "nameTranslations": {
+        "de": "Carnet 5 viaggi Frecciabianca",
+        "en": "Carnet 5 viaggi Frecciabianca",
+        "es": "Carnet 5 viaggi Frecciabianca",
+        "fr": "Carnet 5 viaggi Frecciabianca",
+        "it": "Carnet 5 viaggi Frecciabianca"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Trenitalia",
+      "scopes": [
+        "Trenitalia"
+      ],
+      "shortName": "Carnet 5 FB",
+      "shortNameTranslations": {
+        "de": "Carnet 5 FB",
+        "en": "Carnet 5 FB",
+        "es": "Carnet 5 FB",
+        "fr": "Carnet 5 FB",
+        "it": "Carnet 5 FB"
+      },
+      "validationRegex": "^[0-9]+$"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 26,
+        "upperBound": 300
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+      "color": "#11639c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "ff104f714c04d11e6b2ccb3279a8e31c296fa181",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Bourgogne-Franche-Comté – Carte 26+",
+      "nameTranslations": {
+        "de": "Bourgogne-Franche-Comté – Carte 26+",
+        "en": "Bourgogne-Franche-Comté – Carte 26+",
+        "es": "Bourgogne-Franche-Comté – Carte 26+",
+        "fr": "Bourgogne-Franche-Comté – Carte 26+",
+        "it": "Bourgogne-Franche-Comté – Carte 26+"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "26+",
+      "shortNameTranslations": {
+        "de": "26+",
+        "en": "26+",
+        "es": "26+",
+        "fr": "26+",
+        "it": "26+"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+      "color": "#667119",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "9e28cfc23ac33e07d689eee947e00efc45b6d08d",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Carte Militaire 1ère",
+      "nameTranslations": {
+        "de": "Carte Militaire 1ère",
+        "en": "Carte Militaire 1ère",
+        "es": "Carte Militaire 1ère",
+        "fr": "Carte Militaire 1ère",
+        "it": "Carte Militaire 1ère"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Mil. 1",
+      "shortNameTranslations": {
+        "de": "Mil. 1",
+        "en": "Mil. 1",
+        "es": "Mil. 1",
+        "fr": "Mil. 1",
+        "it": "Mil. 1"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+      "color": "#667119",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "f3269faaff2424e8690ce3c5d507f77ae771f89d",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Carte Militaire 2nde",
+      "nameTranslations": {
+        "de": "Carte Militaire 2nde",
+        "en": "Carte Militaire 2nde",
+        "es": "Carte Militaire 2nde",
+        "fr": "Carte Militaire 2nde",
+        "it": "Carte Militaire 2nde"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Mil. 2",
+      "shortNameTranslations": {
+        "de": "Mil. 2",
+        "en": "Mil. 2",
+        "es": "Mil. 2",
+        "fr": "Mil. 2",
+        "it": "Mil. 2"
+      }
+    },
+    {
+      "canBeDisabled": false,
+      "code": "urn:trainline:db:card:BahnBonusCard",
+      "color": "#6d9c3c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "4fd415fcc8afba49ee34b928848696b486a7968a",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 16,
+      "name": "BahnBonus Card",
+      "nameTranslations": {
+        "de": "BahnBonus Card",
+        "en": "BahnBonus Card",
+        "es": "Carta BahnBonus",
+        "fr": "Carte BahnBonus",
+        "it": "Carta BahnBonus"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Deutsche Bahn",
+      "prefix": "7081",
+      "scopes": [
+        "DbFull"
+      ],
+      "shortName": "BB",
+      "shortNameTranslations": {
+        "de": "BB",
+        "en": "BB",
+        "es": "BB",
+        "fr": "BB",
+        "it": "BB"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 4,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:thalys:card:TheCard",
+      "color": "#2c2a2f",
+      "hasExpirationDate": false,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "cd02bf7b38ed8fe10fd601764666eeea4379cfc6",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": true,
+      "language": "fr",
+      "length": 17,
+      "name": "Carte My Thalys World",
+      "nameTranslations": {
+        "de": "My Thalys World",
+        "en": "My Thalys World",
+        "es": "My Thalys World",
+        "fr": "Carte My Thalys World",
+        "it": "Carta My Thalys World"
+      },
+      "numberRequiredStage": "search",
+      "operator": "Thalys",
+      "prefix": "30840601",
+      "scopes": [
+        "Renfe"
+      ],
+      "shortName": "My Thalys World",
+      "shortNameTranslations": {
+        "de": "My Thalys World",
+        "en": "My Thalys World",
+        "es": "My Thalys World",
+        "fr": "My Thalys World",
+        "it": "My Thalys World"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 6,
+        "upperBound": 300
+      },
+      "canBeDisabled": false,
+      "code": "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+      "color": "#6d9c3c",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": true,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "2b1860c7f829fe65c5a33b4bb16622dc5ffa9eb6",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": true,
+      "isNumberRequired": false,
+      "language": "fr",
+      "length": 16,
+      "name": "BahnCard 25 Business 1. Kl.",
+      "nameTranslations": {
+        "de": "BahnCard 25 Business 1. Kl.",
+        "en": "BahnCard 25 Business 1st Class",
+        "es": "BahnCard 25 Business 1.a clase",
+        "fr": "BahnCard 25 Business 1ère",
+        "it": "BahnCard 25 Business 1ᵃ classe"
+      },
+      "operator": "Deutsche Bahn",
+      "prefix": "7081",
+      "scopes": [
+        "DbFull"
+      ],
+      "shortName": "BB 25 1. Kl.",
+      "shortNameTranslations": {
+        "de": "BB 25 1. Kl.",
+        "en": "BB25 1st Class",
+        "es": "BB25 1.a clase",
+        "fr": "BB25 1ère",
+        "it": "BB25 1ᵃ classe"
+      },
+      "validationAlgorithm": "luhn"
+    },
+    {
+      "ageRange": {
+        "lowerBound": 26,
+        "upperBound": 300
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+      "color": "#2d91a4",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "65f7c627ede0e8587afb73e26bc337cb7be600d9",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Pays de la Loire – Abonnement Forfait tutti",
+      "nameTranslations": {
+        "de": "Pays de la Loire – Abonnement Forfait tutti",
+        "en": "Pays de la Loire – Abonnement Forfait tutti",
+        "es": "Pays de la Loire – Abonnement Forfait tutti",
+        "fr": "Pays de la Loire – Abonnement Forfait tutti",
+        "it": "Pays de la Loire – Abonnement Forfait tutti"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "Forfait tutti",
+      "shortNameTranslations": {
+        "de": "Forfait tutti",
+        "en": "Forfait tutti",
+        "es": "Forfait tutti",
+        "fr": "Forfait tutti",
+        "it": "Forfait tutti"
+      }
+    },
+    {
+      "ageRange": {
+        "lowerBound": 4,
+        "upperBound": 25
+      },
+      "canBeDisabled": true,
+      "code": "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+      "color": "#ea6707",
+      "hasExpirationDate": true,
+      "hasItinerary": false,
+      "hasNumber": false,
+      "hasSpecificOriginDestination": false,
+      "hasVia": false,
+      "id": "62bdd089ceb914ac89a27c65e43a6b0265886645",
+      "isBusinessOnly": false,
+      "isLoyaltyCard": false,
+      "isNumberRequired": false,
+      "language": "fr",
+      "name": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ JEUNES",
+      "nameTranslations": {
+        "de": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ JEUNES",
+        "en": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ JEUNES",
+        "es": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ JEUNES",
+        "fr": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ JEUNES",
+        "it": "Auvergne-Rhône-Alpes – Carte illico LIBERTÉ JEUNES"
+      },
+      "operator": "SNCF",
+      "scopes": [
+        "Sncf"
+      ],
+      "shortName": "illico JEUNES",
+      "shortNameTranslations": {
+        "de": "illico JEUNES",
+        "en": "illico JEUNES",
+        "es": "illico JEUNES",
+        "fr": "illico JEUNES",
+        "it": "illico JEUNES"
+      }
+    }
+  ],
+  "groupedOrder": {
+    "DE": [
+      {
+        "members": [
+          "urn:trainline:db:card:BahnCard25SecondClass",
+          "urn:trainline:db:card:BahnCard25FirstClass",
+          "urn:trainline:db:card:BahnCard50SecondClass",
+          "urn:trainline:db:card:BahnCard50FirstClass",
+          "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+          "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+          "urn:trainline:db:card:BahnBonusCard"
+        ],
+        "operator": "Deutsche Bahn"
+      },
+      {
+        "members": [
+          "urn:trainline:cff:card:DemiTarifRailPlus",
+          "urn:trainline:cff:card:DemiTarif"
+        ],
+        "operator": "CFF"
+      },
+      {
+        "members": [
+          "urn:trainline:obb:card:VORTEILScard66",
+          "urn:trainline:obb:card:VORTEILScardClassic",
+          "urn:trainline:obb:card:VORTEILScardJugend",
+          "urn:trainline:obb:card:VORTEILScardSenior",
+          "urn:trainline:obb:card:VORTEILScardFamily",
+          "urn:trainline:obb:card:FamilienOberoesterreich",
+          "urn:trainline:obb:card:FamilienVorarlberg",
+          "urn:trainline:obb:card:FamilienSalzburg",
+          "urn:trainline:obb:card:FamilienSteir",
+          "urn:trainline:obb:card:FamilienTirol"
+        ],
+        "operator": "ÖBB"
+      },
+      {
+        "members": [
+          "urn:trainline:thalys:card:TheCard",
+          "urn:trainline:thalys:card:ThePassBusiness",
+          "urn:trainline:thalys:card:ThePassPremium"
+        ],
+        "operator": "Thalys"
+      },
+      {
+        "members": [
+          "urn:trainline:eurostar:card:FrequentTraveller"
+        ],
+        "operator": "Eurostar"
+      },
+      {
+        "members": [
+          "urn:trainline:sncf:card:AvantageJeune",
+          "urn:trainline:sncf:card:AvantageAdulte",
+          "urn:trainline:sncf:card:AvantageSenior",
+          "urn:trainline:sncf:card:AvantageFamille",
+          "urn:trainline:sncf:card:AvantageWeekEnd",
+          "urn:trainline:sncf:card:HappyCard",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+          "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+          "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+          "urn:trainline:sncf:card:CarteFamilleMilitaire",
+          "urn:trainline:sncf:card:Liberte",
+          "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+          "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+          "urn:trainline:sncf:card:CarteVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+          "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+          "urn:trainline:sncf:card:BretagneCarteActuel",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+          "urn:trainline:sncf:card:GrandEstCartePresto",
+          "urn:trainline:sncf:card:GrandEstCartePrimo",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+          "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+          "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+          "urn:trainline:sncf:card:OccitanieCarteLibertio",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes"
+        ],
+        "operator": "SNCF"
+      },
+      {
+        "members": [
+          "urn:trainline:renfe:card:CarneJoven",
+          "urn:trainline:renfe:card:TarjetaDorada",
+          "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+          "urn:trainline:renfe:card:TarjetaMasRenfe",
+          "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+          "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+          "urn:trainline:renfe:card:TarjetaMasRenfePremium"
+        ],
+        "operator": "Renfe"
+      },
+      {
+        "members": [
+          "urn:trainline:trenitalia:card:CartaFreccia",
+          "urn:trainline:trenitalia:card:CartaVerde",
+          "urn:trainline:trenitalia:card:CartaArgento",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiTH"
+        ],
+        "operator": "Trenitalia"
+      },
+      {
+        "members": [
+          "urn:trainline:ntv:card:ItaloPiu"
+        ],
+        "operator": "Italo"
+      }
+    ],
+    "ES": [
+      {
+        "members": [
+          "urn:trainline:renfe:card:CarneJoven",
+          "urn:trainline:renfe:card:TarjetaDorada",
+          "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+          "urn:trainline:renfe:card:TarjetaMasRenfe",
+          "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+          "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+          "urn:trainline:renfe:card:TarjetaMasRenfePremium"
+        ],
+        "operator": "Renfe"
+      },
+      {
+        "members": [
+          "urn:trainline:sncf:card:AvantageJeune",
+          "urn:trainline:sncf:card:AvantageAdulte",
+          "urn:trainline:sncf:card:AvantageSenior",
+          "urn:trainline:sncf:card:AvantageFamille",
+          "urn:trainline:sncf:card:AvantageWeekEnd",
+          "urn:trainline:sncf:card:HappyCard",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+          "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+          "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+          "urn:trainline:sncf:card:CarteFamilleMilitaire",
+          "urn:trainline:sncf:card:Liberte",
+          "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+          "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+          "urn:trainline:sncf:card:CarteVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+          "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+          "urn:trainline:sncf:card:BretagneCarteActuel",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+          "urn:trainline:sncf:card:GrandEstCartePresto",
+          "urn:trainline:sncf:card:GrandEstCartePrimo",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+          "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+          "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+          "urn:trainline:sncf:card:OccitanieCarteLibertio",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes"
+        ],
+        "operator": "SNCF"
+      },
+      {
+        "members": [
+          "urn:trainline:db:card:BahnCard25SecondClass",
+          "urn:trainline:db:card:BahnCard25FirstClass",
+          "urn:trainline:db:card:BahnCard50SecondClass",
+          "urn:trainline:db:card:BahnCard50FirstClass",
+          "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+          "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+          "urn:trainline:db:card:BahnBonusCard"
+        ],
+        "operator": "Deutsche Bahn"
+      },
+      {
+        "members": [
+          "urn:trainline:eurostar:card:FrequentTraveller"
+        ],
+        "operator": "Eurostar"
+      },
+      {
+        "members": [
+          "urn:trainline:thalys:card:TheCard",
+          "urn:trainline:thalys:card:ThePassBusiness",
+          "urn:trainline:thalys:card:ThePassPremium"
+        ],
+        "operator": "Thalys"
+      },
+      {
+        "members": [
+          "urn:trainline:trenitalia:card:CartaFreccia",
+          "urn:trainline:trenitalia:card:CartaVerde",
+          "urn:trainline:trenitalia:card:CartaArgento",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiTH"
+        ],
+        "operator": "Trenitalia"
+      },
+      {
+        "members": [
+          "urn:trainline:ntv:card:ItaloPiu"
+        ],
+        "operator": "Italo"
+      },
+      {
+        "members": [
+          "urn:trainline:cff:card:DemiTarifRailPlus",
+          "urn:trainline:cff:card:DemiTarif"
+        ],
+        "operator": "CFF"
+      },
+      {
+        "members": [
+          "urn:trainline:obb:card:VORTEILScard66",
+          "urn:trainline:obb:card:VORTEILScardClassic",
+          "urn:trainline:obb:card:VORTEILScardJugend",
+          "urn:trainline:obb:card:VORTEILScardSenior",
+          "urn:trainline:obb:card:VORTEILScardFamily",
+          "urn:trainline:obb:card:FamilienOberoesterreich",
+          "urn:trainline:obb:card:FamilienVorarlberg",
+          "urn:trainline:obb:card:FamilienSalzburg",
+          "urn:trainline:obb:card:FamilienSteir",
+          "urn:trainline:obb:card:FamilienTirol"
+        ],
+        "operator": "ÖBB"
+      }
+    ],
+    "FR": [
+      {
+        "members": [
+          "urn:trainline:sncf:card:AvantageJeune",
+          "urn:trainline:sncf:card:AvantageAdulte",
+          "urn:trainline:sncf:card:AvantageSenior",
+          "urn:trainline:sncf:card:AvantageFamille",
+          "urn:trainline:sncf:card:AvantageWeekEnd",
+          "urn:trainline:sncf:card:HappyCard",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+          "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+          "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+          "urn:trainline:sncf:card:CarteFamilleMilitaire",
+          "urn:trainline:sncf:card:Liberte",
+          "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+          "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+          "urn:trainline:sncf:card:CarteVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+          "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+          "urn:trainline:sncf:card:BretagneCarteActuel",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+          "urn:trainline:sncf:card:GrandEstCartePresto",
+          "urn:trainline:sncf:card:GrandEstCartePrimo",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+          "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+          "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+          "urn:trainline:sncf:card:OccitanieCarteLibertio",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes"
+        ],
+        "operator": "SNCF"
+      },
+      {
+        "members": [
+          "urn:trainline:db:card:BahnCard25SecondClass",
+          "urn:trainline:db:card:BahnCard25FirstClass",
+          "urn:trainline:db:card:BahnCard50SecondClass",
+          "urn:trainline:db:card:BahnCard50FirstClass",
+          "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+          "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+          "urn:trainline:db:card:BahnBonusCard"
+        ],
+        "operator": "Deutsche Bahn"
+      },
+      {
+        "members": [
+          "urn:trainline:eurostar:card:FrequentTraveller"
+        ],
+        "operator": "Eurostar"
+      },
+      {
+        "members": [
+          "urn:trainline:thalys:card:TheCard",
+          "urn:trainline:thalys:card:ThePassBusiness",
+          "urn:trainline:thalys:card:ThePassPremium"
+        ],
+        "operator": "Thalys"
+      },
+      {
+        "members": [
+          "urn:trainline:renfe:card:CarneJoven",
+          "urn:trainline:renfe:card:TarjetaDorada",
+          "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+          "urn:trainline:renfe:card:TarjetaMasRenfe",
+          "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+          "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+          "urn:trainline:renfe:card:TarjetaMasRenfePremium"
+        ],
+        "operator": "Renfe"
+      },
+      {
+        "members": [
+          "urn:trainline:trenitalia:card:CartaFreccia",
+          "urn:trainline:trenitalia:card:CartaVerde",
+          "urn:trainline:trenitalia:card:CartaArgento",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiTH"
+        ],
+        "operator": "Trenitalia"
+      },
+      {
+        "members": [
+          "urn:trainline:ntv:card:ItaloPiu"
+        ],
+        "operator": "Italo"
+      },
+      {
+        "members": [
+          "urn:trainline:cff:card:DemiTarifRailPlus",
+          "urn:trainline:cff:card:DemiTarif"
+        ],
+        "operator": "CFF"
+      },
+      {
+        "members": [
+          "urn:trainline:obb:card:VORTEILScard66",
+          "urn:trainline:obb:card:VORTEILScardClassic",
+          "urn:trainline:obb:card:VORTEILScardJugend",
+          "urn:trainline:obb:card:VORTEILScardSenior",
+          "urn:trainline:obb:card:VORTEILScardFamily",
+          "urn:trainline:obb:card:FamilienOberoesterreich",
+          "urn:trainline:obb:card:FamilienVorarlberg",
+          "urn:trainline:obb:card:FamilienSalzburg",
+          "urn:trainline:obb:card:FamilienSteir",
+          "urn:trainline:obb:card:FamilienTirol"
+        ],
+        "operator": "ÖBB"
+      }
+    ],
+    "GB": [
+      {
+        "members": [
+          "urn:trainline:eurostar:card:FrequentTraveller"
+        ],
+        "operator": "Eurostar"
+      },
+      {
+        "members": [
+          "urn:trainline:thalys:card:TheCard",
+          "urn:trainline:thalys:card:ThePassBusiness",
+          "urn:trainline:thalys:card:ThePassPremium"
+        ],
+        "operator": "Thalys"
+      },
+      {
+        "members": [
+          "urn:trainline:sncf:card:AvantageJeune",
+          "urn:trainline:sncf:card:AvantageAdulte",
+          "urn:trainline:sncf:card:AvantageSenior",
+          "urn:trainline:sncf:card:AvantageFamille",
+          "urn:trainline:sncf:card:AvantageWeekEnd",
+          "urn:trainline:sncf:card:HappyCard",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+          "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+          "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+          "urn:trainline:sncf:card:CarteFamilleMilitaire",
+          "urn:trainline:sncf:card:Liberte",
+          "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+          "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+          "urn:trainline:sncf:card:CarteVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+          "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+          "urn:trainline:sncf:card:BretagneCarteActuel",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+          "urn:trainline:sncf:card:GrandEstCartePresto",
+          "urn:trainline:sncf:card:GrandEstCartePrimo",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+          "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+          "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+          "urn:trainline:sncf:card:OccitanieCarteLibertio",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes"
+        ],
+        "operator": "SNCF"
+      },
+      {
+        "members": [
+          "urn:trainline:db:card:BahnCard25SecondClass",
+          "urn:trainline:db:card:BahnCard25FirstClass",
+          "urn:trainline:db:card:BahnCard50SecondClass",
+          "urn:trainline:db:card:BahnCard50FirstClass",
+          "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+          "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+          "urn:trainline:db:card:BahnBonusCard"
+        ],
+        "operator": "Deutsche Bahn"
+      },
+      {
+        "members": [
+          "urn:trainline:renfe:card:CarneJoven",
+          "urn:trainline:renfe:card:TarjetaDorada",
+          "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+          "urn:trainline:renfe:card:TarjetaMasRenfe",
+          "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+          "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+          "urn:trainline:renfe:card:TarjetaMasRenfePremium"
+        ],
+        "operator": "Renfe"
+      },
+      {
+        "members": [
+          "urn:trainline:trenitalia:card:CartaFreccia",
+          "urn:trainline:trenitalia:card:CartaVerde",
+          "urn:trainline:trenitalia:card:CartaArgento",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiTH"
+        ],
+        "operator": "Trenitalia"
+      },
+      {
+        "members": [
+          "urn:trainline:ntv:card:ItaloPiu"
+        ],
+        "operator": "Italo"
+      },
+      {
+        "members": [
+          "urn:trainline:cff:card:DemiTarifRailPlus",
+          "urn:trainline:cff:card:DemiTarif"
+        ],
+        "operator": "CFF"
+      },
+      {
+        "members": [
+          "urn:trainline:obb:card:VORTEILScard66",
+          "urn:trainline:obb:card:VORTEILScardClassic",
+          "urn:trainline:obb:card:VORTEILScardJugend",
+          "urn:trainline:obb:card:VORTEILScardSenior",
+          "urn:trainline:obb:card:VORTEILScardFamily",
+          "urn:trainline:obb:card:FamilienOberoesterreich",
+          "urn:trainline:obb:card:FamilienVorarlberg",
+          "urn:trainline:obb:card:FamilienSalzburg",
+          "urn:trainline:obb:card:FamilienSteir",
+          "urn:trainline:obb:card:FamilienTirol"
+        ],
+        "operator": "ÖBB"
+      }
+    ],
+    "IT": [
+      {
+        "members": [
+          "urn:trainline:trenitalia:card:CartaFreccia",
+          "urn:trainline:trenitalia:card:CartaVerde",
+          "urn:trainline:trenitalia:card:CartaArgento",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+          "urn:trainline:trenitalia:card:Carnet5ViaggiTH"
+        ],
+        "operator": "Trenitalia"
+      },
+      {
+        "members": [
+          "urn:trainline:ntv:card:ItaloPiu"
+        ],
+        "operator": "Italo"
+      },
+      {
+        "members": [
+          "urn:trainline:renfe:card:CarneJoven",
+          "urn:trainline:renfe:card:TarjetaDorada",
+          "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+          "urn:trainline:renfe:card:TarjetaMasRenfe",
+          "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+          "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+          "urn:trainline:renfe:card:TarjetaMasRenfePremium"
+        ],
+        "operator": "Renfe"
+      },
+      {
+        "members": [
+          "urn:trainline:sncf:card:AvantageJeune",
+          "urn:trainline:sncf:card:AvantageAdulte",
+          "urn:trainline:sncf:card:AvantageSenior",
+          "urn:trainline:sncf:card:AvantageFamille",
+          "urn:trainline:sncf:card:AvantageWeekEnd",
+          "urn:trainline:sncf:card:HappyCard",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+          "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+          "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+          "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+          "urn:trainline:sncf:card:CarteFamilleMilitaire",
+          "urn:trainline:sncf:card:Liberte",
+          "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+          "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+          "urn:trainline:sncf:card:CarteVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageur",
+          "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+          "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+          "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+          "urn:trainline:sncf:card:BretagneCarteActuel",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+          "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+          "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+          "urn:trainline:sncf:card:GrandEstCartePresto",
+          "urn:trainline:sncf:card:GrandEstCartePrimo",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+          "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+          "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+          "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+          "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+          "urn:trainline:sncf:card:OccitanieCarteLibertio",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+          "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+          "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes"
+        ],
+        "operator": "SNCF"
+      },
+      {
+        "members": [
+          "urn:trainline:db:card:BahnCard25SecondClass",
+          "urn:trainline:db:card:BahnCard25FirstClass",
+          "urn:trainline:db:card:BahnCard50SecondClass",
+          "urn:trainline:db:card:BahnCard50FirstClass",
+          "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+          "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+          "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+          "urn:trainline:db:card:BahnBonusCard"
+        ],
+        "operator": "Deutsche Bahn"
+      },
+      {
+        "members": [
+          "urn:trainline:eurostar:card:FrequentTraveller"
+        ],
+        "operator": "Eurostar"
+      },
+      {
+        "members": [
+          "urn:trainline:thalys:card:TheCard",
+          "urn:trainline:thalys:card:ThePassBusiness",
+          "urn:trainline:thalys:card:ThePassPremium"
+        ],
+        "operator": "Thalys"
+      },
+      {
+        "members": [
+          "urn:trainline:cff:card:DemiTarifRailPlus",
+          "urn:trainline:cff:card:DemiTarif"
+        ],
+        "operator": "CFF"
+      },
+      {
+        "members": [
+          "urn:trainline:obb:card:VORTEILScard66",
+          "urn:trainline:obb:card:VORTEILScardClassic",
+          "urn:trainline:obb:card:VORTEILScardJugend",
+          "urn:trainline:obb:card:VORTEILScardSenior",
+          "urn:trainline:obb:card:VORTEILScardFamily",
+          "urn:trainline:obb:card:FamilienOberoesterreich",
+          "urn:trainline:obb:card:FamilienVorarlberg",
+          "urn:trainline:obb:card:FamilienSalzburg",
+          "urn:trainline:obb:card:FamilienSteir",
+          "urn:trainline:obb:card:FamilienTirol"
+        ],
+        "operator": "ÖBB"
+      }
+    ]
+  },
+  "order": {
+    "de": [
+      "urn:trainline:db:card:BahnCard25SecondClass",
+      "urn:trainline:db:card:BahnCard25FirstClass",
+      "urn:trainline:db:card:BahnCard50SecondClass",
+      "urn:trainline:db:card:BahnCard50FirstClass",
+      "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+      "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+      "urn:trainline:db:card:BahnBonusCard",
+      "urn:trainline:cff:card:DemiTarifRailPlus",
+      "urn:trainline:cff:card:DemiTarif",
+      "urn:trainline:obb:card:VORTEILScard66",
+      "urn:trainline:obb:card:VORTEILScardClassic",
+      "urn:trainline:obb:card:VORTEILScardJugend",
+      "urn:trainline:obb:card:VORTEILScardSenior",
+      "urn:trainline:obb:card:VORTEILScardFamily",
+      "urn:trainline:obb:card:FamilienOberoesterreich",
+      "urn:trainline:obb:card:FamilienVorarlberg",
+      "urn:trainline:obb:card:FamilienSalzburg",
+      "urn:trainline:obb:card:FamilienSteir",
+      "urn:trainline:obb:card:FamilienTirol",
+      "urn:trainline:thalys:card:TheCard",
+      "urn:trainline:thalys:card:ThePassBusiness",
+      "urn:trainline:thalys:card:ThePassPremium",
+      "urn:trainline:eurostar:card:FrequentTraveller",
+      "urn:trainline:sncf:card:AvantageJeune",
+      "urn:trainline:sncf:card:AvantageAdulte",
+      "urn:trainline:sncf:card:AvantageSenior",
+      "urn:trainline:sncf:card:AvantageFamille",
+      "urn:trainline:sncf:card:AvantageWeekEnd",
+      "urn:trainline:sncf:card:HappyCard",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+      "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+      "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+      "urn:trainline:sncf:card:CarteFamilleMilitaire",
+      "urn:trainline:sncf:card:Liberte",
+      "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+      "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+      "urn:trainline:sncf:card:CarteVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+      "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+      "urn:trainline:sncf:card:BretagneCarteActuel",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+      "urn:trainline:sncf:card:GrandEstCartePresto",
+      "urn:trainline:sncf:card:GrandEstCartePrimo",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+      "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+      "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+      "urn:trainline:sncf:card:OccitanieCarteLibertio",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes",
+      "urn:trainline:renfe:card:CarneJoven",
+      "urn:trainline:renfe:card:TarjetaDorada",
+      "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+      "urn:trainline:renfe:card:TarjetaMasRenfe",
+      "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+      "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+      "urn:trainline:renfe:card:TarjetaMasRenfePremium",
+      "urn:trainline:trenitalia:card:CartaFreccia",
+      "urn:trainline:trenitalia:card:CartaVerde",
+      "urn:trainline:trenitalia:card:CartaArgento",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiTH",
+      "urn:trainline:ntv:card:ItaloPiu"
+    ],
+    "en": [
+      "urn:trainline:eurostar:card:FrequentTraveller",
+      "urn:trainline:thalys:card:TheCard",
+      "urn:trainline:thalys:card:ThePassBusiness",
+      "urn:trainline:thalys:card:ThePassPremium",
+      "urn:trainline:sncf:card:AvantageJeune",
+      "urn:trainline:sncf:card:AvantageAdulte",
+      "urn:trainline:sncf:card:AvantageSenior",
+      "urn:trainline:sncf:card:AvantageFamille",
+      "urn:trainline:sncf:card:AvantageWeekEnd",
+      "urn:trainline:sncf:card:HappyCard",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+      "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+      "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+      "urn:trainline:sncf:card:CarteFamilleMilitaire",
+      "urn:trainline:sncf:card:Liberte",
+      "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+      "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+      "urn:trainline:sncf:card:CarteVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+      "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+      "urn:trainline:sncf:card:BretagneCarteActuel",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+      "urn:trainline:sncf:card:GrandEstCartePresto",
+      "urn:trainline:sncf:card:GrandEstCartePrimo",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+      "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+      "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+      "urn:trainline:sncf:card:OccitanieCarteLibertio",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes",
+      "urn:trainline:db:card:BahnCard25SecondClass",
+      "urn:trainline:db:card:BahnCard25FirstClass",
+      "urn:trainline:db:card:BahnCard50SecondClass",
+      "urn:trainline:db:card:BahnCard50FirstClass",
+      "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+      "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+      "urn:trainline:db:card:BahnBonusCard",
+      "urn:trainline:renfe:card:CarneJoven",
+      "urn:trainline:renfe:card:TarjetaDorada",
+      "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+      "urn:trainline:renfe:card:TarjetaMasRenfe",
+      "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+      "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+      "urn:trainline:renfe:card:TarjetaMasRenfePremium",
+      "urn:trainline:trenitalia:card:CartaFreccia",
+      "urn:trainline:trenitalia:card:CartaVerde",
+      "urn:trainline:trenitalia:card:CartaArgento",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiTH",
+      "urn:trainline:ntv:card:ItaloPiu",
+      "urn:trainline:cff:card:DemiTarifRailPlus",
+      "urn:trainline:cff:card:DemiTarif",
+      "urn:trainline:obb:card:VORTEILScard66",
+      "urn:trainline:obb:card:VORTEILScardClassic",
+      "urn:trainline:obb:card:VORTEILScardJugend",
+      "urn:trainline:obb:card:VORTEILScardSenior",
+      "urn:trainline:obb:card:VORTEILScardFamily",
+      "urn:trainline:obb:card:FamilienOberoesterreich",
+      "urn:trainline:obb:card:FamilienVorarlberg",
+      "urn:trainline:obb:card:FamilienSalzburg",
+      "urn:trainline:obb:card:FamilienSteir",
+      "urn:trainline:obb:card:FamilienTirol"
+    ],
+    "es": [
+      "urn:trainline:renfe:card:CarneJoven",
+      "urn:trainline:renfe:card:TarjetaDorada",
+      "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+      "urn:trainline:renfe:card:TarjetaMasRenfe",
+      "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+      "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+      "urn:trainline:renfe:card:TarjetaMasRenfePremium",
+      "urn:trainline:sncf:card:AvantageJeune",
+      "urn:trainline:sncf:card:AvantageAdulte",
+      "urn:trainline:sncf:card:AvantageSenior",
+      "urn:trainline:sncf:card:AvantageFamille",
+      "urn:trainline:sncf:card:AvantageWeekEnd",
+      "urn:trainline:sncf:card:HappyCard",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+      "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+      "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+      "urn:trainline:sncf:card:CarteFamilleMilitaire",
+      "urn:trainline:sncf:card:Liberte",
+      "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+      "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+      "urn:trainline:sncf:card:CarteVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+      "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+      "urn:trainline:sncf:card:BretagneCarteActuel",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+      "urn:trainline:sncf:card:GrandEstCartePresto",
+      "urn:trainline:sncf:card:GrandEstCartePrimo",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+      "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+      "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+      "urn:trainline:sncf:card:OccitanieCarteLibertio",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes",
+      "urn:trainline:db:card:BahnCard25SecondClass",
+      "urn:trainline:db:card:BahnCard25FirstClass",
+      "urn:trainline:db:card:BahnCard50SecondClass",
+      "urn:trainline:db:card:BahnCard50FirstClass",
+      "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+      "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+      "urn:trainline:db:card:BahnBonusCard",
+      "urn:trainline:eurostar:card:FrequentTraveller",
+      "urn:trainline:thalys:card:TheCard",
+      "urn:trainline:thalys:card:ThePassBusiness",
+      "urn:trainline:thalys:card:ThePassPremium",
+      "urn:trainline:trenitalia:card:CartaFreccia",
+      "urn:trainline:trenitalia:card:CartaVerde",
+      "urn:trainline:trenitalia:card:CartaArgento",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiTH",
+      "urn:trainline:ntv:card:ItaloPiu",
+      "urn:trainline:cff:card:DemiTarifRailPlus",
+      "urn:trainline:cff:card:DemiTarif",
+      "urn:trainline:obb:card:VORTEILScard66",
+      "urn:trainline:obb:card:VORTEILScardClassic",
+      "urn:trainline:obb:card:VORTEILScardJugend",
+      "urn:trainline:obb:card:VORTEILScardSenior",
+      "urn:trainline:obb:card:VORTEILScardFamily",
+      "urn:trainline:obb:card:FamilienOberoesterreich",
+      "urn:trainline:obb:card:FamilienVorarlberg",
+      "urn:trainline:obb:card:FamilienSalzburg",
+      "urn:trainline:obb:card:FamilienSteir",
+      "urn:trainline:obb:card:FamilienTirol"
+    ],
+    "fr": [
+      "urn:trainline:sncf:card:AvantageJeune",
+      "urn:trainline:sncf:card:AvantageAdulte",
+      "urn:trainline:sncf:card:AvantageSenior",
+      "urn:trainline:sncf:card:AvantageFamille",
+      "urn:trainline:sncf:card:AvantageWeekEnd",
+      "urn:trainline:sncf:card:HappyCard",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+      "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+      "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+      "urn:trainline:sncf:card:CarteFamilleMilitaire",
+      "urn:trainline:sncf:card:Liberte",
+      "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+      "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+      "urn:trainline:sncf:card:CarteVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+      "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+      "urn:trainline:sncf:card:BretagneCarteActuel",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+      "urn:trainline:sncf:card:GrandEstCartePresto",
+      "urn:trainline:sncf:card:GrandEstCartePrimo",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+      "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+      "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+      "urn:trainline:sncf:card:OccitanieCarteLibertio",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes",
+      "urn:trainline:db:card:BahnCard25SecondClass",
+      "urn:trainline:db:card:BahnCard25FirstClass",
+      "urn:trainline:db:card:BahnCard50SecondClass",
+      "urn:trainline:db:card:BahnCard50FirstClass",
+      "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+      "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+      "urn:trainline:db:card:BahnBonusCard",
+      "urn:trainline:eurostar:card:FrequentTraveller",
+      "urn:trainline:thalys:card:TheCard",
+      "urn:trainline:thalys:card:ThePassBusiness",
+      "urn:trainline:thalys:card:ThePassPremium",
+      "urn:trainline:renfe:card:CarneJoven",
+      "urn:trainline:renfe:card:TarjetaDorada",
+      "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+      "urn:trainline:renfe:card:TarjetaMasRenfe",
+      "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+      "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+      "urn:trainline:renfe:card:TarjetaMasRenfePremium",
+      "urn:trainline:trenitalia:card:CartaFreccia",
+      "urn:trainline:trenitalia:card:CartaVerde",
+      "urn:trainline:trenitalia:card:CartaArgento",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiTH",
+      "urn:trainline:ntv:card:ItaloPiu",
+      "urn:trainline:cff:card:DemiTarifRailPlus",
+      "urn:trainline:cff:card:DemiTarif",
+      "urn:trainline:obb:card:VORTEILScard66",
+      "urn:trainline:obb:card:VORTEILScardClassic",
+      "urn:trainline:obb:card:VORTEILScardJugend",
+      "urn:trainline:obb:card:VORTEILScardSenior",
+      "urn:trainline:obb:card:VORTEILScardFamily",
+      "urn:trainline:obb:card:FamilienOberoesterreich",
+      "urn:trainline:obb:card:FamilienVorarlberg",
+      "urn:trainline:obb:card:FamilienSalzburg",
+      "urn:trainline:obb:card:FamilienSteir",
+      "urn:trainline:obb:card:FamilienTirol"
+    ],
+    "it": [
+      "urn:trainline:trenitalia:card:CartaFreccia",
+      "urn:trainline:trenitalia:card:CartaVerde",
+      "urn:trainline:trenitalia:card:CartaArgento",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiAV",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiFB",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet10ViaggiIC",
+      "urn:trainline:trenitalia:card:Carnet5ViaggiTH",
+      "urn:trainline:ntv:card:ItaloPiu",
+      "urn:trainline:renfe:card:CarneJoven",
+      "urn:trainline:renfe:card:TarjetaDorada",
+      "urn:trainline:renfe:card:TarjetaMasRenfeJoven50",
+      "urn:trainline:renfe:card:TarjetaMasRenfe",
+      "urn:trainline:renfe:card:TarjetaMasRenfePlata",
+      "urn:trainline:renfe:card:TarjetaMasRenfeOro",
+      "urn:trainline:renfe:card:TarjetaMasRenfePremium",
+      "urn:trainline:sncf:card:AvantageJeune",
+      "urn:trainline:sncf:card:AvantageAdulte",
+      "urn:trainline:sncf:card:AvantageSenior",
+      "urn:trainline:sncf:card:AvantageFamille",
+      "urn:trainline:sncf:card:AvantageWeekEnd",
+      "urn:trainline:sncf:card:HappyCard",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse30",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse40",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse50",
+      "urn:trainline:sncf:card:CarteFamilleNombreuse75",
+      "urn:trainline:sncf:card:CarteMilitaireSecondClass",
+      "urn:trainline:sncf:card:CarteMilitaireFirstClass",
+      "urn:trainline:sncf:card:CarteFamilleMilitaire",
+      "urn:trainline:sncf:card:Liberte",
+      "urn:trainline:sncf:card:AbonnementForfaitSecondClass",
+      "urn:trainline:sncf:card:AbonnementForfaitFirstClass",
+      "urn:trainline:sncf:card:CarteVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageur",
+      "urn:trainline:sncf:card:CarteGrandVoyageurPlus",
+      "urn:trainline:sncf:card:CarteGrandVoyageurLeClub",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberte",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoLiberteJeunes",
+      "urn:trainline:sncf:card:AuvergneRhoneAlpesCarteIllicoMobilite",
+      "urn:trainline:sncf:card:BretagneCarteActuel",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarte26Plus",
+      "urn:trainline:sncf:card:BourgogneFrancheComteCarteTarifReduitSolidaire",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberte",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLibertePlus",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteJeune",
+      "urn:trainline:sncf:card:CentreValDeLoireCarteTERRemiLiberteSenior",
+      "urn:trainline:sncf:card:GrandEstCartePresto",
+      "urn:trainline:sncf:card:GrandEstCartePrimo",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERMoins26",
+      "urn:trainline:sncf:card:HautsDeFranceMaCarteTERPlus26",
+      "urn:trainline:sncf:card:NormandieCarteTempoMoins26",
+      "urn:trainline:sncf:card:NormandieCarteTempoPlus26",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooEtudes",
+      "urn:trainline:sncf:card:OccitanieAbonnementKartatooPro",
+      "urn:trainline:sncf:card:OccitanieCarteLibertio",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireAbonnementForfaitTuttiPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoMoins26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMezzoPlus26",
+      "urn:trainline:sncf:card:PaysDeLaLoireCarteMobi",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Moins26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZou5075Plus26",
+      "urn:trainline:sncf:card:ProvenceAlpesCoteDAzurCarteZouEtudes",
+      "urn:trainline:db:card:BahnCard25SecondClass",
+      "urn:trainline:db:card:BahnCard25FirstClass",
+      "urn:trainline:db:card:BahnCard50SecondClass",
+      "urn:trainline:db:card:BahnCard50FirstClass",
+      "urn:trainline:db:card:BahnCard25BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard25BusinessFirstClass",
+      "urn:trainline:db:card:BahnCard50BusinessSecondClass",
+      "urn:trainline:db:card:BahnCard50BusinessFirstClass",
+      "urn:trainline:db:card:BahnBonusCard",
+      "urn:trainline:eurostar:card:FrequentTraveller",
+      "urn:trainline:thalys:card:TheCard",
+      "urn:trainline:thalys:card:ThePassBusiness",
+      "urn:trainline:thalys:card:ThePassPremium",
+      "urn:trainline:cff:card:DemiTarifRailPlus",
+      "urn:trainline:cff:card:DemiTarif",
+      "urn:trainline:obb:card:VORTEILScard66",
+      "urn:trainline:obb:card:VORTEILScardClassic",
+      "urn:trainline:obb:card:VORTEILScardJugend",
+      "urn:trainline:obb:card:VORTEILScardSenior",
+      "urn:trainline:obb:card:VORTEILScardFamily",
+      "urn:trainline:obb:card:FamilienOberoesterreich",
+      "urn:trainline:obb:card:FamilienVorarlberg",
+      "urn:trainline:obb:card:FamilienSalzburg",
+      "urn:trainline:obb:card:FamilienSteir",
+      "urn:trainline:obb:card:FamilienTirol"
+    ]
+  },
+  "version": "4B8EC5504B6B29E4738A3D48E8BA68A1"
+}

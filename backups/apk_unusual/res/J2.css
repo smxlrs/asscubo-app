@@ -1,0 +1,258 @@
+div#sidebar.affix-top {
+    top: 0px !important;
+}
+div#sidebar.affix {
+    margin-top: 20px;
+    position: relative !important;
+}
+div#classMainDivID {
+    padding-top: 60px;
+}
+div#divCarrello {
+    margin-top: 0 !IMPORTANT;
+}
+label.label-medium-payment {
+    font-size: 13px;
+}
+
+div#tr-10 img {
+    max-height: 24px;
+}
+
+div#tr-10 > div {
+    width: 50% !important;
+}
+#pageHeader, #breadcrumb, #footer, #helpPanel, #panelAreaRiservata, #linkAdditionalService,
+ ul.nav.nav-tabs.text-center, .small, .panel-area-riservata, .navbar,
+  #welcomeUserDiv, #radioSubscription1, #abbTI, #radioSubscription2, #abbReg, #radioSubscription3, #abbUtilize {
+	display: none !important;
+}
+
+.col-xs-offset-1, .col-xs-offset-2, .col-xs-offset-3, .col-xs-offset-4, .col-xs-offset-5, .col-xs-offset-6,
+ .col-xs-offset-7,.col-xs-offset-8,.col-xs-offset-9,.col-xs-offset-12{
+    margin-left: 0 !important;
+}
+
+.row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+
+#Totale { padding: 0 !important; }
+.container, .col-xs-12,.col-xs-6, .col-xs-11, .col-xs-4, .col-xs-5, .col-xs-7, .col-xs-3, .col-xs-2, .col-xs-1, .col-xs-8,
+.col-xs-9, .col-xs-10, .col-xs-11, .totalAmount {
+	width: 100% !important;
+}
+
+.col-xs-offset-13 {
+  margin-left: 0 !important;
+}
+
+#submitMyTrip {
+    margin-top: 16px;
+}
+
+#showOffer th {
+	display: none !important;
+}
+
+table {
+    display: block !important;
+}
+.panel fieldset div {
+    height: auto !important;
+}
+td, th {
+	position: relative !important;
+    border-left: 0px !important;
+    display: block !important;
+    padding: 4px 8px !important;
+    width: 100% !important;
+}
+
+fieldset {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+}
+
+.form-group {
+    margin-bottom: 0 !important;
+    max-width: 100% !important;
+}
+.label-medium {
+    white-space: normal !important;
+}
+.col-xs-12 div.col-xs-7.col-xs-offset-9.text-right,
+.col-xs-5.col-xs-offset-5.text-right.panel-header.header-border-bottom-gray {
+    display:none;
+}
+.btn.btn-primary.btn-lg {
+width: 100%;
+}
+#divCarrello {
+margin-top: 20px !important;
+}
+#collapseViaggio {
+    overflow: scroll;
+}
+#collapseViaggio #pannello  {
+    width: 900px;
+}
+.border-right {
+display: none;
+}
+.panel-body.row-table .col-xs-2.text-center {
+    width: 120px !important;
+}
+input {
+max-width: 100% !important;
+}
+.scroll-bar.vertical, #panel-cart-body, #panel-cart-body .viewport{
+    height: 500px !important;
+}
+.modal-content.ui-draggable {
+    width: 90% !important;
+}
+.modal-dialog-center {
+    margin: 0 !important;
+    position: absolute !important;
+    top: 100px !important;
+    left: 5% !important;
+}
+.dropdown input {
+    pointer-events: none;
+}
+.icheckbox_minimal-green.checked {
+    background-position: -40px 0 !important;
+}
+.icheckbox_minimal-green.disabled {
+    background-position: -58px 0 !important;
+}
+.icheckbox_minimal-green, .iradio_minimal-green {
+    width: 20px !important;
+    height: 20px !important;
+}
+tr#tr1 {
+display: none !important;
+}
+#popupInfo .green-tooltip.left {
+    display:none !important;
+}
+#popupAlert .green-tooltip.left {
+     display:none !important;
+ }
+.wrapper {
+ box-shadow: none !important;
+ -moz-box-shadow: none !important;
+ -webkit-box-shadow: none !important;
+}
+
+.datepicker table, .datepicker  thead, .datepicker  tbody{
+        display: table !important;
+}
+.datepicker  th, .datepicker td{
+    display: table-cell !important;
+}
+.datepicker  tr {
+    display: table-row !important;
+}
+span.seat_not_selected {
+    clear: both;
+}
+span.seat_front_available {
+    clear: both;
+    margin-left: 10px;
+}
+span.seat_not_available {
+    clear: both; margin-left: 10px;
+}
+#seatlayout_train #collapseViaggio .col-xs-10 input[type=button] {
+    display: none !important;
+}
+#seatlayout_train #confirm {
+    max-width: 280px !important;
+}
+
+
+div#accordion {
+    width: 100% !important;
+}
+
+td.col-xs-3 {
+    width: auto !important;
+}
+span.price {
+    font-size: 12px !important;
+}
+
+.table-solution-hover td:nth-child(3) {
+    display: none !important;
+}
+
+.solutionRow td:nth-child(1) div:nth-child(2), .solutionRow td:nth-child(1) span:nth-child(2) {
+    display: none !important;
+}
+
+.solutionRow td:nth-child(2) div:nth-child(2) {
+    display: none !important;
+}
+.trenoDetails .glyphicon, .trenoDetails br  {
+    display: none !important;
+}
+.trenoDetails {
+    margin: 0 !important;
+}
+.solutionRow td {
+    height: 50px !important;
+}
+.solutionRow td {
+    display: table-cell !important;
+}
+.solutionRow td:nth-child(2) div:nth-child(1) {
+    height: inherit !important;
+}
+table.table-solution-hover.col-xs-16 {
+    display: none !important;
+}
+.choose {
+    display: none !important;
+}
+.col-xs-12 {
+    padding: 0 !important;
+}
+
+body {
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin-bottom: 120px;
+}
+
+.checkbox {
+    margin-top: 0px !important;
+    margin-bottom: 0px !important;
+}
+.btn-day {
+    font-size: 12px !important;
+    padding: 2px !important;
+}
+h4 {
+    font-size: 12px !important;
+}
+.table-solution-hover {
+    font-size: 12px !important;
+}
+
+label[for=radioCarnetAcquista] {
+    display: none !important;
+}
+
+label[for=radioCarnetPrenota] {
+    display: none !important;
+}
+input[type=checkbox] {
+    transform: scale(1.5);
+    margin-bottom: 15px;
+}

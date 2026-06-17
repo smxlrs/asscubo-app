@@ -1,0 +1,73 @@
+#header,
+#headerTit,
+.mainContainerDivAmericanFooterMenu,
+.ContentPlaceHolderDefault_cp_content_ctl01_ucMotoreRisultati_9_pnRicerca,
+.containerLangMotoreOrario {
+	display: none;
+}
+div#content-left {
+    display: none;
+}
+
+ul#breadcrumb {
+    display: none;
+}
+
+.product-image.equalized-column {
+    display: none;
+}
+
+.product-data.equalized-column {
+    margin-left: 20px !important;
+     width: 300px !important;
+}
+
+.expanded {
+    width: 100% !important;
+}
+
+.product-recommendations {
+    display: none;
+}
+
+section#footer {
+    display: none;
+}
+
+td.productpicture.nobr {
+    display: none;
+}
+.cart-header-row th.picture {
+    display: none;
+}
+.branding.pull-left {
+    display: none;
+}
+
+.payment-method-item .option-name {
+    margin-left: 25px !important;
+}
+
+.page.payment-method-page {
+    width: 300px;
+}
+nav.order-progress {
+    display: none;
+}
+
+.ui-footer.ui-bar-a {
+    display: none;
+}
+.also-purchased-products-grid {
+    display: none;
+}
+.ui-header.ui-bar-a:nth-child(2),
+.ui-header.ui-bar-a:nth-child(3) div:nth-child(2) {
+    display: none;
+}
+.common-buttons {
+    display: none;
+}
+.loginDivSX {
+    display: none !important;
+}

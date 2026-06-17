@@ -1,0 +1,227 @@
+div#sidebar.affix-top {
+    top: 0px !important;
+}
+div#sidebar.affix {
+    margin-top: 20px;
+    position: relative !important;
+}
+div#classMainDivID {
+    padding-top: 60px;
+}
+div#divCarrello {
+    margin-top: 0 !IMPORTANT;
+}
+label.label-medium-payment {
+    font-size: 13px;
+}
+
+div#tr-10 img {
+    max-height: 24px;
+}
+
+div#tr-10 > div {
+    width: 50% !important;
+}
+.panel fieldset div {
+    height: auto !important;
+}
+.after-loading:after {
+    content: "Caricamento ...";
+}
+
+#pageHeader, #breadcrumb, #footer, #helpPanel, #panelAreaRiservata, #linkAdditionalService, #ancillaryPanel, span.glyphicon.glyphicon-info-sign.info {
+	display: none !important;
+}
+
+.small, .panel-area-riservata, .navbar {
+	display: none !important;
+}
+
+.col-xs-offset-1, .col-xs-offset-2, .col-xs-offset-3, .col-xs-offset-4, .col-xs-offset-5, .col-xs-offset-6,
+ .col-xs-offset-7,.col-xs-offset-8,.col-xs-offset-9,.col-xs-offset-12{
+    margin-left: 0 !important;
+}
+
+.row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+body {
+	min-width: 0 !important;
+    padding-right: 8px !important;
+    padding-left: 8px !important;
+    padding-top: 20px !important;
+    padding-bottom: 150px !important;
+}
+#Totale { padding: 0 !important; }
+.container, .col-xs-12,.col-xs-6, .col-xs-11, .col-xs-4, .col-xs-5, .col-xs-7, .col-xs-3, .col-xs-2, .col-xs-1, .col-xs-8,
+.col-xs-9, .col-xs-10, .col-xs-11, .totalAmount {
+	width: 100% !important;
+}
+
+#submitMyTrip {
+    margin-top: 16px;
+}
+
+#showOffer th {
+	display: none !important;
+}
+
+table {
+    display: block !important;
+}
+td, th {
+	position: relative !important;
+    border-left: 0px !important;
+    display: block !important;
+    padding: 4px 8px !important;
+    width: 100% !important;
+}
+
+fieldset {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+}
+
+.form-group {
+    margin-bottom: 0 !important;
+    max-width: 100% !important;
+}
+.label-medium {
+    white-space: normal !important;
+}
+.col-xs-12 div.col-xs-7.col-xs-offset-9.text-right,
+.col-xs-5.col-xs-offset-5.text-right.panel-header.header-border-bottom-gray {
+    display:none;
+}
+.btn.btn-primary.btn-lg {
+width: 100%;
+}
+#divCarrello {
+margin-top: 20px !important;
+}
+#collapseViaggio {
+    overflow: scroll;
+}
+#collapseViaggio #pannello  {
+    width: 900px;
+}
+.border-right {
+display: none;
+}
+.panel-body.row-table .col-xs-2.text-center {
+    width: 120px !important;
+}
+input {
+max-width: 100% !important;
+}
+.scroll-bar.vertical, #panel-cart-body, #panel-cart-body .viewport{
+    height: 500px !important;
+}
+.modal-content.ui-draggable {
+    width: 90% !important;
+}
+.modal-dialog-center {
+    margin: 0 !important;
+    position: absolute !important;
+    top: 100px !important;
+    left: 5% !important;
+}
+.dropdown input {
+    pointer-events: none;
+}
+.icheckbox_minimal-green.checked {
+    background-position: -40px 0 !important;
+}
+.icheckbox_minimal-green.disabled {
+    background-position: -58px 0 !important;
+}
+.icheckbox_minimal-green, .iradio_minimal-green {
+    width: 20px !important;
+    height: 20px !important;
+}
+tr#tr1 {
+display: none !important;
+}
+#popupInfo .green-tooltip.left {
+    display:none !important;
+}
+#popupAlert .green-tooltip.left {
+     display:none !important;
+ }
+.wrapper {
+ box-shadow: none !important;
+ -moz-box-shadow: none !important;
+ -webkit-box-shadow: none !important;
+}
+
+.datepicker table, .datepicker  thead, .datepicker  tbody{
+        display: table !important;
+}
+.datepicker  th, .datepicker td{
+    display: table-cell !important;
+}
+.datepicker  tr {
+    display: table-row !important;
+}
+.solutionRow td {
+    display: table-cell !important;
+}
+.solutionRow td:nth-child(3){
+    display: none !important;
+}
+.solutionRow td:nth-child(5){
+    display: none !important;
+}
+.solutionRow img {
+    display: none !important;
+}
+.solutionRow .descr {
+    position: relative !important;
+    bottom: initial !important;
+    right: 0 !important;
+    top: 15px !important;
+}
+.solutionRow .glyphicon {
+    display: none !important;
+}
+
+span.seat_not_selected {
+    clear: both;
+}
+span.seat_front_available {
+    clear: both;
+    margin-left: 10px;
+}
+span.seat_not_available {
+    clear: both; margin-left: 10px;
+}
+#seatlayout_train #collapseViaggio .col-xs-10 input[type=button] {
+    display: none !important;
+}
+
+#seatlayout_train #confirm {position: fixed;bottom: 0;left: 0;right: 0;width: 100vw !important;max-width: 100vw !important;z-index: 9999;}
+
+#ancillaryPanel .col-xs-6.col-xs-offset-2 {
+    margin: 0 !important;
+}
+#ancillaryPanel img {
+    width: 0 !important;
+    height: 0 !important;
+}
+.modal-content.ui-draggable {
+    width: 100% !important;
+}
+.modal-footer .col-xs-8 {
+    width: 30% !important;
+}
+.modal-body {
+    padding: 8px !important;
+}
+input[type=checkbox] {
+    transform: scale(1.5);
+    margin-bottom: 15px;
+}

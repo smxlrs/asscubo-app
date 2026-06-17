@@ -103,7 +103,7 @@ const translations: Record<Language, Record<string, string>> = {
     wechatPub: '微信公众号',
     serviceEmail: '客服邮箱',
     copyright: '欧洲学生学者联合会. \nAll rights reserved.',
-    version: '版本: 1.0.0 (Beta)',
+    version: '版本: 1.0.0.2',
     aboutDescription: '本应用是由欧洲学生学者联合会官方出品的一站式校园生活服务平台，旨在为广大留欧学生学者提供最及时权威的信息资讯、最实用的生活学术工具以及充满活力的青年社区。',
     back: '返回',
     save: '保存',
@@ -151,7 +151,9 @@ const translations: Record<Language, Record<string, string>> = {
     submitting: '提交中...',
     feedbackSuccess: '反馈提交成功！感谢您的宝贵意见。',
     feedbackError: '请填写完整内容',
-    acssDescription: '欧洲学生学者联合会是由在欧留学的广大中国学生学者组成的自治组织，致力于服务留学人员，维护合法权益，促进中欧学术文化交流。'
+    acssDescription: '欧洲学生学者联合会是由在欧留学的广大中国学生学者组成的自治组织，致力于服务留学人员，维护合法权益，促进中欧学术文化交流。',
+    trainToolTitle: '意铁看板与车次',
+    trainToolDesc: '实时查询意大利火车出发到达看板，追踪列车晚点及站台状态。'
   },
   en: {
     home: 'Home',
@@ -185,7 +187,7 @@ const translations: Record<Language, Record<string, string>> = {
     wechatPub: 'WeChat Public Account',
     serviceEmail: 'Service Email',
     copyright: 'Association of Chinese Students and Scholars. \nAll rights reserved.',
-    version: 'Version: 1.0.0 (Beta)',
+    version: 'Version: 1.0.0.2',
     aboutDescription: 'This app is the official one-stop campus life service platform created by the Association of Chinese Students and Scholars in Europe, designed to provide the latest information, practical tools, and vibrant community services.',
     back: 'Back',
     save: 'Save',
@@ -233,7 +235,9 @@ const translations: Record<Language, Record<string, string>> = {
     submitting: 'Submitting...',
     feedbackSuccess: 'Feedback submitted successfully! Thank you.',
     feedbackError: 'Please fill out all fields',
-    acssDescription: 'The Association of Chinese Students and Scholars in Europe is an organization dedicated to serving scholars, protecting rights, and promoting cultural and academic exchanges.'
+    acssDescription: 'The Association of Chinese Students and Scholars in Europe is an organization dedicated to serving scholars, protecting rights, and promoting cultural and academic exchanges.',
+    trainToolTitle: 'Italian Train Info',
+    trainToolDesc: 'Real-time departures, arrivals, platforms, and delay tracking for Italian trains.'
   },
   it: {
     home: 'Home',
@@ -267,7 +271,7 @@ const translations: Record<Language, Record<string, string>> = {
     wechatPub: 'WeChat Pubblico',
     serviceEmail: 'Email di Servizio',
     copyright: 'Associazione degli Studenti e Studiosi Cinesi. \nAll rights reserved.',
-    version: 'Versione: 1.0.0 (Beta)',
+    version: 'Versione: 1.0.0.2',
     aboutDescription: "Questa applicazione è la piattaforma ufficiale di servizi per la vita universitaria creata dall'Associazione degli Studenti e Studiosi Cinesi in Europa, progettata per fornire informazioni, strumenti utili e servizi di community.",
     back: 'Indietro',
     save: 'Salva',
@@ -315,7 +319,9 @@ const translations: Record<Language, Record<string, string>> = {
     submitting: 'Invio in corso...',
     feedbackSuccess: 'Feedback inviato con successo! Grazie.',
     feedbackError: 'Si prega di compilare tutti i campi',
-    acssDescription: "L'Associazione degli Studenti e Studiosi Cinesi in Europa è un'organizzazione dedicata a servire gli studiosi, tutelare i diritti e promuovere scambi culturali e accademici."
+    acssDescription: "L'Associazione degli Studenti e Studiosi Cinesi in Europa è un'organizzazione dedicata a servire gli studiosi, tutelare i diritti e promuovere scambi culturali e accademici.",
+    trainToolTitle: 'Orario e Stato Treni',
+    trainToolDesc: 'Tabellone partenze/arrivi in tempo reale, binari e tracciamento ritardi dei treni.'
   },
   'zh-Hant': {
     home: '首頁',
@@ -349,7 +355,7 @@ const translations: Record<Language, Record<string, string>> = {
     wechatPub: '微信公眾號',
     serviceEmail: '客服郵箱',
     copyright: '歐洲學生學者聯合會. \nAll rights reserved.',
-    version: '版本: 1.0.0 (Beta)',
+    version: '版本: 1.0.0.2',
     aboutDescription: '本應用是由歐洲學生學者聯合會官方出品的一站式校園生活服務平台，旨在為廣大留歐學生學者提供最及時權威的信息資訊、最實用的生活學術工具以及充滿活力的青年社區。',
     back: '返回',
     save: '保存',
@@ -395,7 +401,9 @@ const translations: Record<Language, Record<string, string>> = {
     submitting: '提交中...',
     feedbackSuccess: '反饋提交成功！感謝您的寶貴意見。',
     feedbackError: '請填寫完整內容',
-    acssDescription: '歐洲學生學者聯合會是由在歐留學的廣大中國學生學者組成的自治組織，致力於服務留學人員，維護合法權益，促進中歐學術文化交流。'
+    acssDescription: '歐洲學生學者聯合會是由在歐留學的廣大中國學生學者組成的自治組織，致力於服務留學人員，維護合法權益，促進中歐學術文化交流。',
+    trainToolTitle: '意鐵看板與車次',
+    trainToolDesc: '即時查詢意大利火車出發到達看板，追蹤列車晚點及站台狀態。'
   }
 };
 

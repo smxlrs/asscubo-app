@@ -1,0 +1,16 @@
+.ui-header.ui-bar-inherit.ui-header-fixed.slidedown {
+    display: none;
+}
+
+.ui-header-fixed, .ui-footer-fixed {
+  position: absolute !important;
+}
+
+.ui-page.ui-page-theme-a.ui-page-header-fixed.ui-page-footer-fixed.ui-page-active {
+    padding-bottom: 0 !important;
+    padding-top: 0px !important;
+}
+
+div#searchNewTripFooter {
+    display: none !important;
+}

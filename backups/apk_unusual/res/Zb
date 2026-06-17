@@ -1,0 +1,177 @@
+0:47 firebase-iid
+48:16013 Android SDK
+16062:10695 AndroidX activity library
+16062:10695 AndroidX annotation library
+26758:10694 AndroidX architecture core library
+26758:10694 AndroidX architecture library
+16062:10695 AndroidX asynclayoutinflater library
+37453:10693 AndroidX collection library
+16062:10695 AndroidX concurrent futures library
+37453:10693 AndroidX coordinatorlayout library
+16062:10695 AndroidX core library
+16062:10695 AndroidX cursoradapter library
+37453:10693 AndroidX customview library
+16062:10695 AndroidX documentfile library
+16062:10695 AndroidX drawerlayout library
+16062:10695 AndroidX fragment library
+37453:10693 AndroidX interpolator library
+16062:10695 AndroidX legacy coreui library
+48147:10691 AndroidX legacy coreutils library
+16062:10695 AndroidX legacy v4 library
+26758:10694 AndroidX lifecycle common library
+26758:10694 AndroidX lifecycle livedatacore library
+26758:10694 AndroidX lifecycle runtime library
+26758:10694 AndroidX lifecycle viewmodel library
+26758:10694 AndroidX lifecycle viewmodel savedstate library
+37453:10693 AndroidX loader library
+37453:10693 AndroidX localbroadcastmanager library
+48147:10691 AndroidX media base library
+16062:10695 AndroidX print library
+58839:10689 AndroidX savedstate library
+16062:10695 AndroidX slidingpanelayout library
+16062:10695 AndroidX swiperefreshlayout library
+69529:10695 AndroidX versionedparcelable library
+16062:10695 AndroidX viewpager library
+80225:1096 Animal Sniffer
+81322:1892 Checker Framework Annotations
+83215:11357 Error Prone
+94573:11357 Firebase
+105931:11358 Google Auto
+105931:11358 Guava JDK5
+117290:11362 Guava JDK7
+105931:11358 J2ObjC
+105931:11358 JSR 250
+128653:1602 JSR 305
+130256:11307 JsInterop Annotations
+105931:11358 SafeParcelable library
+141564:10695 apksig
+152260:46 Android Support Library Custom View
+152260:46 Material Components for Android
+152260:46 Activity
+152260:46 firebase-components
+152260:46 firebase-common
+0:47 play-services-auth-api-phone
+152307:1732 Protobuf Nano
+154040:11342 flatbuffers
+165383:2500 zlib
+167884:1558 RE2
+169443:680 STL
+170124:19442 ICU4C
+105931:11358 safeparcel
+189567:731 UTF
+190299:3182 PCRE
+193482:1481 darts_clone
+0:47 firebase-iid-interop
+194964:11365 absl
+0:47 play-services-location
+206330:11365 JSR 330
+0:47 play-services-auth
+152260:46 Android Transition Support Library
+152260:46 Kotlin Stdlib
+152260:46 Android Support Library media compat
+152260:46 Android Lifecycle Service
+152260:46 error-prone annotations
+152260:46 IntelliJ IDEA Annotations
+152260:46 DataDome Android SDK
+152260:46 Android Support Library Local Broadcast Manager
+0:47 firebase-core
+0:47 play-services-base
+152260:46 Android Lifecycle-Common
+152260:46 javax.inject
+152260:46 Android Support AnimatedVectorDrawable
+152260:46 firebase-crashlytics
+217696:11361 Tape
+152260:46 transport-runtime
+152260:46 Android Support Library core UI
+0:47 play-services-oss-licenses
+152260:46 Android Room-Common
+152260:46 Android Support Library Document File
+152260:46 firebase-abt
+0:47 play-services-cloud-messaging
+152260:46 org.jetbrains.kotlin:kotlin-stdlib-jdk7
+152260:46 Activity
+152260:46 Android Support Library Interpolators
+152260:46 Android Support Library Annotations
+152260:46 firebase-installations-interop
+152260:46 Retrofit
+0:47 play-services-basement
+152260:46 Android ConstraintLayout Core
+152260:46 firebase-encoders-json
+152260:46 Android Lifecycle Runtime
+152260:46 Android Support SQLite - Framework Implementation
+152260:46 Experimental annotation
+152260:46 Converter: Gson
+152260:46 Android Support Library Coordinator Layout
+0:47 play-services-measurement-impl
+152260:46 Android Support Library Custom View
+152260:46 Android DB
+152260:46 Android Support Library Async Layout Inflater
+0:47 play-services-maps
+16062:10695 AndroidX print library.
+154040:11342 FlatBuffers
+152260:46 Okio
+152260:46 Core Kotlin Extensions
+152260:46 opencsv
+152260:46 transport-api
+152260:46 Android Room-Runtime
+152260:46 Joda-Time
+152260:46 Android AppCompat Library v7
+0:47 play-services-measurement
+152260:46 Android Arch-Runtime
+152260:46 Android Support Library loader
+152260:46 Android Lifecycle ViewModel with SavedState
+152260:46 firebase-installations
+152260:46 Android Support Library Cursor Adapter
+0:47 play-services-stats
+152260:46 Android Support Library fragment
+152260:46 Kotlin Stdlib Common
+152260:46 Kotlin Android Extensions Runtime
+152260:46 Android Support CardView v7
+229058:24 jsoup
+152260:46 Android Tracing
+0:47 play-services-measurement-api
+0:47 play-services-measurement-sdk-api
+152260:46 Android Support Library v4
+0:47 firebase-messaging
+105931:11358 Dagger
+152260:46 FindBugs-jsr305
+152260:46 Android Support VectorDrawable
+229083:50 Checker Qual
+229134:34 Checker Qual
+152260:46 Android Support RecyclerView v7
+152260:46 Kotter Knife
+152260:46 logging-interceptor
+229169:68 Proguard Annotations
+152260:46 Android Support Library compat
+152260:46 Android Multi-Dex Library
+152260:46 Parcelize Runtime
+152260:46 Android Support Library Sliding Pane Layout
+0:47 play-services-measurement-sdk
+152260:46 VersionedParcelable
+152260:46 Android Lifecycle LiveData Core
+152260:46 Android Support Library collections
+152260:46 Android Support Library Drawer Layout
+0:47 play-services-tasks
+0:47 play-services-ads-identifier
+152260:46 firebase-config
+152260:46 Android Arch-Common
+152260:46 Android Lifecycle ViewModel
+152260:46 J2ObjC Annotations
+152260:46 firebase-encoders
+152260:46 Android WorkManager Runtime
+0:47 play-services-measurement-base
+152260:46 Android Support Library View Pager
+152260:46 okhttp
+152260:46 Android Support Library Print
+152260:46 firebase-datatransport
+152260:46 Android Support Library core utils
+0:47 play-services-places-placereport
+0:47 play-services-auth-base
+152260:46 Android Lifecycle LiveData
+152260:46 Android Resources Library
+152260:46 firebase-annotations
+152260:46 Android ConstraintLayout
+0:47 firebase-measurement-connector
+152260:46 Android App Startup Runtime
+152260:46 transport-backend-cct
+0:47 firebase-analytics
