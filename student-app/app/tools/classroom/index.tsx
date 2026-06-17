@@ -99,6 +99,8 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     timeCustom: '自定义',
     customStart: '开始时间',
     customEnd: '结束时间',
+    selectCampus: '选择校区',
+    allCampuses: '全部校区',
     selectBuilding: '选择教学楼',
     allBuildings: '全部大楼',
     selectCapacity: '选择容量',
@@ -137,6 +139,8 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     timeCustom: '自定義',
     customStart: '開始時間',
     customEnd: '結束時間',
+    selectCampus: '選擇校區',
+    allCampuses: '全部校區',
     selectBuilding: '選擇教學樓',
     allBuildings: '全部大樓',
     selectCapacity: '選擇容量',
@@ -175,6 +179,8 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     timeCustom: 'Custom',
     customStart: 'Start Time',
     customEnd: 'End Time',
+    selectCampus: 'Select Campus',
+    allCampuses: 'All Campuses',
     selectBuilding: 'Select Building',
     allBuildings: 'All Buildings',
     selectCapacity: 'Select Capacity',
@@ -213,6 +219,8 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     timeCustom: 'Personalizzato',
     customStart: 'Ora Inizio',
     customEnd: 'Ora Fine',
+    selectCampus: 'Seleziona Campus',
+    allCampuses: 'Tutti i Campus',
     selectBuilding: 'Seleziona Edificio',
     allBuildings: 'Tutti gli Edifici',
     selectCapacity: 'Seleziona Capienza',
@@ -361,6 +369,16 @@ const serviceTranslations: Record<ServiceCategory, ServiceTranslation> = {
   }
 };
 
+const getCampusLabel = (campus: string, lang: Language) => {
+  const c = campus.toLowerCase();
+  if (c.includes('bologna')) return lang === 'en' || lang === 'it' ? 'Bologna' : lang === 'zh-Hant' ? '博洛尼亞' : '博洛尼亚';
+  if (c.includes('cesena')) return lang === 'en' || lang === 'it' ? 'Cesena' : lang === 'zh-Hant' ? '切塞納' : '切塞纳';
+  if (c.includes('forl')) return lang === 'en' || lang === 'it' ? 'Forlì' : lang === 'zh-Hant' ? '弗利' : '弗利';
+  if (c.includes('ravenna')) return lang === 'en' || lang === 'it' ? 'Ravenna' : lang === 'zh-Hant' ? '拉文納' : '拉文纳';
+  if (c.includes('rimini')) return lang === 'en' || lang === 'it' ? 'Rimini' : lang === 'zh-Hant' ? '里米尼' : '里米尼';
+  return campus;
+};
+
 export default function EmptyClassroomScreen() {
   const { colors, isDark, language } = useTheme();
   
@@ -390,6 +408,10 @@ export default function EmptyClassroomScreen() {
   // Dropdown selector modal states
   const [showBuildingModal, setShowBuildingModal] = useState<boolean>(false);
   const [showCapacityModal, setShowCapacityModal] = useState<boolean>(false);
+
+  // Campus filter states
+  const [selectedCampus, setSelectedCampus] = useState<string>('all');
+  const [showCampusModal, setShowCampusModal] = useState<boolean>(false);
 
   // Card expanded timeline states
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -540,12 +562,35 @@ export default function EmptyClassroomScreen() {
         map.set(c.edificioId, {
           id: c.edificioId,
           codice: c.edificio.codice || 'Unknown',
-          descrizione: c.edificio.codice ? `教学楼 ${c.edificio.codice}` : '未知教学楼'
+          descrizione: c.edificio.codice ? `教学楼 ${c.edificio.codice}` : '未知教学楼',
+          comune: c.edificio.comune
         });
       }
     });
     return Array.from(map.values());
   }, [classrooms]);
+
+  // Compute unique campuses from classrooms list
+  const campuses = useMemo(() => {
+    const set = new Set<string>();
+    classrooms.forEach(c => {
+      const comune = c.relazioneEdificio?.comune || c.edificio?.comune;
+      if (comune) {
+        set.add(comune.trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [classrooms]);
+
+  // When selected campus changes, reset building filter
+  useEffect(() => {
+    setSelectedBuildingId('all');
+  }, [selectedCampus]);
+
+  const filteredBuildings = useMemo(() => {
+    if (selectedCampus === 'all') return buildings;
+    return buildings.filter(b => b.comune?.trim() === selectedCampus);
+  }, [buildings, selectedCampus]);
 
   // Compute current query time minutes
   const queryTimeRange = useMemo(() => {
@@ -625,6 +670,12 @@ export default function EmptyClassroomScreen() {
         };
       })
       .filter(aula => {
+        // 0. Campus filter
+        if (selectedCampus !== 'all') {
+          const comune = aula.relazioneEdificio?.comune || aula.edificio?.comune;
+          if (comune?.trim() !== selectedCampus) return false;
+        }
+
         // 1. Building filter
         if (selectedBuildingId !== 'all' && aula.edificioId !== selectedBuildingId) return false;
 
@@ -642,7 +693,7 @@ export default function EmptyClassroomScreen() {
         if (scoreA !== scoreB) return scoreA - scoreB;
         return a.descrizione.localeCompare(b.descrizione);
       });
-  }, [classrooms, classroomOccupations, queryTimeRange, selectedBuildingId, capacityFilter]);
+  }, [classrooms, classroomOccupations, queryTimeRange, selectedBuildingId, capacityFilter, selectedCampus]);
 
   // Counting available classrooms
   const availableCount = useMemo(() => {
@@ -838,18 +889,32 @@ export default function EmptyClassroomScreen() {
 
             {/* Dropdown Filters Row */}
             <View style={styles.dropdownFiltersRow}>
+              {/* Campus Dropdown Button */}
+              <Pressable 
+                style={[styles.dropdownButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                onPress={() => setShowCampusModal(true)}
+              >
+                <View style={styles.dropdownButtonContent}>
+                  <MaterialIcons name="location-on" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+                  <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {selectedCampus === 'all' ? getTxt('allCampuses') : getCampusLabel(selectedCampus, activeLang)}
+                  </Text>
+                </View>
+                <MaterialIcons name="arrow-drop-down" size={16} color={colors.textSecondary} />
+              </Pressable>
+
               {/* Building Dropdown Button */}
               <Pressable 
                 style={[styles.dropdownButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
                 onPress={() => setShowBuildingModal(true)}
               >
                 <View style={styles.dropdownButtonContent}>
-                  <MaterialIcons name="business" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+                  <MaterialIcons name="business" size={14} color={colors.primary} style={{ marginRight: 4 }} />
                   <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
                     {buildingLabel}
                   </Text>
                 </View>
-                <MaterialIcons name="arrow-drop-down" size={18} color={colors.textSecondary} />
+                <MaterialIcons name="arrow-drop-down" size={16} color={colors.textSecondary} />
               </Pressable>
 
               {/* Capacity Dropdown Button */}
@@ -858,12 +923,12 @@ export default function EmptyClassroomScreen() {
                 onPress={() => setShowCapacityModal(true)}
               >
                 <View style={styles.dropdownButtonContent}>
-                  <MaterialIcons name="people" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+                  <MaterialIcons name="people" size={14} color={colors.primary} style={{ marginRight: 4 }} />
                   <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
                     {capacityLabel}
                   </Text>
                 </View>
-                <MaterialIcons name="arrow-drop-down" size={18} color={colors.textSecondary} />
+                <MaterialIcons name="arrow-drop-down" size={16} color={colors.textSecondary} />
               </Pressable>
             </View>
 
@@ -1105,6 +1170,71 @@ export default function EmptyClassroomScreen() {
         </View>
       )}
 
+      {/* Campus Selector Modal Overlay */}
+      {showCampusModal && (
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalDismiss} onPress={() => setShowCampusModal(false)} />
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+              {getTxt('selectCampus')}
+            </Text>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              <Pressable
+                style={[
+                  styles.modalItem,
+                  { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
+                  selectedCampus === 'all' && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                ]}
+                onPress={() => {
+                  setSelectedCampus('all');
+                  setShowCampusModal(false);
+                }}
+              >
+                <MaterialIcons name="location-on" size={18} color={selectedCampus === 'all' ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+                <Text 
+                  style={[
+                    styles.modalItemText, 
+                    { color: selectedCampus === 'all' ? colors.primary : colors.textPrimary, fontWeight: selectedCampus === 'all' ? 'bold' : 'normal' }
+                  ]}
+                >
+                  {getTxt('allCampuses')}
+                </Text>
+              </Pressable>
+              {campuses.map(camp => {
+                const isSelected = selectedCampus === camp;
+                return (
+                  <Pressable
+                    key={camp}
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
+                      isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                    ]}
+                    onPress={() => {
+                      setSelectedCampus(camp);
+                      setShowCampusModal(false);
+                    }}
+                  >
+                    <MaterialIcons name="location-on" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+                    <Text 
+                      style={[
+                        styles.modalItemText, 
+                        { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
+                      ]}
+                    >
+                      {getCampusLabel(camp, activeLang)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={() => setShowCampusModal(false)}>
+              <Text style={styles.modalCloseBtnText}>{getTxt('cancel')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {/* Building Selector Modal Overlay */}
       {showBuildingModal && (
         <View style={styles.modalOverlay}>
@@ -1135,7 +1265,7 @@ export default function EmptyClassroomScreen() {
                   {getTxt('allBuildings')}
                 </Text>
               </Pressable>
-              {buildings.map(b => {
+              {filteredBuildings.map(b => {
                 const isSelected = selectedBuildingId === b.id;
                 const cleanName = b.descrizione.replace('Edificio in Bo ', '').replace('via ', '');
                 return (
@@ -1655,7 +1785,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalList: {
-    flex: 1,
+    width: '100%',
+    maxHeight: 280,
   },
   modalItem: {
     paddingVertical: 12,

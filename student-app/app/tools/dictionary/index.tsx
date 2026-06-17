@@ -39,7 +39,8 @@ const buildHtmlString = (
   dicts: DictionaryInfo[],
   collapsed: { [dictId: string]: boolean },
   themeColors: any,
-  dark: boolean
+  dark: boolean,
+  enabledDictIds: string[]
 ) => {
   const cardsHtml = defs.map((defItem) => {
     const dict = dicts.find(d => d.id === defItem.dict_id);
@@ -70,6 +71,14 @@ const buildHtmlString = (
     dict_id: d.dict_id,
     definition: d.definition
   }))).replace(/</g, '\\u003c');
+
+  const dictsConfigJson = JSON.stringify(dicts.map(d => ({
+    id: d.id,
+    name: d.name,
+    isSystem: d.isSystem
+  }))).replace(/</g, '\\u003c');
+
+  const enabledDictIdsJson = JSON.stringify(enabledDictIds).replace(/</g, '\\u003c');
 
   return `
     <!DOCTYPE html>
@@ -223,7 +232,7 @@ const buildHtmlString = (
     </style>
     </head>
     <body class="${dark ? 'dark-mode' : ''}">
-      ${cardsHtml}
+      <div id="cards-container">${cardsHtml}</div>
       
       <script>
         // Forward JavaScript runtime errors inside WebView to React Native for easy debugging
@@ -240,8 +249,10 @@ const buildHtmlString = (
         };
 
         window.DEFINITIONS_DATA = ${escapedDefsJson};
+        window.DICTIONARIES_CONFIG = ${dictsConfigJson};
+        window.ENABLED_DICT_IDS = ${enabledDictIdsJson};
 
-        function isDarkColor(colorStr) {
+        window.isDarkColor = function(colorStr) {
           colorStr = colorStr.trim().toLowerCase();
           if (!colorStr) return false;
           if (colorStr === 'black' || colorStr === 'darkgray' || colorStr === 'dimgray' || colorStr === '#0b0b3b' || colorStr === '#0b173b') return true;
@@ -276,9 +287,9 @@ const buildHtmlString = (
             }
           }
           return false;
-        }
+        };
 
-        function isLightColor(colorStr) {
+        window.isLightColor = function(colorStr) {
           colorStr = colorStr.trim().toLowerCase();
           if (!colorStr) return false;
           if (colorStr === 'white' || colorStr === 'lightgray' || colorStr === 'whitesmoke') return true;
@@ -312,137 +323,206 @@ const buildHtmlString = (
             }
           }
           return false;
-        }
+        };
 
-        function adjustColors(root) {
+        window.adjustColors = function(root) {
           var elements = root.querySelectorAll('*');
           for (var i = 0; i < elements.length; i++) {
             var el = elements[i];
             
             var colorAttr = el.getAttribute('color');
-            if (colorAttr && isDarkColor(colorAttr)) {
+            if (colorAttr && window.isDarkColor(colorAttr)) {
               el.setAttribute('color', '#e2e8f0');
             }
             
-            if (el.style && el.style.color && isDarkColor(el.style.color)) {
+            if (el.style && el.style.color && window.isDarkColor(el.style.color)) {
               el.style.color = '#e2e8f0';
             }
             
-            if (el.style && el.style.backgroundColor && isLightColor(el.style.backgroundColor)) {
+            if (el.style && el.style.backgroundColor && window.isLightColor(el.style.backgroundColor)) {
               el.style.backgroundColor = 'transparent';
             }
             
             var bgColorAttr = el.getAttribute('bgcolor');
-            if (bgColorAttr && isLightColor(bgColorAttr)) {
+            if (bgColorAttr && window.isLightColor(bgColorAttr)) {
               el.setAttribute('bgcolor', 'transparent');
             }
           }
-        }
+        };
 
-        // Mount isolated definition HTML to Shadow DOM container or fallback
+        window.mountCardContent = function(card, definitionHtml) {
+          var container = card.querySelector('.shadow-container');
+          var fallback = card.querySelector('.fallback-container');
+          var html = definitionHtml;
+          
+          if (container) {
+            try {
+              var shadow = container.attachShadow({ mode: 'open' });
+              
+              var style = document.createElement('style');
+              style.textContent = \`
+                :host {
+                  display: block;
+                  padding: 10px 14px;
+                  color: inherit;
+                  background-color: inherit;
+                }
+                table {
+                  width: 100% !important;
+                  border-collapse: collapse;
+                  margin: 6px 0;
+                  font-size: 11.5px;
+                  box-sizing: border-box;
+                  color: inherit;
+                }
+                th, td {
+                  border: 1px solid ${dark ? '#444' : '#ddd'};
+                  padding: 4px 6px;
+                  text-align: left;
+                  color: inherit;
+                }
+                th {
+                  background-color: ${dark ? '#2d2d2d' : '#eee'};
+                  font-weight: bold;
+                }
+                tr:nth-child(even) {
+                  background-color: ${dark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'};
+                }
+                a {
+                  color: #3B82F6;
+                  text-decoration: none;
+                  font-weight: 500;
+                }
+                a:hover {
+                  text-decoration: underline;
+                }
+                span, div, p, td, th {
+                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                }
+                /* Contrast overrides inside Shadow Root */
+                \${dark ? \`
+                  [style*="color: black"], 
+                  [style*="color:#000000"], 
+                  [style*="color:#000"],
+                  [color="black"],
+                  [color="#000000"],
+                  [color="#000"] {
+                    color: #e0e0e0 !important;
+                  }
+                  [style*="background-color: white"],
+                  [style*="background-color:#ffffff"],
+                  [style*="background-color:#fff"],
+                  [bgcolor="white"],
+                  [bgcolor="#ffffff"],
+                  [bgcolor="#fff"] {
+                    background-color: transparent !important;
+                  }
+                \` : ''}
+              \`;
+              shadow.appendChild(style);
+
+              var contentDiv = document.createElement('div');
+              contentDiv.innerHTML = html;
+              if (${dark}) {
+                window.adjustColors(contentDiv);
+              }
+              shadow.appendChild(contentDiv);
+              if (fallback) {
+                fallback.style.display = 'none';
+              }
+            } catch (err) {
+              console.error('Shadow DOM mounting failed, falling back:', err);
+              if (fallback) {
+                fallback.className = 'dict-content';
+                fallback.innerHTML = html;
+                if (${dark}) {
+                  window.adjustColors(fallback);
+                }
+              }
+              if (container) {
+                container.style.display = 'none';
+              }
+            }
+          }
+        };
+
+        window.appendDefinition = function(defItem) {
+          // Prevent duplicates
+          if (document.querySelector('.dict-card[data-dict-id="' + defItem.dict_id + '"]')) return;
+
+          var card = document.createElement('div');
+          card.className = 'dict-card';
+          card.setAttribute('data-dict-id', defItem.dict_id);
+          
+          var dict = window.DICTIONARIES_CONFIG.find(function(d) { return d.id === defItem.dict_id; });
+          var dictName = dict ? dict.name : defItem.dict_id;
+          var dictTag = dict && dict.isSystem ? '内置词库' : '外部导入';
+          
+          card.innerHTML = \`
+            <div class="dict-header">
+              <div class="dict-header-left">
+                <span class="dict-name">\` + dictName + \`</span>
+                <span class="dict-tag">\` + dictTag + \`</span>
+              </div>
+              <svg class="dict-toggle-icon" viewBox="0 0 24 24">
+                <path d="M7 10l5 5 5-5z"/>
+              </svg>
+            </div>
+            <div class="dict-body">
+              <div class="shadow-container"></div>
+              <div class="fallback-container"></div>
+            </div>
+          \`;
+
+          var container = document.getElementById('cards-container') || document.body;
+          var cards = Array.from(container.querySelectorAll('.dict-card'));
+          var inserted = false;
+          var targetIdx = window.ENABLED_DICT_IDS.indexOf(defItem.dict_id);
+          
+          for (var i = 0; i < cards.length; i++) {
+            var cId = cards[i].getAttribute('data-dict-id');
+            var cIdx = window.ENABLED_DICT_IDS.indexOf(cId);
+            if (cIdx > targetIdx) {
+              container.insertBefore(card, cards[i]);
+              inserted = true;
+              break;
+            }
+          }
+          if (!inserted) {
+            container.appendChild(card);
+          }
+
+          // Add collapse toggle handler
+          var header = card.querySelector('.dict-header');
+          header.addEventListener('click', function() {
+            card.classList.toggle('collapsed');
+            var dictId = card.getAttribute('data-dict-id');
+            var isCollapsed = card.classList.contains('collapsed');
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'toggleCollapse',
+                dictId: dictId,
+                isCollapsed: isCollapsed
+              }));
+            }
+          });
+
+          // Mount content
+          window.mountCardContent(card, defItem.definition);
+        };
+
+        // Mount initial definitions
         (function() {
           var defs = window.DEFINITIONS_DATA || [];
           defs.forEach(function(defItem) {
             var card = document.querySelector('.dict-card[data-dict-id="' + defItem.dict_id + '"]');
-            if (!card) return;
-            var container = card.querySelector('.shadow-container');
-            var fallback = card.querySelector('.fallback-container');
-            var html = defItem.definition;
-            
-            if (container) {
-              try {
-                var shadow = container.attachShadow({ mode: 'open' });
-                
-                // Inject scoped CSS inside shadow root
-                var style = document.createElement('style');
-                style.textContent = \`
-                  :host {
-                    display: block;
-                    padding: 10px 14px;
-                    color: inherit;
-                    background-color: inherit;
-                  }
-                  table {
-                    width: 100% !important;
-                    border-collapse: collapse;
-                    margin: 6px 0;
-                    font-size: 11.5px;
-                    box-sizing: border-box;
-                    color: inherit;
-                  }
-                  th, td {
-                    border: 1px solid ${dark ? '#444' : '#ddd'};
-                    padding: 4px 6px;
-                    text-align: left;
-                    color: inherit;
-                  }
-                  th {
-                    background-color: ${dark ? '#2d2d2d' : '#eee'};
-                    font-weight: bold;
-                  }
-                  tr:nth-child(even) {
-                    background-color: ${dark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'};
-                  }
-                  a {
-                    color: #3B82F6;
-                    text-decoration: none;
-                    font-weight: 500;
-                  }
-                  a:hover {
-                    text-decoration: underline;
-                  }
-                  span, div, p, td, th {
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                  }
-                  /* Contrast overrides inside Shadow Root for inline styles in dark mode */
-                  ${dark ? `
-                    [style*="color: black"], 
-                    [style*="color:#000000"], 
-                    [style*="color:#000"],
-                    [color="black"],
-                    [color="#000000"],
-                    [color="#000"] {
-                      color: #e0e0e0 !important;
-                    }
-                    [style*="background-color: white"],
-                    [style*="background-color:#ffffff"],
-                    [style*="background-color:#fff"],
-                    [bgcolor="white"],
-                    [bgcolor="#ffffff"],
-                    [bgcolor="#fff"] {
-                      background-color: transparent !important;
-                    }
-                  ` : ''}
-                \`;
-                shadow.appendChild(style);
-
-                var contentDiv = document.createElement('div');
-                contentDiv.innerHTML = html;
-                if (${dark}) {
-                  adjustColors(contentDiv);
-                }
-                shadow.appendChild(contentDiv);
-                if (fallback) {
-                  fallback.style.display = 'none';
-                }
-              } catch (err) {
-                console.error('Shadow DOM mounting failed, falling back to direct DOM insertion:', err);
-                if (fallback) {
-                  fallback.className = 'dict-content';
-                  fallback.innerHTML = html;
-                  if (${dark}) {
-                    adjustColors(fallback);
-                  }
-                }
-                if (container) {
-                  container.style.display = 'none';
-                }
-              }
+            if (card) {
+              window.mountCardContent(card, defItem.definition);
             }
           });
         })();
 
-        // Collapse toggle handler
+        // Add collapse toggle handlers to initial cards
         document.querySelectorAll('.dict-header').forEach(function(header) {
           header.addEventListener('click', function() {
             var card = header.closest('.dict-card');
@@ -483,6 +563,14 @@ const buildHtmlString = (
             }
           }
         });
+
+        // Process any queued definitions that arrived while loading
+        window.addEventListener('load', function() {
+          if (window.PENDING_DEFS) {
+            window.PENDING_DEFS.forEach(window.appendDefinition);
+            window.PENDING_DEFS = [];
+          }
+        });
       </script>
     </body>
     </html>
@@ -513,18 +601,29 @@ export default function DictionaryScreen() {
 
   const textInputRef = useRef<TextInput>(null);
   const currentSearchRef = useRef<string>('');
+  const webviewRef = useRef<WebView>(null);
+  const initialDefinitionsRef = useRef<{ dict_id: string; definition: string }[]>([]);
+
+  // Filter enabled dictionaries IDs in order
+  const enabledDictIds = useMemo(() => {
+    return dictionaries
+      .filter(d => d.isEnabled)
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map(d => d.id);
+  }, [dictionaries]);
 
   const webViewSource = useMemo(() => {
     return {
       html: buildHtmlString(
-        definitions,
+        initialDefinitionsRef.current,
         dictionaries,
         collapsedDictsRef.current,
         colors,
-        isDark
+        isDark,
+        enabledDictIds
       )
     };
-  }, [definitions, dictionaries, colors, isDark]);
+  }, [activeWord, colors, isDark]);
 
   // Load dictionaries and history on focus (in case config changed in settings)
   useFocusEffect(
@@ -583,13 +682,7 @@ export default function DictionaryScreen() {
     }, [])
   );
 
-  // Filter enabled dictionaries IDs in order
-  const enabledDictIds = useMemo(() => {
-    return dictionaries
-      .filter(d => d.isEnabled)
-      .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map(d => d.id);
-  }, [dictionaries]);
+
 
   // Handle prefix input to fetch suggestions dynamically
   useEffect(() => {
@@ -647,6 +740,7 @@ export default function DictionaryScreen() {
     
     // Clear old definitions first, and start primary search spinner
     setDefinitions([]);
+    initialDefinitionsRef.current = [];
     setSearching(true);
     setBackgroundSearching(false);
 
@@ -679,6 +773,7 @@ export default function DictionaryScreen() {
       if (currentSearchRef.current !== word) return;
 
       // Render initial results instantly and turn off main spinner
+      initialDefinitionsRef.current = initialDefs;
       setDefinitions(initialDefs);
       setSearching(false);
 
@@ -714,6 +809,17 @@ export default function DictionaryScreen() {
                     return idxA - idxB;
                   });
                 });
+
+                // Inject dynamically to WebView without page reload
+                const defJson = JSON.stringify(def).replace(/</g, '\\u003c');
+                webviewRef.current?.injectJavaScript(`
+                  if (window.appendDefinition) {
+                    window.appendDefinition(${defJson});
+                  } else {
+                    window.PENDING_DEFS = window.PENDING_DEFS || [];
+                    window.PENDING_DEFS.push(${defJson});
+                  }
+                `);
               }
             } catch (err) {
               console.error(`Progressive background lookup error for ${dictId}:`, err);
@@ -931,6 +1037,7 @@ export default function DictionaryScreen() {
 
                   {definitions.length > 0 ? (
                     <WebView
+                      ref={webviewRef}
                       style={{ flex: 1, backgroundColor: 'transparent' }}
                       source={webViewSource}
                       onMessage={handleWebViewMessage}
