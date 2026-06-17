@@ -12,7 +12,8 @@ import {
   Platform,
   UIManager,
   Linking,
-  RefreshControl
+  RefreshControl,
+  Modal
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme, Language } from '../../../context/ThemeContext';
@@ -180,11 +181,11 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     customStart: 'Start Time',
     customEnd: 'End Time',
     selectCampus: 'Select Campus',
-    allCampuses: 'All Campuses',
+    allCampuses: 'Campus',
     selectBuilding: 'Select Building',
-    allBuildings: 'All Buildings',
+    allBuildings: 'Building',
     selectCapacity: 'Select Capacity',
-    capacityAll: 'Any Capacity',
+    capacityAll: 'Capacity',
     capacitySmall: 'Small (<30 seats)',
     capacityMedium: 'Medium (30-70 seats)',
     capacityLarge: 'Large (>70 seats)',
@@ -220,11 +221,11 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     customStart: 'Ora Inizio',
     customEnd: 'Ora Fine',
     selectCampus: 'Seleziona Campus',
-    allCampuses: 'Tutti i Campus',
+    allCampuses: 'Sede',
     selectBuilding: 'Seleziona Edificio',
-    allBuildings: 'Tutti gli Edifici',
+    allBuildings: 'Edificio',
     selectCapacity: 'Seleziona Capienza',
-    capacityAll: 'Qualsiasi Capienza',
+    capacityAll: 'Capienza',
     capacitySmall: 'Piccola (<30 posti)',
     capacityMedium: 'Media (30-70 posti)',
     capacityLarge: 'Grande (>70 posti)',
@@ -377,6 +378,214 @@ const getCampusLabel = (campus: string, lang: Language) => {
   if (c.includes('ravenna')) return lang === 'en' || lang === 'it' ? 'Ravenna' : lang === 'zh-Hant' ? '拉文納' : '拉文纳';
   if (c.includes('rimini')) return lang === 'en' || lang === 'it' ? 'Rimini' : lang === 'zh-Hant' ? '里米尼' : '里米尼';
   return campus;
+};
+
+const matchCampus = (comuneStr: string, selected: string) => {
+  const clean = (s: string) => s.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return clean(comuneStr) === clean(selected);
+};
+
+const getBuildingHint = (desc: string): string => {
+  const lowercase = desc.toLowerCase();
+  if (lowercase.includes('ingegneria') || lowercase.includes('risorgimento')) {
+    return '工程系 / 工程校区 (Ingegneria)';
+  }
+  if (lowercase.includes('porta s. donato, 2') || lowercase.includes('porta san donato 2')) {
+    return '数学系 (Matematica)';
+  }
+  if (lowercase.includes('porta s. donato, 1') || lowercase.includes('porta san donato 1')) {
+    return '计算机系 / 物理系 (Informatica / Fisica)';
+  }
+  if (lowercase.includes('selmi 2') || lowercase.includes('selmi 3')) {
+    return '化学系 / 数学系 (Chimica / Matematica)';
+  }
+  if (lowercase.includes('irnerio 46')) {
+    return '地质学 / 物理学 (Geologia / Fisica)';
+  }
+  if (lowercase.includes('irnerio 42') || lowercase.includes('irnerio 40')) {
+    return '生物系 / 科学大楼 (Biologia / Scienze)';
+  }
+  if (lowercase.includes('ranzani') || lowercase.includes('filippo re') || lowercase.includes('filippo-re')) {
+    if (lowercase.includes('ranzani')) return '农学 / 林学 (Agraria)';
+    if (lowercase.includes('filippo re')) return '心理学 / 教育学 (Psicologia / Educazione)';
+    return '农业与自然科学 (Agraria)';
+  }
+  if (lowercase.includes('san giacomo')) {
+    return '药学 / 解剖学 (Farmacia / Anatomia)';
+  }
+  if (lowercase.includes('berti pichat')) {
+    return '物理系 / 天文系 (Fisica / Astronomia)';
+  }
+  if (lowercase.includes('hercolani')) {
+    return '政治学 / 社会学 (Scienze Politiche)';
+  }
+  if (lowercase.includes('zamboni')) {
+    return '文学系 / 哲学院 (Lettere / Filosofia)';
+  }
+  if (lowercase.includes('belmeloro') || lowercase.includes('andreatta')) {
+    return '法律系 / 政经大楼 (Giurisprudenza / Belmeloro)';
+  }
+  if (lowercase.includes('bodoniana') || lowercase.includes('san donato, 19/2')) {
+    return '经济学 / 语言中心 (Economia / CLA)';
+  }
+  if (lowercase.includes('beverara') || lowercase.includes('navile')) {
+    return '纳维莱新校区 - 化学与物理 (Plesso Navile)';
+  }
+  return '';
+};
+
+const getShortBuildingName = (building: Building, lang: string): string => {
+  const cleanName = building.descrizione
+    .replace('Edificio in Bo - ', '')
+    .replace('Edificio in BO - ', '')
+    .replace('Edificio in Bo ', '')
+    .replace('Edificio in BO ', '')
+    .replace('via ', '')
+    .replace('Via ', '');
+  
+  const desc = building.descrizione.toLowerCase();
+  if (desc.includes('ingegneria') || desc.includes('risorgimento')) {
+    return lang === 'en' || lang === 'it' ? 'Engineering' : '工程系';
+  }
+  if (desc.includes('porta s. donato, 2') || desc.includes('porta san donato 2')) {
+    return lang === 'en' || lang === 'it' ? 'Math' : '数学系';
+  }
+  if (desc.includes('porta s. donato, 1') || desc.includes('porta san donato 1')) {
+    return lang === 'en' || lang === 'it' ? 'CS / Physics' : '计算机/物理';
+  }
+  if (desc.includes('selmi 2') || desc.includes('selmi 3')) {
+    return lang === 'en' || lang === 'it' ? 'Chemistry' : '化学系';
+  }
+  if (desc.includes('irnerio 46')) {
+    return 'Irnerio 46';
+  }
+  if (desc.includes('irnerio 42') || desc.includes('irnerio 40')) {
+    return lang === 'en' || lang === 'it' ? 'Biology' : '生物系';
+  }
+  if (desc.includes('ranzani')) {
+    return lang === 'en' || lang === 'it' ? 'Agriculture' : '农学林学';
+  }
+  if (desc.includes('filippo re') || desc.includes('filippo-re')) {
+    return lang === 'en' || lang === 'it' ? 'Psychology' : '心理教育';
+  }
+  if (desc.includes('san giacomo')) {
+    return lang === 'en' || lang === 'it' ? 'Pharmacy' : '药学生物';
+  }
+  if (desc.includes('berti pichat')) {
+    return 'Berti Pichat';
+  }
+  if (desc.includes('hercolani')) {
+    return lang === 'en' || lang === 'it' ? 'Pol. Science' : '政治系';
+  }
+  if (desc.includes('zamboni')) {
+    return lang === 'en' || lang === 'it' ? 'Literature' : '文学系';
+  }
+  if (desc.includes('belmeloro') || desc.includes('andreatta')) {
+    return lang === 'en' || lang === 'it' ? 'Law' : '法律政经';
+  }
+  if (desc.includes('bodoniana') || desc.includes('san donato, 19/2')) {
+    return lang === 'en' || lang === 'it' ? 'Economics' : '经济/语言';
+  }
+  if (desc.includes('beverara') || desc.includes('navile')) {
+    return lang === 'en' || lang === 'it' ? 'Navile' : '纳维莱';
+  }
+
+  return cleanName.length > 8 ? cleanName.substring(0, 8) + '...' : cleanName;
+};
+
+interface AnimatedModalProps {
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  colors: any;
+  children: React.ReactNode;
+  closeBtnText: string;
+}
+
+const AnimatedModal: React.FC<AnimatedModalProps> = ({
+  visible,
+  onClose,
+  title,
+  colors,
+  children,
+  closeBtnText
+}) => {
+  const [shouldRender, setShouldRender] = useState(visible);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(400)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setShouldRender(true);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 400,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShouldRender(false);
+      });
+    }
+  }, [visible]);
+
+  return (
+    <Modal
+      transparent={true}
+      visible={shouldRender}
+      onRequestClose={onClose}
+      animationType="none"
+    >
+      <View style={styles.modalOverlayContainer}>
+        <Animated.View
+          style={[
+            styles.modalOverlayBackdrop,
+            {
+              opacity: fadeAnim,
+            },
+          ]}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        </Animated.View>
+        <Animated.View
+          style={[
+            styles.modalContent,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+            {title}
+          </Text>
+          {children}
+          <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={onClose}>
+            <Text style={styles.modalCloseBtnText}>{closeBtnText}</Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
 };
 
 export default function EmptyClassroomScreen() {
@@ -570,17 +779,10 @@ export default function EmptyClassroomScreen() {
     return Array.from(map.values());
   }, [classrooms]);
 
-  // Compute unique campuses from classrooms list
+  // Pre-defined static campus list to ensure all major Unibo campuses are always visible
   const campuses = useMemo(() => {
-    const set = new Set<string>();
-    classrooms.forEach(c => {
-      const comune = c.relazioneEdificio?.comune || c.edificio?.comune;
-      if (comune) {
-        set.add(comune.trim());
-      }
-    });
-    return Array.from(set).sort();
-  }, [classrooms]);
+    return ['Bologna', 'Cesena', 'Forlì', 'Ravenna', 'Rimini'];
+  }, []);
 
   // When selected campus changes, reset building filter
   useEffect(() => {
@@ -589,7 +791,7 @@ export default function EmptyClassroomScreen() {
 
   const filteredBuildings = useMemo(() => {
     if (selectedCampus === 'all') return buildings;
-    return buildings.filter(b => b.comune?.trim() === selectedCampus);
+    return buildings.filter(b => b.comune ? matchCampus(b.comune, selectedCampus) : false);
   }, [buildings, selectedCampus]);
 
   // Compute current query time minutes
@@ -673,7 +875,7 @@ export default function EmptyClassroomScreen() {
         // 0. Campus filter
         if (selectedCampus !== 'all') {
           const comune = aula.relazioneEdificio?.comune || aula.edificio?.comune;
-          if (comune?.trim() !== selectedCampus) return false;
+          if (!comune || !matchCampus(comune, selectedCampus)) return false;
         }
 
         // 1. Building filter
@@ -755,13 +957,20 @@ export default function EmptyClassroomScreen() {
 
   const selectedBuilding = buildings.find(b => b.id === selectedBuildingId);
   const buildingLabel = selectedBuilding 
-    ? selectedBuilding.descrizione.replace('Edificio in Bo ', '').replace('via ', '') 
+    ? getShortBuildingName(selectedBuilding, activeLang) 
     : getTxt('allBuildings');
 
   const capacityLabel = capacityFilter === 'all' ? getTxt('capacityAll') :
                          capacityFilter === 'small' ? getTxt('capacitySmall') :
                          capacityFilter === 'medium' ? getTxt('capacityMedium') :
                          getTxt('capacityLarge');
+
+  const capacityButtonLabel = useMemo(() => {
+    if (capacityFilter === 'all') return getTxt('capacityAll');
+    if (capacityFilter === 'small') return activeLang === 'it' || activeLang === 'en' ? '<30 seats' : '<30人';
+    if (capacityFilter === 'medium') return '30-70';
+    return activeLang === 'it' || activeLang === 'en' ? '>70 seats' : '>70人';
+  }, [capacityFilter, activeLang]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -895,12 +1104,12 @@ export default function EmptyClassroomScreen() {
                 onPress={() => setShowCampusModal(true)}
               >
                 <View style={styles.dropdownButtonContent}>
-                  <MaterialIcons name="location-on" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+                  <MaterialIcons name="location-on" size={13} color={colors.primary} style={{ marginRight: 2 }} />
                   <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
                     {selectedCampus === 'all' ? getTxt('allCampuses') : getCampusLabel(selectedCampus, activeLang)}
                   </Text>
                 </View>
-                <MaterialIcons name="arrow-drop-down" size={16} color={colors.textSecondary} />
+                <MaterialIcons name="arrow-drop-down" size={14} color={colors.textSecondary} />
               </Pressable>
 
               {/* Building Dropdown Button */}
@@ -909,12 +1118,12 @@ export default function EmptyClassroomScreen() {
                 onPress={() => setShowBuildingModal(true)}
               >
                 <View style={styles.dropdownButtonContent}>
-                  <MaterialIcons name="business" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+                  <MaterialIcons name="business" size={13} color={colors.primary} style={{ marginRight: 2 }} />
                   <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
                     {buildingLabel}
                   </Text>
                 </View>
-                <MaterialIcons name="arrow-drop-down" size={16} color={colors.textSecondary} />
+                <MaterialIcons name="arrow-drop-down" size={14} color={colors.textSecondary} />
               </Pressable>
 
               {/* Capacity Dropdown Button */}
@@ -923,12 +1132,12 @@ export default function EmptyClassroomScreen() {
                 onPress={() => setShowCapacityModal(true)}
               >
                 <View style={styles.dropdownButtonContent}>
-                  <MaterialIcons name="people" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+                  <MaterialIcons name="people" size={13} color={colors.primary} style={{ marginRight: 2 }} />
                   <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
-                    {capacityLabel}
+                    {capacityButtonLabel}
                   </Text>
                 </View>
-                <MaterialIcons name="arrow-drop-down" size={16} color={colors.textSecondary} />
+                <MaterialIcons name="arrow-drop-down" size={14} color={colors.textSecondary} />
               </Pressable>
             </View>
 
@@ -1112,243 +1321,237 @@ export default function EmptyClassroomScreen() {
       )}
 
       {/* Time Picker Modal Overlay (Custom simple dialog) */}
-      {showTimeModal !== null && (
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalDismiss} onPress={() => setShowTimeModal(null)} />
-          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {showTimeModal === 'start' 
-                ? (language === 'en' ? 'Select Start Time' : language === 'it' ? 'Seleziona Ora Inizio' : '选择开始时间') 
-                : (language === 'en' ? 'Select End Time' : language === 'it' ? 'Seleziona Ora Fine' : '选择结束时间')}
-            </Text>
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
-              {TIME_OPTIONS.map(timeStr => {
-                const isSelected = showTimeModal === 'start' ? customStart === timeStr : customEnd === timeStr;
-                const isPastStart = showTimeModal === 'end' && timeToMinutes(timeStr) <= timeToMinutes(customStart);
-                
-                if (isPastStart) return null; // End time must be after start time
+      <AnimatedModal
+        visible={showTimeModal !== null}
+        onClose={() => setShowTimeModal(null)}
+        title={showTimeModal === 'start' 
+          ? (language === 'en' ? 'Select Start Time' : language === 'it' ? 'Seleziona Ora Inizio' : '选择开始时间') 
+          : (language === 'en' ? 'Select End Time' : language === 'it' ? 'Seleziona Ora Fine' : '选择结束时间')}
+        colors={colors}
+        closeBtnText={getTxt('cancel')}
+      >
+        <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+          {TIME_OPTIONS.map(timeStr => {
+            const isSelected = showTimeModal === 'start' ? customStart === timeStr : customEnd === timeStr;
+            const isPastStart = showTimeModal === 'end' && timeToMinutes(timeStr) <= timeToMinutes(customStart);
+            
+            if (isPastStart) return null; // End time must be after start time
 
-                return (
-                  <Pressable
-                    key={timeStr}
-                    style={[
-                      styles.modalItem,
-                      { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-                      isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
-                    ]}
-                    onPress={() => {
-                      if (showTimeModal === 'start') {
-                        setCustomStart(timeStr);
-                        // Adjust end time if it becomes invalid
-                        if (timeToMinutes(customEnd) <= timeToMinutes(timeStr)) {
-                          const startIdx = TIME_OPTIONS.indexOf(timeStr);
-                          const newEnd = TIME_OPTIONS[Math.min(TIME_OPTIONS.length - 1, startIdx + 4)]; // +2 hours
-                          setCustomEnd(newEnd);
-                        }
-                      } else {
-                        setCustomEnd(timeStr);
-                      }
-                      setShowTimeModal(null);
-                    }}
-                  >
-                    <Text 
-                      style={[
-                        styles.modalItemText, 
-                        { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
-                      ]}
-                    >
-                      {timeStr}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={() => setShowTimeModal(null)}>
-              <Text style={styles.modalCloseBtnText}>{getTxt('cancel')}</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-
-      {/* Campus Selector Modal Overlay */}
-      {showCampusModal && (
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalDismiss} onPress={() => setShowCampusModal(false)} />
-          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {getTxt('selectCampus')}
-            </Text>
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+            return (
               <Pressable
+                key={timeStr}
                 style={[
                   styles.modalItem,
                   { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-                  selectedCampus === 'all' && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
                 ]}
                 onPress={() => {
-                  setSelectedCampus('all');
+                  if (showTimeModal === 'start') {
+                    setCustomStart(timeStr);
+                    // Adjust end time if it becomes invalid
+                    if (timeToMinutes(customEnd) <= timeToMinutes(timeStr)) {
+                      const startIdx = TIME_OPTIONS.indexOf(timeStr);
+                      const newEnd = TIME_OPTIONS[Math.min(TIME_OPTIONS.length - 1, startIdx + 4)]; // +2 hours
+                      setCustomEnd(newEnd);
+                    }
+                  } else {
+                    setCustomEnd(timeStr);
+                  }
+                  setShowTimeModal(null);
+                }}
+              >
+                <Text 
+                  style={[
+                    styles.modalItemText, 
+                    { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
+                  ]}
+                >
+                  {timeStr}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </AnimatedModal>
+
+      {/* Campus Selector Modal Overlay */}
+      <AnimatedModal
+        visible={showCampusModal}
+        onClose={() => setShowCampusModal(false)}
+        title={getTxt('selectCampus')}
+        colors={colors}
+        closeBtnText={getTxt('cancel')}
+      >
+        <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+          <Pressable
+            style={[
+              styles.modalItem,
+              { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
+              selectedCampus === 'all' && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+            ]}
+            onPress={() => {
+              setSelectedCampus('all');
+              setShowCampusModal(false);
+            }}
+          >
+            <MaterialIcons name="location-on" size={18} color={selectedCampus === 'all' ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+            <Text 
+              style={[
+                styles.modalItemText, 
+                { color: selectedCampus === 'all' ? colors.primary : colors.textPrimary, fontWeight: selectedCampus === 'all' ? 'bold' : 'normal' }
+              ]}
+            >
+              {getTxt('allCampuses')}
+            </Text>
+          </Pressable>
+          {campuses.map(camp => {
+            const isSelected = selectedCampus === camp;
+            return (
+              <Pressable
+                key={camp}
+                style={[
+                  styles.modalItem,
+                  { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
+                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                ]}
+                onPress={() => {
+                  setSelectedCampus(camp);
                   setShowCampusModal(false);
                 }}
               >
-                <MaterialIcons name="location-on" size={18} color={selectedCampus === 'all' ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+                <MaterialIcons name="location-on" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
                 <Text 
                   style={[
                     styles.modalItemText, 
-                    { color: selectedCampus === 'all' ? colors.primary : colors.textPrimary, fontWeight: selectedCampus === 'all' ? 'bold' : 'normal' }
+                    { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
                   ]}
                 >
-                  {getTxt('allCampuses')}
+                  {getCampusLabel(camp, activeLang)}
                 </Text>
               </Pressable>
-              {campuses.map(camp => {
-                const isSelected = selectedCampus === camp;
-                return (
-                  <Pressable
-                    key={camp}
-                    style={[
-                      styles.modalItem,
-                      { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-                      isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
-                    ]}
-                    onPress={() => {
-                      setSelectedCampus(camp);
-                      setShowCampusModal(false);
-                    }}
-                  >
-                    <MaterialIcons name="location-on" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
-                    <Text 
-                      style={[
-                        styles.modalItemText, 
-                        { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
-                      ]}
-                    >
-                      {getCampusLabel(camp, activeLang)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={() => setShowCampusModal(false)}>
-              <Text style={styles.modalCloseBtnText}>{getTxt('cancel')}</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
+            );
+          })}
+        </ScrollView>
+      </AnimatedModal>
 
       {/* Building Selector Modal Overlay */}
-      {showBuildingModal && (
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalDismiss} onPress={() => setShowBuildingModal(false)} />
-          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {getTxt('selectBuilding')}
+      <AnimatedModal
+        visible={showBuildingModal}
+        onClose={() => setShowBuildingModal(false)}
+        title={getTxt('selectBuilding')}
+        colors={colors}
+        closeBtnText={getTxt('cancel')}
+      >
+        <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+          <Pressable
+            style={[
+              styles.modalItem,
+              { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
+              selectedBuildingId === 'all' && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+            ]}
+            onPress={() => {
+              setSelectedBuildingId('all');
+              setShowBuildingModal(false);
+            }}
+          >
+            <MaterialIcons name="business" size={18} color={selectedBuildingId === 'all' ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+            <Text 
+              style={[
+                styles.modalItemText, 
+                { color: selectedBuildingId === 'all' ? colors.primary : colors.textPrimary, fontWeight: selectedBuildingId === 'all' ? 'bold' : 'normal' }
+              ]}
+            >
+              {getTxt('allBuildings')}
             </Text>
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+          </Pressable>
+          {filteredBuildings.map(b => {
+            const isSelected = selectedBuildingId === b.id;
+            const cleanName = b.descrizione
+              .replace('Edificio in Bo - ', '')
+              .replace('Edificio in BO - ', '')
+              .replace('Edificio in Bo ', '')
+              .replace('Edificio in BO ', '')
+              .replace('via ', '')
+              .replace('Via ', '');
+            const deptHint = getBuildingHint(b.descrizione);
+            return (
               <Pressable
+                key={b.id}
                 style={[
                   styles.modalItem,
-                  { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-                  selectedBuildingId === 'all' && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                  { borderBottomColor: colors.border, flexDirection: 'row', paddingVertical: 10 },
+                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
                 ]}
                 onPress={() => {
-                  setSelectedBuildingId('all');
+                  setSelectedBuildingId(b.id);
                   setShowBuildingModal(false);
                 }}
               >
-                <MaterialIcons name="business" size={18} color={selectedBuildingId === 'all' ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+                <MaterialIcons name="business" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+                <View style={{ flex: 1, alignItems: 'center', marginRight: 26 }}>
+                  <Text 
+                    style={[
+                      styles.modalItemText, 
+                      { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal', textAlign: 'center' }
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {cleanName}
+                  </Text>
+                  {deptHint ? (
+                    <Text style={{ fontSize: 10.5, color: colors.textSecondary, marginTop: 2, textAlign: 'center' }}>
+                      {deptHint}
+                    </Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </AnimatedModal>
+
+      {/* Capacity Selector Modal Overlay */}
+      <AnimatedModal
+        visible={showCapacityModal}
+        onClose={() => setShowCapacityModal(false)}
+        title={getTxt('selectCapacity')}
+        colors={colors}
+        closeBtnText={getTxt('cancel')}
+      >
+        <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+          {(['all', 'small', 'medium', 'large'] as const).map(cap => {
+            const isSelected = capacityFilter === cap;
+            const labelKey = cap === 'all' ? 'capacityAll' :
+                             cap === 'small' ? 'capacitySmall' :
+                             cap === 'medium' ? 'capacityMedium' :
+                             'capacityLarge';
+            return (
+              <Pressable
+                key={cap}
+                style={[
+                  styles.modalItem,
+                  { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
+                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                ]}
+                onPress={() => {
+                  setCapacityFilter(cap);
+                  setShowCapacityModal(false);
+                }}
+              >
+                <MaterialIcons name="people" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
                 <Text 
                   style={[
                     styles.modalItemText, 
-                    { color: selectedBuildingId === 'all' ? colors.primary : colors.textPrimary, fontWeight: selectedBuildingId === 'all' ? 'bold' : 'normal' }
+                    { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
                   ]}
                 >
-                  {getTxt('allBuildings')}
+                  {getTxt(labelKey)}
                 </Text>
               </Pressable>
-              {filteredBuildings.map(b => {
-                const isSelected = selectedBuildingId === b.id;
-                const cleanName = b.descrizione.replace('Edificio in Bo ', '').replace('via ', '');
-                return (
-                  <Pressable
-                    key={b.id}
-                    style={[
-                      styles.modalItem,
-                      { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-                      isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
-                    ]}
-                    onPress={() => {
-                      setSelectedBuildingId(b.id);
-                      setShowBuildingModal(false);
-                    }}
-                  >
-                    <MaterialIcons name="business" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
-                    <Text 
-                      style={[
-                        styles.modalItemText, 
-                        { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {cleanName}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={() => setShowBuildingModal(false)}>
-              <Text style={styles.modalCloseBtnText}>{getTxt('cancel')}</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-
-      {/* Capacity Selector Modal Overlay */}
-      {showCapacityModal && (
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalDismiss} onPress={() => setShowCapacityModal(false)} />
-          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {getTxt('selectCapacity')}
-            </Text>
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
-              {(['all', 'small', 'medium', 'large'] as const).map(cap => {
-                const isSelected = capacityFilter === cap;
-                const labelKey = cap === 'all' ? 'capacityAll' :
-                                 cap === 'small' ? 'capacitySmall' :
-                                 cap === 'medium' ? 'capacityMedium' :
-                                 'capacityLarge';
-                return (
-                  <Pressable
-                    key={cap}
-                    style={[
-                      styles.modalItem,
-                      { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-                      isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
-                    ]}
-                    onPress={() => {
-                      setCapacityFilter(cap);
-                      setShowCapacityModal(false);
-                    }}
-                  >
-                    <MaterialIcons name="people" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
-                    <Text 
-                      style={[
-                        styles.modalItemText, 
-                        { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
-                      ]}
-                    >
-                      {getTxt(labelKey)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={() => setShowCapacityModal(false)}>
-              <Text style={styles.modalCloseBtnText}>{getTxt('cancel')}</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
+            );
+          })}
+        </ScrollView>
+      </AnimatedModal>
 
       {/* Toast Feedback */}
       {toastMsg && (
@@ -1550,9 +1753,9 @@ const styles = StyleSheet.create({
   dropdownFiltersRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
     marginBottom: 16,
-    gap: 8,
+    gap: 6,
   },
   dropdownButton: {
     flex: 1,
@@ -1561,8 +1764,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderWidth: 1,
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.02,
@@ -1573,10 +1776,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 4,
+    marginRight: 2,
   },
   dropdownButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     flex: 1,
   },
@@ -1762,6 +1965,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
     zIndex: 9999,
+  },
+  modalOverlayBackdrop: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalOverlayContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+    backgroundColor: 'transparent',
   },
   modalDismiss: {
     flex: 1,
