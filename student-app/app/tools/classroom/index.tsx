@@ -15,7 +15,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { router } from 'expo-router';
-import { useTheme } from '../../../context/ThemeContext';
+import { useTheme, Language } from '../../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -83,8 +83,292 @@ interface TimelineSlot {
   eventName?: string;
 }
 
+const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
+  zh: {
+    title: '博大空教室',
+    syncing: '正在同步博洛尼亚大学排课系统...',
+    errorMsg: '网络请求错误，请重试',
+    retry: '重新加载',
+    availableRooms: '当前选定时段可用',
+    dataSource: '数据来源: University Planner (CINECA)',
+    dataDisclaimer: '* 仅供参考，请以学校实际授课安排为准',
+    filterTime: '时段筛选',
+    timeNow: '此时此刻',
+    timeMorning: '上午自习',
+    timeAfternoon: '下午自习',
+    timeCustom: '自定义',
+    customStart: '开始时间',
+    customEnd: '结束时间',
+    selectBuilding: '选择教学楼',
+    allBuildings: '全部大楼',
+    selectCapacity: '选择容量',
+    capacityAll: '容量不限',
+    capacitySmall: '小型(<30人)',
+    capacityMedium: '中型(30-70人)',
+    capacityLarge: '大型(>70人)',
+    classroomList: '教室列表',
+    noClassrooms: '没有符合当前筛选条件的教室',
+    buildingClosed: '大楼关闭',
+    isOccupied: '已被占用',
+    isFree: '空闲',
+    currentBooking: '当前',
+    seatsUnitSmall: '人',
+    seatsUnitFull: '个座位',
+    timelineTitle: '今日开放时段占用图 (时间轴)',
+    oneClickGo: '一键前往',
+    noBookingText: '今日暂无占用，整天可用',
+    occupiedLabel: '占',
+    studyFree: '空闲可自习',
+    cancel: '取消',
+    classroomUnit: ' 间',
+  },
+  'zh-Hant': {
+    title: '博大空教室',
+    syncing: '正在同步博洛尼亞大學排課系統...',
+    errorMsg: '網絡請求錯誤，請重試',
+    retry: '重新加載',
+    availableRooms: '當前選定時段可用',
+    dataSource: '數據來源: University Planner (CINECA)',
+    dataDisclaimer: '* 僅供參考，請以學校實際授課安排為准',
+    filterTime: '時段篩選',
+    timeNow: '此時此刻',
+    timeMorning: '上午自習',
+    timeAfternoon: '下午自習',
+    timeCustom: '自定義',
+    customStart: '開始時間',
+    customEnd: '結束時間',
+    selectBuilding: '選擇教學樓',
+    allBuildings: '全部大樓',
+    selectCapacity: '選擇容量',
+    capacityAll: '容量不限',
+    capacitySmall: '小型(<30人)',
+    capacityMedium: '中型(30-70人)',
+    capacityLarge: '大型(>70人)',
+    classroomList: '教室列表',
+    noClassrooms: '沒有符合當前篩選條件的教室',
+    buildingClosed: '大樓關閉',
+    isOccupied: '已被占用',
+    isFree: '空閑',
+    currentBooking: '當前',
+    seatsUnitSmall: '人',
+    seatsUnitFull: '個座位',
+    timelineTitle: '今日開放時段占用圖 (時間軸)',
+    oneClickGo: '一鍵前往',
+    noBookingText: '今日暫無占用，整天可用',
+    occupiedLabel: '占',
+    studyFree: '空閑可自習',
+    cancel: '取消',
+    classroomUnit: ' 間',
+  },
+  en: {
+    title: 'Empty Classrooms',
+    syncing: 'Syncing with University of Bologna planner...',
+    errorMsg: 'Network error, please try again',
+    retry: 'Retry',
+    availableRooms: 'Available now',
+    dataSource: 'Source: University Planner (CINECA)',
+    dataDisclaimer: '* For reference only, subject to official schedules',
+    filterTime: 'Time Filter',
+    timeNow: 'Now',
+    timeMorning: 'Morning',
+    timeAfternoon: 'Afternoon',
+    timeCustom: 'Custom',
+    customStart: 'Start Time',
+    customEnd: 'End Time',
+    selectBuilding: 'Select Building',
+    allBuildings: 'All Buildings',
+    selectCapacity: 'Select Capacity',
+    capacityAll: 'Any Capacity',
+    capacitySmall: 'Small (<30 seats)',
+    capacityMedium: 'Medium (30-70 seats)',
+    capacityLarge: 'Large (>70 seats)',
+    classroomList: 'Classroom List',
+    noClassrooms: 'No classrooms match current filters',
+    buildingClosed: 'Closed',
+    isOccupied: 'Occupied',
+    isFree: 'Free',
+    currentBooking: 'Current',
+    seatsUnitSmall: ' seats',
+    seatsUnitFull: ' seats',
+    timelineTitle: 'Today\'s Availability Timeline',
+    oneClickGo: 'Navigate',
+    noBookingText: 'No bookings today, available all day',
+    occupiedLabel: 'Occ',
+    studyFree: 'Available for study',
+    cancel: 'Cancel',
+    classroomUnit: ' rooms',
+  },
+  it: {
+    title: 'Aule Libere',
+    syncing: 'Sincronizzazione con l\'orario di Unibo...',
+    errorMsg: 'Errore di rete, riprova',
+    retry: 'Riprova',
+    availableRooms: 'Disponibili nella fascia selezionata',
+    dataSource: 'Fonte: University Planner (CINECA)',
+    dataDisclaimer: '* A scopo informativo, fare riferimento agli orari ufficiali',
+    filterTime: 'Filtro Orario',
+    timeNow: 'Adesso',
+    timeMorning: 'Mattina',
+    timeAfternoon: 'Pomeriggio',
+    timeCustom: 'Personalizzato',
+    customStart: 'Ora Inizio',
+    customEnd: 'Ora Fine',
+    selectBuilding: 'Seleziona Edificio',
+    allBuildings: 'Tutti gli Edifici',
+    selectCapacity: 'Seleziona Capienza',
+    capacityAll: 'Qualsiasi Capienza',
+    capacitySmall: 'Piccola (<30 posti)',
+    capacityMedium: 'Media (30-70 posti)',
+    capacityLarge: 'Grande (>70 posti)',
+    classroomList: 'Elenco Aule',
+    noClassrooms: 'Nessuna aula corrisponde ai filtri',
+    buildingClosed: 'Chiuso',
+    isOccupied: 'Occupata',
+    isFree: 'Libera',
+    currentBooking: 'Corrente',
+    seatsUnitSmall: ' posti',
+    seatsUnitFull: ' posti',
+    timelineTitle: 'Occupazione aula oggi (Timeline)',
+    oneClickGo: 'Indicazioni',
+    noBookingText: 'Nessuna prenotazione oggi, libera tutto il giorno',
+    occupiedLabel: 'Occ',
+    studyFree: 'Libera per studio',
+    cancel: 'Annulla',
+    classroomUnit: ' aule',
+  }
+};
+
+type ServiceCategory = 'blackboard' | 'projector' | 'audio' | 'internet' | 'accessible' | 'other';
+
+function getServiceCategory(codice: string, descrizione: string): ServiceCategory {
+  const code = (codice || '').toLowerCase();
+  const desc = (descrizione || '').toLowerCase();
+  
+  if (code.includes('lavagna') || desc.includes('lavagna')) {
+    return 'blackboard';
+  }
+  if (code.includes('proiett') || desc.includes('proiett') || code.includes('video') || desc.includes('video') || code.includes('schermo') || desc.includes('schermo')) {
+    return 'projector';
+  }
+  if (code.includes('audio') || desc.includes('audio') || code.includes('microf') || desc.includes('microf') || code.includes('parl') || desc.includes('parl')) {
+    return 'audio';
+  }
+  if (code.includes('rete') || desc.includes('rete') || code.includes('pc') || desc.includes('pc') || code.includes('internet') || desc.includes('internet') || code.includes('wifi') || desc.includes('wi-fi') || desc.includes('wifi') || desc.includes('wi-fi')) {
+    return 'internet';
+  }
+  if (code.includes('accessib') || desc.includes('accessib') || code.includes('disabili') || desc.includes('disabili') || code.includes('3.1')) {
+    return 'accessible';
+  }
+  return 'other';
+}
+
+interface ServiceTranslation {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  abbrev: Record<Language, string>;
+  full: Record<Language, string>;
+}
+
+const serviceTranslations: Record<ServiceCategory, ServiceTranslation> = {
+  blackboard: {
+    icon: 'edit',
+    abbrev: {
+      zh: '黑板',
+      'zh-Hant': '黑板',
+      en: 'Board',
+      it: 'Lavagna',
+    },
+    full: {
+      zh: '白板/黑板',
+      'zh-Hant': '白板/黑板',
+      en: 'Blackboard / Whiteboard',
+      it: 'Lavagna / Lavagna a fogli',
+    }
+  },
+  projector: {
+    icon: 'videocam',
+    abbrev: {
+      zh: '投影',
+      'zh-Hant': '投影',
+      en: 'Proj.',
+      it: 'Proiett.',
+    },
+    full: {
+      zh: '多媒体投影仪',
+      'zh-Hant': '多媒體投影儀',
+      en: 'Video Projector / Screen',
+      it: 'Videoproiettore / Schermo',
+    }
+  },
+  audio: {
+    icon: 'mic',
+    abbrev: {
+      zh: '音频',
+      'zh-Hant': '音頻',
+      en: 'Audio',
+      it: 'Audio',
+    },
+    full: {
+      zh: '音频麦克风系统',
+      'zh-Hant': '音頻麥克風系統',
+      en: 'Audio / Microphone System',
+      it: 'Sistema Audio / Microfono',
+    }
+  },
+  internet: {
+    icon: 'settings-ethernet',
+    abbrev: {
+      zh: '网络',
+      'zh-Hant': '網絡',
+      en: 'Network',
+      it: 'Rete',
+    },
+    full: {
+      zh: '教师电脑/网络连接',
+      'zh-Hant': '教師電腦/網絡連接',
+      en: 'Teacher PC / Network Connection',
+      it: 'PC Docente / Connessione Rete',
+    }
+  },
+  accessible: {
+    icon: 'accessible',
+    abbrev: {
+      zh: '无障碍',
+      'zh-Hant': '無障礙',
+      en: 'Access.',
+      it: 'Access.',
+    },
+    full: {
+      zh: '无障碍通道与设施',
+      'zh-Hant': '無障礙通道與設施',
+      en: 'Accessible for disabled students',
+      it: 'Accessible per studenti con disabilità',
+    }
+  },
+  other: {
+    icon: 'settings',
+    abbrev: {
+      zh: '设备',
+      'zh-Hant': '設備',
+      en: 'Equip.',
+      it: 'Servizio',
+    },
+    full: {
+      zh: '其他多媒体教学设备',
+      'zh-Hant': '其他多媒體教學設備',
+      en: 'Other classroom services',
+      it: 'Altri servizi per aula',
+    }
+  }
+};
+
 export default function EmptyClassroomScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, language } = useTheme();
+  
+  const activeLang = (language === 'zh' || language === 'zh-Hant' || language === 'en' || language === 'it') ? language : 'zh';
+  
+  const getTxt = (key: string) => {
+    return LOCALIZED_STRINGS[activeLang]?.[key] || LOCALIZED_STRINGS['zh'][key] || key;
+  };
 
   // State Variables
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -102,6 +386,10 @@ export default function EmptyClassroomScreen() {
   const [customStart, setCustomStart] = useState<string>('14:00');
   const [customEnd, setCustomEnd] = useState<string>('16:00');
   const [showTimeModal, setShowTimeModal] = useState<'start' | 'end' | null>(null);
+
+  // Dropdown selector modal states
+  const [showBuildingModal, setShowBuildingModal] = useState<boolean>(false);
+  const [showCapacityModal, setShowCapacityModal] = useState<boolean>(false);
 
   // Card expanded timeline states
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -223,13 +511,13 @@ export default function EmptyClassroomScreen() {
       setClassrooms(auleData);
       setImpegni(impegniData);
       if (isRefresh) {
-        triggerToast('✓ 教室状态已更新');
+        triggerToast(activeLang === 'en' ? '✓ Classroom status updated' : activeLang === 'it' ? '✓ Stato aule aggiornato' : '✓ 教室状态已更新');
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || '网络请求错误，请重试');
+      setError(err.message || getTxt('errorMsg'));
       if (isRefresh) {
-        triggerToast(`❌ 刷新失败: ${err.message || '网络错误'}`);
+        triggerToast(activeLang === 'en' ? `❌ Refresh failed: ${err.message || 'Network error'}` : activeLang === 'it' ? `❌ Aggiornamento fallito: ${err.message || 'Errore di rete'}` : `❌ 刷新失败: ${err.message || '网络错误'}`);
       }
     } finally {
       setLoading(false);
@@ -414,6 +702,16 @@ export default function EmptyClassroomScreen() {
     }
   };
 
+  const selectedBuilding = buildings.find(b => b.id === selectedBuildingId);
+  const buildingLabel = selectedBuilding 
+    ? selectedBuilding.descrizione.replace('Edificio in Bo ', '').replace('via ', '') 
+    : getTxt('allBuildings');
+
+  const capacityLabel = capacityFilter === 'all' ? getTxt('capacityAll') :
+                         capacityFilter === 'small' ? getTxt('capacitySmall') :
+                         capacityFilter === 'medium' ? getTxt('capacityMedium') :
+                         getTxt('capacityLarge');
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
@@ -421,12 +719,12 @@ export default function EmptyClassroomScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color={colors.primary} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>博大空教室</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{getTxt('title')}</Text>
         <Pressable style={styles.refreshButton} onPress={() => fetchData()} disabled={loading}>
           {loading ? (
             <ActivityIndicator size="small" color={colors.primary} />
           ) : (
-            <Text style={[styles.refreshText, { color: colors.primary }]}>↻</Text>
+            <MaterialIcons name="refresh" size={24} color={colors.primary} />
           )}
         </Pressable>
       </View>
@@ -435,14 +733,14 @@ export default function EmptyClassroomScreen() {
       {loading && classrooms.length === 0 ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>正在同步博洛尼亚大学排课系统...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{getTxt('syncing')}</Text>
         </View>
       ) : error && classrooms.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.errorIcon}>⚠</Text>
+          <MaterialIcons name="error-outline" size={40} color={colors.error} style={{ marginBottom: 8 }} />
           <Text style={[styles.errorText, { color: colors.textPrimary }]}>{error}</Text>
           <Pressable style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => fetchData()}>
-            <Text style={styles.retryText}>重新加载</Text>
+            <Text style={styles.retryText}>{getTxt('retry')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -464,50 +762,53 @@ export default function EmptyClassroomScreen() {
             {/* Stats Dashboard */}
             <View style={[styles.dashboard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.dashboardLeft}>
-                <Text style={[styles.dashboardLabel, { color: colors.textSecondary }]}>当前选定时段可用</Text>
+                <Text style={[styles.dashboardLabel, { color: colors.textSecondary }]}>{getTxt('availableRooms')}</Text>
                 <View style={styles.statsNumberContainer}>
                   <Text style={[styles.statsNumber, { color: colors.primary }]}>{availableCount}</Text>
-                  <Text style={[styles.statsTotal, { color: colors.textMuted }]}>/ {processedClassrooms.length} 间</Text>
+                  <Text style={[styles.statsTotal, { color: colors.textMuted }]}>/ {processedClassrooms.length}{getTxt('classroomUnit')}</Text>
                 </View>
                 <Text style={[styles.dashboardSub, { color: colors.textMuted, fontSize: 10, marginTop: 6 }]}>
-                  数据来源: University Planner (CINECA)
+                  {getTxt('dataSource')}
                 </Text>
                 <Text style={[styles.dashboardSub, { color: colors.textMuted, fontSize: 10, marginTop: 2 }]}>
-                  * 仅供参考，请以学校实际授课安排为准
+                  {getTxt('dataDisclaimer')}
                 </Text>
               </View>
               <View style={[styles.dashboardRight, { backgroundColor: colors.primary + '10' }]}>
-                <Text style={styles.dashboardIcon}>🏫</Text>
+                <MaterialIcons name="school" size={28} color={colors.primary} />
               </View>
             </View>
 
             {/* Time Segmented Control */}
             <View style={[styles.filterSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>🔍 时段筛选</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <MaterialIcons name="search" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>{getTxt('filterTime')}</Text>
+              </View>
               <View style={styles.segmentedContainer}>
                 <Pressable 
                   style={[styles.segment, timeMode === 'now' && [styles.segmentActive, { backgroundColor: colors.primary }]]}
                   onPress={() => setTimeMode('now')}
                 >
-                  <Text style={[styles.segmentText, { color: timeMode === 'now' ? '#fff' : colors.textSecondary }]}>此时此刻</Text>
+                  <Text style={[styles.segmentText, { color: timeMode === 'now' ? '#fff' : colors.textSecondary }]}>{getTxt('timeNow')}</Text>
                 </Pressable>
                 <Pressable 
                   style={[styles.segment, timeMode === 'morning' && [styles.segmentActive, { backgroundColor: colors.primary }]]}
                   onPress={() => setTimeMode('morning')}
                 >
-                  <Text style={[styles.segmentText, { color: timeMode === 'morning' ? '#fff' : colors.textSecondary }]}>上午自习</Text>
+                  <Text style={[styles.segmentText, { color: timeMode === 'morning' ? '#fff' : colors.textSecondary }]}>{getTxt('timeMorning')}</Text>
                 </Pressable>
                 <Pressable 
                   style={[styles.segment, timeMode === 'afternoon' && [styles.segmentActive, { backgroundColor: colors.primary }]]}
                   onPress={() => setTimeMode('afternoon')}
                 >
-                  <Text style={[styles.segmentText, { color: timeMode === 'afternoon' ? '#fff' : colors.textSecondary }]}>下午自习</Text>
+                  <Text style={[styles.segmentText, { color: timeMode === 'afternoon' ? '#fff' : colors.textSecondary }]}>{getTxt('timeAfternoon')}</Text>
                 </Pressable>
                 <Pressable 
                   style={[styles.segment, timeMode === 'custom' && [styles.segmentActive, { backgroundColor: colors.primary }]]}
                   onPress={() => setTimeMode('custom')}
                 >
-                  <Text style={[styles.segmentText, { color: timeMode === 'custom' ? '#fff' : colors.textSecondary }]}>自定义</Text>
+                  <Text style={[styles.segmentText, { color: timeMode === 'custom' ? '#fff' : colors.textSecondary }]}>{getTxt('timeCustom')}</Text>
                 </Pressable>
               </View>
 
@@ -518,110 +819,63 @@ export default function EmptyClassroomScreen() {
                     style={[styles.timePickerBtn, { borderColor: colors.border }]} 
                     onPress={() => setShowTimeModal('start')}
                   >
-                    <Text style={[styles.timePickerLabel, { color: colors.textMuted }]}>开始时间</Text>
+                    <Text style={[styles.timePickerLabel, { color: colors.textMuted }]}>{getTxt('customStart')}</Text>
                     <Text style={[styles.timePickerVal, { color: colors.textPrimary }]}>{customStart}</Text>
                   </Pressable>
                   <View style={styles.timeArrow}>
-                    <Text style={{ color: colors.textMuted }}>➔</Text>
+                    <MaterialIcons name="arrow-forward" size={16} color={colors.textMuted} />
                   </View>
                   <Pressable 
                     style={[styles.timePickerBtn, { borderColor: colors.border }]} 
                     onPress={() => setShowTimeModal('end')}
                   >
-                    <Text style={[styles.timePickerLabel, { color: colors.textMuted }]}>结束时间</Text>
+                    <Text style={[styles.timePickerLabel, { color: colors.textMuted }]}>{getTxt('customEnd')}</Text>
                     <Text style={[styles.timePickerVal, { color: colors.textPrimary }]}>{customEnd}</Text>
                   </Pressable>
                 </View>
               )}
             </View>
 
-            {/* Building horizontal chips */}
-            <View style={styles.chipSection}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, paddingLeft: 4 }]}>🏢 校区教学楼</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
-                <Pressable
-                  style={[
-                    styles.chip, 
-                    { backgroundColor: colors.surface, borderColor: colors.border },
-                    selectedBuildingId === 'all' && [styles.chipActive, { backgroundColor: colors.primary }]
-                  ]}
-                  onPress={() => setSelectedBuildingId('all')}
-                >
-                  <Text style={[styles.chipText, { color: selectedBuildingId === 'all' ? '#fff' : colors.textSecondary }]}>
-                    全部大楼
+            {/* Dropdown Filters Row */}
+            <View style={styles.dropdownFiltersRow}>
+              {/* Building Dropdown Button */}
+              <Pressable 
+                style={[styles.dropdownButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                onPress={() => setShowBuildingModal(true)}
+              >
+                <View style={styles.dropdownButtonContent}>
+                  <MaterialIcons name="business" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+                  <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {buildingLabel}
                   </Text>
-                </Pressable>
-                {buildings.map(b => (
-                  <Pressable
-                    key={b.id}
-                    style={[
-                      styles.chip, 
-                      { backgroundColor: colors.surface, borderColor: colors.border },
-                      selectedBuildingId === b.id && [styles.chipActive, { backgroundColor: colors.primary }]
-                    ]}
-                    onPress={() => setSelectedBuildingId(b.id)}
-                  >
-                    <Text style={[styles.chipText, { color: selectedBuildingId === b.id ? '#fff' : colors.textSecondary }]} numberOfLines={1}>
-                      {b.descrizione.replace('Edificio in Bo ', '').replace('via ', '')}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
+                </View>
+                <MaterialIcons name="arrow-drop-down" size={18} color={colors.textSecondary} />
+              </Pressable>
 
-            {/* Capacity Filters */}
-            <View style={styles.capacitySection}>
-              <Pressable
-                style={[
-                  styles.capBtn,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                  capacityFilter === 'all' && { borderColor: colors.primary, backgroundColor: colors.primary + '10' }
-                ]}
-                onPress={() => setCapacityFilter('all')}
+              {/* Capacity Dropdown Button */}
+              <Pressable 
+                style={[styles.dropdownButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                onPress={() => setShowCapacityModal(true)}
               >
-                <Text style={[styles.capText, { color: capacityFilter === 'all' ? colors.primary : colors.textSecondary }]}>容量不限</Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.capBtn,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                  capacityFilter === 'small' && { borderColor: colors.primary, backgroundColor: colors.primary + '10' }
-                ]}
-                onPress={() => setCapacityFilter('small')}
-              >
-                <Text style={[styles.capText, { color: capacityFilter === 'small' ? colors.primary : colors.textSecondary }]}>小型(&lt;30人)</Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.capBtn,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                  capacityFilter === 'medium' && { borderColor: colors.primary, backgroundColor: colors.primary + '10' }
-                ]}
-                onPress={() => setCapacityFilter('medium')}
-              >
-                <Text style={[styles.capText, { color: capacityFilter === 'medium' ? colors.primary : colors.textSecondary }]}>中型(30-70人)</Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.capBtn,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                  capacityFilter === 'large' && { borderColor: colors.primary, backgroundColor: colors.primary + '10' }
-                ]}
-                onPress={() => setCapacityFilter('large')}
-              >
-                <Text style={[styles.capText, { color: capacityFilter === 'large' ? colors.primary : colors.textSecondary }]}>大型(&gt;70人)</Text>
+                <View style={styles.dropdownButtonContent}>
+                  <MaterialIcons name="people" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+                  <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {capacityLabel}
+                  </Text>
+                </View>
+                <MaterialIcons name="arrow-drop-down" size={18} color={colors.textSecondary} />
               </Pressable>
             </View>
 
             {/* Classrooms List */}
             <Text style={[styles.listHeaderTitle, { color: colors.textPrimary }]}>
-              教室列表 ({processedClassrooms.length})
+              {getTxt('classroomList')} ({processedClassrooms.length})
             </Text>
 
             {processedClassrooms.length === 0 ? (
               <View style={[styles.noResult, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={styles.noResultIcon}>📭</Text>
-                <Text style={[styles.noResultText, { color: colors.textSecondary }]}>没有符合当前筛选条件的教室</Text>
+                <MaterialIcons name="inbox" size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
+                <Text style={[styles.noResultText, { color: colors.textSecondary }]}>{getTxt('noClassrooms')}</Text>
               </View>
             ) : (
               processedClassrooms.map(aula => {
@@ -650,49 +904,53 @@ export default function EmptyClassroomScreen() {
                           {/* Badges */}
                           {aula.isBuildingClosed ? (
                             <View style={[styles.statusBadge, { backgroundColor: colors.textMuted }]}>
-                              <Text style={styles.statusBadgeText}>大楼关闭</Text>
+                              <Text style={styles.statusBadgeText}>{getTxt('buildingClosed')}</Text>
                             </View>
                           ) : aula.isOccupied ? (
                             <View style={[styles.statusBadge, { backgroundColor: colors.error }]}>
-                              <Text style={styles.statusBadgeText}>已被占用</Text>
+                              <Text style={styles.statusBadgeText}>{getTxt('isOccupied')}</Text>
                             </View>
                           ) : (
                             <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
-                              <Text style={styles.statusBadgeText}>空闲</Text>
+                              <Text style={styles.statusBadgeText}>{getTxt('isFree')}</Text>
                             </View>
                           )}
                         </View>
                         
                         <Text style={[styles.classroomSub, { color: colors.textSecondary }]} numberOfLines={1}>
-                          {aula.relazioneEdificio?.descrizione || `楼栋 ${aula.edificio.codice}`} • {openTime}-{closeTime}
+                          {aula.relazioneEdificio?.descrizione || `${activeLang === 'en' ? 'Building' : activeLang === 'it' ? 'Edificio' : '楼栋'} ${aula.edificio.codice}`} • {openTime}-{closeTime}
                         </Text>
 
                         {/* Occupation name summary */}
                         {aula.isOccupied && !aula.isBuildingClosed && (
-                          <Text style={[styles.occupationSummary, { color: colors.error }]} numberOfLines={1}>
-                            ⚠️ 当前: {aula.currentBookingName}
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                            <MaterialIcons name="warning" size={12} color={colors.error} style={{ marginRight: 4 }} />
+                            <Text style={[styles.occupationSummary, { color: colors.error, marginTop: 0 }]} numberOfLines={1}>
+                              {getTxt('currentBooking')}: {aula.currentBookingName}
+                            </Text>
+                          </View>
                         )}
 
                         {/* Services / icons */}
                         <View style={styles.servicesRow}>
-                          <View style={[styles.capacityTag, { backgroundColor: colors.surfaceElevated }]}>
+                          <View style={[styles.capacityTag, { backgroundColor: colors.surfaceElevated, flexDirection: 'row', alignItems: 'center' }]}>
+                            <MaterialIcons name="people" size={11} color={colors.textSecondary} style={{ marginRight: 4 }} />
                             <Text style={[styles.capacityTagText, { color: colors.textSecondary }]}>
-                              👥 {aula.capienzaEffettiva} 人
+                              {aula.capienzaEffettiva}{getTxt('seatsUnitSmall')}
                             </Text>
                           </View>
                           
                           {aula.serviziAula?.map((s, idx) => {
-                            let emoji = '⚙️';
-                            if (s.codice.includes('lavagna')) emoji = '📝';
-                            else if (s.codice.includes('proiett') || s.codice.includes('video')) emoji = '📹';
-                            else if (s.codice.includes('audio')) emoji = '🎙️';
-                            else if (s.codice.includes('accessible') || s.codice.includes('3.1')) emoji = '♿';
+                            const cat = getServiceCategory(s.codice, s.descrizione);
+                            const trans = serviceTranslations[cat];
+                            const label = isExpanded ? trans.full[activeLang] : trans.abbrev[activeLang];
+                            const iconName = trans.icon;
 
                             return (
-                              <View key={idx} style={[styles.serviceTag, { backgroundColor: colors.surfaceElevated }]}>
+                              <View key={idx} style={[styles.serviceTag, { backgroundColor: colors.surfaceElevated, flexDirection: 'row', alignItems: 'center' }]}>
+                                <MaterialIcons name={iconName} size={11} color={colors.textSecondary} style={{ marginRight: 4 }} />
                                 <Text style={[styles.serviceTagText, { color: colors.textSecondary }]}>
-                                  {emoji} {s.descrizione.length > 5 ? s.descrizione.substring(0, 4) + '..' : s.descrizione}
+                                  {label}
                                 </Text>
                               </View>
                             );
@@ -701,9 +959,11 @@ export default function EmptyClassroomScreen() {
                       </View>
 
                       <View style={styles.cardHeaderRight}>
-                        <Text style={[styles.expandArrow, { color: colors.textMuted }]}>
-                          {isExpanded ? '▲' : '▼'}
-                        </Text>
+                        <MaterialIcons 
+                          name={isExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} 
+                          size={20} 
+                          color={colors.textMuted} 
+                        />
                       </View>
                     </Pressable>
 
@@ -711,17 +971,18 @@ export default function EmptyClassroomScreen() {
                     {isExpanded && (
                       <View style={[styles.timelineContainer, { borderTopColor: colors.border }]}>
                         <View style={styles.timelineHeader}>
-                          <Text style={[styles.timelineTitle, { color: colors.textPrimary }]}>今日开放时段占用图 (时间轴)</Text>
+                          <Text style={[styles.timelineTitle, { color: colors.textPrimary }]}>{getTxt('timelineTitle')}</Text>
                           {(() => {
                             const lat = aula.relazioneEdificio?.geo?.lat || aula.edificio?.geo?.lat;
                             const lng = aula.relazioneEdificio?.geo?.lng || aula.edificio?.geo?.lng;
                             if (lat !== undefined && lng !== undefined) {
                               return (
                                 <Pressable
-                                  style={[styles.navigationBtn, { borderColor: colors.primary }]}
+                                  style={[styles.navigationBtn, { borderColor: colors.primary, flexDirection: 'row', alignItems: 'center' }]}
                                   onPress={() => openMap(lat, lng, aula.descrizione)}
                                 >
-                                  <Text style={[styles.navigationBtnText, { color: colors.primary }]}>📍 一键前往</Text>
+                                  <MaterialIcons name="near-me" size={12} color={colors.primary} style={{ marginRight: 4 }} />
+                                  <Text style={[styles.navigationBtnText, { color: colors.primary }]}>{getTxt('oneClickGo')}</Text>
                                 </Pressable>
                               );
                             }
@@ -729,7 +990,7 @@ export default function EmptyClassroomScreen() {
                           })()}
                         </View>
                         {slots.length === 0 ? (
-                          <Text style={[styles.noBookingText, { color: colors.textMuted }]}>今日暂无占用，整天可用</Text>
+                          <Text style={[styles.noBookingText, { color: colors.textMuted }]}>{getTxt('noBookingText')}</Text>
                         ) : (
                           <View style={styles.timelineList}>
                             {slots.map((slot, index) => {
@@ -767,7 +1028,7 @@ export default function EmptyClassroomScreen() {
                                       ]}
                                       numberOfLines={1}
                                     >
-                                      {slot.isOccupied ? `占 • ${slot.eventName}` : '🟢 空闲可自习'}
+                                      {slot.isOccupied ? `${getTxt('occupiedLabel')} • ${slot.eventName}` : getTxt('studyFree')}
                                     </Text>
                                   </View>
                                 </View>
@@ -791,7 +1052,9 @@ export default function EmptyClassroomScreen() {
           <Pressable style={styles.modalDismiss} onPress={() => setShowTimeModal(null)} />
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {showTimeModal === 'start' ? '选择开始时间' : '选择结束时间'}
+              {showTimeModal === 'start' 
+                ? (language === 'en' ? 'Select Start Time' : language === 'it' ? 'Seleziona Ora Inizio' : '选择开始时间') 
+                : (language === 'en' ? 'Select End Time' : language === 'it' ? 'Seleziona Ora Fine' : '选择结束时间')}
             </Text>
             <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
               {TIME_OPTIONS.map(timeStr => {
@@ -805,7 +1068,7 @@ export default function EmptyClassroomScreen() {
                     key={timeStr}
                     style={[
                       styles.modalItem,
-                      { borderBottomColor: colors.border },
+                      { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
                       isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
                     ]}
                     onPress={() => {
@@ -836,7 +1099,122 @@ export default function EmptyClassroomScreen() {
               })}
             </ScrollView>
             <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={() => setShowTimeModal(null)}>
-              <Text style={styles.modalCloseBtnText}>取消</Text>
+              <Text style={styles.modalCloseBtnText}>{getTxt('cancel')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* Building Selector Modal Overlay */}
+      {showBuildingModal && (
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalDismiss} onPress={() => setShowBuildingModal(false)} />
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+              {getTxt('selectBuilding')}
+            </Text>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              <Pressable
+                style={[
+                  styles.modalItem,
+                  { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
+                  selectedBuildingId === 'all' && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                ]}
+                onPress={() => {
+                  setSelectedBuildingId('all');
+                  setShowBuildingModal(false);
+                }}
+              >
+                <MaterialIcons name="business" size={18} color={selectedBuildingId === 'all' ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+                <Text 
+                  style={[
+                    styles.modalItemText, 
+                    { color: selectedBuildingId === 'all' ? colors.primary : colors.textPrimary, fontWeight: selectedBuildingId === 'all' ? 'bold' : 'normal' }
+                  ]}
+                >
+                  {getTxt('allBuildings')}
+                </Text>
+              </Pressable>
+              {buildings.map(b => {
+                const isSelected = selectedBuildingId === b.id;
+                const cleanName = b.descrizione.replace('Edificio in Bo ', '').replace('via ', '');
+                return (
+                  <Pressable
+                    key={b.id}
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
+                      isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                    ]}
+                    onPress={() => {
+                      setSelectedBuildingId(b.id);
+                      setShowBuildingModal(false);
+                    }}
+                  >
+                    <MaterialIcons name="business" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+                    <Text 
+                      style={[
+                        styles.modalItemText, 
+                        { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {cleanName}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={() => setShowBuildingModal(false)}>
+              <Text style={styles.modalCloseBtnText}>{getTxt('cancel')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* Capacity Selector Modal Overlay */}
+      {showCapacityModal && (
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalDismiss} onPress={() => setShowCapacityModal(false)} />
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+              {getTxt('selectCapacity')}
+            </Text>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {(['all', 'small', 'medium', 'large'] as const).map(cap => {
+                const isSelected = capacityFilter === cap;
+                const labelKey = cap === 'all' ? 'capacityAll' :
+                                 cap === 'small' ? 'capacitySmall' :
+                                 cap === 'medium' ? 'capacityMedium' :
+                                 'capacityLarge';
+                return (
+                  <Pressable
+                    key={cap}
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
+                      isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                    ]}
+                    onPress={() => {
+                      setCapacityFilter(cap);
+                      setShowCapacityModal(false);
+                    }}
+                  >
+                    <MaterialIcons name="people" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
+                    <Text 
+                      style={[
+                        styles.modalItemText, 
+                        { color: isSelected ? colors.primary : colors.textPrimary, fontWeight: isSelected ? 'bold' : 'normal' }
+                      ]}
+                    >
+                      {getTxt(labelKey)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={() => setShowCapacityModal(false)}>
+              <Text style={styles.modalCloseBtnText}>{getTxt('cancel')}</Text>
             </Pressable>
           </View>
         </View>
@@ -1039,49 +1417,38 @@ const styles = StyleSheet.create({
   timeArrow: {
     paddingHorizontal: 12,
   },
-  chipSection: {
+  dropdownFiltersRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
     marginBottom: 16,
+    gap: 8,
   },
-  chipsScroll: {
-    paddingVertical: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    minWidth: 90,
+  dropdownButton: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.02,
     shadowRadius: 2,
     elevation: 1,
   },
-  chipActive: {
-    borderColor: 'transparent',
+  dropdownButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 4,
   },
-  chipText: {
+  dropdownButtonText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  capacitySection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  capBtn: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 8,
-    marginHorizontal: 3,
-    alignItems: 'center',
-  },
-  capText: {
-    fontSize: 10,
-    fontWeight: 'bold',
   },
   listHeaderTitle: {
     fontSize: 16,
