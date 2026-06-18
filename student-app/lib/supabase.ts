@@ -115,12 +115,31 @@ export type Database = {
         Row: {
           id: string;
           title: string;
-          body: string;
-          target_type: 'all' | 'faculty' | 'year' | 'campus';
-          target_value: string | null;
-          sent_at: string;
-          article_id: string | null;
+          content: string;
+          category: 'events' | 'academic' | 'life' | 'general';
+          link: string | null;
+          created_at: string;
         };
+        Insert: Omit<Database['public']['Tables']['notifications']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['notifications']['Insert']>;
+      };
+      push_tokens: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          token: string;
+          updated_at: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['push_tokens']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['push_tokens']['Insert']>;
       };
     };
   };

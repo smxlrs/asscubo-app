@@ -81,6 +81,15 @@ export default function SettingsIndexScreen() {
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>
           </Pressable>
+
+          {/* Notifications Settings Link */}
+          <Pressable style={[styles.rowPressable, { borderBottomColor: colors.border }]} onPress={() => router.push('/settings/notifications')}>
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>通知设置</Text>
+            <View style={styles.rowRight}>
+              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>管理订阅</Text>
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
         </View>
 
         {/* Cache & Storage Section */}

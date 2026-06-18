@@ -168,10 +168,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="forum"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon label={t('notifications')} iconName="bell" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+            <TabIcon label={t('forum')} iconName="forum" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
           ),
         }}
       />
@@ -189,12 +189,6 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => (
             <TabIcon label={t('profile')} iconName="account" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="home"
-        options={{
-          href: null,
         }}
       />
       <Tabs.Screen

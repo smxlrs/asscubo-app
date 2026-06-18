@@ -74,6 +74,7 @@ const translations: Record<Language, Record<string, string>> = {
   zh: {
     home: '首页',
     notifications: '通知',
+    forum: '论坛',
     tools: '工具',
     profile: '我的',
     settings: '设置',
@@ -158,6 +159,7 @@ const translations: Record<Language, Record<string, string>> = {
   en: {
     home: 'Home',
     notifications: 'Notifications',
+    forum: 'Forum',
     tools: 'Tools',
     profile: 'Profile',
     settings: 'Settings',
@@ -242,6 +244,7 @@ const translations: Record<Language, Record<string, string>> = {
   it: {
     home: 'Home',
     notifications: 'Notifiche',
+    forum: 'Forum',
     tools: 'Strumenti',
     profile: 'Profilo',
     settings: 'Impostazioni',
@@ -326,6 +329,7 @@ const translations: Record<Language, Record<string, string>> = {
   'zh-Hant': {
     home: '首頁',
     notifications: '通知',
+    forum: '論壇',
     tools: '工具',
     profile: '我的',
     settings: '設置',

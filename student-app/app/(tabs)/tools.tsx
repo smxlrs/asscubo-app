@@ -96,6 +96,15 @@ const getToolDefinition = (id: string, eurToCny: number, t: (key: string) => str
         route: '/tools/train',
         color: '#E30613',
       };
+    case 'studyroom':
+      return {
+        id: 'studyroom',
+        title: '自习室与图书馆',
+        description: '实时查看博大自习室与图书馆空余座位、开放时间，并支持一键预约。',
+        icon: 'library-outline',
+        route: '/tools/studyroom',
+        color: '#4F46E5',
+      };
     default:
       return null;
   }
@@ -282,7 +291,7 @@ function DraggableCard({
 export default function ToolsScreen() {
   const { colors, t } = useTheme();
   const [eurToCny, setEurToCny] = useState<number>(7.8256);
-  const [toolOrder, setToolOrder] = useState<string[]>(['handbook', 'dictionary', 'rate', 'classroom', 'train']);
+  const [toolOrder, setToolOrder] = useState<string[]>(['handbook', 'dictionary', 'rate', 'classroom', 'train', 'studyroom']);
   const [isEditing, setIsEditing] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
@@ -315,7 +324,7 @@ export default function ToolsScreen() {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const validIds = ['handbook', 'dictionary', 'rate', 'classroom', 'train'];
+            const validIds = ['handbook', 'dictionary', 'rate', 'classroom', 'train', 'studyroom'];
             const filtered = parsed.filter((id: any) => validIds.includes(id));
             const missing = validIds.filter(id => !filtered.includes(id));
             setToolOrder([...filtered, ...missing]);

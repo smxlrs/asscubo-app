@@ -65,6 +65,14 @@ export default function ProfileScreen() {
         )}
 
         <View style={[styles.menuSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {profile?.role === 'admin' && (
+            <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/admin')}>
+              <MaterialCommunityIcons name="shield-key-outline" size={22} color={colors.primaryLight} style={styles.menuIcon} />
+              <Text style={[styles.menuLabel, { color: colors.textPrimary, fontWeight: 'bold' }]}>管理后台</Text>
+              <Text style={[styles.arrow, { color: colors.primaryLight }]}>›</Text>
+            </Pressable>
+          )}
+
           <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/settings')}>
             <MaterialCommunityIcons name="cog-outline" size={22} color={colors.textSecondary} style={styles.menuIcon} />
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('settings')}</Text>
