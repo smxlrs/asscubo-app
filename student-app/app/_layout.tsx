@@ -8,7 +8,7 @@ let Notifications: any = null;
 try {
   Notifications = require('expo-notifications');
 } catch (e) {
-  console.warn('expo-notifications is not supported in this environment (e.g. Expo Go on Android SDK 53+)');
+  console.log('expo-notifications is not supported in this environment (e.g. Expo Go on Android SDK 53+)');
 }
 
 import * as Device from 'expo-device';
