@@ -168,10 +168,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="forum"
+        name="notifications"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon label={t('forum')} iconName="forum" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+            <TabIcon label={t('notifications')} iconName="bell" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
           ),
         }}
       />

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ScrollView } from 'react-native';
 
 type Notification = {
   id: string;
@@ -23,7 +23,7 @@ const CATEGORY_DETAILS = {
   general: { label: '综合公告', icon: 'bullhorn', color: '#8B5CF6' },
 };
 
-export default function NotificationHistoryScreen() {
+export default function NotificationsScreen() {
   const { colors, t } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,6 @@ export default function NotificationHistoryScreen() {
 
   async function fetchNotifications() {
     try {
-      // 1. Fetch from Supabase notifications table
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -56,7 +55,7 @@ export default function NotificationHistoryScreen() {
           content: '欧洲学生学者联合会将于本周五举办一年一度的中秋晚会！现场有精彩的文艺演出和丰厚的抽奖活动，请大家点击链接抓紧报名，席位有限。',
           category: 'events',
           link: 'https://mp.weixin.qq.com/s/example1',
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
         },
         {
           id: '2',
@@ -64,14 +63,14 @@ export default function NotificationHistoryScreen() {
           content: '博大新学期注册和缴费入口现已开放。关于第一期学费减免（ISEE）的申报截止日期，以及新生入学税注册流程的详细图文指引现已发布。',
           category: 'academic',
           link: 'https://mp.weixin.qq.com/s/example2',
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
         },
         {
           id: '3',
           title: '米兰/博洛尼亚暑期租房安全预警',
           content: '近期发生多起针对中国留学生的线上虚假租房诈骗案。特此提醒大家：切勿在未实地看房或未签正式合同前转账押金，如有疑问请查阅防骗手册。',
           category: 'life',
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 days ago
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
         },
       ];
       setNotifications(mockNotifications);
@@ -92,10 +91,8 @@ export default function NotificationHistoryScreen() {
 
   const handlePressNotification = (item: Notification) => {
     if (item.link) {
-      // If it contains a link (like WeChat article), open it inside our in-app article reader
       router.push(`/article/web?url=${encodeURIComponent(item.link)}&title=${encodeURIComponent(item.title)}` as any);
     } else {
-      // Toggle expansion to read content natively
       setExpandedId(expandedId === item.id ? null : item.id);
     }
   };
@@ -110,14 +107,10 @@ export default function NotificationHistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <View style={[styles.backArrow, { borderColor: colors.primaryLight }]} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('notifications') || '通知消息'}</Text>
-        <View style={styles.headerPlaceholder} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      {/* Title Header */}
+      <View style={styles.titleContainer}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('notifications') || '通知'}</Text>
       </View>
 
       {/* Filter Chips */}
@@ -217,39 +210,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
+  titleContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 5,
   },
-  backButton: {
-    paddingVertical: 8,
-    paddingRight: 16,
-  },
-  backArrow: {
-    width: 10,
-    height: 10,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    transform: [{ rotate: '45deg' }],
-    marginHorizontal: 8,
-    marginVertical: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 26,
     fontWeight: 'bold',
-  },
-  headerPlaceholder: {
-    width: 50,
   },
   filterContainer: {
     paddingVertical: 12,
   },
   filterScroll: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     gap: 8,
   },
   filterChip: {
@@ -270,8 +244,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
-    padding: 16,
-    paddingTop: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     gap: 12,
   },
   empty: {

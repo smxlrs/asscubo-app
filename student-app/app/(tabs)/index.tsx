@@ -44,7 +44,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function HomeScreen() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const [articles, setArticles] = useState<Article[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,28 +111,30 @@ export default function HomeScreen() {
         >
           <View style={styles.headerContent}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.greeting}>{greeting}，{profile?.name || '同学'} 👋</Text>
+              <Text style={styles.greeting}>
+                {user ? `${greeting}！${profile?.name || ''}` : greeting}
+              </Text>
               <Text style={styles.headerSubtitle}>博学 · 连接校园生活</Text>
             </View>
             
             <View style={styles.headerRightActions}>
               <TouchableOpacity
-                style={styles.notificationButton}
-                onPress={() => router.push('/notifications')}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons name="bell" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity
                 style={styles.avatarButton}
-                onPress={() => router.push('/(tabs)/profile')}
+                onPress={() => {
+                  if (user) {
+                    router.push('/(tabs)/profile');
+                  } else {
+                    router.push('/(auth)/login');
+                  }
+                }}
                 activeOpacity={0.8}
               >
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {profile?.name ? profile.name[0] : '学'}
-                  </Text>
+                  <MaterialCommunityIcons 
+                    name={user ? "account" : "account-outline"} 
+                    size={24} 
+                    color="#FFFFFF" 
+                  />
                 </View>
               </TouchableOpacity>
             </View>
@@ -156,28 +158,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </LinearGradient>
-
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          {[
-            { icon: 'book-open-variant', label: '手册', route: '/tools/handbook' },
-            { icon: 'forum-outline', label: '论坛', route: '/(tabs)/forum' },
-            { icon: 'view-grid-outline', label: '工具', route: '/(tabs)/tools' },
-            { icon: 'calendar-month-outline', label: '活动', route: '/(tabs)/events' },
-          ].map((item) => (
-            <TouchableOpacity
-              key={item.label}
-              style={styles.quickActionItem}
-              onPress={() => router.push(item.route as any)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.quickActionIcon}>
-                <MaterialCommunityIcons name={item.icon as any} size={24} color={COLORS.primary} />
-              </View>
-              <Text style={styles.quickActionLabel}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
         {/* Upcoming Events */}
         {upcomingEvents.length > 0 && (
