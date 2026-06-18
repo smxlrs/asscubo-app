@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Linking, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -161,7 +161,7 @@ export default function AboutIndexScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logo}>🏠</Text>
+          <Image source={require('../../assets/icon.png')} style={[styles.logoImage, { borderColor: colors.border }]} />
           <Text style={[styles.appName, { color: colors.textPrimary }]}>{t('appName')}</Text>
           <Pressable onPress={handleCheckUpdate} disabled={checkingUpdate} style={styles.versionRow}>
             {checkingUpdate
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   headerPlaceholder: { width: 50 },
   content: { alignItems: 'center', padding: 20 },
   logoContainer: { alignItems: 'center', marginTop: 20, marginBottom: 30 },
-  logo: { fontSize: 64, marginBottom: 12 },
+  logoImage: { width: 80, height: 80, borderRadius: 18, marginBottom: 12, borderWidth: 1.5 },
   appName: { fontSize: 22, fontWeight: 'bold', marginBottom: 6 },
   versionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10 },
   version: { fontSize: 14 },

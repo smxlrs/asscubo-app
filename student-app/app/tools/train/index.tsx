@@ -229,7 +229,7 @@ export default function TrainToolIndex() {
     const weekdayNamesEN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const weekdayNamesIT = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
     
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 90; i++) {
       const d = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -272,9 +272,16 @@ export default function TrainToolIndex() {
   };
 
   const handleRedirectToBook = () => {
-    const url = getOfficialBookingUrl(routeOperator);
-    Linking.openURL(url).catch(err => {
-      console.error('Failed to open official booking url:', err);
+    if (!routeDepStation || !routeArrStation) return;
+    router.push({
+      pathname: '/tools/train/booking-webview',
+      params: {
+        operator: routeOperator,
+        from: routeDepStation.name,
+        to: routeArrStation.name,
+        date: routeDate,
+        time: routeTime
+      }
     });
   };
 
