@@ -612,18 +612,28 @@ export default function DictionaryScreen() {
       .map(d => d.id);
   }, [dictionaries]);
 
-  const webViewSource = useMemo(() => {
-    return {
-      html: buildHtmlString(
-        initialDefinitionsRef.current,
+  const [webViewHtml, setWebViewHtml] = useState<string>('');
+  const definitionsRef = useRef<{ dict_id: string; definition: string }[]>([]);
+
+  // Update definitionsRef whenever definitions state updates
+  useEffect(() => {
+    definitionsRef.current = definitions;
+  }, [definitions]);
+
+  // Regenerate WebView HTML on theme color change or configuration updates (only when word active)
+  useEffect(() => {
+    if (activeWord) {
+      const html = buildHtmlString(
+        definitionsRef.current,
         dictionaries,
         collapsedDictsRef.current,
         colors,
         isDark,
         enabledDictIds
-      )
-    };
-  }, [activeWord, colors, isDark]);
+      );
+      setWebViewHtml(html);
+    }
+  }, [colors, isDark, dictionaries, enabledDictIds]);
 
   // Load dictionaries and history on focus (in case config changed in settings)
   useFocusEffect(
@@ -652,26 +662,30 @@ export default function DictionaryScreen() {
             collapsedDictsRef.current = parsed;
           }
 
-          // Pre-load enabled dictionary instances sequentially in the background with a delay.
-          // This keeps the JavaScript thread completely free and lag-free for user input at screen entry,
-          // while still populating the loaded caches in the background.
-          const enabledIds = dicts.filter(d => d.isEnabled).map(d => d.id);
-          (async () => {
-            // Wait 100ms first to ensure the UI transitions and mounts smoothly
-            await new Promise(resolve => setTimeout(resolve, 100));
-            for (let i = 0; i < enabledIds.length; i++) {
-              const id = enabledIds[i];
+          // Preload the first few enabled dictionaries silently in the background
+          const enabledIds = dicts
+            .filter(d => d.isEnabled)
+            .sort((a, b) => a.orderIndex - b.orderIndex)
+            .map(d => d.id);
+          
+          if (enabledIds.length > 0) {
+            setTimeout(async () => {
               try {
-                await getOrLoadMDXInstance(id);
+                console.log(`[Dictionary] Preloading primary dictionary: ${enabledIds[0]}`);
+                await getOrLoadMDXInstance(enabledIds[0]);
+                console.log(`[Dictionary] Primary dictionary ${enabledIds[0]} preloaded`);
+
+                if (enabledIds.length > 1) {
+                  await new Promise(resolve => setTimeout(resolve, 1500));
+                  console.log(`[Dictionary] Preloading secondary dictionary: ${enabledIds[1]}`);
+                  await getOrLoadMDXInstance(enabledIds[1]);
+                  console.log(`[Dictionary] Secondary dictionary ${enabledIds[1]} preloaded`);
+                }
               } catch (err) {
-                console.error(`Failed to preload dictionary ${id}:`, err);
+                console.warn('[Dictionary] Background preloading failed:', err);
               }
-              // Wait 600ms between each dictionary loading to give the JS thread breathing room for typing
-              if (i < enabledIds.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 600));
-              }
-            }
-          })();
+            }, 300);
+          }
         } catch (e) {
           console.error('Failed to init dictionary screen:', e);
         } finally {
@@ -741,6 +755,7 @@ export default function DictionaryScreen() {
     // Clear old definitions first, and start primary search spinner
     setDefinitions([]);
     initialDefinitionsRef.current = [];
+    setWebViewHtml('');
     setSearching(true);
     setBackgroundSearching(false);
 
@@ -775,6 +790,15 @@ export default function DictionaryScreen() {
       // Render initial results instantly and turn off main spinner
       initialDefinitionsRef.current = initialDefs;
       setDefinitions(initialDefs);
+      const html = buildHtmlString(
+        initialDefs,
+        dictionaries,
+        collapsedDictsRef.current,
+        colors,
+        isDark,
+        enabledDictIds
+      );
+      setWebViewHtml(html);
       setSearching(false);
 
       // 2. Second stage: progressive background querying for pending dictionaries
@@ -791,8 +815,8 @@ export default function DictionaryScreen() {
             if (currentSearchRef.current !== currentWord) break;
             
             try {
-              // Yield control to let React Native UI thread paint and keep animations fluid
-              await new Promise(resolve => setTimeout(resolve, 50));
+              // Yield control to let React Native UI thread paint and keep animations fluid, giving GC enough time
+              await new Promise(resolve => setTimeout(resolve, 250));
               if (currentSearchRef.current !== currentWord) break;
               
               const def = await getSingleDefinition(currentWord, dictId);
@@ -853,6 +877,7 @@ export default function DictionaryScreen() {
     setActiveWord('');
     setSearching(false);
     setBackgroundSearching(false);
+    setWebViewHtml('');
     setIsFocused(true);
     textInputRef.current?.focus();
   };
@@ -910,8 +935,8 @@ export default function DictionaryScreen() {
       </View>
 
       {/* Search Input Bar */}
-      <View style={styles.searchBarContainer}>
-        <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={styles.searchBarRow}>
+        <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border, flex: 1 }]}>
           <MaterialIcons name="search" size={20} color={colors.textMuted} style={{ marginRight: 8 }} />
           <TextInput
             ref={textInputRef}
@@ -935,6 +960,15 @@ export default function DictionaryScreen() {
             </Pressable>
           )}
         </View>
+        <Pressable 
+          style={({ pressed }) => [
+            styles.queryButton, 
+            { backgroundColor: '#A31621', opacity: pressed ? 0.8 : 1 }
+          ]} 
+          onPress={() => handleSearch(searchQuery)}
+        >
+          <Text style={styles.queryButtonText}>查询</Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -1035,11 +1069,11 @@ export default function DictionaryScreen() {
                     </View>
                   </View>
 
-                  {definitions.length > 0 ? (
+                  {(definitions.length > 0 || backgroundSearching) ? (
                     <WebView
                       ref={webviewRef}
                       style={{ flex: 1, backgroundColor: 'transparent' }}
-                      source={webViewSource}
+                      source={{ html: webViewHtml }}
                       onMessage={handleWebViewMessage}
                       originWhitelist={['*']}
                       showsVerticalScrollIndicator={false}
@@ -1105,6 +1139,25 @@ const styles = StyleSheet.create({
   searchBarContainer: {
     paddingHorizontal: 16,
     paddingVertical: 6,
+  },
+  searchBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    gap: 10,
+  },
+  queryButton: {
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  queryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   searchBox: {
     flexDirection: 'row',

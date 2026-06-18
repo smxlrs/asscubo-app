@@ -1,148 +1,87 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDX = exports.Mdict = exports.MdictMeta = exports.FileScanner = void 0;
 // @ts-nocheck
 // Generated pure-JS Mdict reader for React Native / Expo
-import pako from 'pako';
-import lzo1x from 'js-mdict/dist/esm/lzo1x-wrapper.js';
-import common from './utils';
-
-
-export class FileScanner {
-  public buffer: Uint8Array;
-  public offset: number;
-  public filepath: string;
-
-  constructor(data: Uint8Array | string) {
-    if (data instanceof Uint8Array) {
-      this.buffer = data;
-      this.filepath = 'in-memory-buffer';
-    } else {
-      throw new Error('FileScanner in React Native must be initialized with a Uint8Array');
+const pako_1 = __importDefault(require("pako"));
+const lzo1x_wrapper_js_1 = __importDefault(require("js-mdict/dist/esm/lzo1x-wrapper.js"));
+const utils_1 = __importDefault(require("./utils"));
+class FileScanner {
+    buffer;
+    offset;
+    filepath;
+    constructor(data) {
+        if (data instanceof Uint8Array) {
+            this.buffer = data;
+            this.filepath = 'in-memory-buffer';
+        }
+        else {
+            throw new Error('FileScanner in React Native must be initialized with a Uint8Array');
+        }
+        this.offset = 0;
     }
-    this.offset = 0;
-  }
-
-  close() {
-    // No-op
-  }
-
-  readBuffer(offset: number, length: number): Uint8Array {
-    return this.buffer.slice(offset, offset + length);
-  }
-
-  readNumber(offset: number, length: number): DataView {
-    const sub = this.buffer.buffer.slice(
-      this.buffer.byteOffset + offset,
-      this.buffer.byteOffset + offset + length
-    );
-    return new DataView(sub);
-  }
+    close() {
+        // No-op
+    }
+    readBuffer(offset, length) {
+        return this.buffer.slice(offset, offset + length);
+    }
+    readNumber(offset, length) {
+        const sub = this.buffer.buffer.slice(this.buffer.byteOffset + offset, this.buffer.byteOffset + offset + length);
+        return new DataView(sub);
+    }
 }
-
-
-export interface MDictOptions {
-  passcode?: string;
-  debug?: boolean;
-  resort?: boolean;
-  isStripKey?: boolean;
-  isCaseSensitive?: boolean;
-  encryptType?: number;
+exports.FileScanner = FileScanner;
+class MdictMeta {
+    fname = '';
+    passcode = '';
+    ext = 'mdx';
+    version = 2.0;
+    numWidth = 4;
+    numFmt;
+    encoding = 'utf-8';
+    decoder = new TextDecoder('utf-8');
+    encrypt = 0;
 }
-
-export interface MDictHeader {
-  [key: string]: string | { [key: string]: string[] };
-}
-
-export interface KeyHeader {
-  keywordBlocksNum: number;
-  keywordNum: number;
-  keyInfoUnpackSize: number;
-  keyInfoPackedSize: number;
-  keywordBlockPackedSize: number;
-}
-
-export interface KeyInfoItem {
-  firstKey: string;
-  lastKey: string;
-  keyBlockPackSize: number;
-  keyBlockPackAccumulator: number;
-  keyBlockUnpackSize: number;
-  keyBlockUnpackAccumulator: number;
-  keyBlockEntriesNum: number;
-  keyBlockEntriesNumAccumulator: number;
-  keyBlockInfoIndex: number;
-}
-
-export interface KeyWordItem {
-  recordStartOffset: number;
-  recordEndOffset: number;
-  keyText: string;
-  keyBlockIdx: number;
-}
-
-export interface RecordInfo {
-  packSize: number;
-  packAccumulateOffset: number;
-  unpackSize: number;
-  unpackAccumulatorOffset: number;
-}
-
-export interface RecordHeader {
-  recordBlocksNum: number;
-  entriesNum: number;
-  recordInfoCompSize: number;
-  recordBlockCompSize: number;
-}
-
-export class MdictMeta {
-  public fname: string = '';
-  public passcode: string = '';
-  public ext: string = 'mdx';
-  public version: number = 2.0;
-  public numWidth: number = 4;
-  public numFmt: any;
-  public encoding: string = 'utf-8';
-  public decoder: TextDecoder = new TextDecoder('utf-8');
-  public encrypt: number = 0;
-}
-
-
+exports.MdictMeta = MdictMeta;
 // === mdict-base ===
-
-
-
 let UTF_16LE_DECODER;
 try {
-  UTF_16LE_DECODER = new TextDecoder('utf-16le');
-} catch (e) {
-  UTF_16LE_DECODER = {
-    decode: (buf) => {
-      let str = '';
-      for (let i = 0; i < buf.length; i += 2) {
-        str += String.fromCharCode(buf[i] | (buf[i + 1] << 8));
-      }
-      return str;
-    }
-  };
+    UTF_16LE_DECODER = new TextDecoder('utf-16le');
+}
+catch (e) {
+    UTF_16LE_DECODER = {
+        decode: (buf) => {
+            let str = '';
+            for (let i = 0; i < buf.length; i += 2) {
+                str += String.fromCharCode(buf[i] | (buf[i + 1] << 8));
+            }
+            return str;
+        }
+    };
 }
 const UTF16 = 'UTF-16';
 const UTF_8_DECODER = new TextDecoder('utf-8');
 const UTF8 = 'UTF-8';
-
 let BIG5_DECODER;
 try {
-  BIG5_DECODER = new TextDecoder('big5');
-} catch (e) {
-  BIG5_DECODER = UTF_8_DECODER;
+    BIG5_DECODER = new TextDecoder('big5');
+}
+catch (e) {
+    BIG5_DECODER = UTF_8_DECODER;
 }
 const BIG5 = 'BIG5';
-
 let GB18030_DECODER;
 try {
-  GB18030_DECODER = new TextDecoder('gb18030');
-} catch (e) {
-  GB18030_DECODER = UTF_8_DECODER;
+    GB18030_DECODER = new TextDecoder('gb18030');
+}
+catch (e) {
+    GB18030_DECODER = UTF_8_DECODER;
 }
 const GB18030 = 'GB18030';
-
 /**
  * @class MdictBase, the basic mdict diction parser class
  * @brif
@@ -166,30 +105,30 @@ const GB18030 = 'GB18030';
  *
  */
 class MDictBase {
-    public meta: any;
-    public scanner: any;
-    public options: any;
-    public header: any;
-    public keyHeader: any;
-    public keyInfoList: any;
-    public keywordList: any;
-    public recordHeader: any;
-    public recordInfoList: any;
-    public recordBlockDataList: any;
-    public _headerStartOffset: any;
-    public _headerEndOffset: any;
-    public _keyHeaderStartOffset: any;
-    public _keyHeaderEndOffset: any;
-    public _keyBlockInfoStartOffset: any;
-    public _keyBlockInfoEndOffset: any;
-    public _keyBlockStartOffset: any;
-    public _keyBlockEndOffset: any;
-    public _recordHeaderStartOffset: any;
-    public _recordHeaderEndOffset: any;
-    public _recordInfoStartOffset: any;
-    public _recordInfoEndOffset: any;
-    public _recordBlockStartOffset: any;
-    public _recordBlockEndOffset: any;
+    meta;
+    scanner;
+    options;
+    header;
+    keyHeader;
+    keyInfoList;
+    keywordList;
+    recordHeader;
+    recordInfoList;
+    recordBlockDataList;
+    _headerStartOffset;
+    _headerEndOffset;
+    _keyHeaderStartOffset;
+    _keyHeaderEndOffset;
+    _keyBlockInfoStartOffset;
+    _keyBlockInfoEndOffset;
+    _keyBlockStartOffset;
+    _keyBlockEndOffset;
+    _recordHeaderStartOffset;
+    _recordHeaderEndOffset;
+    _recordInfoStartOffset;
+    _recordInfoEndOffset;
+    _recordBlockStartOffset;
+    _recordBlockEndOffset;
     /**
      * mdict constructor
      * @param {string} fname
@@ -204,9 +143,9 @@ class MDictBase {
         // the dictionary file decrypt pass code
         this.meta.passcode = passcode;
         // the dictionary file extension
-        this.meta.ext = common.getExtension(fname, 'mdx');
+        this.meta.ext = utils_1.default.getExtension(fname, 'mdx');
         // the file scanner
-        this.scanner = new FileScanner(fname as any);
+        this.scanner = new FileScanner(fname);
         // set options
         this.options = options !== null && options !== void 0 ? options : {
             passcode: passcode,
@@ -291,19 +230,20 @@ class MDictBase {
     }
     strip(key) {
         if (this._isStripKey()) {
-            key = key.replace(common.REGEXP_STRIPKEY[this.meta.ext], '$1');
+            key = key.replace(utils_1.default.REGEXP_STRIPKEY[this.meta.ext], '$1');
         }
         if (!this._isKeyCaseSensitive()) {
             key = key.toLowerCase();
         }
         if (this.meta.ext == 'mdd') {
-            key = key.replace(common.REGEXP_STRIPKEY[this.meta.ext], '$1');
+            key = key.replace(utils_1.default.REGEXP_STRIPKEY[this.meta.ext], '$1');
             key = key.replace(/_/g, '!');
         }
         return key.toLowerCase().trim();
     }
     comp(word1, word2) {
-        if (word1 === word2) return 0;
+        if (word1 === word2)
+            return 0;
         return word1 < word2 ? -1 : 1;
     }
     // comp2(word1: string, word2: string): number {
@@ -382,10 +322,10 @@ class MDictBase {
     //   return result;
     // }
     _isKeyCaseSensitive() {
-        return this.options.isCaseSensitive || common.isTrue(this.header['isCaseSensitive']);
+        return this.options.isCaseSensitive || utils_1.default.isTrue(this.header['isCaseSensitive']);
     }
     _isStripKey() {
-        return this.options.isStripKey || common.isTrue(this.header['StripKey']);
+        return this.options.isStripKey || utils_1.default.isTrue(this.header['StripKey']);
     }
     readDict() {
         // STEP1: read header
@@ -417,7 +357,7 @@ class MDictBase {
         while (keyStartIndex < keyBlock.length) {
             let meaningOffset = 0;
             const meaningOffsetBuff = keyBlock.subarray(keyStartIndex, keyStartIndex + this.meta.numWidth);
-            meaningOffset = common.b2n(meaningOffsetBuff);
+            meaningOffset = utils_1.default.b2n(meaningOffsetBuff);
             let keyEndIndex = -1;
             let i = keyStartIndex + this.meta.numWidth;
             while (i < keyBlock.length) {
@@ -443,7 +383,6 @@ class MDictBase {
             });
             keyStartIndex = keyEndIndex + width;
         }
-
         // Set the recordEndOffset of the very last key of this block
         if (keyList.length > 0) {
             let nextRecordStartOffset = -1;
@@ -454,14 +393,14 @@ class MDictBase {
                 const startOffset = this.keyInfoList[nextIdx].keyBlockPackAccumulator + this._keyBlockStartOffset;
                 const keyBlockPackedBuff = this.scanner.readBuffer(startOffset, packSize);
                 const nextKeyBlock = this.unpackKeyBlock(keyBlockPackedBuff, unpackSize);
-                nextRecordStartOffset = common.b2n(nextKeyBlock.subarray(0, this.meta.numWidth));
-            } else {
+                nextRecordStartOffset = utils_1.default.b2n(nextKeyBlock.subarray(0, this.meta.numWidth));
+            }
+            else {
                 const lastRecord = this.recordInfoList[this.recordInfoList.length - 1];
                 nextRecordStartOffset = lastRecord.unpackAccumulatorOffset + lastRecord.unpackSize;
             }
             keyList[keyList.length - 1].recordEndOffset = nextRecordStartOffset;
         }
-
         return keyList;
     }
     /**
@@ -477,7 +416,7 @@ class MDictBase {
     _readHeader() {
         // [0:4], 4 bytes header length (header_byte_size), big-endian, 4 bytes, 16 bits
         const headerByteSizeBuff = this.scanner.readBuffer(0, 4);
-        const headerByteSize = common.b2n(headerByteSizeBuff);
+        const headerByteSize = utils_1.default.b2n(headerByteSizeBuff);
         // [4:header_byte_size + 4] header_bytes
         const headerBuffer = this.scanner.readBuffer(4, headerByteSize);
         // TODO: SKIP 4 bytes alder32 checksum
@@ -491,7 +430,7 @@ class MDictBase {
         // const headerText = common.readUTF16(headerBuffer, 0, headerByteSize - 2);
         const headerText = UTF_16LE_DECODER.decode(new Uint8Array(headerBuffer));
         // parse header info
-        Object.assign(this.header, common.parseHeader(headerText));
+        Object.assign(this.header, utils_1.default.parseHeader(headerText));
         // set header default configuration
         this.header.KeyCaseSensitive = this.header.KeyCaseSensitive || 'No';
         this.header.StripKey = this.header.StripKey || 'Yes';
@@ -526,11 +465,11 @@ class MDictBase {
         this.meta.version = parseFloat(this.header['GeneratedByEngineVersion']);
         if (this.meta.version >= 2.0) {
             this.meta.numWidth = 8;
-            this.meta.numFmt = common.NUMFMT_UINT64;
+            this.meta.numFmt = utils_1.default.NUMFMT_UINT64;
         }
         else {
             this.meta.numWidth = 4;
-            this.meta.numFmt = common.NUMFMT_UINT32;
+            this.meta.numFmt = utils_1.default.NUMFMT_UINT32;
         }
         if (!this.header.Encoding || this.header.Encoding == '') {
             this.meta.encoding = UTF8;
@@ -601,28 +540,28 @@ class MDictBase {
         let offset = 0;
         // [0:8]   - number of key blocks
         const keywordBlockNumBuff = keyHeaderBuff.subarray(offset, offset + this.meta.numWidth);
-        this.keyHeader.keywordBlocksNum = common.b2n(keywordBlockNumBuff);
+        this.keyHeader.keywordBlocksNum = utils_1.default.b2n(keywordBlockNumBuff);
         offset += this.meta.numWidth;
         // [8:16]  - number of entries
         const keywordNumBuff = keyHeaderBuff.subarray(offset, offset + this.meta.numWidth);
-        this.keyHeader.keywordNum = common.b2n(keywordNumBuff);
+        this.keyHeader.keywordNum = utils_1.default.b2n(keywordNumBuff);
         offset += this.meta.numWidth;
         // [16:24] - number of key block info decompress size
         if (this.meta.version >= 2.0) {
             // only for version > 2.0
             const keyInfoUnpackSizeBuff = keyHeaderBuff.subarray(offset, offset + this.meta.numWidth);
-            const keyInfoUnpackSize = common.b2n(keyInfoUnpackSizeBuff);
+            const keyInfoUnpackSize = utils_1.default.b2n(keyInfoUnpackSizeBuff);
             offset += this.meta.numWidth;
             this.keyHeader.keyInfoUnpackSize = keyInfoUnpackSize;
         }
         // [24:32] - number of key block info compress size
         const keyInfoPackedSizeBuff = keyHeaderBuff.subarray(offset, offset + this.meta.numWidth);
-        const keyInfoPackedSize = common.b2n(keyInfoPackedSizeBuff);
+        const keyInfoPackedSize = utils_1.default.b2n(keyInfoPackedSizeBuff);
         offset += this.meta.numWidth;
         this.keyHeader.keyInfoPackedSize = keyInfoPackedSize;
         // [32:40] - number of key blocks total size, note, key blocks total size, not key block info
         const keywordBlockPackedSizeBuff = keyHeaderBuff.subarray(offset, offset + this.meta.numWidth);
-        const keywordBlockPackedSize = common.b2n(keywordBlockPackedSizeBuff);
+        const keywordBlockPackedSize = utils_1.default.b2n(keywordBlockPackedSizeBuff);
         offset += this.meta.numWidth;
         this.keyHeader.keywordBlockPackedSize = keywordBlockPackedSize;
         // 4 bytes alder32 checksum, after key info block (only >= v2.0)
@@ -640,7 +579,8 @@ class MDictBase {
         const keyBlockInfoBuff = this.scanner.readBuffer(this._keyBlockInfoStartOffset, this.keyHeader.keyInfoPackedSize);
         const keyBlockInfoList = this._decodeKeyInfo(keyBlockInfoBuff);
         this._keyBlockInfoEndOffset = this._keyBlockInfoStartOffset + this.keyHeader.keyInfoPackedSize;
-        if (!(this.keyHeader.keywordBlocksNum === keyBlockInfoList.length, 'the num_key_info_list should equals to key_block_info_list')) throw new Error("Assertion failed: this.keyHeader.keywordBlocksNum === keyBlockInfoList.length, 'the num_key_info_list should equals to key_block_info_list'");
+        if (!(this.keyHeader.keywordBlocksNum === keyBlockInfoList.length, 'the num_key_info_list should equals to key_block_info_list'))
+            throw new Error("Assertion failed: this.keyHeader.keywordBlocksNum === keyBlockInfoList.length, 'the num_key_info_list should equals to key_block_info_list'");
         this.keyInfoList = keyBlockInfoList;
         this._keyBlockStartOffset = this._keyBlockInfoEndOffset;
         // NOTE: must set at here, otherwise, if we haven't invoked the _decodeKeyBlockInfo method,
@@ -659,18 +599,20 @@ class MDictBase {
             // const _alder32Buff = keyInfoBuff.slice(4, 8)
             // const numEntries = this.keyHeader.entriesNum;
             if (this.meta.encrypt === 2) {
-                keyInfoBuff = common.mdxDecrypt(keyInfoBuff);
+                keyInfoBuff = utils_1.default.mdxDecrypt(keyInfoBuff);
             }
-            if (!(this.keyHeader.keyInfoPackedSize == keyInfoBuff.length, `key_block_info keyInfoPackedSize ${this.keyHeader.keyInfoPackedSize} should equal to key-info buffer length ${keyInfoBuff.length}`)) throw new Error("Assertion failed: this.keyHeader.keyInfoPackedSize == keyInfoBuff.length, `key_block_info keyInfoPackedSize ${this.keyHeader.keyInfoPackedSize} should equal to key-info buffer length ${keyInfoBuff.length}`");
+            if (!(this.keyHeader.keyInfoPackedSize == keyInfoBuff.length, `key_block_info keyInfoPackedSize ${this.keyHeader.keyInfoPackedSize} should equal to key-info buffer length ${keyInfoBuff.length}`))
+                throw new Error("Assertion failed: this.keyHeader.keyInfoPackedSize == keyInfoBuff.length, `key_block_info keyInfoPackedSize ${this.keyHeader.keyInfoPackedSize} should equal to key-info buffer length ${keyInfoBuff.length}`");
             if (this.meta.version >= 2.0 && packType == '2000') {
                 // For version 2.0, will compress by zlib, lzo just for 1.0
                 // key_block_info_compressed[0:8] => compress_type
-                const keyInfoBuffUnpacked = pako.inflate(keyInfoBuff.subarray(8));
+                const keyInfoBuffUnpacked = pako_1.default.inflate(keyInfoBuff.subarray(8));
                 // TODO: check the alder32 checksum
                 // adler32 = unpack('>I', key_block_info_compressed[4:8])[0]
                 // if (!(adler32 == zlib.adler32(key_block_info)) throw new Error("Assertion failed: adler32 == zlib.adler32(key_block_info") & 0xffffffff)
                 // this.keyHeader.keyInfoUnpackSize only exist when version >= 2.0
-                if (!(this.keyHeader.keyInfoUnpackSize == keyInfoBuffUnpacked.length, `key_block_info keyInfoUnpackSize  ${this.keyHeader.keyInfoUnpackSize} should equal to keyInfoBuffUnpacked buffer length ${keyInfoBuffUnpacked.length}`)) throw new Error("Assertion failed: this.keyHeader.keyInfoUnpackSize == keyInfoBuffUnpacked.length, `key_block_info keyInfoUnpackSize  ${this.keyHeader.keyInfoUnpackSize} should equal to keyInfoBuffUnpacked buffer length ${keyInfoBuffUnpacked.length}`");
+                if (!(this.keyHeader.keyInfoUnpackSize == keyInfoBuffUnpacked.length, `key_block_info keyInfoUnpackSize  ${this.keyHeader.keyInfoUnpackSize} should equal to keyInfoBuffUnpacked buffer length ${keyInfoBuffUnpacked.length}`))
+                    throw new Error("Assertion failed: this.keyHeader.keyInfoUnpackSize == keyInfoBuffUnpacked.length, `key_block_info keyInfoUnpackSize  ${this.keyHeader.keyInfoUnpackSize} should equal to keyInfoBuffUnpacked buffer length ${keyInfoBuffUnpacked.length}`");
                 keyInfoBuff = keyInfoBuffUnpacked;
             }
         }
@@ -689,9 +631,9 @@ class MDictBase {
             let lastWordSize = 0;
             let firstKey = '';
             let lastKey = '';
-            blockWordCount = common.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth));
+            blockWordCount = utils_1.default.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth));
             indexOffset += this.meta.numWidth;
-            firstWordSize = common.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth / 4));
+            firstWordSize = utils_1.default.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth / 4));
             indexOffset += this.meta.numWidth / 4;
             if (this.meta.version >= 2.0) {
                 if (this.meta.encoding === UTF16) {
@@ -708,7 +650,7 @@ class MDictBase {
             }
             const firstWordBuffer = keyInfoBuff.subarray(indexOffset, indexOffset + firstWordSize);
             indexOffset += firstWordSize;
-            lastWordSize = common.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth / 4));
+            lastWordSize = utils_1.default.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth / 4));
             indexOffset += this.meta.numWidth / 4;
             if (this.meta.version >= 2.0) {
                 if (this.meta.encoding === UTF16) {
@@ -725,9 +667,9 @@ class MDictBase {
             }
             const lastWordBuffer = keyInfoBuff.subarray(indexOffset, indexOffset + lastWordSize);
             indexOffset += lastWordSize;
-            packSize = common.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth));
+            packSize = utils_1.default.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth));
             indexOffset += this.meta.numWidth;
-            unpackSize = common.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth));
+            unpackSize = utils_1.default.b2n(keyInfoBuff.subarray(indexOffset, indexOffset + this.meta.numWidth));
             indexOffset += this.meta.numWidth;
             if (this.meta.encoding === UTF16) {
                 firstKey = this.meta.decoder.decode(new Uint8Array(firstWordBuffer));
@@ -760,7 +702,8 @@ class MDictBase {
         //   countEntriesNum === numEntries,
         //   `the number_entries ${numEntries} should equal the count_num_entries ${countEntriesNum}`
         // ");
-        if (!(kbPackSizeAccu === this.keyHeader.keywordBlockPackedSize)) throw new Error("Assertion failed: kbPackSizeAccu === this.keyHeader.keywordBlockPackedSize");
+        if (!(kbPackSizeAccu === this.keyHeader.keywordBlockPackedSize))
+            throw new Error("Assertion failed: kbPackSizeAccu === this.keyHeader.keywordBlockPackedSize");
         return keyBlockInfoList;
     }
     /**
@@ -781,11 +724,11 @@ class MDictBase {
         }
         else if (compType === 1) {
             // TODO: tests for v2.0 dictionary
-            const decompressedBuff = lzo1x.decompress(kbPackedBuff.subarray(8), unpackSize, 0);
+            const decompressedBuff = lzo1x_wrapper_js_1.default.decompress(kbPackedBuff.subarray(8), unpackSize, 0);
             keyBlock = decompressedBuff;
         }
         else if (compType === 2) {
-            keyBlock = pako.inflate(kbPackedBuff.subarray(8));
+            keyBlock = pako_1.default.inflate(kbPackedBuff.subarray(8));
             // extract one single key block into a key list
             // notice that adler32 returns signed value
             // TODO compare with previous word
@@ -809,7 +752,8 @@ class MDictBase {
             const packSize = this.keyInfoList[idx].keyBlockPackSize;
             const unpackSize = this.keyInfoList[idx].keyBlockUnpackSize;
             const start = kbStartOffset;
-            if (!(start === this.keyInfoList[idx].keyBlockPackAccumulator + this._keyBlockStartOffset, 'should be equal')) throw new Error("Assertion failed: start === this.keyInfoList[idx].keyBlockPackAccumulator + this._keyBlockStartOffset, 'should be equal'");
+            if (!(start === this.keyInfoList[idx].keyBlockPackAccumulator + this._keyBlockStartOffset, 'should be equal'))
+                throw new Error("Assertion failed: start === this.keyInfoList[idx].keyBlockPackAccumulator + this._keyBlockStartOffset, 'should be equal'");
             // const end = kbStartOffset + compSize;
             const kbCompBuff = this.scanner.readBuffer(start, packSize);
             const keyBlock = this.unpackKeyBlock(kbCompBuff, unpackSize);
@@ -823,7 +767,8 @@ class MDictBase {
         if (keyBlockList[keyBlockList.length - 1].recordEndOffset === -1) {
             keyBlockList[keyBlockList.length - 1].recordEndOffset = -1; // the latest one
         }
-        if (!(keyBlockList.length === this.keyHeader.keywordNum, `key list length: ${keyBlockList.length} should equal to key entries num: ${this.keyHeader.keywordNum}`)) throw new Error("Assertion failed: keyBlockList.length === this.keyHeader.keywordNum, `key list length: ${keyBlockList.length} should equal to key entries num: ${this.keyHeader.keywordNum}`");
+        if (!(keyBlockList.length === this.keyHeader.keywordNum, `key list length: ${keyBlockList.length} should equal to key entries num: ${this.keyHeader.keywordNum}`))
+            throw new Error("Assertion failed: keyBlockList.length === this.keyHeader.keywordNum, `key list length: ${keyBlockList.length} should equal to key entries num: ${this.keyHeader.keywordNum}`");
         this._keyBlockEndOffset = this._keyBlockStartOffset + this.keyHeader.keywordBlockPackedSize;
         // keep keyBlockList in memory
         this.keywordList = keyBlockList;
@@ -843,14 +788,15 @@ class MDictBase {
         this._recordHeaderEndOffset = this._recordHeaderStartOffset + recordHeaderLen;
         const recordHeaderBuffer = this.scanner.readBuffer(this._recordHeaderStartOffset, recordHeaderLen);
         let ofset = 0;
-        const recordBlocksNum = common.b2n(recordHeaderBuffer.subarray(ofset, ofset + this.meta.numWidth));
+        const recordBlocksNum = utils_1.default.b2n(recordHeaderBuffer.subarray(ofset, ofset + this.meta.numWidth));
         ofset += this.meta.numWidth;
-        const entriesNum = common.b2n(recordHeaderBuffer.subarray(ofset, ofset + this.meta.numWidth));
-        if (!(entriesNum === this.keyHeader.keywordNum)) throw new Error("Assertion failed: entriesNum === this.keyHeader.keywordNum");
+        const entriesNum = utils_1.default.b2n(recordHeaderBuffer.subarray(ofset, ofset + this.meta.numWidth));
+        if (!(entriesNum === this.keyHeader.keywordNum))
+            throw new Error("Assertion failed: entriesNum === this.keyHeader.keywordNum");
         ofset += this.meta.numWidth;
-        const recordInfoCompSize = common.b2n(recordHeaderBuffer.subarray(ofset, ofset + this.meta.numWidth));
+        const recordInfoCompSize = utils_1.default.b2n(recordHeaderBuffer.subarray(ofset, ofset + this.meta.numWidth));
         ofset += this.meta.numWidth;
-        const recordBlockCompSize = common.b2n(recordHeaderBuffer.subarray(ofset, ofset + this.meta.numWidth));
+        const recordBlockCompSize = utils_1.default.b2n(recordHeaderBuffer.subarray(ofset, ofset + this.meta.numWidth));
         this.recordHeader = {
             recordBlocksNum,
             entriesNum,
@@ -880,9 +826,9 @@ class MDictBase {
         let compressedAdder = 0;
         let decompressionAdder = 0;
         for (let i = 0; i < this.recordHeader.recordBlocksNum; i++) {
-            const packSize = common.b2n(recordInfoBuff.subarray(offset, offset + this.meta.numWidth));
+            const packSize = utils_1.default.b2n(recordInfoBuff.subarray(offset, offset + this.meta.numWidth));
             offset += this.meta.numWidth;
-            const unpackSize = common.b2n(recordInfoBuff.subarray(offset, offset + this.meta.numWidth));
+            const unpackSize = utils_1.default.b2n(recordInfoBuff.subarray(offset, offset + this.meta.numWidth));
             offset += this.meta.numWidth;
             recordInfoList.push({
                 packSize: packSize,
@@ -893,8 +839,10 @@ class MDictBase {
             compressedAdder += packSize;
             decompressionAdder += unpackSize;
         }
-        if (!(offset === this.recordHeader.recordInfoCompSize)) throw new Error("Assertion failed: offset === this.recordHeader.recordInfoCompSize");
-        if (!(compressedAdder === this.recordHeader.recordBlockCompSize)) throw new Error("Assertion failed: compressedAdder === this.recordHeader.recordBlockCompSize");
+        if (!(offset === this.recordHeader.recordInfoCompSize))
+            throw new Error("Assertion failed: offset === this.recordHeader.recordInfoCompSize");
+        if (!(compressedAdder === this.recordHeader.recordBlockCompSize))
+            throw new Error("Assertion failed: compressedAdder === this.recordHeader.recordBlockCompSize");
         this.recordInfoList = recordInfoList;
         // assign latest keyword's endoffset
         if (this.keywordList.length > 0) {
@@ -944,7 +892,7 @@ class MDictBase {
                     // const passkey = new Uint8Array(8);
                     // record_block_compressed.copy(passkey, 0, 4, 8);
                     // passkey.set([0x95, 0x36, 0x00, 0x00], 4); // key part 2: fixed data
-                    blockBufDecrypted = common.mdxDecrypt(rbPackBuff);
+                    blockBufDecrypted = utils_1.default.mdxDecrypt(rbPackBuff);
                 }
                 else {
                     blockBufDecrypted = rbPackBuff.subarray(8, rbPackBuff.length);
@@ -954,18 +902,19 @@ class MDictBase {
                 // --------------
                 if (rbCompType === 1) {
                     compressType = 'lzo';
-                    recordBlock = lzo1x.decompress(blockBufDecrypted, unpackSize, 0);
+                    recordBlock = lzo1x_wrapper_js_1.default.decompress(blockBufDecrypted, unpackSize, 0);
                 }
                 else if (rbCompType === 2) {
                     compressType = 'zlib';
                     // zlib decompress
-                    recordBlock = pako.inflate(blockBufDecrypted);
+                    recordBlock = pako_1.default.inflate(blockBufDecrypted);
                 }
             }
             // notice that adler32 return signed value
             // TODO: ignore the checksum
             // if (!(adler32 == zlib.adler32(record_block)) throw new Error("Assertion failed: adler32 == zlib.adler32(record_block") & 0xffffffff)
-            if (!(recordBlock.length === unpackSize)) throw new Error("Assertion failed: recordBlock.length === unpackSize");
+            if (!(recordBlock.length === unpackSize))
+                throw new Error("Assertion failed: recordBlock.length === unpackSize");
             /**
              * 请注意，block 是会有很多个的，而每个block都可能会被压缩
              * 而 key_list中的 record_start, key_text是相对每一个block而言的，end是需要每次解析的时候算出来的
@@ -1012,7 +961,8 @@ class MDictBase {
             offset += recordBlock.length;
             sizeCounter += packSize;
         }
-        if (!(sizeCounter === this.recordHeader.recordBlockCompSize)) throw new Error("Assertion failed: sizeCounter === this.recordHeader.recordBlockCompSize");
+        if (!(sizeCounter === this.recordHeader.recordBlockCompSize))
+            throw new Error("Assertion failed: sizeCounter === this.recordHeader.recordBlockCompSize");
         this.recordBlockDataList = keyData;
         this._recordBlockEndOffset = this._recordBlockStartOffset + sizeCounter;
     }
@@ -1036,12 +986,7 @@ class MDictBase {
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-
-
-
-
-export class Mdict extends MDictBase {
+class Mdict extends MDictBase {
     constructor(fname, options) {
         var _a, _b, _c, _d, _e, _f;
         options = options || {};
@@ -1115,7 +1060,6 @@ export class Mdict extends MDictBase {
             const recordBuffer = this.scanner.readBuffer(this._recordBlockStartOffset + recordBlockInfo.packAccumulateOffset, recordBlockInfo.packSize);
             unpackRecordBlockBuff = this.decompressBuff(recordBuffer, recordBlockInfo.unpackSize);
             this._recordBlockCache.set(recordBlockIndex, unpackRecordBlockBuff);
-            
             // Limit cache size to prevent memory bloat (keep last 20 blocks)
             if (this._recordBlockCache.size > 20) {
                 const firstKey = this._recordBlockCache.keys().next().value;
@@ -1149,7 +1093,7 @@ export class Mdict extends MDictBase {
      * @param {string} word searching phrase
      * @param keyInfoList
      */
-    lookupKeyInfoByWord(word, keyInfoList?: any) {
+    lookupKeyInfoByWord(word, keyInfoList) {
         const list = keyInfoList ? keyInfoList : this.keyInfoList;
         if (list.length === 1) {
             return 0;
@@ -1172,19 +1116,16 @@ export class Mdict extends MDictBase {
                 right = mid - 1;
             }
         }
-        
         // Fallback 1: Linear scan for edge cases (since block count is very small, < 100)
         for (let i = 0; i < list.length; i++) {
             if (this.comp(word, list[i].firstKey) >= 0 && this.comp(word, list[i].lastKey) <= 0) {
                 return i;
             }
         }
-
         // Fallback 2: If the word is larger than the firstKey of the last block (handles out-of-order markers at the end of last block)
         if (list.length > 0 && this.comp(word, list[list.length - 1].firstKey) >= 0) {
             return list.length - 1;
         }
-
         return -1;
     }
     decompressBuff(recordBuffer, unpackSize) {
@@ -1208,19 +1149,19 @@ export class Mdict extends MDictBase {
                 // const passkey = new Uint8Array(8);
                 // record_block_compressed.copy(passkey, 0, 4, 8);
                 // passkey.set([0x95, 0x36, 0x00, 0x00], 4); // key part 2: fixed data
-                blockBufDecrypted = common.mdxDecrypt(recordBuffer);
+                blockBufDecrypted = utils_1.default.mdxDecrypt(recordBuffer);
             }
             else {
                 blockBufDecrypted = recordBuffer.subarray(8, recordBuffer.length);
             }
             // decompress
             if (rbCompType === 1) {
-                const decompressed = lzo1x.decompress(blockBufDecrypted, unpackSize, 1308672);
+                const decompressed = lzo1x_wrapper_js_1.default.decompress(blockBufDecrypted, unpackSize, 1308672);
                 unpackRecordBlockBuff = decompressed;
             }
             else if (rbCompType === 2) {
                 // zlib decompress
-                unpackRecordBlockBuff = pako.inflate(blockBufDecrypted);
+                unpackRecordBlockBuff = pako_1.default.inflate(blockBufDecrypted);
             }
         }
         return unpackRecordBlockBuff;
@@ -1254,6 +1195,7 @@ export class Mdict extends MDictBase {
         }
     }
 }
+exports.Mdict = Mdict;
 /**
  * 经过一系列测试, 发现mdx格式的文件存在较大的词语排序问题，存在如下情况：
  * 1. 大小写的问题 比如 a-zA-Z 和 aA-zZ 这种并存的情况
@@ -1265,9 +1207,7 @@ export class Mdict extends MDictBase {
  */
 //# sourceMappingURL=mdict.js.map
 // === mdx ===
-
-
-export class MDX extends Mdict {
+class MDX extends Mdict {
     /**
      * lookup the word
      * @tests ok
@@ -1369,7 +1309,7 @@ export class MDX extends Mdict {
         const suggestList = [];
         keywordList.forEach(item => {
             const key = this.strip(item.keyText);
-            const ed = common.levenshteinDistance(key, this.strip(phrase));
+            const ed = utils_1.default.levenshteinDistance(key, this.strip(phrase));
             if (ed <= distance) {
                 suggestList.push(item);
             }
@@ -1402,7 +1342,7 @@ export class MDX extends Mdict {
         const keywordList = this.associate(word);
         keywordList.forEach(item => {
             const key = this.strip(item.keyText);
-            const ed = common.levenshteinDistance(key, this.strip(word));
+            const ed = utils_1.default.levenshteinDistance(key, this.strip(word));
             if (ed <= ed_gap) {
                 fuzzy_words.push(Object.assign(Object.assign({}, item), { ed: ed }));
             }
@@ -1434,23 +1374,21 @@ export class MDX extends Mdict {
         return matchedList;
     }
     searchPrefix(prefix) {
-        if (!prefix) return [];
+        if (!prefix)
+            return [];
         const cleanedPrefix = prefix.toLowerCase().trim();
         const results = [];
         const seen = new Set();
-
         for (let idx = 0; idx < this.keyInfoList.length; idx++) {
             const block = this.keyInfoList[idx];
-            
             // If there's only 1 block, scan it directly. Otherwise, do boundary check.
             let shouldScan = this.keyInfoList.length === 1;
             if (!shouldScan) {
                 const cleanFirst = block.firstKey.toLowerCase().trim();
                 const cleanLast = block.lastKey.toLowerCase().trim();
                 shouldScan = (cleanLast >= cleanedPrefix && cleanFirst <= cleanedPrefix + '\uffff') ||
-                             (idx === this.keyInfoList.length - 1 && cleanFirst <= cleanedPrefix + '\uffff');
+                    (idx === this.keyInfoList.length - 1 && cleanFirst <= cleanedPrefix + '\uffff');
             }
-
             if (shouldScan) {
                 const partialList = this.lookupPartialKeyBlockListByKeyInfoId(idx);
                 for (const item of partialList) {
@@ -1467,4 +1405,5 @@ export class MDX extends Mdict {
         return results;
     }
 }
+exports.MDX = MDX;
 //# sourceMappingURL=mdx.js.map

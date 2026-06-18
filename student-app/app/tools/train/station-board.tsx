@@ -20,7 +20,8 @@ import {
   searchTrain,
   getOperatorInfo,
   getTrainStatus,
-  VtBoardEntry
+  VtBoardEntry,
+  cleanPlatform
 } from '../../../lib/viaggiaTrenoService';
 
 const { width } = Dimensions.get('window');
@@ -109,6 +110,53 @@ const matchPlatformFromStatus = (status: any, targetStationID: string) => {
     };
   }
   return null;
+};
+
+const normalizePlatform = (p: string) => {
+  return cleanPlatform(p).toUpperCase();
+};
+
+const getPlatformDisplayInfo = (scheduled: string, actual: string) => {
+  const schedClean = cleanPlatform(scheduled);
+  const actClean = cleanPlatform(actual);
+  const schedNorm = schedClean.toUpperCase();
+  const actNorm = actClean.toUpperCase();
+
+  if (!actNorm) {
+    return { hasChange: false, display: schedClean };
+  }
+  if (!schedNorm) {
+    return { hasChange: false, display: actClean };
+  }
+  if (schedNorm === actNorm) {
+    return { hasChange: false, display: actClean };
+  }
+
+  // Check if one is generic "AV" and the other is a high-speed platform (16, 17, 18, 19, or contains "AV")
+  const isHighSpeedPlatform = (p: string) => {
+    return /^(16|17|18|19)$/.test(p) || p.includes('AV');
+  };
+
+  const isGenericAvMatch = 
+    (schedNorm === 'AV' && isHighSpeedPlatform(actNorm)) ||
+    (actNorm === 'AV' && isHighSpeedPlatform(schedNorm));
+  
+  if (isGenericAvMatch) {
+    // No real change, display the more specific one
+    const moreSpecific = schedNorm === 'AV' ? actClean : schedClean;
+    return { hasChange: false, display: moreSpecific };
+  }
+
+  // Check if one is just the number of the other (e.g., "19" vs "19 AV" or "19AV")
+  const schedDigits = schedNorm.replace(/\D/g, '');
+  const actDigits = actNorm.replace(/\D/g, '');
+  
+  if (schedDigits && actDigits && schedDigits === actDigits) {
+    const moreSpecific = schedNorm.length >= actNorm.length ? schedClean : actClean;
+    return { hasChange: false, display: moreSpecific };
+  }
+
+  return { hasChange: true, scheduled: schedClean, actual: actClean };
 };
 
 export default function StationBoardScreen() {
@@ -308,10 +356,7 @@ export default function StationBoardScreen() {
     const actualPlatform = item.actualPlatform || extraTime?.actualPlatform || '';
 
     // Platform track changes
-    const hasPlatformChange =
-      actualPlatform !== '' &&
-      scheduledPlatform !== '' &&
-      actualPlatform !== scheduledPlatform;
+    const platformInfo = getPlatformDisplayInfo(scheduledPlatform, actualPlatform);
 
     // Operator branding details
     const op = getOperatorInfo(item.codiceCliente, item.category);
@@ -395,14 +440,14 @@ export default function StationBoardScreen() {
                 <MaterialIcons name="train" size={13} color={colors.textSecondary} style={{ marginRight: 2 }} />
                 <Text style={{ fontSize: 12, color: colors.textSecondary }}>
                   {t('platform')}:{' '}
-                  {hasPlatformChange ? (
+                  {platformInfo.hasChange ? (
                     <Text>
-                      <Text style={{ textDecorationLine: 'line-through' }}>{scheduledPlatform}</Text>{' '}
-                      <Text style={{ color: '#F59E0B', fontWeight: 'bold' }}>{actualPlatform}</Text>
+                      <Text style={{ textDecorationLine: 'line-through' }}>{platformInfo.scheduled}</Text>{' '}
+                      <Text style={{ color: '#F59E0B', fontWeight: 'bold' }}>{platformInfo.actual}</Text>
                     </Text>
                   ) : (
                     <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>
-                      {actualPlatform || scheduledPlatform}
+                      {platformInfo.display}
                     </Text>
                   )}
                 </Text>

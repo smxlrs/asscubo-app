@@ -152,8 +152,8 @@ const translations: Record<Language, Record<string, string>> = {
     feedbackSuccess: '反馈提交成功！感谢您的宝贵意见。',
     feedbackError: '请填写完整内容',
     acssDescription: '欧洲学生学者联合会是由在欧留学的广大中国学生学者组成的自治组织，致力于服务留学人员，维护合法权益，促进中欧学术文化交流。',
-    trainToolTitle: '意铁看板与车次',
-    trainToolDesc: '实时查询意大利火车出发到达看板，追踪列车晚点及站台状态。'
+    trainToolTitle: '意大利火车查询',
+    trainToolDesc: '实时查看意大利各火车站出发和到达表，追踪列车时刻和站台信息。'
   },
   en: {
     home: 'Home',
@@ -402,8 +402,8 @@ const translations: Record<Language, Record<string, string>> = {
     feedbackSuccess: '反饋提交成功！感謝您的寶貴意見。',
     feedbackError: '請填寫完整內容',
     acssDescription: '歐洲學生學者聯合會是由在歐留學的廣大中國學生學者組成的自治組織，致力於服務留學人員，維護合法權益，促進中歐學術文化交流。',
-    trainToolTitle: '意鐵看板與車次',
-    trainToolDesc: '即時查詢意大利火車出發到達看板，追蹤列車晚點及站台狀態。'
+    trainToolTitle: '意大利火車查詢',
+    trainToolDesc: '即時查看意大利各火車站出發和到達表，追蹤列車時刻和站台信息。'
   }
 };
 

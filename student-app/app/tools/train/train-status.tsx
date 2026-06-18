@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -21,11 +21,55 @@ import {
   getOperatorInfo,
   VtTrainStatus,
   VtStop,
-  VtAlert
+  VtAlert,
+  cleanPlatform
 } from '../../../lib/viaggiaTrenoService';
 import { MarqueeText } from '../../../components/MarqueeText';
 
 const { width } = Dimensions.get('window');
+
+const getPlatformDisplayInfo = (scheduled: string, actual: string) => {
+  const schedClean = cleanPlatform(scheduled);
+  const actClean = cleanPlatform(actual);
+  const schedNorm = schedClean.toUpperCase();
+  const actNorm = actClean.toUpperCase();
+
+  if (!actNorm) {
+    return { hasChange: false, display: schedClean };
+  }
+  if (!schedNorm) {
+    return { hasChange: false, display: actClean };
+  }
+  if (schedNorm === actNorm) {
+    return { hasChange: false, display: actClean };
+  }
+
+  // Check if one is generic "AV" and the other is a high-speed platform (16, 17, 18, 19, or contains "AV")
+  const isHighSpeedPlatform = (p: string) => {
+    return /^(16|17|18|19)$/.test(p) || p.includes('AV');
+  };
+
+  const isGenericAvMatch = 
+    (schedNorm === 'AV' && isHighSpeedPlatform(actNorm)) ||
+    (actNorm === 'AV' && isHighSpeedPlatform(schedNorm));
+  
+  if (isGenericAvMatch) {
+    // No real change, display the more specific one
+    const moreSpecific = schedNorm === 'AV' ? actClean : schedClean;
+    return { hasChange: false, display: moreSpecific };
+  }
+
+  // Check if one is just the number of the other (e.g., "19" vs "19 AV" or "19AV")
+  const schedDigits = schedNorm.replace(/\D/g, '');
+  const actDigits = actNorm.replace(/\D/g, '');
+  
+  if (schedDigits && actDigits && schedDigits === actDigits) {
+    const moreSpecific = schedNorm.length >= actNorm.length ? schedClean : actClean;
+    return { hasChange: false, display: moreSpecific };
+  }
+
+  return { hasChange: true, scheduled: schedClean, actual: actClean };
+};
 
 const LOCALIZED: Record<Language, Record<string, string>> = {
   zh: {
@@ -159,6 +203,7 @@ export default function TrainStatusScreen() {
 
   const FAVORITE_TRAINS_KEY = '@ag_favorite_trains';
   const RECENT_TRAINS_KEY = '@ag_recent_trains';
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
     setActiveTimestamp(timestamp || '');
@@ -250,6 +295,8 @@ export default function TrainStatusScreen() {
 
   const fetchData = async (isRef = false) => {
     if (!trainNumber) return;
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     if (!isRef) setLoading(true);
     setErrorMsg('');
     setAlerts([]); // Reset alerts
@@ -335,6 +382,7 @@ export default function TrainStatusScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      isFetchingRef.current = false;
     }
   };
 
@@ -407,6 +455,43 @@ export default function TrainStatusScreen() {
     return lastIndex;
   };
 
+  if (!status) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
+          </Pressable>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t('title')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Pressable onPress={handleRefresh} style={styles.backButton}>
+              <MaterialIcons name="refresh" size={24} color={colors.textPrimary} />
+            </Pressable>
+          </View>
+        </View>
+
+        {errorMsg ? (
+          <View style={styles.centerContainer}>
+            <MaterialIcons name="error-outline" size={48} color={colors.error} />
+            <Text style={[styles.errorText, { color: colors.error }]}>{errorMsg}</Text>
+            <Pressable
+              onPress={handleRefresh}
+              style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+            >
+              <Text style={styles.retryBtnText}>{t('refresh')}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.statusText, { color: colors.textSecondary }]}>{t('loading')}</Text>
+          </View>
+        )}
+      </SafeAreaView>
+    );
+  }
+
   const timeBasedActiveIndex = status ? getLastReachedStopIndex(status.stops) : -1;
   const nameBasedActiveIndex = status
     ? status.stops.findIndex(
@@ -434,7 +519,7 @@ export default function TrainStatusScreen() {
     delayText = `${t('earlyMin')}: ${Math.abs(delayMinutes)} ${t('minUnit')}`;
   }
   // Check operator category
-  const isHighSpeed = status && ['FR', 'FA', 'FB', 'Italo', 'EC', 'EN'].includes(status.category);
+  const isHighSpeed = status && ['FR', 'FA', 'FB', 'Italo', 'ITALO', 'NTV', 'EC', 'EN'].includes(status.category);
 
   const handleStationPress = (stationName: string, stationId: string) => {
     router.push({
@@ -495,23 +580,7 @@ export default function TrainStatusScreen() {
         </View>
       </View>
 
-      {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.statusText, { color: colors.textSecondary }]}>{t('loading')}</Text>
-        </View>
-      ) : errorMsg || !status ? (
-        <View style={styles.centerContainer}>
-          <MaterialIcons name="error-outline" size={48} color={colors.error} />
-          <Text style={[styles.errorText, { color: colors.error }]}>{errorMsg}</Text>
-          <Pressable
-            onPress={handleRefresh}
-            style={[styles.retryBtn, { backgroundColor: colors.primary }]}
-          >
-            <Text style={styles.retryBtnText}>{t('refresh')}</Text>
-          </Pressable>
-        </View>
-      ) : (
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -527,7 +596,7 @@ export default function TrainStatusScreen() {
                     {status.category}
                   </Text>
                 </View>
-                <Text style={[styles.trainNumText, { color: colors.textPrimary, marginRight: 8 }]}>{status.number}</Text>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.trainNumText, { color: colors.textPrimary, marginRight: 8 }]}>{status.number}</Text>
                 {(() => {
                   const op = getOperatorInfo(status.codiceCliente ?? null, status.category);
                   return (
@@ -544,7 +613,7 @@ export default function TrainStatusScreen() {
                   );
                 })()}
               </View>
-              <Text style={[styles.delayBadgeText, { color: delayColor, fontWeight: 'bold' }]}>
+              <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.delayBadgeText, { color: delayColor, fontWeight: 'bold' }]}>
                 {delayText}
               </Text>
             </View>
@@ -688,10 +757,7 @@ export default function TrainStatusScreen() {
                 }
 
                 // Platform change check
-                const hasTrackChange =
-                  stop.actualPlatform &&
-                  stop.scheduledPlatform &&
-                  stop.actualPlatform !== stop.scheduledPlatform;
+                const platformInfo = getPlatformDisplayInfo(stop.scheduledPlatform || '', stop.actualPlatform || '');
 
                 // Time calculations (Scheduled and Actual side-by-side)
                 const arrTimes = getDisplayTimes(stop.scheduledArrivalTime, stop.actualArrivalTime);
@@ -814,14 +880,14 @@ export default function TrainStatusScreen() {
                         <View style={styles.trackCol}>
                           <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>
                             {t('stopPlatform')}:{' '}
-                            {hasTrackChange ? (
+                            {platformInfo.hasChange ? (
                               <Text>
-                                <Text style={{ textDecorationLine: 'line-through' }}>{stop.scheduledPlatform}</Text>{' '}
-                                <Text style={{ color: '#F59E0B', fontWeight: 'bold' }}>{stop.actualPlatform}</Text>
+                                <Text style={{ textDecorationLine: 'line-through' }}>{platformInfo.scheduled}</Text>{' '}
+                                <Text style={{ color: '#F59E0B', fontWeight: 'bold' }}>{platformInfo.actual}</Text>
                               </Text>
                             ) : (
                               <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
-                                {stop.actualPlatform || stop.scheduledPlatform || '--'}
+                                {platformInfo.display || '--'}
                               </Text>
                             )}
                           </Text>
@@ -840,7 +906,6 @@ export default function TrainStatusScreen() {
             </Text>
           </View>
         </ScrollView>
-      )}
     </SafeAreaView>
   );
 }
@@ -914,6 +979,7 @@ const styles = StyleSheet.create({
   trainBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 1,
   },
   catBadge: {
     paddingHorizontal: 6,
@@ -931,6 +997,7 @@ const styles = StyleSheet.create({
   },
   delayBadgeText: {
     fontSize: 13,
+    flexShrink: 0,
   },
   endpointsRow: {
     flexDirection: 'row',

@@ -1394,7 +1394,6 @@ export default function EmptyClassroomScreen() {
               setShowCampusModal(false);
             }}
           >
-            <MaterialIcons name="location-on" size={18} color={selectedCampus === 'all' ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
             <Text 
               style={[
                 styles.modalItemText, 
@@ -1419,7 +1418,6 @@ export default function EmptyClassroomScreen() {
                   setShowCampusModal(false);
                 }}
               >
-                <MaterialIcons name="location-on" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
                 <Text 
                   style={[
                     styles.modalItemText, 
@@ -1454,7 +1452,6 @@ export default function EmptyClassroomScreen() {
               setShowBuildingModal(false);
             }}
           >
-            <MaterialIcons name="business" size={18} color={selectedBuildingId === 'all' ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
             <Text 
               style={[
                 styles.modalItemText, 
@@ -1487,8 +1484,7 @@ export default function EmptyClassroomScreen() {
                   setShowBuildingModal(false);
                 }}
               >
-                <MaterialIcons name="business" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
-                <View style={{ flex: 1, alignItems: 'center', marginRight: 26 }}>
+                <View style={{ flex: 1, alignItems: 'center' }}>
                   <Text 
                     style={[
                       styles.modalItemText, 
@@ -1538,7 +1534,6 @@ export default function EmptyClassroomScreen() {
                   setShowCapacityModal(false);
                 }}
               >
-                <MaterialIcons name="people" size={18} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 8 }} />
                 <Text 
                   style={[
                     styles.modalItemText, 
@@ -1782,6 +1777,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     flex: 1,
+    textAlign: 'center',
   },
   listHeaderTitle: {
     fontSize: 16,

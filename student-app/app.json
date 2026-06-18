@@ -26,7 +26,12 @@
       "bundleIdentifier": "com.studentunion.app",
       "infoPlist": {
         "NSCameraUsageDescription": "允许访问相机以上传头像",
-        "NSPhotoLibraryUsageDescription": "允许访问相册以上传头像"
+        "NSPhotoLibraryUsageDescription": "允许访问相册以上传头像",
+        "LSApplicationQueriesSchemes": [
+          "trenitalia",
+          "italo",
+          "italotreno"
+        ]
       }
     },
     "android": {

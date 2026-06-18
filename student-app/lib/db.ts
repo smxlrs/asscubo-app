@@ -106,6 +106,47 @@ export function cleanWord(word: string): string {
 }
 
 // Copy MDX assets to local directory
+// Safe copy dictionary asset atomic operation (via .tmp and move)
+async function safeCopyAsset(dictId: string, localPath: string): Promise<boolean> {
+  const assetRef = DICT_ASSETS[dictId];
+  if (!assetRef) return false;
+
+  try {
+    const asset = Asset.fromModule(assetRef);
+    await asset.downloadAsync();
+    if (asset.localUri) {
+      const tempPath = `${localPath}.tmp`;
+      
+      // Ensure stale temp file is deleted
+      const tempInfo = await FileSystem.getInfoAsync(tempPath);
+      if (tempInfo.exists) {
+        try {
+          await FileSystem.deleteAsync(tempPath, { idempotent: true });
+        } catch (de) {
+          // ignore
+        }
+      }
+
+      console.log(`Copying asset ${dictId} to temp file: ${tempPath}...`);
+      await FileSystem.copyAsync({
+        from: asset.localUri,
+        to: tempPath
+      });
+      
+      console.log(`Moving temp file to final location: ${localPath}...`);
+      await FileSystem.moveAsync({
+        from: tempPath,
+        to: localPath
+      });
+      return true;
+    }
+  } catch (e) {
+    console.error(`Failed to safe copy asset for ${dictId}:`, e);
+  }
+  return false;
+}
+
+// Copy MDX assets to local directory
 export async function initDatabase(): Promise<any> {
   const dirInfo = await FileSystem.getInfoAsync(DICT_DIR);
   if (!dirInfo.exists) {
@@ -125,27 +166,34 @@ export async function initDatabase(): Promise<any> {
 
     const localPath = `${DICT_DIR}/${dict.id}.mdx`;
     const localInfo = await FileSystem.getInfoAsync(localPath);
-    if (!localInfo.exists) {
+    // If not exists or size is 0 (broken copy), perform a safe atomic copy
+    if (!localInfo.exists || localInfo.size === 0) {
       console.log(`Copying dictionary ${dict.name} to local storage...`);
-      const assetRef = DICT_ASSETS[dict.id];
-      if (assetRef) {
-        try {
-          const asset = Asset.fromModule(assetRef);
-          await asset.downloadAsync();
-          if (asset.localUri) {
-            await FileSystem.copyAsync({
-              from: asset.localUri,
-              to: localPath
-            });
-            console.log(`Copied ${dict.name} to local path ${localPath}`);
-          }
-        } catch (e) {
-          console.error(`Failed to copy dict asset ${dict.name}:`, e);
-        }
-      }
+      await safeCopyAsset(dict.id, localPath);
     }
   }
   return null;
+}
+
+// Global promise chain lock to serialize MDX loading and decoding,
+// completely avoiding concurrent bridge usage and memory spike.
+// Helper function to race a promise against a timeout
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage = 'Operation timed out'): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(errorMessage));
+    }, ms);
+
+    promise
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
 }
 
 // Lazy load MDX instance
@@ -154,7 +202,7 @@ export async function getOrLoadMDXInstance(dictId: string): Promise<MDX | null> 
     return mdxInstances[dictId];
   }
 
-  // Deduplicate loading calls
+  // Deduplicate loading calls for the same dictId
   if (mdxLoadingPromises[dictId] !== undefined) {
     return mdxLoadingPromises[dictId];
   }
@@ -164,42 +212,58 @@ export async function getOrLoadMDXInstance(dictId: string): Promise<MDX | null> 
       const localPath = `${DICT_DIR}/${dictId}.mdx`;
       let localInfo = await FileSystem.getInfoAsync(localPath);
       
-      // If file not in local storage (e.g. just enabled in settings), copy it first
-      if (!localInfo.exists) {
-        const assetRef = DICT_ASSETS[dictId];
-        if (!assetRef) return null;
-        
+      // If file not in local storage or size is 0, copy it safely
+      if (!localInfo.exists || localInfo.size === 0) {
         const dirInfo = await FileSystem.getInfoAsync(DICT_DIR);
         if (!dirInfo.exists) {
           await FileSystem.makeDirectoryAsync(DICT_DIR, { intermediates: true });
         }
-        
-        const asset = Asset.fromModule(assetRef);
-        await asset.downloadAsync();
-        if (asset.localUri) {
-          await FileSystem.copyAsync({
-            from: asset.localUri,
-            to: localPath
-          });
+        const copySuccess = await safeCopyAsset(dictId, localPath);
+        if (!copySuccess) {
+          return null;
         }
+        localInfo = await FileSystem.getInfoAsync(localPath);
       }
 
-      console.log(`Loading MDX file into memory: ${dictId}...`);
+      if (!localInfo.exists || localInfo.size === 0) {
+        console.error(`Failed to load MDX ${dictId}: file still does not exist or size is 0`);
+        return null;
+      }
+
+      console.log(`Loading MDX file into memory with 6s timeout: ${dictId}...`);
       const startLoad = Date.now();
-      const base64 = await FileSystem.readAsStringAsync(localPath, { encoding: 'base64' });
-      const bytes = base64ToBytes(base64);
-      console.log(`Decoded base64 for ${dictId} in ${Date.now() - startLoad}ms. File size: ${bytes.length} bytes.`);
-      console.log(`First 20 bytes for ${dictId}:`, Array.from(bytes.subarray(0, 20)));
-      console.log(`Last 20 bytes for ${dictId}:`, Array.from(bytes.subarray(bytes.length - 20)));
-      
-      const startParse = Date.now();
-      const mdx = new MDX(bytes, undefined);
-      console.log(`Parsed MDX ${dictId} in ${Date.now() - startParse}ms. Keywords count: ${mdx.keywordList.length}`);
-      
+
+      // Wrap FileSystem.readAsStringAsync and MDX instantiation in a timeout race to prevent bridge freeze
+      const loadAndParsePromise = (async () => {
+        const base64 = await FileSystem.readAsStringAsync(localPath, { encoding: 'base64' });
+        const bytes = base64ToBytes(base64);
+        console.log(`Decoded base64 for ${dictId} in ${Date.now() - startLoad}ms. File size: ${bytes.length} bytes.`);
+        
+        const startParse = Date.now();
+        const mdx = new MDX(bytes, undefined);
+        console.log(`Parsed MDX ${dictId} in ${Date.now() - startParse}ms. Keywords count: ${mdx.keywordList.length}`);
+        return mdx;
+      })();
+
+      // 6 seconds timeout limit per dictionary to keep UI responsive
+      const mdx = await withTimeout(loadAndParsePromise, 6000, `MDX load timeout for ${dictId}`);
+
       mdxInstances[dictId] = mdx;
       return mdx;
-    } catch (e) {
+    } catch (e: any) {
       console.error(`Failed to load MDX instance ${dictId}:`, e);
+      // Self-healing: if loading or parsing failed (but not a timeout), the file is likely corrupted.
+      // Do NOT delete the file if it was just a transient timeout.
+      const isTimeout = e && String(e.message || '').toLowerCase().includes('timeout');
+      if (!isTimeout) {
+        try {
+          const localPath = `${DICT_DIR}/${dictId}.mdx`;
+          console.log(`Self-healing: Deleting corrupted dictionary file: ${localPath}`);
+          await FileSystem.deleteAsync(localPath, { idempotent: true });
+        } catch (de) {
+          console.warn(`Failed to clean up corrupted file ${dictId}:`, de);
+        }
+      }
       return null;
     } finally {
       delete mdxLoadingPromises[dictId];
@@ -254,11 +318,21 @@ export type SuggestionItem = {
   definition: string;
 };
 
-// High performance prefix search across all enabled MDX files
 export async function searchWords(query: string, enabledDictIds: string[]): Promise<SuggestionItem[]> {
   if (!query || enabledDictIds.length === 0) return [];
   const cleanedQuery = cleanWord(query);
   if (!cleanedQuery) return [];
+
+  // If no dictionaries are loaded at all in memory, load the first enabled one on-demand
+  // so that suggestions work instantly for the first search
+  let loadedCount = enabledDictIds.filter(id => !!mdxInstances[id]).length;
+  if (loadedCount === 0 && enabledDictIds.length > 0) {
+    try {
+      await getOrLoadMDXInstance(enabledDictIds[0]);
+    } catch (e) {
+      console.warn(`Failed to on-demand load first dictionary for suggestions:`, e);
+    }
+  }
 
   const allSuggestions: SuggestionItem[] = [];
   const seen = new Set<string>();
@@ -320,8 +394,12 @@ export async function getDefinitions(word: string, enabledDictIds: string[]): Pr
       const mdx = await getOrLoadMDXInstance(dictId);
       if (!mdx) return null;
 
-      // Try exact lookup first
-      let res = mdx.lookup(word);
+      // Try exact lookup with cleanedTarget (lowercase) first
+      let res = mdx.lookup(cleanedTarget);
+      if ((!res || !res.definition) && cleanedTarget !== word) {
+        res = mdx.lookup(word);
+      }
+
       if (res && res.definition) {
         return {
           dict_id: dictId,
@@ -329,7 +407,11 @@ export async function getDefinitions(word: string, enabledDictIds: string[]): Pr
         };
       } else {
         // Fallback: Try accent-insensitive / case-insensitive search in matching block
-        const keyBlockInfoId = mdx.lookupKeyInfoByWord(word);
+        let keyBlockInfoId = mdx.lookupKeyInfoByWord(cleanedTarget);
+        if (keyBlockInfoId < 0 && cleanedTarget !== word) {
+          keyBlockInfoId = mdx.lookupKeyInfoByWord(word);
+        }
+
         if (keyBlockInfoId >= 0) {
           const partialList = mdx.lookupPartialKeyBlockListByKeyInfoId(keyBlockInfoId);
           const matchedItem = partialList.find((item: any) => {
@@ -374,8 +456,12 @@ export async function getSingleDefinition(word: string, dictId: string): Promise
     const mdx = await getOrLoadMDXInstance(dictId);
     if (!mdx) return null;
 
-    // Try exact lookup first
-    let res = mdx.lookup(word);
+    // Try exact lookup with cleanedTarget (lowercase) first
+    let res = mdx.lookup(cleanedTarget);
+    if ((!res || !res.definition) && cleanedTarget !== word) {
+      res = mdx.lookup(word);
+    }
+
     if (res && res.definition) {
       return {
         dict_id: dictId,
@@ -383,7 +469,11 @@ export async function getSingleDefinition(word: string, dictId: string): Promise
       };
     } else {
       // Fallback: Try accent-insensitive / case-insensitive search in matching block
-      const keyBlockInfoId = mdx.lookupKeyInfoByWord(word);
+      let keyBlockInfoId = mdx.lookupKeyInfoByWord(cleanedTarget);
+      if (keyBlockInfoId < 0 && cleanedTarget !== word) {
+        keyBlockInfoId = mdx.lookupKeyInfoByWord(word);
+      }
+
       if (keyBlockInfoId >= 0) {
         const partialList = mdx.lookupPartialKeyBlockListByKeyInfoId(keyBlockInfoId);
         const matchedItem = partialList.find((item: any) => {

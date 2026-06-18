@@ -2,8 +2,24 @@ import { stations, Station } from '../assets/stations';
 
 const BASE_URL = 'http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
 
+export const fetchWithTimeout = async (url: string, options?: RequestInit, timeoutMs = 3000): Promise<Response> => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
+
 export const getCleanStationName = (apiName: string, id?: string): string => {
-  const name = String(apiName || '').trim();
+  let name = String(apiName || '').trim();
   if (!name) return '';
 
   const cleanId = String(id || '').trim();
@@ -25,7 +41,7 @@ export const getCleanStationName = (apiName: string, id?: string): string => {
   }
 
   if (name === name.toUpperCase() && name !== name.toLowerCase()) {
-    return name
+    name = name
       .toLowerCase()
       .split(/\s+/)
       .map(word => {
@@ -34,6 +50,12 @@ export const getCleanStationName = (apiName: string, id?: string): string => {
       })
       .join(' ');
   }
+
+  // Normalize common Italian station name abbreviations (e.g. Bologna C.le/AV, Milano C.le)
+  name = name.replace(/Bologna[\s\.\/]*-*(C\.?le|C\s*le|cle)\/AV/gi, 'Bologna Centrale');
+  name = name.replace(/Bologna[\s\.\/]*-*(C\.?le|C\s*le|cle)/gi, 'Bologna Centrale');
+  name = name.replace(/\b(\w+)[\s\.\/]*-*(C\.?le|C\s*le|cle)(\/AV)?\b/gi, '$1 Centrale');
+  name = name.replace(/\b(\w+)[\s\.]+(C\.?le|C\s*le|cle)\b/gi, '$1 Centrale');
 
   return name;
 };
@@ -130,12 +152,255 @@ const CHINESE_CITY_MAPPINGS: Record<string, string> = {
   '摩德纳': 'modena',
 };
 
-const cleanPlatform = (val: any) => {
+const ROMAN_TO_ARABIC: Record<string, string> = {
+  'I': '1', 'II': '2', 'III': '3', 'IV': '4', 'V': '5',
+  'VI': '6', 'VII': '7', 'VIII': '8', 'IX': '9', 'X': '10',
+  'XI': '11', 'XII': '12', 'XIII': '13', 'XIV': '14', 'XV': '15',
+  'XVI': '16', 'XVII': '17', 'XVIII': '18', 'XIX': '19', 'XX': '20',
+  'XXI': '21', 'XXII': '22', 'XXIII': '23', 'XXIV': '24', 'XXV': '25',
+  'XXVI': '26', 'XXVII': '27', 'XXVIII': '28', 'XXIX': '29', 'XXX': '30'
+};
+
+export const cleanPlatform = (val: any): string => {
   if (!val) return '';
-  const s = String(val).trim();
+  let s = String(val).trim();
   if (s.toLowerCase() === 'none' || s.toLowerCase() === 'null') return '';
+
+  // 1. Clean V-PO / V-PE / P.O. / P.E. / PO / PE (case-insensitive) suffixes
+  s = s.replace(/[\s\-\/]+V\-?P\.?[OE]\.?$/i, '');
+  s = s.replace(/[\s\-\/]+P\.?[OE]\.?$/i, '');
+
+  // 2. Convert Roman numerals to Arabic numerals
+  s = s.replace(/[A-Z]+/gi, (match) => {
+    const upper = match.toUpperCase();
+    return ROMAN_TO_ARABIC[upper] || match;
+  });
+
+  // 3. Remove "AV" suffix from high-speed platforms (specifically 16, 17, 18, 19)
+  if (/^(16|17|18|19)[\s\.\-\/]*AV$/i.test(s)) {
+    s = s.replace(/[\s\.\-\/]*AV$/i, '');
+  }
+
   return s;
 };
+
+export const ITALO_STATION_MAP: Record<string, { code: string; slug: string }> = {
+  "S11705": { code: "AGR", slug: "agropoli" }, // Agropoli Castellabate
+  "S07113": { code: "FF_", slug: "ancona" }, // Ancona
+  "S11119": { code: "BAC", slug: "bari" }, // Bari Centrale
+  "S11108": { code: "BLT", slug: "barletta" }, // Barletta
+  "S09311": { code: "BEN", slug: "benevento" }, // Benevento
+  "S01529": { code: "BGM", slug: "bergamo" }, // Bergamo
+  "S11113": { code: "BIG", slug: "bisceglie" }, // Bisceglie
+  "S05043": { code: "BC_", slug: "bologna" }, // Bologna Centrale
+  "S02026": { code: "BLZ", slug: "bolzano" }, // Bolzano/Bozen
+  "S01717": { code: "BSC", slug: "brescia" }, // Brescia
+  "S09211": { code: "CEA", slug: "caserta" }, // Caserta
+  "S02706": { code: "CON", slug: "conegliano" }, // Conegliano
+  "S02084": { code: "DSG", slug: "desenzano" }, // Desenzano del Garda-Sirmione
+  "S05712": { code: "F__", slug: "ferrara" }, // Ferrara
+  "S06421": { code: "SMN", slug: "firenze-santa-maria-novella" }, // Firenze Santa Maria Novella
+  "S11100": { code: "FG_", slug: "foggia" }, // Foggia
+  "S04700": { code: "G__", slug: "Genova Piazza Principe" }, // Genova Piazza Principe
+  "S04702": { code: "GB_", slug: "Genova Brignole" }, // Genova Brignole
+  "S11749": { code: "LON", slug: "lamezia-terme-centrale" }, // Lamezia Terme Centrale
+  "S03202": { code: "LTL", slug: "latisana-lignano-bibione" }, // Latisana-Lignano-Bibione
+  "S11723": { code: "MRT", slug: "maratea" }, // Maratea
+  "S01700": { code: "MC_", slug: "milano-centrale" }, // Milano Centrale
+  "S01037": { code: "RRO", slug: "milano-rho-fiera" }, // Rho Fiera
+  "S01820": { code: "RG_", slug: "milano-rogoredo" }, // Milano Rogoredo
+  "S11114": { code: "ML_", slug: "molfetta" }, // Molfetta
+  "S03310": { code: "MNF", slug: "monfalcone" }, // Monfalcone
+  "S09988": { code: "NAF", slug: "napoli-afragola" }, // Napoli Afragola
+  "S09218": { code: "NAC", slug: "napoli-centrale" }, // Napoli Centrale
+  "S02581": { code: "PD_", slug: "padova" }, // Padova
+  "S11739": { code: "PAR", slug: "paola" }, // Paola
+  "S07104": { code: "PY_", slug: "pesaro" }, // Pesaro
+  "S02088": { code: "PSY", slug: "peschiera" }, // Peschiera del Garda
+  "S06500": { code: "22187", slug: "pisa" }, // Pisa Centrale
+  "S02701": { code: "PNE", slug: "pordenone" }, // Pordenone
+  "S03200": { code: "PGR", slug: "portogruaro-caorle" }, // Portogruaro Caorle
+  "S11781": { code: "RCE", slug: "reggio-calabria" }, // Reggio di Calabria Centrale
+  "S05254": { code: "AAV", slug: "reggio-emilia-av" }, // Reggio Emilia AV Mediopadana
+  "S07101": { code: "RO_", slug: "riccione" }, // Riccione
+  "S05071": { code: "J__", slug: "rimini" }, // Rimini
+  "S08409": { code: "RMT", slug: "roma-termini" }, // Roma Termini
+  "S08217": { code: "RTB", slug: "roma-tiburtina" }, // Roma Tiburtina
+  "S11765": { code: "RUT", slug: "rosarno" }, // Rosarno
+  "S02044": { code: "RVR", slug: "rovereto" }, // Rovereto
+  "S05706": { code: "R__", slug: "rovigo" }, // Rovigo
+  "S09818": { code: "SAL", slug: "salerno" }, // Salerno
+  "S11721": { code: "SRI", slug: "sapri" }, // Sapri
+  "S11727": { code: "SDC", slug: "scalea" }, // Scalea Santa Domenica Talao
+  "S00219": { code: "TOP", slug: "torino-porta-nuova" }, // Torino Porta Nuova
+  "S00222": { code: "OUE", slug: "torino-porta-susa" }, // Torino Porta Susa
+  "S11112": { code: "TR_", slug: "trani" }, // Trani
+  "S02038": { code: "TCN", slug: "trento" }, // Trento
+  "S02712": { code: "TVC", slug: "treviso-centrale" }, // Treviso Centrale
+  "S03317": { code: "TSC", slug: "trieste" }, // Trieste Centrale
+  "S03026": { code: "UDN", slug: "udine" }, // Udine
+  "S11709": { code: "VLH", slug: "vallo-lucania" }, // Vallo della Lucania-Castelnuovo
+  "S02589": { code: "VEM", slug: "venezia-mestre" }, // Venezia Mestre
+  "S02593": { code: "VSL", slug: "venezia-santa-lucia" }, // Venezia Santa Lucia
+  "S02430": { code: "VPN", slug: "verona-porta-nuova" }, // Verona Porta Nuova
+  "S11789": { code: "VIP", slug: "vibo-pizzo" }, // Vibo Valentia Pizzo
+  "S02446": { code: "VIC", slug: "vicenza" }, // Vicenza
+  "S11774": { code: "VSG", slug: "villa-san-giovanni" }, // Villa San Giovanni
+};
+
+export const ITALO_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Referer': 'https://italoinviaggio.italotreno.it/',
+  'Origin': 'https://italoinviaggio.italotreno.it'
+};
+
+export const parseDateStr = (dateStr: any): number | null => {
+  if (!dateStr) return null;
+  const match = String(dateStr).match(/\/Date\((\d+)\)\//);
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+  const parsed = Date.parse(dateStr);
+  if (!isNaN(parsed)) return parsed;
+  return null;
+};
+
+export const parseTimeStr = (timeStr: string, baseDate: Date): number | null => {
+  if (!timeStr || timeStr === '01:00' || timeStr === '--:--' || timeStr === '') return null;
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return null;
+  const hour = parseInt(parts[0], 10);
+  const minute = parseInt(parts[1], 10);
+  if (isNaN(hour) || isNaN(minute)) return null;
+  
+  const d = new Date(baseDate);
+  d.setHours(hour, minute, 0, 0);
+  return d.getTime();
+};
+
+export function parseItaloTrainStatus(data: any): VtTrainStatus | null {
+  if (!data || data.IsEmpty || !data.TrainSchedule) return null;
+  const schedule = data.TrainSchedule;
+  const num = schedule.TrainNumber || '';
+  
+  const baseDate = new Date();
+  
+  const parseItaloStop = (s: any, isReached: boolean): VtStop => {
+    const code = s.LocationCode || s.StationCode || '';
+    let stationName = s.LocationDescription || s.StationDescription || '';
+    stationName = getCleanStationName(stationName);
+    
+    const platform = cleanPlatform(s.BinaryProgrammed || s.BinaryReal || s.ActualArrivalPlatform || '');
+    
+    // Times
+    let scheduledArrivalTime: number | null = null;
+    let actualArrivalTime: number | null = null;
+    let scheduledDepartureTime: number | null = null;
+    let actualDepartureTime: number | null = null;
+    
+    if (s.ArrivalHour !== undefined || s.DepartureHour !== undefined) {
+      // Schema A
+      scheduledArrivalTime = parseDateStr(s.ArrivalHour);
+      actualArrivalTime = isReached ? parseDateStr(s.ArrivalHourReal) : null;
+      scheduledDepartureTime = parseDateStr(s.DepartureHour);
+      actualDepartureTime = isReached ? parseDateStr(s.DepartureHourReal) : null;
+    } else {
+      // Schema B
+      scheduledArrivalTime = parseTimeStr(s.EstimatedArrivalTime, baseDate);
+      actualArrivalTime = isReached ? parseTimeStr(s.ActualArrivalTime, baseDate) : null;
+      scheduledDepartureTime = parseTimeStr(s.EstimatedDepartureTime, baseDate);
+      actualDepartureTime = isReached ? parseTimeStr(s.ActualDepartureTime, baseDate) : null;
+    }
+    
+    let arrivalDelay = 0;
+    let departureDelay = 0;
+    if (actualArrivalTime && scheduledArrivalTime) {
+      arrivalDelay = Math.round((actualArrivalTime - scheduledArrivalTime) / 60000);
+    }
+    if (actualDepartureTime && scheduledDepartureTime) {
+      departureDelay = Math.round((actualDepartureTime - scheduledDepartureTime) / 60000);
+    }
+    
+    return {
+      stationName,
+      stationId: code,
+      scheduledArrivalTime,
+      actualArrivalTime,
+      scheduledDepartureTime,
+      actualDepartureTime,
+      scheduledPlatform: platform,
+      actualPlatform: isReached ? platform : '',
+      arrivalDelay,
+      departureDelay,
+      status: 'regular'
+    };
+  };
+
+  const parseStopList = (list: any[], isReached: boolean): VtStop[] => {
+    return (list || []).map(s => parseItaloStop(s, isReached));
+  };
+
+  let stops: VtStop[] = [];
+  if (schedule.StazionePartenza) {
+    // Schema B: Prepend StazionePartenza as reached
+    const parsedPartenza = parseItaloStop(schedule.StazionePartenza, true);
+    const parsedFerme = parseStopList(schedule.StazioniFerme, true);
+    const parsedNonFerme = parseStopList(schedule.StazioniNonFerme, false);
+    stops = [parsedPartenza, ...parsedFerme, ...parsedNonFerme];
+  } else {
+    // Schema A
+    const parsedFerme = parseStopList(schedule.StazioniFerme, true);
+    const parsedNonFerme = parseStopList(schedule.StazioniNonFerme, false);
+    stops = [...parsedFerme, ...parsedNonFerme];
+  }
+  
+  stops.sort((a, b) => {
+    const timeA = a.scheduledArrivalTime || a.scheduledDepartureTime || 0;
+    const timeB = b.scheduledArrivalTime || b.scheduledDepartureTime || 0;
+    return timeA - timeB;
+  });
+
+  const origin = getCleanStationName(schedule.DepartureStationDescription || (stops[0]?.stationName) || '');
+  const destination = getCleanStationName(schedule.ArrivalStationDescription || (stops[stops.length - 1]?.stationName) || '');
+  
+  const delay = schedule.Distruption?.DelayAmount ?? 0;
+  
+  const scheduledDepartureTime = stops[0]?.scheduledDepartureTime || parseTimeStr(schedule.DepartureDate, baseDate) || 0;
+  const scheduledArrivalTime = stops[stops.length - 1]?.scheduledArrivalTime || parseTimeStr(schedule.ArrivalDate, baseDate) || 0;
+  
+  let lastReportedStation = '';
+  let lastReportedTime: number | null = null;
+  
+  if (data.LastReportedStation) {
+    lastReportedStation = getCleanStationName(data.LastReportedStation);
+  }
+  if (data.LastReportedTime) {
+    lastReportedTime = parseDateStr(data.LastReportedTime);
+  }
+  
+  const reachedFerme = stops.filter(s => s.actualArrivalTime !== null || s.actualDepartureTime !== null);
+  if (!lastReportedStation && reachedFerme.length > 0) {
+    const lastDone = reachedFerme[reachedFerme.length - 1];
+    lastReportedStation = lastDone.stationName;
+    lastReportedTime = lastDone.actualDepartureTime || lastDone.actualArrivalTime;
+  }
+
+  return {
+    number: num,
+    category: 'NTV',
+    origin,
+    destination,
+    scheduledDepartureTime,
+    scheduledArrivalTime,
+    delay,
+    lastReportedStation,
+    lastReportedTime,
+    stops,
+    isCancelled: false,
+    codiceCliente: 'ITALO'
+  };
+}
 
 /**
  * Resolve operator details based on customer code and train category
@@ -144,7 +409,7 @@ export const getOperatorInfo = (codiceCliente: string | number | null, category:
   const code = String(codiceCliente || '').trim();
   const cat = String(category || '').trim().toUpperCase();
   
-  if (cat === 'ITA' || cat === 'ITALO') {
+  if (cat === 'ITA' || cat === 'ITALO' || cat === 'NTV') {
     return { code: 'NTV', name: 'Italo', color: '#8A0813' }; // Italo Burgundy red
   }
   if (cat === 'MXP') {
@@ -272,33 +537,70 @@ export async function searchTrain(trainNumber: string | number): Promise<VtTrain
   const cleanNumber = String(trainNumber).trim();
   if (!cleanNumber) return [];
 
+  const vtPromise = (async (): Promise<VtTrainSearchMatch[]> => {
+    try {
+      const response = await fetchWithTimeout(`${BASE_URL}/cercaNumeroTrenoTrenoAutocomplete/${cleanNumber}`, {}, 5000);
+      if (!response.ok) return [];
+
+      const text = await response.text();
+      if (!text.trim()) return [];
+
+      return text
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.includes('|'))
+        .map(line => {
+          const [label, idValue] = line.split('|');
+          const parts = idValue.split('-');
+          return {
+            label: label.trim(),
+            number: parts[0] || cleanNumber,
+            departureStationID: parts[1] || '',
+            timestamp: parts[2] || ''
+          };
+        });
+    } catch (error) {
+      console.error('Error searching train number via ViaggiaTreno:', error);
+      return [];
+    }
+  })();
+
+  const italoPromise = (async (): Promise<VtTrainSearchMatch[]> => {
+    try {
+      const response = await fetchWithTimeout(`https://italoinviaggio.italotreno.it/api/RicercaTrenoService?TrainNumber=${cleanNumber}`, {
+        headers: ITALO_HEADERS
+      }, 2500);
+      if (!response.ok) return [];
+      const data = await response.json();
+      if (data && !data.IsEmpty && data.TrainSchedule) {
+        const schedule = data.TrainSchedule;
+        const originDesc = schedule.DepartureStationDescription || '';
+        
+        // Use a stable timestamp (start of today) since Italo doesn't provide a TrainDate.
+        // This prevents infinite loop fetches triggered by Date.now().
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        const trainDateVal = d.getTime();
+        
+        const label = `${cleanNumber} - ${originDesc.toUpperCase()} (Italo)`;
+        return [{
+          label,
+          number: cleanNumber,
+          departureStationID: 'ITALO',
+          timestamp: String(trainDateVal)
+        }];
+      }
+    } catch (error) {
+      console.error('Error searching Italo train:', error);
+    }
+    return [];
+  })();
+
   try {
-    const response = await fetch(`${BASE_URL}/cercaNumeroTrenoTrenoAutocomplete/${cleanNumber}`);
-    if (!response.ok) return [];
-
-    const text = await response.text();
-    if (!text.trim()) return [];
-
-    // Returns text lines like: "9604 - MILANO CENTRALE|9604-S01700-1618700400000"
-    const matches: VtTrainSearchMatch[] = text
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.includes('|'))
-      .map(line => {
-        const [label, idValue] = line.split('|');
-        const parts = idValue.split('-');
-        // parts format: [trainNumber, departureStationID, timestamp]
-        return {
-          label: label.trim(),
-          number: parts[0] || cleanNumber,
-          departureStationID: parts[1] || '',
-          timestamp: parts[2] || ''
-        };
-      });
-
-    return matches;
+    const [vtMatches, italoMatches] = await Promise.all([vtPromise, italoPromise]);
+    return [...italoMatches, ...vtMatches];
   } catch (error) {
-    console.error('Error searching train number via ViaggiaTreno:', error);
+    console.error('Error in parallel searchTrain:', error);
     return [];
   }
 }
@@ -314,6 +616,20 @@ export async function getTrainStatus(
   const cleanNum = String(trainNumber).trim();
   const cleanStation = departureStationID.trim();
   if (!cleanNum || !cleanStation) return null;
+
+  if (cleanStation === 'ITALO') {
+    try {
+      const response = await fetchWithTimeout(`https://italoinviaggio.italotreno.it/api/RicercaTrenoService?TrainNumber=${cleanNum}`, {
+        headers: ITALO_HEADERS
+      }, 4000);
+      if (!response.ok) return null;
+      const data = await response.json();
+      return parseItaloTrainStatus(data);
+    } catch (error) {
+      console.error('Error fetching Italo train status:', error);
+      return null;
+    }
+  }
 
   try {
     const url = timestamp 
@@ -361,9 +677,17 @@ export async function getTrainStatus(
     const firstStopName = stops[0]?.stationName || getCleanStationName(data.origine || '');
     const lastStopName = stops[stops.length - 1]?.stationName || getCleanStationName(data.destinazione || '');
 
+    let parsedCategory = (data.categoria || '').trim();
+    if (!parsedCategory && data.compNumeroTreno) {
+      const match = String(data.compNumeroTreno).trim().match(/^([A-Z\s]+)\d+$/i);
+      if (match && match[1]) {
+        parsedCategory = match[1].trim();
+      }
+    }
+
     return {
       number: data.numeroTreno || cleanNum,
-      category: data.categoria || '',
+      category: inferTrainCategory(data.numeroTreno || cleanNum, parsedCategory || data.categoria),
       origin: firstStopName,
       destination: lastStopName,
       scheduledDepartureTime: data.orarioPartenza || 0,
@@ -392,53 +716,116 @@ export async function getStationBoard(
   const cleanId = stationID.trim();
   if (!cleanId) return [];
 
-  try {
-    const formattedTime = formatVtDateTime(dateTime);
-    const path = mode === 'departures' ? 'partenze' : 'arrivi';
-    
-    // Encode the formatted date because it has spaces and colons
-    const url = `${BASE_URL}/${path}/${cleanId}/${encodeURIComponent(formattedTime)}`;
-    
-    const response = await fetch(url);
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    if (!Array.isArray(data)) return [];
-
-    return data.map((entry: any) => {
-      const isCancelled = entry.provvedimento === 1 || entry.compProvvedimento === 1;
+  const vtPromise = (async (): Promise<VtBoardEntry[]> => {
+    try {
+      const formattedTime = formatVtDateTime(dateTime);
+      const path = mode === 'departures' ? 'partenze' : 'arrivi';
+      const url = `${BASE_URL}/${path}/${cleanId}/${encodeURIComponent(formattedTime)}`;
       
-      const scheduledTime = mode === 'departures' 
-        ? entry.orarioPartenza 
-        : entry.orarioArrivo;
-        
-      const scheduledPlatform = mode === 'departures'
-        ? entry.binarioProgrammatoPartenzaDescrizione || entry.binarioProgrammatoPartenza || ''
-        : entry.binarioProgrammatoArrivoDescrizione || entry.binarioProgrammatoArrivo || '';
-        
-      const actualPlatform = mode === 'departures'
-        ? entry.binarioEffettivoPartenzaDescrizione || entry.binarioEffettivoPartenza || ''
-        : entry.binarioEffettivoArrivoDescrizione || entry.binarioEffettivoArrivo || '';
+      const response = await fetch(url);
+      if (!response.ok) return [];
 
-      return {
-        trainNumber: entry.numeroTreno ? String(entry.numeroTreno) : '',
-        category: (entry.categoriaDescrizione || entry.categoria || '').trim(),
-        origin: getCleanStationName(entry.origine || '', entry.codOrigine || ''),
-        destination: getCleanStationName(entry.destinazione || ''),
-        scheduledTime: scheduledTime || 0,
-        delay: typeof entry.ritardo === 'number' ? entry.ritardo : 0,
-        scheduledPlatform: scheduledPlatform.trim(),
-        actualPlatform: actualPlatform.trim(),
-        isCancelled,
-        codiceCliente: entry.codiceCliente,
-        originStationID: entry.codOrigine || '',
-        timestamp: entry.dataPartenzaTreno || 0,
-        originDepartureTime: entry.partenzaTreno || null,
-        rawEntry: entry
-      };
-    });
+      const data = await response.json();
+      if (!Array.isArray(data)) return [];
+
+      return data.map((entry: any) => {
+        const isCancelled = entry.provvedimento === 1 || entry.compProvvedimento === 1;
+        
+        const scheduledTime = mode === 'departures' 
+          ? entry.orarioPartenza 
+          : entry.orarioArrivo;
+          
+        const scheduledPlatform = cleanPlatform(mode === 'departures'
+          ? entry.binarioProgrammatoPartenzaDescrizione || entry.binarioProgrammatoPartenza || ''
+          : entry.binarioProgrammatoArrivoDescrizione || entry.binarioProgrammatoArrivo || '');
+          
+        const actualPlatform = cleanPlatform(mode === 'departures'
+          ? entry.binarioEffettivoPartenzaDescrizione || entry.binarioEffettivoPartenza || ''
+          : entry.binarioEffettivoArrivoDescrizione || entry.binarioEffettivoArrivo || '');
+
+        return {
+          trainNumber: entry.numeroTreno ? String(entry.numeroTreno) : '',
+          category: inferTrainCategory(entry.numeroTreno || '', entry.categoriaDescrizione || entry.categoria),
+          origin: getCleanStationName(entry.origine || '', entry.codOrigine || ''),
+          destination: getCleanStationName(entry.destinazione || ''),
+          scheduledTime: scheduledTime || 0,
+          delay: typeof entry.ritardo === 'number' ? entry.ritardo : 0,
+          scheduledPlatform,
+          actualPlatform,
+          isCancelled,
+          codiceCliente: entry.codiceCliente,
+          originStationID: entry.codOrigine || '',
+          timestamp: entry.dataPartenzaTreno || 0,
+          originDepartureTime: entry.partenzaTreno || null,
+          rawEntry: entry
+        };
+      });
+    } catch (error) {
+      console.error(`Error fetching station ${mode} board from ViaggiaTreno:`, error);
+      return [];
+    }
+  })();
+
+  const italoPromise = (async (): Promise<VtBoardEntry[]> => {
+    const italoInfo = ITALO_STATION_MAP[cleanId];
+    if (!italoInfo) return [];
+
+    try {
+      const url = `https://italoinviaggio.italotreno.it/api/RicercaStazioneService?CodiceStazione=${italoInfo.code}&NomeStazione=${italoInfo.slug}`;
+      const response = await fetch(url, { headers: ITALO_HEADERS });
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      if (!data || data.IsEmpty) return [];
+
+      const list = mode === 'departures' ? data.ListaTreniPartenza : data.ListaTreniArrivo;
+      if (!Array.isArray(list)) return [];
+
+      return list.map((entry: any) => {
+        const scheduledTime = parseTimeStr(entry.OraPassaggio, dateTime) || dateTime.getTime();
+        const delay = entry.Ritardo ?? 0;
+        const platform = cleanPlatform(entry.Binario || '');
+
+        let origin = '';
+        let destination = '';
+        if (mode === 'departures') {
+          origin = getCleanStationName(data.DescrizioneLocalita || '');
+          destination = getCleanStationName(entry.DescrizioneLocalita || '');
+        } else {
+          origin = getCleanStationName(entry.DescrizioneLocalita || '');
+          destination = getCleanStationName(data.DescrizioneLocalita || '');
+        }
+
+        return {
+          trainNumber: entry.Numero ? String(entry.Numero) : '',
+          category: 'NTV',
+          origin,
+          destination,
+          scheduledTime,
+          delay,
+          scheduledPlatform: platform,
+          actualPlatform: platform,
+          isCancelled: false,
+          codiceCliente: 'ITALO',
+          originStationID: 'ITALO',
+          timestamp: scheduledTime,
+          originDepartureTime: scheduledTime,
+          rawEntry: entry
+        };
+      });
+    } catch (error) {
+      console.error(`Error fetching Italo station board for ${cleanId}:`, error);
+      return [];
+    }
+  })();
+
+  try {
+    const [vtEntries, italoEntries] = await Promise.all([vtPromise, italoPromise]);
+    const merged = [...italoEntries, ...vtEntries];
+    merged.sort((a, b) => a.scheduledTime - b.scheduledTime);
+    return merged;
   } catch (error) {
-    console.error(`Error fetching station ${mode} board:`, error);
+    console.error('Error in parallel getStationBoard:', error);
     return [];
   }
 }
@@ -504,3 +891,47 @@ export async function getTrainAlerts(
     return [];
   }
 }
+
+/**
+ * Infer train category based on train number if category is missing or expand long category names.
+ */
+export function inferTrainCategory(trainNumber: string | number, currentCategory: string = ''): string {
+  const cat = String(currentCategory || '').trim();
+  const numStr = String(trainNumber || '').trim();
+
+  // Normalize existing categories
+  if (cat) {
+    const upper = cat.toUpperCase();
+    if (upper === 'FRECCIAROSSA') return 'FR';
+    if (upper === 'FRECCIARGENTO') return 'FA';
+    if (upper === 'FRECCIABIANCA') return 'FB';
+    if (upper === 'INTERCITY') return 'IC';
+    if (upper === 'INTERCITY NOTTE') return 'ICN';
+    if (upper === 'REGIO' || upper === 'REGIONALE') return 'REG';
+    return cat;
+  }
+
+  const num = parseInt(numStr, 10);
+  if (isNaN(num)) return '';
+
+  // 1. High Speed trains (FR / FA / FB)
+  if (num >= 9000 && num <= 9999) return 'FR';
+  if (num >= 9300 && num <= 9699) return 'FR';
+  if (num >= 8400 && num <= 8599) return 'FR';
+  if (num >= 8300 && num <= 8399) return 'FA';
+  if (num >= 8800 && num <= 8899) return 'FR';
+
+  // 2. Intercity (IC / ICN)
+  if (num >= 500 && num <= 749) return 'IC';
+  if (num >= 1500 && num <= 1599) return 'IC';
+  if (num >= 750 && num <= 799) return 'ICN';
+  if (num >= 1900 && num <= 1999) return 'ICN';
+
+  // 3. Regional trains (REG / RV)
+  if (num >= 2000 && num <= 3999) return 'RV';
+  if (num >= 4000 && num <= 4999) return 'REG';
+
+  return '';
+}
+
+
