@@ -4,49 +4,62 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
-import * as Notifications from 'expo-notifications';
+let Notifications: any = null;
+try {
+  Notifications = require('expo-notifications');
+} catch (e) {
+  console.warn('expo-notifications is not supported in this environment (e.g. Expo Go on Android SDK 53+)');
+}
+
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 
 // Configure how notifications are presented when the app is in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async (notification) => {
-    // 1. Read category from payload
-    const category = notification.request.content.data?.category;
-    
-    // 2. Fetch user notification preferences from AsyncStorage
-    // If the user has disabled this category, do NOT show the alert
-    if (category) {
-      try {
-        const key = `@ag_notification_${category}`;
-        const val = await AsyncStorage.getItem(key);
-        if (val === 'false') {
-          return {
-            shouldShowAlert: false,
-            shouldPlaySound: false,
-            shouldSetBadge: false,
-            shouldShowBanner: false,
-            shouldShowList: false,
-          };
+if (Notifications) {
+  Notifications.setNotificationHandler({
+    handleNotification: async (notification: any) => {
+      // 1. Read category from payload
+      const category = notification.request.content.data?.category;
+      
+      // 2. Fetch user notification preferences from AsyncStorage
+      // If the user has disabled this category, do NOT show the alert
+      if (category) {
+        try {
+          const key = `@ag_notification_${category}`;
+          const val = await AsyncStorage.getItem(key);
+          if (val === 'false') {
+            return {
+              shouldShowAlert: false,
+              shouldPlaySound: false,
+              shouldSetBadge: false,
+              shouldShowBanner: false,
+              shouldShowList: false,
+            };
+          }
+        } catch (e) {
+          console.warn('Failed to read notification preference:', e);
         }
-      } catch (e) {
-        console.warn('Failed to read notification preference:', e);
       }
-    }
 
-    return {
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    };
-  },
-});
+      return {
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      };
+    },
+  });
+}
 
 async function registerForPushNotificationsAsync() {
+  if (!Notifications) {
+    console.log('expo-notifications is not loaded. Skipping push registration.');
+    return null;
+  }
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -105,8 +118,10 @@ function AppContent() {
   }, [user]);
 
   useEffect(() => {
+    if (!Notifications) return;
+
     // Handle notification click responses (deep linking)
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
       const data = response.notification.request.content.data;
       if (data && typeof data.link === 'string') {
         router.push(`/article/web?url=${encodeURIComponent(data.link)}&title=${encodeURIComponent((response.notification.request.content.title as string) || '详情')}` as any);
