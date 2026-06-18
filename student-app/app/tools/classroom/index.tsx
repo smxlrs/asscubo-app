@@ -1045,7 +1045,7 @@ export default function EmptyClassroomScreen() {
                 <MaterialIcons name="search" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>{getTxt('filterTime')}</Text>
               </View>
-              <View style={styles.segmentedContainer}>
+              <View style={[styles.segmentedContainer, { backgroundColor: isDark ? colors.border : '#F3F4F6' }]}>
                 <Pressable 
                   style={[styles.segment, timeMode === 'now' && [styles.segmentActive, { backgroundColor: colors.primary }]]}
                   onPress={() => setTimeMode('now')}

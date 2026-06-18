@@ -460,8 +460,12 @@ export default function StationBoardScreen() {
               />
             </Pressable>
           )}
-          <Pressable onPress={handleRefresh} style={styles.backButton}>
-            <MaterialIcons name="refresh" size={24} color={colors.textPrimary} />
+          <Pressable onPress={handleRefresh} style={styles.backButton} disabled={refreshing || loading}>
+            {refreshing || loading ? (
+              <ActivityIndicator size="small" color={colors.textPrimary} />
+            ) : (
+              <MaterialIcons name="refresh" size={24} color={colors.textPrimary} />
+            )}
           </Pressable>
         </View>
       </View>
@@ -605,7 +609,7 @@ const styles = StyleSheet.create({
   cardMain: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 10,
   },
   trainInfo: {
@@ -664,6 +668,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginLeft: 10,
     justifyContent: 'center',
+    paddingTop: 3,
   },
   delayPill: {
     paddingHorizontal: 8,

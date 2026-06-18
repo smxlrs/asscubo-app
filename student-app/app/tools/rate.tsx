@@ -244,7 +244,7 @@ export default function RateConverterScreen() {
           {loading ? (
             <ActivityIndicator size="small" color={colors.primary} />
           ) : (
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.primary, marginTop: -3 }}>↻</Text>
+            <MaterialIcons name="refresh" size={24} color={colors.primary} />
           )}
         </Pressable>
       </View>
