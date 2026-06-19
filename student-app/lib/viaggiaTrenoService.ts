@@ -1,6 +1,6 @@
 import { stations, Station } from '../assets/stations';
 
-const BASE_URL = 'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
+const BASE_URL = 'http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
 
 export const fetchWithTimeout = async (url: string, options?: RequestInit, timeoutMs = 3000): Promise<Response> => {
   const controller = new AbortController();
