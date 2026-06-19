@@ -427,6 +427,9 @@ export const getOperatorInfo = (codiceCliente: string | number | null, category:
   if (cat === 'MXP') {
     return { code: 'TN', name: 'Trenord', color: '#7AB800' }; // Malpensa Express is Trenord
   }
+  if (cat === 'EN' || cat === 'EURONIGHT' || cat === 'NJ' || cat === 'NIGHTJET') {
+    return { code: 'TI/ÖBB', name: 'Trenitalia / ÖBB', color: '#E20026' }; // ÖBB red
+  }
   
   switch (code) {
     case '1':
@@ -845,7 +848,7 @@ export async function getTrainStatus(
       }
     }
 
-    return {
+    return adjustInternationalTrainStatus({
       number: data.numeroTreno || cleanNum,
       category: inferTrainCategory(data.numeroTreno || cleanNum, parsedCategory || data.categoria),
       origin: firstStopName,
@@ -858,7 +861,7 @@ export async function getTrainStatus(
       stops,
       isCancelled,
       codiceCliente: data.codiceCliente
-    };
+    });
   } catch (error) {
     console.error('Error fetching train status details:', error);
     return null;
@@ -903,7 +906,7 @@ export async function getStationBoard(
           ? entry.binarioEffettivoPartenzaDescrizione || entry.binarioEffettivoPartenza || ''
           : entry.binarioEffettivoArrivoDescrizione || entry.binarioEffettivoArrivo || '');
 
-        return {
+        return adjustInternationalBoardEntry({
           trainNumber: entry.numeroTreno ? String(entry.numeroTreno) : '',
           category: inferTrainCategory(entry.numeroTreno || '', entry.categoriaDescrizione || entry.categoria),
           origin: getCleanStationName(entry.origine || '', entry.codOrigine || ''),
@@ -918,7 +921,7 @@ export async function getStationBoard(
           timestamp: entry.dataPartenzaTreno || 0,
           originDepartureTime: entry.partenzaTreno || null,
           rawEntry: entry
-        };
+        });
       });
     } catch (error) {
       console.error(`Error fetching station ${mode} board from ViaggiaTreno:`, error);
@@ -956,7 +959,7 @@ export async function getStationBoard(
           destination = getCleanStationName(data.DescrizioneLocalita || '');
         }
 
-        return {
+        return adjustInternationalBoardEntry({
           trainNumber: entry.Numero ? String(entry.Numero) : '',
           category: 'NTV',
           origin,
@@ -971,7 +974,7 @@ export async function getStationBoard(
           timestamp: scheduledTime,
           originDepartureTime: scheduledTime,
           rawEntry: entry
-        };
+        });
       });
     } catch (error) {
       console.error(`Error fetching Italo station board for ${cleanId}:`, error);
@@ -1093,5 +1096,448 @@ export function inferTrainCategory(trainNumber: string | number, currentCategory
 
   return '';
 }
+
+export const findStationIdByName = (name: string): string | null => {
+  const cleanName = getCleanStationName(name).toLowerCase().trim();
+  if (!cleanName) return null;
+  const found = stations.find(s => getCleanStationName(s.n).toLowerCase().trim() === cleanName);
+  if (found) return found.id;
+  const partial = stations.find(s => {
+    const sClean = getCleanStationName(s.n).toLowerCase().trim();
+    return sClean.includes(cleanName) || cleanName.includes(sClean);
+  });
+  if (partial) return partial.id;
+  return null;
+};
+
+export async function getFutureItaloTrainSchedule(
+  trainNumber: string,
+  originName: string,
+  destinationName: string,
+  scheduledDepartureTime: number
+): Promise<VtTrainStatus | null> {
+  const originId = findStationIdByName(originName);
+  const destId = findStationIdByName(destinationName);
+  
+  let arrivalTime = scheduledDepartureTime + 3 * 3600 * 1000; // default 3 hours
+  let scheduledPlatform = '';
+  
+  if (destId) {
+    try {
+      const board = await getStationBoard(destId, 'arrivals', new Date(scheduledDepartureTime));
+      const entry = board.find(b => String(b.trainNumber) === String(trainNumber));
+      if (entry) {
+        arrivalTime = entry.scheduledTime;
+        scheduledPlatform = entry.scheduledPlatform;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch destination board for future Italo train:', e);
+    }
+  }
+  
+  const stops: VtStop[] = [
+    {
+      stationName: originName,
+      stationId: originId || '',
+      scheduledArrivalTime: null,
+      actualArrivalTime: null,
+      scheduledDepartureTime: scheduledDepartureTime,
+      actualDepartureTime: null,
+      scheduledPlatform: '',
+      actualPlatform: '',
+      arrivalDelay: 0,
+      departureDelay: 0,
+      status: 'regular'
+    },
+    {
+      stationName: destinationName,
+      stationId: destId || '',
+      scheduledArrivalTime: arrivalTime,
+      actualArrivalTime: null,
+      scheduledDepartureTime: null,
+      actualDepartureTime: null,
+      scheduledPlatform: scheduledPlatform,
+      actualPlatform: '',
+      arrivalDelay: 0,
+      departureDelay: 0,
+      status: 'regular'
+    }
+  ];
+  
+  return {
+    number: trainNumber,
+    category: 'NTV',
+    origin: originName,
+    destination: destinationName,
+    scheduledDepartureTime,
+    scheduledArrivalTime: arrivalTime,
+    delay: 0,
+    lastReportedStation: '',
+    lastReportedTime: null,
+    stops,
+    isCancelled: false,
+    codiceCliente: 'ITALO'
+  };
+}
+
+export function adjustInternationalTrainStatus(status: VtTrainStatus): VtTrainStatus {
+  const num = String(status.number).trim();
+  const cat = String(status.category).trim().toUpperCase();
+  
+  if (cat === 'EN' || cat === 'EURONIGHT' || cat === 'NJ' || cat === 'NIGHTJET') {
+    if (num === '294' || num === '40294') {
+      status.destination = 'München Hbf';
+      
+      const hasMunich = status.stops.some(s => s.stationName.toLowerCase().includes('münchen') || s.stationName.toLowerCase().includes('munich'));
+      if (!hasMunich) {
+        const baseDate = new Date(status.scheduledDepartureTime);
+        
+        const getNextDayTime = (timeStr: string) => {
+          const [h, m] = timeStr.split(':').map(Number);
+          const d = new Date(baseDate);
+          d.setDate(d.getDate() + 1);
+          d.setHours(h, m, 0, 0);
+          return d.getTime();
+        };
+
+        const internationalStops: VtStop[] = [
+          {
+            stationName: 'Tarvisio Boscoverde',
+            stationId: 'S03490',
+            scheduledArrivalTime: getNextDayTime('02:40'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getNextDayTime('03:00'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Villach Hbf',
+            stationId: 'VILLACH',
+            scheduledArrivalTime: getNextDayTime('03:30'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getNextDayTime('03:50'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Salzburg Hbf',
+            stationId: 'SALZBURG',
+            scheduledArrivalTime: getNextDayTime('06:40'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getNextDayTime('07:00'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Rosenheim',
+            stationId: 'ROSENHEIM',
+            scheduledArrivalTime: getNextDayTime('08:30'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getNextDayTime('08:35'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'München Hbf',
+            stationId: 'MUNICH',
+            scheduledArrivalTime: getNextDayTime('09:33'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: null,
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          }
+        ];
+        
+        status.stops = [...status.stops, ...internationalStops];
+        status.scheduledArrivalTime = getNextDayTime('09:33');
+      }
+    } else if (num === '295' || num === '40295') {
+      status.origin = 'München Hbf';
+      
+      const hasMunich = status.stops.some(s => s.stationName.toLowerCase().includes('münchen') || s.stationName.toLowerCase().includes('munich'));
+      if (!hasMunich) {
+        const baseDate = new Date(status.scheduledDepartureTime);
+        
+        const getPrevDayTime = (timeStr: string) => {
+          const [h, m] = timeStr.split(':').map(Number);
+          const d = new Date(baseDate);
+          d.setDate(d.getDate() - 1);
+          d.setHours(h, m, 0, 0);
+          return d.getTime();
+        };
+        const getSameDayTime = (timeStr: string) => {
+          const [h, m] = timeStr.split(':').map(Number);
+          const d = new Date(baseDate);
+          d.setHours(h, m, 0, 0);
+          return d.getTime();
+        };
+
+        const internationalStops: VtStop[] = [
+          {
+            stationName: 'München Hbf',
+            stationId: 'MUNICH',
+            scheduledArrivalTime: null,
+            actualArrivalTime: null,
+            scheduledDepartureTime: getPrevDayTime('20:10'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Rosenheim',
+            stationId: 'ROSENHEIM',
+            scheduledArrivalTime: getPrevDayTime('20:50'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getPrevDayTime('20:55'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Salzburg Hbf',
+            stationId: 'SALZBURG',
+            scheduledArrivalTime: getPrevDayTime('22:45'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getPrevDayTime('22:50'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Villach Hbf',
+            stationId: 'VILLACH',
+            scheduledArrivalTime: getSameDayTime('01:30'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getSameDayTime('01:50'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Tarvisio Boscoverde',
+            stationId: 'S03490',
+            scheduledArrivalTime: getSameDayTime('02:20'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getSameDayTime('02:30'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          }
+        ];
+        
+        status.stops = [...internationalStops, ...status.stops];
+        status.stops.sort((a, b) => {
+          const tA = a.scheduledArrivalTime || a.scheduledDepartureTime || 0;
+          const tB = b.scheduledArrivalTime || b.scheduledDepartureTime || 0;
+          return tA - tB;
+        });
+        status.scheduledDepartureTime = getPrevDayTime('20:10');
+      }
+    } else if (num === '235' || num === '40235') {
+      status.destination = 'Wien Hbf';
+      const hasVienna = status.stops.some(s => s.stationName.toLowerCase().includes('wien') || s.stationName.toLowerCase().includes('vienna'));
+      if (!hasVienna) {
+        const baseDate = new Date(status.scheduledDepartureTime);
+        const getNextDayTime = (timeStr: string) => {
+          const [h, m] = timeStr.split(':').map(Number);
+          const d = new Date(baseDate);
+          d.setDate(d.getDate() + 1);
+          d.setHours(h, m, 0, 0);
+          return d.getTime();
+        };
+        const internationalStops: VtStop[] = [
+          {
+            stationName: 'Tarvisio Boscoverde',
+            stationId: 'S03490',
+            scheduledArrivalTime: getNextDayTime('02:40'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getNextDayTime('03:00'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Villach Hbf',
+            stationId: 'VILLACH',
+            scheduledArrivalTime: getNextDayTime('03:30'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getNextDayTime('03:50'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Klagenfurt Hbf',
+            stationId: 'KLAGENFURT',
+            scheduledArrivalTime: getNextDayTime('04:15'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getNextDayTime('04:17'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Wien Hbf',
+            stationId: 'WIEN',
+            scheduledArrivalTime: getNextDayTime('08:50'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: null,
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          }
+        ];
+        status.stops = [...status.stops, ...internationalStops];
+        status.scheduledArrivalTime = getNextDayTime('08:50');
+      }
+    } else if (num === '233' || num === '40233') {
+      status.origin = 'Wien Hbf';
+      const hasVienna = status.stops.some(s => s.stationName.toLowerCase().includes('wien') || s.stationName.toLowerCase().includes('vienna'));
+      if (!hasVienna) {
+        const baseDate = new Date(status.scheduledDepartureTime);
+        const getPrevDayTime = (timeStr: string) => {
+          const [h, m] = timeStr.split(':').map(Number);
+          const d = new Date(baseDate);
+          d.setDate(d.getDate() - 1);
+          d.setHours(h, m, 0, 0);
+          return d.getTime();
+        };
+        const getSameDayTime = (timeStr: string) => {
+          const [h, m] = timeStr.split(':').map(Number);
+          const d = new Date(baseDate);
+          d.setHours(h, m, 0, 0);
+          return d.getTime();
+        };
+        const internationalStops: VtStop[] = [
+          {
+            stationName: 'Wien Hbf',
+            stationId: 'WIEN',
+            scheduledArrivalTime: null,
+            actualArrivalTime: null,
+            scheduledDepartureTime: getPrevDayTime('19:20'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Klagenfurt Hbf',
+            stationId: 'KLAGENFURT',
+            scheduledArrivalTime: getPrevDayTime('23:55'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getPrevDayTime('23:57'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Villach Hbf',
+            stationId: 'VILLACH',
+            scheduledArrivalTime: getSameDayTime('00:25'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getSameDayTime('00:45'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          },
+          {
+            stationName: 'Tarvisio Boscoverde',
+            stationId: 'S03490',
+            scheduledArrivalTime: getSameDayTime('01:20'),
+            actualArrivalTime: null,
+            scheduledDepartureTime: getSameDayTime('01:30'),
+            actualDepartureTime: null,
+            scheduledPlatform: '',
+            actualPlatform: '',
+            arrivalDelay: 0,
+            departureDelay: 0,
+            status: 'regular'
+          }
+        ];
+        status.stops = [...internationalStops, ...status.stops];
+        status.stops.sort((a, b) => {
+          const tA = a.scheduledArrivalTime || a.scheduledDepartureTime || 0;
+          const tB = b.scheduledArrivalTime || b.scheduledDepartureTime || 0;
+          return tA - tB;
+        });
+        status.scheduledDepartureTime = getPrevDayTime('19:20');
+      }
+    }
+  }
+  return status;
+}
+
+export function adjustInternationalBoardEntry(entry: VtBoardEntry): VtBoardEntry {
+  const num = String(entry.trainNumber).trim();
+  const cat = String(entry.category).trim().toUpperCase();
+  if (cat === 'EN' || cat === 'EURONIGHT' || cat === 'NJ' || cat === 'NIGHTJET') {
+    if (num === '294' || num === '40294') {
+      entry.destination = 'München Hbf';
+    } else if (num === '295' || num === '40295') {
+      entry.origin = 'München Hbf';
+    } else if (num === '235' || num === '40235') {
+      entry.destination = 'Wien Hbf';
+    } else if (num === '233' || num === '40233') {
+      entry.origin = 'Wien Hbf';
+    }
+  }
+  return entry;
+}
+
 
 

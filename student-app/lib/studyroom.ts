@@ -25,7 +25,7 @@ export const STUDY_ROOMS: StudyRoom[] = [
     nameIt: 'Sala Studio Palazzo Paleotti',
     address: 'Via Zamboni, 25, Bologna',
     capacity: 240,
-    affluencesUrl: 'https://affluences.com/unibo/palazzo-paleotti',
+    affluencesUrl: 'https://affluences.com/sites/palazzo-paleotti-1',
     affluencesId: '1504',
   },
   {
@@ -34,7 +34,7 @@ export const STUDY_ROOMS: StudyRoom[] = [
     nameIt: 'Biblioteca Belmeloro',
     address: 'Via Belmeloro, 14, Bologna',
     capacity: 320,
-    affluencesUrl: 'https://affluences.com/unibo/biblioteca-belmeloro',
+    affluencesUrl: 'https://affluences.com/sites?playlist_id=32',
     affluencesId: '1505',
   },
   {
@@ -43,7 +43,7 @@ export const STUDY_ROOMS: StudyRoom[] = [
     nameIt: 'Biblioteca di Discipline Umanistiche',
     address: 'Via Zamboni, 36, Bologna',
     capacity: 180,
-    affluencesUrl: 'https://affluences.com/unibo/bdu',
+    affluencesUrl: 'https://affluences.com/sites/bd-umanistiche',
     affluencesId: '1506',
   },
   {
@@ -52,7 +52,7 @@ export const STUDY_ROOMS: StudyRoom[] = [
     nameIt: 'Biblioteca Giuridica Cicu',
     address: 'Via Zamboni, 27/29, Bologna',
     capacity: 120,
-    affluencesUrl: 'https://affluences.com/unibo/biblioteca-giuridica-cicu',
+    affluencesUrl: 'https://affluences.com/sites/cicu-piano-terra',
     affluencesId: '1507',
   },
   {
@@ -61,7 +61,7 @@ export const STUDY_ROOMS: StudyRoom[] = [
     nameIt: 'Sala Studio Carducci',
     address: 'Piazza G. Carducci, 5, Bologna',
     capacity: 85,
-    affluencesUrl: 'https://affluences.com/unibo/sala-studio-carducci',
+    affluencesUrl: 'https://affluences.com/sites?playlist_id=32',
     affluencesId: '1508',
   },
   {
@@ -70,7 +70,7 @@ export const STUDY_ROOMS: StudyRoom[] = [
     nameIt: 'Biblioteca Ruffilli - Forlì',
     address: 'Via San Pellegrino Laziosi, 13, Forlì',
     capacity: 210,
-    affluencesUrl: 'https://affluences.com/unibo/biblioteca-ruffilli',
+    affluencesUrl: 'https://affluences.com/sites/biblioteca-ruffilli',
     affluencesId: '1509',
   }
 ];

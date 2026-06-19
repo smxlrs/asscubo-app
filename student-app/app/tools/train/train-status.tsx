@@ -19,6 +19,7 @@ import {
   searchTrain,
   getTrainAlerts,
   getOperatorInfo,
+  getFutureItaloTrainSchedule,
   VtTrainStatus,
   VtStop,
   VtAlert,
@@ -97,6 +98,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     destination: '终点站',
     refresh: '刷新',
     back: '返回',
+    notStarted: '尚未开行',
     disclaimer: '本服务展示的列车时刻、延误及站台等数据均来自意大利铁路公开实时运营信息，仅供出行参考。实际运行请以车站大屏幕及官方购票App（Trenitalia / Italo）实时公告为准。'
   },
   'zh-Hant': {
@@ -122,6 +124,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     destination: '終點站',
     refresh: '刷新',
     back: '返回',
+    notStarted: '尚未開行',
     disclaimer: '本服務展示的列車時刻、延誤及月台等數據均來自義大利鐵路公開即時營運資訊，僅供出行參考。實際運行請以車站大屏幕及鐵路官方App（Trenitalia / Italo）即時公告為準。'
   },
   en: {
@@ -147,6 +150,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     destination: 'Destination',
     refresh: 'Refresh',
     back: 'Back',
+    notStarted: 'Not started yet',
     disclaimer: 'The train schedules, delays, and platform info displayed here are retrieved from Italian rail public live data and are for reference only. Please refer to station screens and official apps for actual operations.'
   },
   it: {
@@ -172,6 +176,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     destination: 'Destinazione',
     refresh: 'Aggiorna',
     back: 'Indietro',
+    notStarted: 'Non ancora partito',
     disclaimer: 'Gli orari, ritardi e binari dei treni mostrati sono tratti dai dati pubblici in tempo reale delle ferrovie italiane e hanno valore puramente informativo. Fare riferimento ai tabelloni di stazione e alle app ufficiali per l\'operatività reale.'
   }
 };
@@ -180,10 +185,14 @@ export default function TrainStatusScreen() {
   const { colors, language, isDark } = useTheme();
 
   // Route query params
-  const { trainNumber, departureStationID, timestamp } = useLocalSearchParams<{
+  const { trainNumber, departureStationID, timestamp, origin, destination, scheduledTime, category } = useLocalSearchParams<{
     trainNumber: string;
     departureStationID: string;
     timestamp: string;
+    origin?: string;
+    destination?: string;
+    scheduledTime?: string;
+    category?: string;
   }>();
 
   // Localizer
@@ -377,6 +386,10 @@ export default function TrainStatusScreen() {
         }
       }
       
+      if (!data && (resolvedStationID === 'ITALO' || departureStationID === 'ITALO' || category === 'NTV') && origin && destination && scheduledTime) {
+        data = await getFutureItaloTrainSchedule(trainNumber, origin, destination, parseInt(scheduledTime, 10));
+      }
+      
       if (data) {
         setStatus(data);
         await updateRecentTrainInHistory(data, resolvedStationID, resolvedTimestamp);
@@ -502,6 +515,8 @@ export default function TrainStatusScreen() {
   // Timeline helper index: prefer time-based (real time departed/arrived) over name-based
   const activeStopIndex = timeBasedActiveIndex !== -1 ? timeBasedActiveIndex : nameBasedActiveIndex;
 
+  const isNotStartedYet = status && status.stops.every(s => s.actualArrivalTime === null && s.actualDepartureTime === null);
+
   // Determine delay styling
   const delayMinutes = status?.delay || 0;
   const isCancelled = status?.isCancelled || false;
@@ -511,6 +526,9 @@ export default function TrainStatusScreen() {
   if (isCancelled) {
     delayColor = colors.error;
     delayText = t('trainCancelled');
+  } else if (isNotStartedYet) {
+    delayColor = colors.primary;
+    delayText = t('notStarted');
   } else if (delayMinutes > 0) {
     delayColor = colors.error;
     delayText = `${t('delayMin')}: +${delayMinutes} ${t('minUnit')}`;

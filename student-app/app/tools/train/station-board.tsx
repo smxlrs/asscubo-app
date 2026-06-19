@@ -20,6 +20,7 @@ import {
   searchTrain,
   getOperatorInfo,
   getTrainStatus,
+  getFutureItaloTrainSchedule,
   VtBoardEntry,
   cleanPlatform,
   getRomeTimestampFromLocalDate,
@@ -266,7 +267,10 @@ export default function StationBoardScreen() {
         if (extraTimesCache.current[cacheKey]) continue;
 
         try {
-          const status = await getTrainStatus(entry.originStationID, entry.trainNumber, String(entry.timestamp));
+          let status = await getTrainStatus(entry.originStationID, entry.trainNumber, String(entry.timestamp));
+          if (!status && entry.codiceCliente === 'ITALO') {
+            status = await getFutureItaloTrainSchedule(entry.trainNumber, entry.origin, entry.destination, entry.scheduledTime);
+          }
           if (status) {
             const platforms = matchPlatformFromStatus(status, stationID || '');
             const timeObj = {
@@ -298,7 +302,16 @@ export default function StationBoardScreen() {
     if (resolvingTrain) return;
     setResolvingTrain(true);
     try {
-      const matches = await searchTrain(entry.trainNumber);
+      let matches = await searchTrain(entry.trainNumber);
+      if (matches.length === 0 && entry.codiceCliente === 'ITALO') {
+        matches = [{
+          label: `${entry.trainNumber} - ${entry.origin.toUpperCase()} (Italo)`,
+          number: entry.trainNumber,
+          departureStationID: 'ITALO',
+          timestamp: String(entry.timestamp)
+        }];
+      }
+      
       if (matches.length === 0) {
         Alert.alert(t('title'), t('noDetails'));
       } else if (matches.length === 1) {
@@ -307,7 +320,11 @@ export default function StationBoardScreen() {
           params: {
             trainNumber: matches[0].number,
             departureStationID: matches[0].departureStationID,
-            timestamp: matches[0].timestamp
+            timestamp: matches[0].timestamp,
+            origin: entry.origin,
+            destination: entry.destination,
+            scheduledTime: String(entry.scheduledTime),
+            category: entry.category
           }
         });
       } else {
@@ -363,7 +380,11 @@ export default function StationBoardScreen() {
           params: {
             trainNumber: matched.number,
             departureStationID: matched.departureStationID,
-            timestamp: matched.timestamp
+            timestamp: matched.timestamp,
+            origin: entry.origin,
+            destination: entry.destination,
+            scheduledTime: String(entry.scheduledTime),
+            category: entry.category
           }
         });
       }
