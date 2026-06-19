@@ -360,9 +360,31 @@ export default function TrainStatusScreen() {
         // If current activeTimestamp is not in the list, redirect to latest
         const isCurrentValid = runs.some(r => String(r.timestamp) === String(resolvedTimestamp));
         if (!resolvedTimestamp || !isCurrentValid) {
-          const latestRun = runs[runs.length - 1] || sorted[0];
-          resolvedStationID = latestRun.departureStationID;
-          resolvedTimestamp = latestRun.timestamp;
+          let selectedRun = runs[runs.length - 1] || sorted[0];
+
+          // Auto-routing logic: if the earlier run (today) actually arrived >2 hours ago, and a newer run (tomorrow) exists, switch to tomorrow.
+          if (runs.length >= 2) {
+            const todayRun = runs[runs.length - 2];
+            const tomorrowRun = runs[runs.length - 1];
+            try {
+              const todayStatus = await getTrainStatus(todayRun.departureStationID, trainNumber, todayRun.timestamp);
+              if (todayStatus && todayStatus.stops && todayStatus.stops.length > 0) {
+                const lastStop = todayStatus.stops[todayStatus.stops.length - 1];
+                const actualArrival = lastStop.actualArrivalTime || 
+                                     (todayStatus.scheduledArrivalTime ? (todayStatus.scheduledArrivalTime + (todayStatus.delay || 0) * 60000) : null);
+                if (actualArrival && Date.now() > (actualArrival + 2 * 3600 * 1000)) {
+                  selectedRun = tomorrowRun;
+                } else {
+                  selectedRun = todayRun;
+                }
+              }
+            } catch (err) {
+              console.warn('Failed to pre-fetch today status for run routing:', err);
+            }
+          }
+
+          resolvedStationID = selectedRun.departureStationID;
+          resolvedTimestamp = selectedRun.timestamp;
           
           setActiveStationID(resolvedStationID);
           setActiveTimestamp(resolvedTimestamp);
@@ -395,21 +417,6 @@ export default function TrainStatusScreen() {
       }
       
       if (data) {
-        // Expiration check: actual arrival + 4 hours
-        if (data.stops && data.stops.length > 0) {
-          const lastStop = data.stops[data.stops.length - 1];
-          const actualArrival = lastStop.actualArrivalTime || 
-                               (data.scheduledArrivalTime ? (data.scheduledArrivalTime + (data.delay || 0) * 60000) : null);
-          if (actualArrival && Date.now() > (actualArrival + 4 * 3600 * 1000)) {
-            setErrorMsg(t('expiredError'));
-            setStatus(null);
-            setLoading(false);
-            setRefreshing(false);
-            isFetchingRef.current = false;
-            return;
-          }
-        }
-
         setStatus(data);
         await updateRecentTrainInHistory(data, resolvedStationID, resolvedTimestamp);
 
