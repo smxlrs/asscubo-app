@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS, SHADOWS } from '../../constants/theme';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 
 type Article = {
   id: string;
@@ -137,7 +137,7 @@ export default function HomeScreen() {
               <Text style={[styles.greeting, { color: bannerTextColor }]}>
                 {user ? `${greeting}！${profile?.name || ''}` : greeting}
               </Text>
-              <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>博学 · 连接校园生活</Text>
+              <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>博学 · 连接在意生活</Text>
             </View>
             
             <View style={styles.headerRightActions}>
@@ -182,13 +182,23 @@ export default function HomeScreen() {
           </View>
         </LinearGradient>
 
+        {/* Add padding spacer below header banner */}
+        <View style={{ height: 20 }} />
+
         {/* Upcoming Events */}
         {upcomingEvents.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📅 近期活动</Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/events')}>
-                <Text style={[styles.seeAll, { color: colors.primary }]}>查看全部 →</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="calendar-month-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>近期活动</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => router.push('/(tabs)/events')}
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+              >
+                <Text style={[styles.seeAll, { color: colors.primary, marginRight: 2 }]}>查看全部</Text>
+                <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
@@ -220,9 +230,16 @@ export default function HomeScreen() {
         {/* Latest Articles */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📰 微信动态</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/announcements')}>
-              <Text style={[styles.seeAll, { color: colors.primary }]}>查看全部 →</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="newspaper-variant-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>动态</Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => router.push('/(tabs)/announcements')}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+            >
+              <Text style={[styles.seeAll, { color: colors.primary, marginRight: 2 }]}>查看全部</Text>
+              <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
