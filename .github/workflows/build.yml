@@ -91,12 +91,11 @@ jobs:
             echo "platform=${{ github.event.inputs.platform }}" >> $GITHUB_OUTPUT
             echo "profile=${{ github.event.inputs.profile }}"   >> $GITHUB_OUTPUT
             VER="${{ github.event.inputs.version }}"
-            echo "version=${VER:-0.0.0}" >> $GITHUB_OUTPUT
-            if [ -n "$VER" ]; then
-              echo "create_release=true" >> $GITHUB_OUTPUT
-            else
-              echo "create_release=false" >> $GITHUB_OUTPUT
+            if [ -z "$VER" ]; then
+              VER=$(node -p "require('./student-app/app.json').expo.version")
             fi
+            echo "version=${VER}" >> $GITHUB_OUTPUT
+            echo "create_release=true" >> $GITHUB_OUTPUT
           fi
 
       # ── Android ──────────────────────────────────────────────
@@ -205,8 +204,7 @@ jobs:
 
           **下载方式：**
           - **Android** 用户：下载 \`android-release.apk\` 文件安装
-          - **iOS** 用户：下载 \`ios-release.ipa\` 文件安装（需要 AltStore 或越狱）
 
-          > 在 App 内「关于 → 版本」处点击也可检查到此更新。" \
+          > 在 App 内「关于」页面检查更新即可。" \
             $ASSETS \
             2>&1 || echo "Release creation failed (tag may already exist)"

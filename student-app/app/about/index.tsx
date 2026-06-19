@@ -163,13 +163,6 @@ export default function AboutIndexScreen() {
         <View style={styles.logoContainer}>
           <Image source={require('../../assets/icon.png')} style={[styles.logoImage, { borderColor: colors.border }]} />
           <Text style={[styles.appName, { color: colors.textPrimary }]}>{t('appName')}</Text>
-          <Pressable onPress={handleCheckUpdate} disabled={checkingUpdate} style={styles.versionRow}>
-            {checkingUpdate
-              ? <ActivityIndicator size="small" color={colors.primaryLight} style={{ marginRight: 6 }} />
-              : <MaterialIcons name="system-update" size={14} color={colors.textMuted} style={{ marginRight: 4 }} />
-            }
-            <Text style={[styles.version, { color: colors.textSecondary }]}>v{currentVersion}</Text>
-          </Pressable>
         </View>
 
         <View style={[styles.menuSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -203,14 +196,6 @@ export default function AboutIndexScreen() {
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
         </View>
-
-        <Pressable
-          onPress={() => Linking.openURL(RELEASES_PAGE)}
-          style={[styles.releasesLink, { borderColor: colors.border, backgroundColor: colors.surface }]}
-        >
-          <MaterialIcons name="open-in-new" size={16} color={colors.primary} style={{ marginRight: 6 }} />
-          <Text style={{ fontSize: 13, color: colors.primary }}>GitHub Releases</Text>
-        </Pressable>
 
         <Text style={[styles.copyright, { color: colors.textMuted }]}>
           © 2026 {t('copyright')}
