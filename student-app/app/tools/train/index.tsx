@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, Language } from '../../../context/ThemeContext';
 import {
   searchTrain,
+  getTrainStatus,
   getOperatorInfo,
   VtStation,
   VtTrainSearchMatch,
@@ -155,7 +156,7 @@ export default function TrainToolIndex() {
   // Train Tab State
   const [trainNo, setTrainNo] = useState('');
   const [loadingTrain, setLoadingTrain] = useState(false);
-  const [trainMatches, setTrainMatches] = useState<VtTrainSearchMatch[]>([]);
+  const [trainMatches, setTrainMatches] = useState<(VtTrainSummary | VtTrainSearchMatch)[]>([]);
   const [recentTrains, setRecentTrains] = useState<(VtTrainSearchMatch | VtTrainSummary)[]>([]);
   const [trainError, setTrainError] = useState('');
 
@@ -437,29 +438,88 @@ export default function TrainToolIndex() {
     setTrainMatches([]);
 
     try {
-      const results = await searchTrain(cleanNum);
-      if (results.length === 0) {
+      const rawResults = await searchTrain(cleanNum);
+      if (rawResults.length === 0) {
         setTrainError(t('noTrainsFound'));
-      } else if (results.length === 1) {
-        // Only 1 match, save to history and navigate directly
-        saveTrainToHistory(results[0]);
-        router.push({
-          pathname: '/tools/train/train-status',
-          params: {
-            trainNumber: results[0].number,
-            departureStationID: results[0].departureStationID,
-            timestamp: results[0].timestamp
-          }
-        });
       } else {
-        // Sort matches: newest first (largest timestamp first)
-        const sorted = [...results].sort((a, b) => {
-          const tA = parseInt(a.timestamp, 10) || 0;
-          const tB = parseInt(b.timestamp, 10) || 0;
-          return tB - tA;
+        // Resolve status for all runs in parallel
+        const resolved = await Promise.all(
+          rawResults.map(async (match) => {
+            try {
+              const status = await getTrainStatus(match.departureStationID, match.number, match.timestamp);
+              if (status) {
+                return {
+                  ...match,
+                  category: status.category || '',
+                  origin: status.origin,
+                  destination: status.destination,
+                  scheduledDepartureTime: status.scheduledDepartureTime,
+                  scheduledArrivalTime: status.scheduledArrivalTime,
+                  delay: status.delay,
+                  isCancelled: status.isCancelled,
+                  codiceCliente: status.codiceCliente || null,
+                  isRunning: !status.isCancelled && 
+                    Date.now() >= status.scheduledDepartureTime && 
+                    Date.now() <= (status.scheduledArrivalTime + (status.delay || 0) * 60000)
+                };
+              }
+            } catch (e) {
+              console.warn('Failed to resolve status for search match:', match, e);
+            }
+            return match; // Fallback to raw match
+          })
+        );
+
+        // Group by number and departureStationID to deduplicate different dates
+        const groups: Record<string, typeof resolved> = {};
+        for (const item of resolved) {
+          const key = `${item.number}_${item.departureStationID}`;
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(item);
+        }
+
+        // Deduplicate each group: prioritize running, then resolved, then newest
+        const dedupedResults = Object.values(groups).map(group => {
+          if (group.length === 1) return group[0];
+          const sorted = [...group].sort((a, b) => {
+            const aIsRunning = 'isRunning' in a && (a as any).isRunning;
+            const bIsRunning = 'isRunning' in b && (b as any).isRunning;
+            if (aIsRunning && !bIsRunning) return -1;
+            if (!aIsRunning && bIsRunning) return 1;
+
+            const aIsFull = 'origin' in a && (a as any).origin;
+            const bIsFull = 'origin' in b && (b as any).origin;
+            if (aIsFull && !bIsFull) return -1;
+            if (!aIsFull && bIsFull) return 1;
+
+            const tA = parseInt(a.timestamp, 10) || 0;
+            const tB = parseInt(b.timestamp, 10) || 0;
+            return tB - tA;
+          });
+          return sorted[0];
         });
-        // Multiple runs found (e.g. today's train and tomorrow's or train splitting routes)
-        setTrainMatches(sorted);
+
+        if (dedupedResults.length === 1) {
+          // Exactly 1 result: directly go to status details
+          const match = dedupedResults[0];
+          saveTrainToHistory(match);
+          router.push({
+            pathname: '/tools/train/train-status',
+            params: {
+              trainNumber: match.number,
+              departureStationID: match.departureStationID,
+              timestamp: match.timestamp
+            }
+          });
+        } else {
+          // Sort results: prioritize full summaries and newer runs
+          const sorted = [...dedupedResults].sort((a, b) => {
+            const tA = parseInt(a.timestamp, 10) || 0;
+            const tB = parseInt(b.timestamp, 10) || 0;
+            return tB - tA;
+          });
+          setTrainMatches(sorted);
+        }
       }
     } catch (err) {
       setTrainError(t('noTrainsFound'));
@@ -654,30 +714,7 @@ export default function TrainToolIndex() {
             <View style={styles.resultsWrapper}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('resultsTitle')}</Text>
               <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('selectTrainRunHint')}</Text>
-              {trainMatches.map((item, idx) => (
-                <Pressable
-                  key={idx}
-                  style={({ pressed }) => [
-                    styles.matchCard,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      opacity: pressed ? 0.9 : 1
-                    }
-                  ]}
-                  onPress={() => handleSelectTrainMatch(item)}
-                >
-                  <View style={styles.matchCardHeader}>
-                    <Text style={[styles.matchCardTrainNum, { color: colors.primary }]}>{item.number}</Text>
-                    <Text style={[styles.matchCardTime, { color: colors.textSecondary }]}>
-                      {t('depTime')}: {formatUnixDate(item.timestamp)}
-                    </Text>
-                  </View>
-                  <Text style={[styles.matchCardEndpoints, { color: colors.textPrimary }]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
+              {trainMatches.map((item) => renderTrainCard(item))}
             </View>
           )}
 

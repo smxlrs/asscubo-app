@@ -416,13 +416,14 @@ export default function TrainStatusScreen() {
     const stopCurrent = stops[idx];
     const stopNext = stops[idx + 1];
 
-    const depTime = stopCurrent.actualDepartureTime || stopCurrent.scheduledDepartureTime;
     const delayVal = delayMin || 0;
+    const depTime = stopCurrent.actualDepartureTime || (stopCurrent.scheduledDepartureTime ? (stopCurrent.scheduledDepartureTime + delayVal * 60000) : null);
     const arrTime = stopNext.actualArrivalTime || (stopNext.scheduledArrivalTime ? (stopNext.scheduledArrivalTime + delayVal * 60000) : null);
     
-    // Only calculate progress if the train has actually departed the current stop
-    if (stopCurrent.actualDepartureTime !== null && depTime && arrTime && arrTime > depTime) {
+    if (depTime && arrTime && arrTime > depTime) {
       const now = Date.now();
+      if (now < depTime) return 0;
+      if (now >= arrTime) return 1;
       const ratio = (now - depTime) / (arrTime - depTime);
       return Math.max(0, Math.min(1, ratio));
     }

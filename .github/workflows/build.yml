@@ -85,14 +85,39 @@ jobs:
             echo "profile=production" >> $GITHUB_OUTPUT
             # 从 tag 提取版本号，如 refs/tags/v1.0.1 → 1.0.1
             TAG="${{ github.ref_name }}"
-            echo "version=${TAG#v}"   >> $GITHUB_OUTPUT
+            VER="${TAG#v}"
+            echo "version=${VER}"   >> $GITHUB_OUTPUT
             echo "create_release=true" >> $GITHUB_OUTPUT
+            # Update app.json locally for push builds
+            node -e "
+              const fs = require('fs');
+              const appJson = JSON.parse(fs.readFileSync('student-app/app.json', 'utf8'));
+              appJson.expo.version = '${VER}';
+              if (!appJson.expo.android) appJson.expo.android = {};
+              appJson.expo.android.versionCode = ${{ github.run_number }};
+              fs.writeFileSync('student-app/app.json', JSON.stringify(appJson, null, 2) + '\n');
+            "
           else
             echo "platform=${{ github.event.inputs.platform }}" >> $GITHUB_OUTPUT
             echo "profile=${{ github.event.inputs.profile }}"   >> $GITHUB_OUTPUT
             VER="${{ github.event.inputs.version }}"
             if [ -z "$VER" ]; then
-              VER=$(node -p "require('./student-app/app.json').expo.version")
+              # Auto-generate version from app.json base + run_number
+              BASE_VER=$(node -p "
+                const v = require('./student-app/app.json').expo.version;
+                const parts = v.split('.');
+                parts.slice(0, 3).join('.');
+              ")
+              VER="${BASE_VER}.${{ github.run_number }}"
+              # Update app.json locally for the build
+              node -e "
+                const fs = require('fs');
+                const appJson = JSON.parse(fs.readFileSync('student-app/app.json', 'utf8'));
+                appJson.expo.version = '${VER}';
+                if (!appJson.expo.android) appJson.expo.android = {};
+                appJson.expo.android.versionCode = ${{ github.run_number }};
+                fs.writeFileSync('student-app/app.json', JSON.stringify(appJson, null, 2) + '\n');
+              "
             fi
             echo "version=${VER}" >> $GITHUB_OUTPUT
             echo "create_release=true" >> $GITHUB_OUTPUT
@@ -129,8 +154,8 @@ jobs:
 
           echo "Build URL: $BUILD_URL"
           if [ -n "$BUILD_URL" ] && [ "$BUILD_URL" != "None" ]; then
-            curl -L -f -o android-release.apk "$BUILD_URL"
-            echo "✅ APK: $(ls -lh android-release.apk)"
+            curl -L -f -o boxue.apk "$BUILD_URL"
+            echo "✅ APK: $(ls -lh boxue.apk)"
           else
             echo "⚠️ Download from expo.dev"
           fi
@@ -140,7 +165,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-apk-${{ steps.vars.outputs.profile }}-build${{ github.run_number }}
-          path: student-app/android-release.apk
+          path: student-app/boxue.apk
           if-no-files-found: warn
           retention-days: 30
 
@@ -194,7 +219,7 @@ jobs:
 
           # 整理要附加的文件
           ASSETS=""
-          [ -f student-app/android-release.apk ] && ASSETS="$ASSETS student-app/android-release.apk"
+          [ -f student-app/boxue.apk ]           && ASSETS="$ASSETS student-app/boxue.apk"
           [ -f student-app/ios-release.ipa ]     && ASSETS="$ASSETS student-app/ios-release.ipa"
 
           # 创建 Release（如果 tag 不存在则自动创建）
@@ -203,7 +228,7 @@ jobs:
             --notes "## 版本 ${VERSION}
 
           **下载方式：**
-          - **Android** 用户：下载 \`android-release.apk\` 文件安装
+          - **Android** 用户：下载 \`boxue.apk\` 文件安装
 
           > 在 App 内「关于」页面检查更新即可。" \
             $ASSETS \
