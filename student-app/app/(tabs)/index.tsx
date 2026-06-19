@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -46,7 +47,26 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function HomeScreen() {
   const { user, profile } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  // Theme-adapted banner styles
+  const bannerColors: readonly [string, string, ...string[]] = isDark 
+    ? ['#A31621', '#7A1018', '#1A0508'] 
+    : ['#F5E6E8', '#E8C5C8', '#D89E9F']; // Soft pastel pink/rose gradient
+  
+  const bannerTextColor = isDark ? '#FFFFFF' : '#7A1018';
+  const bannerSubtitleColor = isDark ? 'rgba(255,255,255,0.7)' : '#5A6376';
+  
+  const statsRowBg = isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)';
+  const statsDividerColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(122,16,24,0.15)';
+  const statsNumberColor = isDark ? '#FFFFFF' : '#7A1018';
+  const statsLabelColor = isDark ? 'rgba(255,255,255,0.7)' : '#5A6376';
+  
+  const avatarBg = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(122,16,24,0.08)';
+  const avatarBorderColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(122,16,24,0.2)';
+  const avatarIconColor = isDark ? '#FFFFFF' : '#A31621';
+
   const [articles, setArticles] = useState<Article[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,22 +121,23 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* Header Banner */}
         <LinearGradient
-          colors={['#A31621', '#7A1018', '#1A0508']}
-          style={styles.headerBanner}
+          colors={bannerColors}
+          style={[styles.headerBanner, { paddingTop: insets.top + 16 }]}
         >
           <View style={styles.headerContent}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.greeting}>
+              <Text style={[styles.greeting, { color: bannerTextColor }]}>
                 {user ? `${greeting}！${profile?.name || ''}` : greeting}
               </Text>
-              <Text style={styles.headerSubtitle}>博学 · 连接校园生活</Text>
+              <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>博学 · 连接校园生活</Text>
             </View>
             
             <View style={styles.headerRightActions}>
@@ -131,11 +152,11 @@ export default function HomeScreen() {
                 }}
                 activeOpacity={0.8}
               >
-                <View style={styles.avatar}>
+                <View style={[styles.avatar, { backgroundColor: avatarBg, borderColor: avatarBorderColor }]}>
                   <MaterialCommunityIcons 
                     name={user ? "account" : "account-outline"} 
                     size={24} 
-                    color="#FFFFFF" 
+                    color={avatarIconColor} 
                   />
                 </View>
               </TouchableOpacity>
@@ -143,20 +164,20 @@ export default function HomeScreen() {
           </View>
 
           {/* Quick stats */}
-          <View style={styles.statsRow}>
+          <View style={[styles.statsRow, { backgroundColor: statsRowBg }]}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{articles.length}</Text>
-              <Text style={styles.statLabel}>篇文章</Text>
+              <Text style={[styles.statNumber, { color: statsNumberColor }]}>{articles.length}</Text>
+              <Text style={[styles.statLabel, { color: statsLabelColor }]}>篇文章</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: statsDividerColor }]} />
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{upcomingEvents.length}</Text>
-              <Text style={styles.statLabel}>个活动</Text>
+              <Text style={[styles.statNumber, { color: statsNumberColor }]}>{upcomingEvents.length}</Text>
+              <Text style={[styles.statLabel, { color: statsLabelColor }]}>个活动</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: statsDividerColor }]} />
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>在线</Text>
-              <Text style={styles.statLabel}>状态</Text>
+              <Text style={[styles.statNumber, { color: statsNumberColor }]}>在线</Text>
+              <Text style={[styles.statLabel, { color: statsLabelColor }]}>状态</Text>
             </View>
           </View>
         </LinearGradient>
@@ -259,7 +280,7 @@ export default function HomeScreen() {
 
         <View style={{ height: 20 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
