@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS, SHADOWS } from '../../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -45,6 +46,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function HomeScreen() {
   const { user, profile } = useAuth();
+  const { colors } = useTheme();
   const [articles, setArticles] = useState<Article[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,17 +94,17 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* Header Banner */}
         <LinearGradient
@@ -163,29 +165,29 @@ export default function HomeScreen() {
         {upcomingEvents.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>📅 近期活动</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📅 近期活动</Text>
               <TouchableOpacity onPress={() => router.push('/(tabs)/events')}>
-                <Text style={styles.seeAll}>查看全部 →</Text>
+                <Text style={[styles.seeAll, { color: colors.primary }]}>查看全部 →</Text>
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
               {upcomingEvents.map((event) => (
                 <TouchableOpacity
                   key={event.id}
-                  style={styles.eventCard}
+                  style={[styles.eventCard, { borderColor: colors.border }]}
                   onPress={() => router.push(`/event/${event.id}` as any)}
                   activeOpacity={0.85}
                 >
                   <LinearGradient
-                    colors={['#242424', '#1A1A1A']}
+                    colors={[colors.surface, colors.surfaceElevated]}
                     style={styles.eventCardGradient}
                   >
-                    <View style={styles.eventDateBadge}>
+                    <View style={[styles.eventDateBadge, { backgroundColor: colors.primary }]}>
                       <Text style={styles.eventDateText}>{formatDate(event.start_time)}</Text>
                     </View>
-                    <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
+                    <Text style={[styles.eventTitle, { color: colors.textPrimary }]} numberOfLines={2}>{event.title}</Text>
                     {event.location && (
-                      <Text style={styles.eventLocation} numberOfLines={1}>📍 {event.location}</Text>
+                      <Text style={[styles.eventLocation, { color: colors.textSecondary }]} numberOfLines={1}>📍 {event.location}</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -197,22 +199,22 @@ export default function HomeScreen() {
         {/* Latest Articles */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>📰 微信动态</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📰 微信动态</Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/announcements')}>
-              <Text style={styles.seeAll}>查看全部 →</Text>
+              <Text style={[styles.seeAll, { color: colors.primary }]}>查看全部 →</Text>
             </TouchableOpacity>
           </View>
 
           {articles.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={styles.emptyText}>暂无文章，敬请期待</Text>
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>暂无文章，敬请期待</Text>
             </View>
           ) : (
             articles.map((article, index) => (
               <TouchableOpacity
                 key={article.id}
-                style={styles.articleCard}
+                style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => router.push(`/article/${article.id}` as any)}
                 activeOpacity={0.85}
               >
@@ -224,18 +226,18 @@ export default function HomeScreen() {
                       </Text>
                     </View>
                     {index === 0 && (
-                      <View style={styles.featuredBadge}>
-                        <Text style={styles.featuredText}>置顶</Text>
+                      <View style={[styles.featuredBadge, { backgroundColor: COLORS.gold + '20' }]}>
+                        <Text style={[styles.featuredText, { color: COLORS.gold }]}>置顶</Text>
                       </View>
                     )}
                   </View>
-                  <Text style={styles.articleTitle} numberOfLines={2}>{article.title}</Text>
+                  <Text style={[styles.articleTitle, { color: colors.textPrimary }]} numberOfLines={2}>{article.title}</Text>
                   {article.summary && (
-                    <Text style={styles.articleSummary} numberOfLines={2}>{article.summary}</Text>
+                    <Text style={[styles.articleSummary, { color: colors.textSecondary }]} numberOfLines={2}>{article.summary}</Text>
                   )}
                   <View style={styles.articleMeta}>
-                    <Text style={styles.articleDate}>{formatDate(article.created_at)}</Text>
-                    <Text style={styles.articleViews}>👁 {article.view_count}</Text>
+                    <Text style={[styles.articleDate, { color: colors.textMuted }]}>{formatDate(article.created_at)}</Text>
+                    <Text style={[styles.articleViews, { color: colors.textMuted }]}>👁 {article.view_count}</Text>
                   </View>
                 </View>
                 {article.cover_image ? (
@@ -246,7 +248,7 @@ export default function HomeScreen() {
                         Referer: 'https://mp.weixin.qq.com',
                       },
                     }}
-                    style={styles.articleImage}
+                    style={[styles.articleImage, { backgroundColor: colors.border }]}
                     resizeMode="cover"
                   />
                 ) : null}
