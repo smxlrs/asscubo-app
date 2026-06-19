@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Refresh
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { ScrollView } from 'react-native';
@@ -25,7 +26,7 @@ const CATEGORY_DETAILS = {
 };
 
 export default function NotificationsScreen() {
-  const { colors, t } = useTheme();
+  const { colors, isDark, t } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,6 +113,7 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* Title Header */}
       <View style={styles.titleContainer}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{t('notifications') || '通知'}</Text>
@@ -201,20 +203,13 @@ export default function NotificationsScreen() {
                   ) : null}
                 </View>
 
-                {item.link ? (
+                {!item.link && item.content.length > 80 && (
                   <View style={styles.cardFooter}>
-                    <Text style={[styles.footerLinkText, { color: colors.primaryLight }]}>查看推文详情</Text>
-                    <MaterialCommunityIcons name="arrow-right" size={14} color={colors.primaryLight} />
+                    <Text style={[styles.footerLinkText, { color: colors.textMuted }]}>
+                      {isExpanded ? '收起详情' : '展开阅读'}
+                    </Text>
+                    <MaterialCommunityIcons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.textMuted} />
                   </View>
-                ) : (
-                  item.content.length > 80 && (
-                    <View style={styles.cardFooter}>
-                      <Text style={[styles.footerLinkText, { color: colors.textMuted }]}>
-                        {isExpanded ? '收起详情' : '展开阅读'}
-                      </Text>
-                      <MaterialCommunityIcons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.textMuted} />
-                    </View>
-                  )
                 )}
               </Pressable>
             );

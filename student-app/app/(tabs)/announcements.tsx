@@ -5,7 +5,10 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../context/ThemeContext';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
 
 type Article = {
@@ -31,6 +34,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function AnnouncementsScreen() {
+  const { colors, isDark } = useTheme();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,14 +65,19 @@ export default function AnnouncementsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>📢 公告与新闻</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.sm }}>
+          <MaterialCommunityIcons name="bullhorn-outline" size={24} color={colors.primary} style={{ marginRight: 8 }} />
+          <Text style={[styles.title, { color: colors.textPrimary, marginBottom: 0 }]}>公告与新闻</Text>
+        </View>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
           placeholder="搜索文章..."
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor={colors.textMuted}
           value={search}
           onChangeText={setSearch}
         />
@@ -79,10 +88,21 @@ export default function AnnouncementsScreen() {
         {CATEGORIES.map((cat) => (
           <TouchableOpacity
             key={cat.key}
-            style={[styles.filterChip, selectedCategory === cat.key && styles.filterChipActive]}
+            style={[
+              styles.filterChip, 
+              { 
+                backgroundColor: selectedCategory === cat.key ? colors.primary : colors.surface, 
+                borderColor: selectedCategory === cat.key ? colors.primary : colors.border 
+              }
+            ]}
             onPress={() => setSelectedCategory(cat.key)}
           >
-            <Text style={[styles.filterText, selectedCategory === cat.key && styles.filterTextActive]}>
+            <Text style={[
+              styles.filterText, 
+              { 
+                color: selectedCategory === cat.key ? '#FFFFFF' : colors.textSecondary 
+              }
+            ]}>
               {cat.label}
             </Text>
           </TouchableOpacity>
@@ -90,7 +110,7 @@ export default function AnnouncementsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.primary} />
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
         <FlatList
           data={articles}
@@ -98,17 +118,17 @@ export default function AnnouncementsScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchArticles(); }} tintColor={COLORS.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchArticles(); }} tintColor={colors.primary} />
           }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={styles.emptyText}>暂无相关内容</Text>
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>暂无相关内容</Text>
             </View>
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.card}
+              style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => router.push(`/article/${item.id}` as any)}
               activeOpacity={0.85}
             >
@@ -120,10 +140,10 @@ export default function AnnouncementsScreen() {
                         {CATEGORIES.find(c => c.key === item.category)?.label || '综合'}
                       </Text>
                     </View>
-                    <Text style={styles.date}>{formatDate(item.created_at)}</Text>
+                    <Text style={[styles.date, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
                   </View>
-                  <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-                  {item.summary && <Text style={styles.cardSummary} numberOfLines={2}>{item.summary}</Text>}
+                  <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={2}>{item.title}</Text>
+                  {item.summary && <Text style={[styles.cardSummary, { color: colors.textSecondary }]} numberOfLines={2}>{item.summary}</Text>}
                 </View>
                 {item.cover_image ? (
                   <Image
@@ -133,14 +153,14 @@ export default function AnnouncementsScreen() {
                         Referer: 'https://mp.weixin.qq.com',
                       },
                     }}
-                    style={styles.cardImage}
+                    style={[styles.cardImage, { backgroundColor: colors.border }]}
                     resizeMode="cover"
                   />
                 ) : null}
               </View>
               <View style={styles.cardBottom}>
-                <Text style={styles.views}>👁 {item.view_count} 次阅读</Text>
-                <Text style={styles.readMore}>阅读全文 →</Text>
+                <Text style={[styles.views, { color: colors.textMuted }]}>👁 {item.view_count} 次阅读</Text>
+                <Text style={[styles.readMore, { color: colors.primary }]}>阅读全文 →</Text>
               </View>
             </TouchableOpacity>
           )}
