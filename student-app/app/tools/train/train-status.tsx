@@ -99,6 +99,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     refresh: '刷新',
     back: '返回',
     notStarted: '尚未开行',
+    expiredError: '该车次已实际到达终点站超过4小时，无法再查询运行状态。',
     disclaimer: '本服务展示的列车时刻、延误及站台等数据均来自意大利铁路公开实时运营信息，仅供出行参考。实际运行请以车站大屏幕及官方购票App（Trenitalia / Italo）实时公告为准。'
   },
   'zh-Hant': {
@@ -125,7 +126,8 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     refresh: '刷新',
     back: '返回',
     notStarted: '尚未開行',
-    disclaimer: '本服務展示的列車時刻、延誤及月台等數據均來自義大利鐵路公開即時營運資訊，僅供出行參考。實際運行請以車站大屏幕及鐵路官方App（Trenitalia / Italo）即時公告為準。'
+    expiredError: '該車次已實際到達終點站超過4小時，無法再查詢運行狀態。',
+    disclaimer: '本服務展示的列車時刻、延誤及月台等數據均來自義大利鐵路公開即時營運資訊，僅供出行參考。實際運行請以車站大屏幕及鐵路官方App（Trenitalia / Italo）即時公告為准。'
   },
   en: {
     title: 'Train Tracking',
@@ -151,6 +153,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     refresh: 'Refresh',
     back: 'Back',
     notStarted: 'Not started yet',
+    expiredError: 'This train actually arrived at the destination more than 4 hours ago and is no longer available.',
     disclaimer: 'The train schedules, delays, and platform info displayed here are retrieved from Italian rail public live data and are for reference only. Please refer to station screens and official apps for actual operations.'
   },
   it: {
@@ -177,6 +180,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     refresh: 'Aggiorna',
     back: 'Indietro',
     notStarted: 'Non ancora partito',
+    expiredError: 'Questo treno è arrivato a destinazione da più di 4 ore e non è più disponibile.',
     disclaimer: 'Gli orari, ritardi e binari dei treni mostrati sono tratti dai dati pubblici in tempo reale delle ferrovie italiane e hanno valore puramente informativo. Fare riferimento ai tabelloni di stazione e alle app ufficiali per l\'operatività reale.'
   }
 };
@@ -391,6 +395,21 @@ export default function TrainStatusScreen() {
       }
       
       if (data) {
+        // Expiration check: actual arrival + 4 hours
+        if (data.stops && data.stops.length > 0) {
+          const lastStop = data.stops[data.stops.length - 1];
+          const actualArrival = lastStop.actualArrivalTime || 
+                               (data.scheduledArrivalTime ? (data.scheduledArrivalTime + (data.delay || 0) * 60000) : null);
+          if (actualArrival && Date.now() > (actualArrival + 4 * 3600 * 1000)) {
+            setErrorMsg(t('expiredError'));
+            setStatus(null);
+            setLoading(false);
+            setRefreshing(false);
+            isFetchingRef.current = false;
+            return;
+          }
+        }
+
         setStatus(data);
         await updateRecentTrainInHistory(data, resolvedStationID, resolvedTimestamp);
 
@@ -468,6 +487,25 @@ export default function TrainStatusScreen() {
     return lastIndex;
   };
 
+  // Find the last stop that has been reached by comparing current time with estimated times
+  const getLastPassedStopIndexByTime = (stops: VtStop[], delayMin: number) => {
+    const now = Date.now();
+    let lastIndex = -1;
+    for (let i = 0; i < stops.length; i++) {
+      const stop = stops[i];
+      const delayVal = delayMin || 0;
+      
+      const depTime = stop.actualDepartureTime || (stop.scheduledDepartureTime ? (stop.scheduledDepartureTime + delayVal * 60000) : null);
+      const arrTime = stop.actualArrivalTime || (stop.scheduledArrivalTime ? (stop.scheduledArrivalTime + delayVal * 60000) : null);
+      
+      const timeToCompare = depTime || arrTime;
+      if (timeToCompare && now >= timeToCompare) {
+        lastIndex = i;
+      }
+    }
+    return lastIndex;
+  };
+
   if (!status) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -511,9 +549,10 @@ export default function TrainStatusScreen() {
         s => s.stationName.trim().toLowerCase() === status.lastReportedStation.trim().toLowerCase()
       )
     : -1;
+  const timeProgressActiveIndex = status ? getLastPassedStopIndexByTime(status.stops, status.delay) : -1;
 
-  // Timeline helper index: prefer time-based (real time departed/arrived) over name-based
-  const activeStopIndex = timeBasedActiveIndex !== -1 ? timeBasedActiveIndex : nameBasedActiveIndex;
+  // Compute activeStopIndex by taking the maximum of time-based reports, name-based position, and time-based progression
+  const activeStopIndex = Math.max(timeBasedActiveIndex, nameBasedActiveIndex, timeProgressActiveIndex);
 
   const isNotStartedYet = status && status.stops.every(s => s.actualArrivalTime === null && s.actualDepartureTime === null);
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -56,6 +56,11 @@ export default function StudyRoomsScreen() {
     router.push(`/article/web?url=${encodeURIComponent(room.affluencesUrl)}&title=${encodeURIComponent(room.nameCn)}` as any);
   };
 
+  const handleNavigate = (room: RoomWithStatus) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(room.address + ', ' + room.nameIt)}`;
+    Linking.openURL(url).catch(err => console.log('Failed to open maps:', err));
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {/* Header */}
@@ -65,6 +70,19 @@ export default function StudyRoomsScreen() {
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>自习室与图书馆</Text>
         <View style={styles.headerPlaceholder} />
+      </View>
+
+      {/* Disclaimer Banner */}
+      <View style={[styles.disclaimerBanner, { backgroundColor: colors.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
+        <Text style={[styles.disclaimerText, { color: colors.textSecondary }]}>
+          仅供参考，数据和预约服务来自{' '}
+          <Text
+            style={[styles.disclaimerLink, { color: colors.primary }]}
+            onPress={() => router.push('/article/web?url=https%3A%2F%2Faffluences.com%2Fit%2Fsites%3Fplaylist_id%3D32&title=Affluences' as any)}
+          >
+            affluences
+          </Text>
+        </Text>
       </View>
 
       {loading ? (
@@ -139,27 +157,25 @@ export default function StudyRoomsScreen() {
                 {/* Actions */}
                 <View style={styles.actionRow}>
                   <Pressable
-                    style={[styles.actionButton, { backgroundColor: colors.primarySoft }]}
+                    style={[styles.actionButton, { backgroundColor: colors.primary + '15' }]}
                     onPress={() => handleBookSeat(item)}
                   >
-                    <MaterialCommunityIcons name="calendar-check" size={16} color={colors.primaryLight} />
-                    <Text style={[styles.actionButtonText, { color: colors.primaryLight }]}>预约座位</Text>
+                    <MaterialCommunityIcons name="calendar-check" size={16} color={colors.primary} />
+                    <Text style={[styles.actionButtonText, { color: colors.primary }]}>预约座位</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionButton, { backgroundColor: colors.primary }]}
+                    onPress={() => handleNavigate(item)}
+                  >
+                    <MaterialCommunityIcons name="navigation" size={16} color="#FFFFFF" />
+                    <Text style={[styles.actionButtonText, { color: '#FFFFFF' }]}>前往</Text>
                   </Pressable>
                 </View>
               </View>
             );
           }}
           ListFooterComponent={
-            <View style={styles.footer}>
-              <Pressable
-                style={styles.fallbackButton}
-                onPress={() => router.push('/article/web?url=https%3A%2F%2Faffluences.com%2Fsites%3Fplaylist_id%3D32&title=Affluences%20%E7%BD%91%E9%A1%B5%E7%89%88' as any)}
-              >
-                <Text style={[styles.fallbackButtonText, { color: colors.textMuted }]}>
-                  无法显示？点击进入 Affluences 网页版 →
-                </Text>
-              </Pressable>
-            </View>
+            <View style={{ height: 20 }} />
           }
         />
       )}
@@ -279,11 +295,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   actionRow: {
+    flexDirection: 'row',
+    gap: 12,
     borderTopWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
     paddingTop: 12,
   },
   actionButton: {
+    flex: 1,
     height: 38,
     borderRadius: 8,
     flexDirection: 'row',
@@ -295,15 +314,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
   },
-  footer: {
-    paddingVertical: 24,
-    alignItems: 'center',
-  },
-  fallbackButton: {
-    paddingVertical: 8,
+  disclaimerBanner: {
+    paddingVertical: 10,
     paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  fallbackButtonText: {
+  disclaimerText: {
     fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+  disclaimerLink: {
+    textDecorationLine: 'underline',
+    fontWeight: 'bold',
   },
 });

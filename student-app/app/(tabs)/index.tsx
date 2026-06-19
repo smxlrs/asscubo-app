@@ -121,7 +121,10 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <LinearGradient
+      colors={isDark ? ['#141414', '#0A0A0A'] : ['#FFFFFF', '#EFF2F6']}
+      style={styles.container}
+    >
       <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -205,7 +208,7 @@ export default function HomeScreen() {
               {upcomingEvents.map((event) => (
                 <TouchableOpacity
                   key={event.id}
-                  style={[styles.eventCard, { borderColor: colors.border }]}
+                  style={[styles.eventCard, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(163,22,33,0.06)' }]}
                   onPress={() => router.push(`/event/${event.id}` as any)}
                   activeOpacity={0.85}
                 >
@@ -252,7 +255,7 @@ export default function HomeScreen() {
             articles.map((article, index) => (
               <TouchableOpacity
                 key={article.id}
-                style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(163,22,33,0.06)' }]}
                 onPress={() => router.push(`/article/${article.id}` as any)}
                 activeOpacity={0.85}
               >
@@ -297,7 +300,7 @@ export default function HomeScreen() {
 
         <View style={{ height: 20 }} />
       </ScrollView>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -430,8 +433,12 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    ...SHADOWS.sm,
+    borderColor: 'rgba(0,0,0,0.04)',
+    shadowColor: '#0A101D',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
   eventCardGradient: { padding: SPACING.base },
   eventDateBadge: {
@@ -465,10 +472,14 @@ const styles = StyleSheet.create({
     padding: SPACING.base,
     marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(0,0,0,0.04)',
     flexDirection: 'row',
     alignItems: 'flex-start',
-    ...SHADOWS.sm,
+    shadowColor: '#0A101D',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
   articleLeft: { flex: 1 },
   articleHeaderRow: {
