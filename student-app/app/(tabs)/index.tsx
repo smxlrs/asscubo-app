@@ -217,10 +217,17 @@ export default function HomeScreen() {
                 activeOpacity={0.85}
               >
                 <View style={styles.articleLeft}>
-                  <View style={[styles.categoryBadge, { backgroundColor: CATEGORY_COLORS[article.category] + '20' }]}>
-                    <Text style={[styles.categoryText, { color: CATEGORY_COLORS[article.category] }]}>
-                      {CATEGORY_LABELS[article.category] || '综合'}
-                    </Text>
+                  <View style={styles.articleHeaderRow}>
+                    <View style={[styles.categoryBadge, { backgroundColor: CATEGORY_COLORS[article.category] + '20' }]}>
+                      <Text style={[styles.categoryText, { color: CATEGORY_COLORS[article.category] }]}>
+                        {CATEGORY_LABELS[article.category] || '综合'}
+                      </Text>
+                    </View>
+                    {index === 0 && (
+                      <View style={styles.featuredBadge}>
+                        <Text style={styles.featuredText}>置顶</Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={styles.articleTitle} numberOfLines={2}>{article.title}</Text>
                   {article.summary && (
@@ -231,11 +238,18 @@ export default function HomeScreen() {
                     <Text style={styles.articleViews}>👁 {article.view_count}</Text>
                   </View>
                 </View>
-                {index === 0 && (
-                  <View style={styles.featuredBadge}>
-                    <Text style={styles.featuredText}>置顶</Text>
-                  </View>
-                )}
+                {article.cover_image ? (
+                  <Image
+                    source={{
+                      uri: article.cover_image,
+                      headers: {
+                        Referer: 'https://mp.weixin.qq.com',
+                      },
+                    }}
+                    style={styles.articleImage}
+                    resizeMode="cover"
+                  />
+                ) : null}
               </TouchableOpacity>
             ))
           )}
@@ -417,12 +431,16 @@ const styles = StyleSheet.create({
     ...SHADOWS.sm,
   },
   articleLeft: { flex: 1 },
+  articleHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
   categoryBadge: {
     alignSelf: 'flex-start',
     borderRadius: RADIUS.sm,
     paddingHorizontal: SPACING.sm,
     paddingVertical: 2,
-    marginBottom: SPACING.xs,
   },
   categoryText: {
     fontSize: SIZES.xs,
@@ -468,6 +486,13 @@ const styles = StyleSheet.create({
     fontSize: SIZES.xs,
     fontFamily: FONTS.bold,
     color: COLORS.gold,
+  },
+  articleImage: {
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.md,
+    marginLeft: SPACING.md,
+    backgroundColor: COLORS.border,
   },
   emptyState: {
     alignItems: 'center',

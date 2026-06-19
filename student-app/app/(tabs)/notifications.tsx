@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ type Notification = {
   content: string;
   category: 'events' | 'academic' | 'life' | 'general';
   link?: string;
+  cover_image?: string;
   created_at: string;
 };
 
@@ -55,6 +56,7 @@ export default function NotificationsScreen() {
           content: '欧洲学生学者联合会将于本周五举办一年一度的中秋晚会！现场有精彩的文艺演出和丰厚的抽奖活动，请大家点击链接抓紧报名，席位有限。',
           category: 'events',
           link: 'https://mp.weixin.qq.com/s/example1',
+          cover_image: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=600&auto=format&fit=crop',
           created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
         },
         {
@@ -63,6 +65,7 @@ export default function NotificationsScreen() {
           content: '博大新学期注册和缴费入口现已开放。关于第一期学费减免（ISEE）的申报截止日期，以及新生入学税注册流程的详细图文指引现已发布。',
           category: 'academic',
           link: 'https://mp.weixin.qq.com/s/example2',
+          cover_image: 'https://mmbiz.qpic.cn/sz_mmbiz_jpg/2UvUwLMxhsjY0nxfIk8SuI6O7Swic4u24AHXFpXYX9F9Mz69SGBYbc3CibVarypwAZkhlEtOEuFgOWQPzXpJsf6DYvsxHSVSNzomficZ7q0Iia0/0?wx_fmt=jpeg',
           created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
         },
         {
@@ -70,6 +73,7 @@ export default function NotificationsScreen() {
           title: '米兰/博洛尼亚暑期租房安全预警',
           content: '近期发生多起针对中国留学生的线上虚假租房诈骗案。特此提醒大家：切勿在未实地看房或未签正式合同前转账押金，如有疑问请查阅防骗手册。',
           category: 'life',
+          cover_image: 'https://mmbiz.qpic.cn/mmbiz_jpg/2UvUwLMxhshzFGttnSquRZevjDLJlibnnMYicDIsBPn8icM6dEQ3JWYXlAkqdmEOpdoxMp9l14Xbnsv7qcqvxDkG2ZDkZKHmicI9d2dJhfTrvJE/0?wx_fmt=jpeg',
           created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
         },
       ];
@@ -174,13 +178,28 @@ export default function NotificationsScreen() {
                   <Text style={[styles.dateText, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
                 </View>
 
-                <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{item.title}</Text>
-                
-                {(!item.link || isExpanded) && (
-                  <Text style={[styles.cardContent, { color: colors.textSecondary }]} numberOfLines={isExpanded ? undefined : 2}>
-                    {item.content}
-                  </Text>
-                )}
+                <View style={styles.cardBodyRow}>
+                  <View style={styles.cardTextContainer}>
+                    <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{item.title}</Text>
+                    {(!item.link || isExpanded) && (
+                      <Text style={[styles.cardContent, { color: colors.textSecondary }]} numberOfLines={isExpanded ? undefined : 2}>
+                        {item.content}
+                      </Text>
+                    )}
+                  </View>
+                  {item.cover_image ? (
+                    <Image
+                      source={{
+                        uri: item.cover_image,
+                        headers: {
+                          Referer: 'https://mp.weixin.qq.com',
+                        },
+                      }}
+                      style={styles.cardImage}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+                </View>
 
                 {item.link ? (
                   <View style={styles.cardFooter}>
@@ -295,6 +314,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     lineHeight: 22,
     marginBottom: 6,
+  },
+  cardBodyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: 4,
+  },
+  cardTextContainer: {
+    flex: 1,
+  },
+  cardImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    marginLeft: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   cardContent: {
     fontSize: 14,

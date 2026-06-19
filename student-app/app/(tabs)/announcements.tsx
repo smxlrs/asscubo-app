@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  RefreshControl, ActivityIndicator, TextInput,
+  RefreshControl, ActivityIndicator, TextInput, Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ type Article = {
   title: string;
   summary: string | null;
   category: string;
+  cover_image: string | null;
   created_at: string;
   view_count: number;
 };
@@ -39,7 +40,7 @@ export default function AnnouncementsScreen() {
   async function fetchArticles() {
     let query = supabase
       .from('articles')
-      .select('id, title, summary, category, created_at, view_count')
+      .select('id, title, summary, category, cover_image, created_at, view_count')
       .eq('is_published', true)
       .order('created_at', { ascending: false });
 
@@ -111,16 +112,32 @@ export default function AnnouncementsScreen() {
               onPress={() => router.push(`/article/${item.id}` as any)}
               activeOpacity={0.85}
             >
-              <View style={styles.cardTop}>
-                <View style={[styles.catBadge, { backgroundColor: (CATEGORY_COLORS[item.category] || '#A0A0A0') + '25' }]}>
-                  <Text style={[styles.catText, { color: CATEGORY_COLORS[item.category] || '#A0A0A0' }]}>
-                    {CATEGORIES.find(c => c.key === item.category)?.label || '综合'}
-                  </Text>
+              <View style={styles.cardContentRow}>
+                <View style={styles.cardTextContent}>
+                  <View style={styles.cardTop}>
+                    <View style={[styles.catBadge, { backgroundColor: (CATEGORY_COLORS[item.category] || '#A0A0A0') + '25' }]}>
+                      <Text style={[styles.catText, { color: CATEGORY_COLORS[item.category] || '#A0A0A0' }]}>
+                        {CATEGORIES.find(c => c.key === item.category)?.label || '综合'}
+                      </Text>
+                    </View>
+                    <Text style={styles.date}>{formatDate(item.created_at)}</Text>
+                  </View>
+                  <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+                  {item.summary && <Text style={styles.cardSummary} numberOfLines={2}>{item.summary}</Text>}
                 </View>
-                <Text style={styles.date}>{formatDate(item.created_at)}</Text>
+                {item.cover_image ? (
+                  <Image
+                    source={{
+                      uri: item.cover_image,
+                      headers: {
+                        Referer: 'https://mp.weixin.qq.com',
+                      },
+                    }}
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                  />
+                ) : null}
               </View>
-              <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-              {item.summary && <Text style={styles.cardSummary} numberOfLines={2}>{item.summary}</Text>}
               <View style={styles.cardBottom}>
                 <Text style={styles.views}>👁 {item.view_count} 次阅读</Text>
                 <Text style={styles.readMore}>阅读全文 →</Text>
@@ -174,6 +191,21 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  cardContentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.sm,
+  },
+  cardTextContent: {
+    flex: 1,
+  },
+  cardImage: {
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.md,
+    marginLeft: SPACING.md,
+    backgroundColor: COLORS.border,
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
   catBadge: { borderRadius: RADIUS.sm, paddingHorizontal: SPACING.sm, paddingVertical: 2 },

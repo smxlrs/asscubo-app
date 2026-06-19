@@ -80,11 +80,43 @@ export default function ArticleDetailScreen() {
 
   // 1. If it's a WeChat or Web Link, load it in WebView
   if (article.link) {
-    // Custom JS injection to hide unwanted WeChat page components on mobile (QR codes, share panels, PC banners)
+    // Custom JS injection to hide unwanted WeChat page components on mobile and adapt dark mode if active
     const injectedJS = `
-      const style = document.createElement('style');
-      style.innerHTML = '#js_pc_qr_code, .qr_code_pc_outer, #js_share_app_msg, .rich_media_tool, #js_to_share, #js_profile_qrcode, .profile_qrcode_area, .global_share_dialog, .global_share_btn, .qr_code_pc_inner, .qr_code_pc { display: none !important; }';
-      document.head.appendChild(style);
+      (function() {
+        // Hide unwanted elements (like QR code areas, PC share bars)
+        const style = document.createElement('style');
+        style.innerHTML = '#js_pc_qr_code, .qr_code_pc_outer, #js_share_app_msg, #js_profile_qrcode, .profile_qrcode_area, .global_share_dialog, .global_share_btn, .qr_code_pc_inner, .qr_code_pc { display: none !important; }';
+        document.head.appendChild(style);
+
+        ${isDark ? `
+          // Enable WeChat native dark theme
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.body.setAttribute('data-theme', 'dark');
+          document.documentElement.classList.add('theme-dark');
+          document.body.classList.add('theme-dark');
+
+          // Inject custom dark theme styles for backup override (covering container, text and bottom bar)
+          const darkStyle = document.createElement('style');
+          darkStyle.innerHTML = \`
+            html, body, .rich_media, .rich_media_inner, .rich_media_area_primary, .rich_media_content, #img-content, .rich_media_tool, .appmsg_tool, .appmsg_tool_wrp, .tool_wrp, .rich_media_extra, .rich_media_extra_inside, .like_comment_area, .like_comment_wrapper, #js_unshare_area, #js_to_share, .reward_area {
+              background-color: #0F0F0F !important;
+              color: #F5F5F5 !important;
+            }
+            .rich_media_title, .rich_media_meta_text, .rich_media_meta_nickname, .rich_media_content, .rich_media_content p, .rich_media_content span, .rich_media_content section, .rich_media_content h1, .rich_media_content h2, .rich_media_content h3, .rich_media_content h4 {
+              color: #F5F5F5 !important;
+              background-color: transparent !important;
+            }
+            .appmsg_tool *, .rich_media_tool *, .rich_media_extra *, .rich_media_meta_list *, .profile_container * {
+              background-color: transparent !important;
+              color: #A0A0A0 !important;
+            }
+            a {
+              color: #C41E2A !important;
+            }
+          \`;
+          document.head.appendChild(darkStyle);
+        ` : ''}
+      })();
       true;
     `;
 
@@ -112,6 +144,9 @@ export default function ArticleDetailScreen() {
           )}
           // Enable prefers-color-scheme media query handling on webviews
           forceDarkOn={isDark}
+          mixedContentMode="always"
+          domStorageEnabled={true}
+          javaScriptEnabled={true}
         />
       </SafeAreaView>
     );

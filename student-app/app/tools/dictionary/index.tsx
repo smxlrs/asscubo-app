@@ -741,10 +741,10 @@ export default function DictionaryScreen() {
     await AsyncStorage.removeItem(HISTORY_KEY);
   };
 
-  // Perform word lookup definitions progressively
   const handleSearch = async (word: string) => {
     if (!word.trim()) return;
     Keyboard.dismiss();
+    textInputRef.current?.blur();
     setIsFocused(false);
     setSearchQuery(word);
     setActiveWord(word);
@@ -907,6 +907,8 @@ export default function DictionaryScreen() {
         setCollapsedDicts(updated);
         AsyncStorage.setItem('user_dictionary_collapsed', JSON.stringify(updated));
       } else if (data.type === 'link') {
+        setIsFocused(false);
+        textInputRef.current?.blur();
         handleSearch(data.word);
       } else if (data.type === 'error') {
         console.warn(`[WebView JS Error] ${data.message} at line ${data.line}:${data.col}`);

@@ -45,7 +45,8 @@ async function saveAndPushArticle(title: string, summary: string, url: string, c
       title: title,
       content: summary,
       category: 'general',
-      link: url
+      link: url,
+      cover_image: coverImage
     }]);
 
   if (notificationError) {

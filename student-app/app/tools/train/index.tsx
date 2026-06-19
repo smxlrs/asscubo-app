@@ -23,7 +23,9 @@ import {
   getOperatorInfo,
   VtStation,
   VtTrainSearchMatch,
-  VtTrainSummary
+  VtTrainSummary,
+  formatRomeTimeStr,
+  formatRomeDateTimeFromTimestamp
 } from '../../../lib/viaggiaTrenoService';
 import { stations } from '../../../assets/stations';
 
@@ -242,15 +244,7 @@ export default function TrainToolIndex() {
   };
 
   const formatUnixTime = (unixMs: number) => {
-    if (!unixMs) return '';
-    try {
-      const date = new Date(unixMs);
-      return `${String(date.getHours()).padStart(2, '0')}:${String(
-        date.getMinutes()
-      ).padStart(2, '0')}`;
-    } catch (e) {
-      return '';
-    }
+    return formatRomeTimeStr(unixMs);
   };
 
   const renderTrainCard = (item: VtTrainSummary | VtTrainSearchMatch) => {
@@ -283,7 +277,8 @@ export default function TrainToolIndex() {
                 <Text style={[styles.opCodeText, { color: op.color }]}>{op.code}</Text>
               </View>
               <Text style={[styles.trainNumCategoryText, { color: colors.textPrimary }]}>
-                {(item as any).category || ''} {item.number}
+                {((item as any).category && (item as any).category.toUpperCase() !== op.code.toUpperCase()) ? `${(item as any).category} ` : ''}
+                {item.number}
               </Text>
             </View>
           </View>
@@ -549,16 +544,9 @@ export default function TrainToolIndex() {
 
   const formatUnixDate = (timestampStr: string) => {
     if (!timestampStr) return '';
-    try {
-      const date = new Date(parseInt(timestampStr, 10));
-      return `${String(date.getDate()).padStart(2, '0')}/${String(
-        date.getMonth() + 1
-      ).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(
-        date.getMinutes()
-      ).padStart(2, '0')}`;
-    } catch (e) {
-      return '';
-    }
+    const val = parseInt(timestampStr, 10);
+    if (isNaN(val)) return '';
+    return formatRomeDateTimeFromTimestamp(val);
   };
 
   return (

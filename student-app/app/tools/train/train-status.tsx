@@ -22,7 +22,9 @@ import {
   VtTrainStatus,
   VtStop,
   VtAlert,
-  cleanPlatform
+  cleanPlatform,
+  formatRomeTimeStr,
+  formatRomeDateFromTimestamp
 } from '../../../lib/viaggiaTrenoService';
 import { MarqueeText } from '../../../components/MarqueeText';
 
@@ -289,8 +291,7 @@ export default function TrainStatusScreen() {
   const formatDateFromTimestamp = (ts: string) => {
     const val = parseInt(ts, 10);
     if (isNaN(val)) return '';
-    const date = new Date(val);
-    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+    return formatRomeDateFromTimestamp(val);
   };
 
   const fetchData = async (isRef = false) => {
@@ -308,8 +309,21 @@ export default function TrainStatusScreen() {
       // Resolve the latest active run first if we have multiple runs
       const matches = await searchTrain(trainNumber);
       if (matches && matches.length > 0) {
+        // Filter matches to only keep those matching resolvedStationID (if present)
+        const cleanStationId = (id: string) => String(id || '').trim().toUpperCase().replace(/^S/i, '').replace(/^0+/, '');
+        const targetStation = cleanStationId(resolvedStationID);
+        
+        let filteredMatches = matches;
+        if (targetStation) {
+          filteredMatches = matches.filter(m => cleanStationId(m.departureStationID) === targetStation);
+        }
+        
+        if (filteredMatches.length === 0) {
+          filteredMatches = matches;
+        }
+
         // Sort matches: newest first (largest timestamp first)
-        const sorted = [...matches].sort((a, b) => {
+        const sorted = [...filteredMatches].sort((a, b) => {
           const tA = parseInt(a.timestamp, 10) || 0;
           const tB = parseInt(b.timestamp, 10) || 0;
           return tB - tA;
@@ -421,27 +435,12 @@ export default function TrainStatusScreen() {
   };
 
   const formatTimeStr = (unixMs: number | null) => {
-    if (!unixMs) return '--:--';
-    try {
-      const date = new Date(unixMs);
-      return `${String(date.getHours()).padStart(2, '0')}:${String(
-        date.getMinutes()
-      ).padStart(2, '0')}`;
-    } catch (e) {
-      return '--:--';
-    }
+    return formatRomeTimeStr(unixMs);
   };
 
   const formatReportTimeStr = (unixMs: number | null) => {
     if (!unixMs) return '';
-    try {
-      const date = new Date(unixMs);
-      return `${String(date.getHours()).padStart(2, '0')}:${String(
-        date.getMinutes()
-      ).padStart(2, '0')}`;
-    } catch (e) {
-      return '';
-    }
+    return formatRomeTimeStr(unixMs);
   };
 
   // Find the last stop that has actual arrival/departure time (indicating it has been reached)

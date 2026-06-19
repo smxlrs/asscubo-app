@@ -21,7 +21,9 @@ import {
   getOperatorInfo,
   getTrainStatus,
   VtBoardEntry,
-  cleanPlatform
+  cleanPlatform,
+  getRomeTimestampFromLocalDate,
+  formatRomeTimeStr
 } from '../../../lib/viaggiaTrenoService';
 
 const { width } = Dimensions.get('window');
@@ -235,8 +237,19 @@ export default function StationBoardScreen() {
     setErrorMsg('');
     try {
       const data = await getStationBoard(stationID, boardMode);
-      setTrains(data);
-      triggerBackgroundTimeLoading(data);
+      
+      // Filter out trains that already arrived/departed more than 30 minutes ago
+      const now = getRomeTimestampFromLocalDate(new Date());
+      const filteredData = data.filter(entry => {
+        if (!entry.scheduledTime) return true;
+        const delayMins = entry.delay || 0;
+        const expectedTime = entry.scheduledTime + (delayMins * 60 * 1000);
+        // Keep if expected time is in the future, or in the past by at most 30 minutes
+        return expectedTime >= now - 30 * 60 * 1000;
+      });
+
+      setTrains(filteredData);
+      triggerBackgroundTimeLoading(filteredData);
     } catch (e) {
       setErrorMsg(t('error'));
     } finally {
@@ -298,11 +311,52 @@ export default function StationBoardScreen() {
           }
         });
       } else {
-        // Find match where label matches either origin or destination endpoints
-        const endpoint = boardMode === 'departures' ? entry.destination : entry.origin;
-        const matched = matches.find(
-          m => m.label.toLowerCase().includes(endpoint.toLowerCase())
-        ) || matches[0];
+        // Try exact match first using departureStationID and timestamp
+        const cleanStationId = (id: string) => String(id || '').trim().toUpperCase().replace(/^S/i, '').replace(/^0+/, '');
+        let matched = matches.find(m => {
+          const mStation = cleanStationId(m.departureStationID);
+          const entryStation = cleanStationId(entry.originStationID);
+          const mTime = String(m.timestamp).trim();
+          const entryTime = String(entry.timestamp).trim();
+          return mStation === entryStation && mTime === entryTime;
+        });
+
+        // Fallback 1: Match by departureStationID only
+        if (!matched) {
+          matched = matches.find(m => {
+            const mStation = cleanStationId(m.departureStationID);
+            const entryStation = cleanStationId(entry.originStationID);
+            return mStation === entryStation;
+          });
+        }
+
+        // Fallback 2: Match by name overlap (either substring or word overlap)
+        if (!matched) {
+          matched = matches.find(m => {
+            const labelLower = m.label.toLowerCase();
+            const originLower = entry.origin.toLowerCase();
+            
+            if (originLower && (labelLower.includes(originLower) || originLower.includes(labelLower.split('-')[1]?.trim().toLowerCase() || ''))) {
+              return true;
+            }
+            
+            // Check for word overlap (match if any word of length >= 3 in origin is in the label)
+            if (originLower) {
+              const originWords = originLower.split(/[\s.\-]+/).filter(w => w.length >= 3);
+              for (const word of originWords) {
+                if (labelLower.includes(word)) {
+                  return true;
+                }
+              }
+            }
+            return false;
+          });
+        }
+
+        // Final fallback: use the first match
+        if (!matched) {
+          matched = matches[0];
+        }
         
         router.push({
           pathname: '/tools/train/train-status',
@@ -321,15 +375,7 @@ export default function StationBoardScreen() {
   };
 
   const formatTimeStr = (timestamp: number) => {
-    if (!timestamp) return '--:--';
-    try {
-      const date = new Date(timestamp);
-      return `${String(date.getHours()).padStart(2, '0')}:${String(
-        date.getMinutes()
-      ).padStart(2, '0')}`;
-    } catch (e) {
-      return '--:--';
-    }
+    return formatRomeTimeStr(timestamp);
   };
 
   const renderTrainItem = ({ item }: { item: VtBoardEntry }) => {
@@ -381,7 +427,8 @@ export default function StationBoardScreen() {
                 <Text style={[styles.opCodeText, { color: op.color }]}>{op.code}</Text>
               </View>
               <Text style={[styles.trainNumCategoryText, { color: colors.textPrimary }]}>
-                {item.category} {item.trainNumber}
+                {item.category && item.category.toUpperCase() !== op.code.toUpperCase() ? `${item.category} ` : ''}
+                {item.trainNumber}
               </Text>
             </View>
 

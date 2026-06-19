@@ -12,6 +12,7 @@ CREATE TABLE public.notifications (
   content TEXT NOT NULL,
   category TEXT NOT NULL CHECK (category IN ('events', 'academic', 'life', 'general')),
   link TEXT,
+  cover_image TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 

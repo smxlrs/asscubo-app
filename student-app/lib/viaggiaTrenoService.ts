@@ -1,6 +1,6 @@
 import { stations, Station } from '../assets/stations';
 
-const BASE_URL = 'http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
+const BASE_URL = 'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
 
 export const fetchWithTimeout = async (url: string, options?: RequestInit, timeoutMs = 3000): Promise<Response> => {
   const controller = new AbortController();
@@ -276,6 +276,18 @@ export const parseTimeStr = (timeStr: string, baseDate: Date): number | null => 
   
   const d = new Date(baseDate);
   d.setHours(hour, minute, 0, 0);
+
+  // Adjust date if the parsed time is too far in the future or past relative to baseDate
+  const diffMs = d.getTime() - baseDate.getTime();
+  const twelveHoursMs = 12 * 60 * 60 * 1000;
+  if (diffMs > twelveHoursMs) {
+    // e.g. query is 02:00, train is 23:00 -> diff is +21 hrs, belongs to yesterday
+    d.setDate(d.getDate() - 1);
+  } else if (diffMs < -twelveHoursMs) {
+    // e.g. query is 23:00, train is 01:00 -> diff is -22 hrs, belongs to tomorrow
+    d.setDate(d.getDate() + 1);
+  }
+
   return d.getTime();
 };
 
@@ -441,20 +453,168 @@ export const getOperatorInfo = (codiceCliente: string | number | null, category:
  * Format Date to standard ViaggiaTreno 'partenze/arrivi' string format:
  * "Day Mon DD YYYY HH:MM:SS" (e.g. "Wed Jun 17 2026 19:15:00")
  */
+/**
+ * Format Date to standard ViaggiaTreno 'partenze/arrivi' string format:
+ * "Day Mon DD YYYY HH:MM:SS" (e.g. "Wed Jun 17 2026 19:15:00")
+ */
 function formatVtDateTime(date: Date): string {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  
-  const dayName = days[date.getDay()];
-  const monthName = months[date.getMonth()];
-  const day = String(date.getDate()).padStart(2, '0');
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  
-  return `${dayName} ${monthName} ${day} ${year} ${hours}:${minutes}:${seconds}`;
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Rome',
+      weekday: 'short',
+      month: 'short',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(date);
+    
+    const pVal = (type: string) => parts.find(p => p.type === type)?.value || '';
+    const weekday = pVal('weekday');
+    const month = pVal('month');
+    const day = pVal('day');
+    const year = pVal('year');
+    const hour = pVal('hour') === '24' ? '00' : pVal('hour').padStart(2, '0');
+    const minute = pVal('minute').padStart(2, '0');
+    const second = pVal('second').padStart(2, '0');
+    
+    return `${weekday} ${month} ${day} ${year} ${hour}:${minute}:${second}`;
+  } catch (e) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const dayName = days[date.getDay()];
+    const monthName = months[date.getMonth()];
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${dayName} ${monthName} ${day} ${year} ${hours}:${minutes}:${seconds}`;
+  }
 }
+
+/**
+ * Get the UTC offset (in ms) of Europe/Rome timezone for a given date
+ */
+export function getRomeOffset(date: Date): number {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Rome',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(date);
+    const partVal = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0', 10);
+    
+    const year = partVal('year');
+    const month = partVal('month') - 1;
+    const day = partVal('day');
+    const hour = partVal('hour') === 24 ? 0 : partVal('hour');
+    const minute = partVal('minute');
+    const second = partVal('second');
+    
+    const romeUtc = Date.UTC(year, month, day, hour, minute, second);
+    return romeUtc - date.getTime();
+  } catch (e) {
+    const month = date.getMonth();
+    const isSummer = month > 2 && month < 10;
+    return isSummer ? 2 * 3600 * 1000 : 1 * 3600 * 1000;
+  }
+}
+
+/**
+ * Convert a local device Date object to a UTC timestamp representing the same wall-clock time in Rome.
+ */
+export function getRomeTimestampFromLocalDate(date: Date): number {
+  const romeOffset = getRomeOffset(date);
+  const localTimeAsUtc = Date.UTC(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+    date.getMilliseconds()
+  );
+  return localTimeAsUtc - romeOffset;
+}
+
+/**
+ * Format a UTC timestamp (ms) to HH:MM in Europe/Rome timezone
+ */
+export function formatRomeTimeStr(unixMs: number | null): string {
+  if (!unixMs) return '--:--';
+  try {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Rome',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    return formatter.format(new Date(unixMs));
+  } catch (e) {
+    const date = new Date(unixMs);
+    return `${String(date.getHours()).padStart(2, '0')}:${String(
+      date.getMinutes()
+    ).padStart(2, '0')}`;
+  }
+}
+
+/**
+ * Format a UTC timestamp (ms) to DD/MM in Europe/Rome timezone
+ */
+export function formatRomeDateFromTimestamp(unixMs: number | null): string {
+  if (!unixMs) return '';
+  try {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Rome',
+      day: '2-digit',
+      month: '2-digit'
+    });
+    return formatter.format(new Date(unixMs));
+  } catch (e) {
+    const date = new Date(unixMs);
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+}
+
+/**
+ * Format a UTC timestamp (ms) to DD/MM HH:MM in Europe/Rome timezone
+ */
+export function formatRomeDateTimeFromTimestamp(unixMs: number | null): string {
+  if (!unixMs) return '';
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Rome',
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(new Date(unixMs));
+    const pVal = (type: string) => parts.find(p => p.type === type)?.value || '';
+    return `${pVal('day')}/${pVal('month')} ${pVal('hour')}:${pVal('minute')}`;
+  } catch (e) {
+    const date = new Date(unixMs);
+    return `${String(date.getDate()).padStart(2, '0')}/${String(
+      date.getMonth() + 1
+    ).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(
+      date.getMinutes()
+    ).padStart(2, '0')}`;
+  }
+}
+
 
 /**
  * Fuzzy search stations from local stations list.

@@ -29,14 +29,14 @@ const DICTS_CONFIG_KEY = 'user_dictionary_settings';
 const DICT_DIR = `${FileSystem.documentDirectory}dicts`;
 
 const DICT_ASSETS: { [key: string]: any } = {
-  dict_1: require('../assets/dicts/1.[外研社]现代意汉汉意词典IT.mdx'),
-  dict_2: require('../assets/dicts/2.[外研社]现代意汉汉意词典CN.mdx'),
-  dict_3: require('../assets/dicts/3.意汉词典[45893].mdx'),
-  dict_4: require('../assets/dicts/4.意汉汉意词典[109907].mdx'),
-  dict_5: require('../assets/dicts/5.意大利语动词搭配大全.mdx'),
-  dict_6: require('../assets/dicts/6.意大利语动词变位词典[8339].mdx'),
-  dict_7: require('../assets/dicts/7.意大利语动词变位反查词典.mdx'),
-  dict_8: require('../assets/dicts/8.意大利语同义词辨析词典.mdx'),
+  dict_1: require('../assets/dicts/dict_1.mdx'),
+  dict_2: require('../assets/dicts/dict_2.mdx'),
+  dict_3: require('../assets/dicts/dict_3.mdx'),
+  dict_4: require('../assets/dicts/dict_4.mdx'),
+  dict_5: require('../assets/dicts/dict_5.mdx'),
+  dict_6: require('../assets/dicts/dict_6.mdx'),
+  dict_7: require('../assets/dicts/dict_7.mdx'),
+  dict_8: require('../assets/dicts/dict_8.mdx'),
 };
 
 // Global cache for loaded MDX instances
