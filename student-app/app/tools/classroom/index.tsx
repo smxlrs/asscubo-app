@@ -13,12 +13,14 @@ import {
   UIManager,
   Linking,
   RefreshControl,
-  Modal
+  Modal,
+  TextInput,
+  BackHandler
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme, Language } from '../../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -434,6 +436,89 @@ const getBuildingHint = (desc: string): string => {
   return '';
 };
 
+interface DeptSearchRule {
+  keywords: string[];
+  patterns: string[];
+}
+
+const DEPT_RULES: DeptSearchRule[] = [
+  {
+    keywords: ['工程', '工程系', '工程学院', '工学院', '工程校区', 'ingegneria', 'risorgimento', 'engineering'],
+    patterns: ['ingegneria', 'risorgimento']
+  },
+  {
+    keywords: ['化学', '化学系', '化学学院', '化学楼', '化学系大楼', 'chimica', 'selmi', 'navile', 'chemistry'],
+    patterns: ['selmi', 'navile', 'beverara', 'chimica']
+  },
+  {
+    keywords: ['数学', '数学系', '数学学院', '数学楼', 'matematica', 'math'],
+    patterns: ['porta s. donato, 2', 'porta san donato 2', 'selmi', 'matematica']
+  },
+  {
+    keywords: ['计算机', '计算机系', '计算机学院', '电脑', 'informatica', 'cs', 'computer science'],
+    patterns: ['porta s. donato, 1', 'porta san donato 1', 'informatica']
+  },
+  {
+    keywords: ['物理', '物理系', '物理学院', '物理楼', 'fisica', 'berti pichat', 'physics'],
+    patterns: ['fisica', 'berti pichat', 'irnerio 46', 'porta s. donato, 1', 'porta san donato 1']
+  },
+  {
+    keywords: ['生物', '生物系', '生物学院', '生物楼', 'biologia', 'biology'],
+    patterns: ['biologia', 'irnerio 42', 'irnerio 40', 'san giacomo', 'scienze']
+  },
+  {
+    keywords: ['经济', '经济系', '经济学院', '商科', '商学院', 'economia', 'economics'],
+    patterns: ['economia', 'scaravilli', 'bodoniana', 'san donato, 19/2']
+  },
+  {
+    keywords: ['法律', '法学', '法学院', '法律系', 'giurisprudenza', 'law'],
+    patterns: ['giurisprudenza', 'belmeloro', 'andreatta', 'legge']
+  },
+  {
+    keywords: ['政治', '政治系', '政治学院', 'scienze politiche', 'political'],
+    patterns: ['politiche', 'hercolani']
+  },
+  {
+    keywords: ['文学', '哲学', '文学院', '哲学系', 'zamboni', 'lettere', 'filosofia'],
+    patterns: ['lettere', 'filosofia', 'zamboni']
+  },
+  {
+    keywords: ['农学', '林学', '农学院', '农业', 'agraria', 'agriculture'],
+    patterns: ['agraria', 'ranzani']
+  },
+  {
+    keywords: ['心理', '教育', '心理学', '教育学', 'psicologia', 'education'],
+    patterns: ['psicologia', 'educazione', 'filippo re']
+  },
+  {
+    keywords: ['药学', '解剖', '药学院', 'farmacia', 'pharmacy'],
+    patterns: ['farmacia', 'anatomia', 'san giacomo 3']
+  }
+];
+
+const matchDepartmentSearch = (desc: string, codice: string, query: string): boolean => {
+  const lowercaseDesc = (desc || '').toLowerCase();
+  const lowercaseCodice = (codice || '').toLowerCase();
+  const lowercaseQuery = (query || '').toLowerCase().trim();
+
+  for (const rule of DEPT_RULES) {
+    const isKeywordMatch = rule.keywords.some(kw => 
+      lowercaseQuery.includes(kw) || kw.includes(lowercaseQuery)
+    );
+
+    if (isKeywordMatch) {
+      const isPatternMatch = rule.patterns.some(pattern => 
+        lowercaseDesc.includes(pattern) || lowercaseCodice.includes(pattern)
+      );
+      if (isPatternMatch) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+
 const getShortBuildingName = (building: Building, lang: string): string => {
   const cleanName = building.descrizione
     .replace('Edificio in Bo - ', '')
@@ -507,12 +592,11 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
   onClose,
   title,
   colors,
-  children,
-  closeBtnText
+  children
 }) => {
   const [shouldRender, setShouldRender] = useState(visible);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(400)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
     if (visible) {
@@ -523,9 +607,9 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
           duration: 200,
           useNativeDriver: true,
         }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 250,
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 200,
           useNativeDriver: true,
         }),
       ]).start();
@@ -536,9 +620,9 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
           duration: 180,
           useNativeDriver: true,
         }),
-        Animated.timing(slideAnim, {
-          toValue: 400,
-          duration: 200,
+        Animated.timing(scaleAnim, {
+          toValue: 0.9,
+          duration: 180,
           useNativeDriver: true,
         }),
       ]).start(() => {
@@ -571,7 +655,8 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
             {
               backgroundColor: colors.surface,
               borderColor: colors.border,
-              transform: [{ translateY: slideAnim }],
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
             },
           ]}
         >
@@ -579,9 +664,6 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
             {title}
           </Text>
           {children}
-          <Pressable style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]} onPress={onClose}>
-            <Text style={styles.modalCloseBtnText}>{closeBtnText}</Text>
-          </Pressable>
         </Animated.View>
       </View>
     </Modal>
@@ -597,12 +679,18 @@ export default function EmptyClassroomScreen() {
     return LOCALIZED_STRINGS[activeLang]?.[key] || LOCALIZED_STRINGS['zh'][key] || key;
   };
 
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [listHeaderY, setListHeaderY] = useState(0);
+  const hasAutoScrolled = useRef(false);
+
   // State Variables
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [impegni, setImpegni] = useState<Impegno[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Filter States
   const [timeMode, setTimeMode] = useState<'now' | 'morning' | 'afternoon' | 'custom'>('now');
@@ -628,26 +716,45 @@ export default function EmptyClassroomScreen() {
   // Toast State for Refresh feedback
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastFade = useRef(new Animated.Value(0)).current;
+  const toastTimeoutRef = useRef<any>(null);
 
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
     toastFade.setValue(0);
+
+    const isSuccess = msg === '刷新成功';
+    const fadeInDuration = isSuccess ? 150 : 300;
+    const keepDuration = isSuccess ? 1000 : 1500;
+    const fadeOutDuration = 300;
+
     Animated.timing(toastFade, {
       toValue: 1,
-      duration: 300,
+      duration: fadeInDuration,
       useNativeDriver: true
     }).start();
 
-    setTimeout(() => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+
+    toastTimeoutRef.current = setTimeout(() => {
       Animated.timing(toastFade, {
         toValue: 0,
-        duration: 300,
+        duration: fadeOutDuration,
         useNativeDriver: true
       }).start(() => {
         setToastMsg(null);
       });
-    }, 1500);
+    }, keepDuration);
   };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const TIME_OPTIONS = [
     '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
@@ -742,7 +849,7 @@ export default function EmptyClassroomScreen() {
       setClassrooms(auleData);
       setImpegni(impegniData);
       if (isRefresh) {
-        triggerToast(activeLang === 'en' ? '✓ Classroom status updated' : activeLang === 'it' ? '✓ Stato aule aggiornato' : '✓ 教室状态已更新');
+        triggerToast('刷新成功');
       }
     } catch (err: any) {
       console.error(err);
@@ -759,6 +866,38 @@ export default function EmptyClassroomScreen() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const backAction = () => {
+      if (isSearching) {
+        setIsSearching(false);
+        setSearchQuery('');
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [isSearching]);
+
+  useEffect(() => {
+    if (searchQuery.trim().length > 0) {
+      if (!hasAutoScrolled.current && listHeaderY > 0) {
+        scrollViewRef.current?.scrollTo({ y: listHeaderY - 10, animated: true });
+        hasAutoScrolled.current = true;
+      }
+    } else {
+      if (hasAutoScrolled.current) {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        hasAutoScrolled.current = false;
+      }
+    }
+  }, [searchQuery, listHeaderY]);
 
   // Compute unique buildings from classrooms list
   const buildings = useMemo(() => {
@@ -886,6 +1025,28 @@ export default function EmptyClassroomScreen() {
         if (capacityFilter === 'medium' && (aula.capienzaEffettiva < 30 || aula.capienzaEffettiva > 70)) return false;
         if (capacityFilter === 'large' && aula.capienzaEffettiva <= 70) return false;
 
+        // 3. Search query filter (classroom name, address, or Chinese department name)
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase().trim();
+          const nameMatch = aula.descrizione?.toLowerCase().includes(query) || aula.codice?.toLowerCase().includes(query);
+          const addressMatch = 
+            aula.relazioneEdificio?.via?.toLowerCase().includes(query) || 
+            aula.relazioneEdificio?.descrizione?.toLowerCase().includes(query) ||
+            aula.edificio?.codice?.toLowerCase().includes(query);
+          
+          // Match Chinese translations / department hints (e.g. '化学系', '工程系')
+          const hint = getBuildingHint(aula.relazioneEdificio?.descrizione || aula.edificio?.codice || '');
+          const shortName = aula.relazioneEdificio ? getShortBuildingName(aula.relazioneEdificio, 'zh') : '';
+          const deptMatch = matchDepartmentSearch(
+            aula.relazioneEdificio?.descrizione || aula.edificio?.codice || '',
+            aula.edificio?.codice || '',
+            query
+          );
+          const chineseMatch = hint.toLowerCase().includes(query) || shortName.toLowerCase().includes(query) || deptMatch;
+          
+          if (!nameMatch && !addressMatch && !chineseMatch) return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -895,7 +1056,7 @@ export default function EmptyClassroomScreen() {
         if (scoreA !== scoreB) return scoreA - scoreB;
         return a.descrizione.localeCompare(b.descrizione);
       });
-  }, [classrooms, classroomOccupations, queryTimeRange, selectedBuildingId, capacityFilter, selectedCampus]);
+  }, [classrooms, classroomOccupations, queryTimeRange, selectedBuildingId, capacityFilter, selectedCampus, searchQuery]);
 
   // Counting available classrooms
   const availableCount = useMemo(() => {
@@ -972,22 +1133,54 @@ export default function EmptyClassroomScreen() {
     return activeLang === 'it' || activeLang === 'en' ? '>70 seats' : '>70人';
   }, [capacityFilter, activeLang]);
 
+  const handleBack = () => {
+    if (isSearching) {
+      setIsSearching(false);
+      setSearchQuery('');
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={styles.backButton} onPress={handleBack}>
           <MaterialIcons name="arrow-back" size={24} color={colors.primary} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{getTxt('title')}</Text>
-        <Pressable style={styles.refreshButton} onPress={() => fetchData()} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <MaterialIcons name="refresh" size={24} color={colors.primary} />
-          )}
+        <Pressable 
+          style={styles.refreshButton} 
+          onPress={() => {
+            setIsSearching(!isSearching);
+            if (isSearching) setSearchQuery('');
+          }}
+        >
+          <MaterialIcons name={isSearching ? "close" : "search"} size={24} color={colors.primary} />
         </Pressable>
       </View>
+
+      {isSearching && (
+        <View style={styles.searchBarContainer}>
+          <TextInput
+            style={[
+              styles.searchInputField,
+              { 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7', 
+                color: colors.textPrimary, 
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#D0D5DD'
+              }
+            ]}
+            placeholder="搜索教室名称、教学楼、地址..."
+            placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#98A2B3'}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+            clearButtonMode="while-editing"
+          />
+        </View>
+      )}
 
       {/* Main View */}
       {loading && classrooms.length === 0 ? (
@@ -1006,6 +1199,7 @@ export default function EmptyClassroomScreen() {
       ) : (
         <View style={{ flex: 1 }}>
           <ScrollView 
+            ref={scrollViewRef}
             contentContainerStyle={styles.scrollContent} 
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}
@@ -1100,51 +1294,96 @@ export default function EmptyClassroomScreen() {
             <View style={styles.dropdownFiltersRow}>
               {/* Campus Dropdown Button */}
               <Pressable 
-                style={[styles.dropdownButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                style={[
+                  styles.dropdownButton, 
+                  { 
+                    backgroundColor: colors.surface, 
+                    borderColor: selectedCampus === 'all' ? colors.border : colors.primary 
+                  }
+                ]} 
                 onPress={() => setShowCampusModal(true)}
               >
-                <View style={styles.dropdownButtonContent}>
-                  <MaterialIcons name="location-on" size={13} color={colors.primary} style={{ marginRight: 2 }} />
-                  <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
-                    {selectedCampus === 'all' ? getTxt('allCampuses') : getCampusLabel(selectedCampus, activeLang)}
-                  </Text>
-                </View>
-                <MaterialIcons name="arrow-drop-down" size={14} color={colors.textSecondary} />
+                <Text 
+                  style={[
+                    styles.dropdownButtonText, 
+                    { color: selectedCampus === 'all' ? colors.textPrimary : colors.primary }
+                  ]} 
+                  numberOfLines={1}
+                >
+                  {selectedCampus === 'all' ? getTxt('allCampuses') : getCampusLabel(selectedCampus, activeLang)}
+                </Text>
+                <MaterialCommunityIcons 
+                  name="chevron-down" 
+                  size={14} 
+                  color={selectedCampus === 'all' ? colors.textSecondary : colors.primary} 
+                />
               </Pressable>
 
               {/* Building Dropdown Button */}
               <Pressable 
-                style={[styles.dropdownButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                style={[
+                  styles.dropdownButton, 
+                  { 
+                    backgroundColor: colors.surface, 
+                    borderColor: selectedBuildingId === 'all' ? colors.border : colors.primary 
+                  }
+                ]} 
                 onPress={() => setShowBuildingModal(true)}
               >
-                <View style={styles.dropdownButtonContent}>
-                  <MaterialIcons name="business" size={13} color={colors.primary} style={{ marginRight: 2 }} />
-                  <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
-                    {buildingLabel}
-                  </Text>
-                </View>
-                <MaterialIcons name="arrow-drop-down" size={14} color={colors.textSecondary} />
+                <Text 
+                  style={[
+                    styles.dropdownButtonText, 
+                    { color: selectedBuildingId === 'all' ? colors.textPrimary : colors.primary }
+                  ]} 
+                  numberOfLines={1}
+                >
+                  {buildingLabel}
+                </Text>
+                <MaterialCommunityIcons 
+                  name="chevron-down" 
+                  size={14} 
+                  color={selectedBuildingId === 'all' ? colors.textSecondary : colors.primary} 
+                />
               </Pressable>
 
               {/* Capacity Dropdown Button */}
               <Pressable 
-                style={[styles.dropdownButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                style={[
+                  styles.dropdownButton, 
+                  { 
+                    backgroundColor: colors.surface, 
+                    borderColor: capacityFilter === 'all' ? colors.border : colors.primary 
+                  }
+                ]} 
                 onPress={() => setShowCapacityModal(true)}
               >
-                <View style={styles.dropdownButtonContent}>
-                  <MaterialIcons name="people" size={13} color={colors.primary} style={{ marginRight: 2 }} />
-                  <Text style={[styles.dropdownButtonText, { color: colors.textPrimary }]} numberOfLines={1}>
-                    {capacityButtonLabel}
-                  </Text>
-                </View>
-                <MaterialIcons name="arrow-drop-down" size={14} color={colors.textSecondary} />
+                <Text 
+                  style={[
+                    styles.dropdownButtonText, 
+                    { color: capacityFilter === 'all' ? colors.textPrimary : colors.primary }
+                  ]} 
+                  numberOfLines={1}
+                >
+                  {capacityButtonLabel}
+                </Text>
+                <MaterialCommunityIcons 
+                  name="chevron-down" 
+                  size={14} 
+                  color={capacityFilter === 'all' ? colors.textSecondary : colors.primary} 
+                />
               </Pressable>
             </View>
 
             {/* Classrooms List */}
-            <Text style={[styles.listHeaderTitle, { color: colors.textPrimary }]}>
-              {getTxt('classroomList')} ({processedClassrooms.length})
-            </Text>
+            <View 
+              onLayout={(e) => {
+                setListHeaderY(e.nativeEvent.layout.y);
+              }}
+            >
+              <Text style={[styles.listHeaderTitle, { color: colors.textPrimary }]}>
+                {getTxt('classroomList')} ({processedClassrooms.length})
+              </Text>
+            </View>
 
             {processedClassrooms.length === 0 ? (
               <View style={[styles.noResult, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -1280,45 +1519,45 @@ export default function EmptyClassroomScreen() {
                                     <Text style={[styles.timeLabelSub, { color: colors.textMuted }]}>{eTime}</Text>
                                   </View>
                                   
-                                  <View 
-                                    style={[
-                                      styles.timelineBar, 
-                                      { 
-                                        backgroundColor: slot.isOccupied ? colors.error + '18' : colors.success + '18',
-                                        borderColor: slot.isOccupied ? colors.error + '40' : colors.success + '40',
-                                      }
-                                    ]}
-                                  >
                                     <View 
                                       style={[
-                                        styles.timelineIndicator, 
-                                        { backgroundColor: slot.isOccupied ? colors.error : colors.success }
-                                      ]} 
-                                    />
-                                    <Text 
-                                      style={[
-                                        styles.timelineBarText, 
-                                        { color: slot.isOccupied ? colors.error : colors.success, fontWeight: slot.isOccupied ? 'bold' : 'normal' }
+                                        styles.timelineBar, 
+                                        { 
+                                          backgroundColor: slot.isOccupied ? colors.error + '18' : colors.success + '18',
+                                          borderColor: slot.isOccupied ? colors.error + '40' : colors.success + '40',
+                                        }
                                       ]}
-                                      numberOfLines={1}
                                     >
-                                      {slot.isOccupied ? `${getTxt('occupiedLabel')} • ${slot.eventName}` : getTxt('studyFree')}
-                                    </Text>
+                                      <View 
+                                        style={[
+                                          styles.timelineIndicator, 
+                                          { backgroundColor: slot.isOccupied ? colors.error : colors.success }
+                                        ]} 
+                                      />
+                                      <Text 
+                                        style={[
+                                          styles.timelineBarText, 
+                                          { color: slot.isOccupied ? colors.error : colors.success, fontWeight: slot.isOccupied ? 'bold' : 'normal' }
+                                        ]}
+                                        numberOfLines={1}
+                                      >
+                                        {slot.isOccupied ? `${getTxt('occupiedLabel')} • ${slot.eventName}` : getTxt('studyFree')}
+                                      </Text>
+                                    </View>
                                   </View>
-                                </View>
-                              );
-                            })}
-                          </View>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                );
-              })
-            )}
-          </ScrollView>
-        </View>
-      )}
+                                );
+                              })}
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        )}
 
       {/* Time Picker Modal Overlay (Custom simple dialog) */}
       <AnimatedModal
@@ -1342,8 +1581,7 @@ export default function EmptyClassroomScreen() {
                 key={timeStr}
                 style={[
                   styles.modalItem,
-                  { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primarySoft }]
                 ]}
                 onPress={() => {
                   if (showTimeModal === 'start') {
@@ -1386,8 +1624,7 @@ export default function EmptyClassroomScreen() {
           <Pressable
             style={[
               styles.modalItem,
-              { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-              selectedCampus === 'all' && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+              selectedCampus === 'all' && [styles.modalItemActive, { backgroundColor: colors.primarySoft }]
             ]}
             onPress={() => {
               setSelectedCampus('all');
@@ -1410,8 +1647,7 @@ export default function EmptyClassroomScreen() {
                 key={camp}
                 style={[
                   styles.modalItem,
-                  { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primarySoft }]
                 ]}
                 onPress={() => {
                   setSelectedCampus(camp);
@@ -1444,8 +1680,7 @@ export default function EmptyClassroomScreen() {
           <Pressable
             style={[
               styles.modalItem,
-              { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-              selectedBuildingId === 'all' && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+              selectedBuildingId === 'all' && [styles.modalItemActive, { backgroundColor: colors.primarySoft }]
             ]}
             onPress={() => {
               setSelectedBuildingId('all');
@@ -1476,8 +1711,7 @@ export default function EmptyClassroomScreen() {
                 key={b.id}
                 style={[
                   styles.modalItem,
-                  { borderBottomColor: colors.border, flexDirection: 'row', paddingVertical: 10 },
-                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primarySoft }]
                 ]}
                 onPress={() => {
                   setSelectedBuildingId(b.id);
@@ -1526,8 +1760,7 @@ export default function EmptyClassroomScreen() {
                 key={cap}
                 style={[
                   styles.modalItem,
-                  { borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'center' },
-                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primary + '15' }]
+                  isSelected && [styles.modalItemActive, { backgroundColor: colors.primarySoft }]
                 ]}
                 onPress={() => {
                   setCapacityFilter(cap);
@@ -1551,13 +1784,19 @@ export default function EmptyClassroomScreen() {
       {/* Toast Feedback */}
       {toastMsg && (
         <Animated.View style={[
-          styles.toastContainer, 
+          toastMsg === '刷新成功' ? styles.checkmarkBubble : styles.toastContainer, 
           { 
             opacity: toastFade,
-            backgroundColor: isDark ? 'rgba(255,255,255,0.95)' : 'rgba(30,30,30,0.9)' 
+            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
           }
         ]}>
-          <Text style={[styles.toastText, { color: isDark ? '#000' : '#fff' }]}>{toastMsg}</Text>
+          {toastMsg === '刷新成功' ? (
+            <MaterialIcons name="check" size={24} color={colors.primary} />
+          ) : (
+            <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>
+          )}
         </Animated.View>
       )}
     </SafeAreaView>
@@ -1596,6 +1835,17 @@ const styles = StyleSheet.create({
   retryText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 14,
+  },
+  searchBarContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  searchInputField: {
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
     fontSize: 14,
   },
   header: {
@@ -1747,10 +1997,10 @@ const styles = StyleSheet.create({
   },
   dropdownFiltersRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    alignItems: 'center',
+    paddingHorizontal: 0,
     marginBottom: 16,
-    gap: 6,
+    gap: 8,
   },
   dropdownButton: {
     flex: 1,
@@ -1758,24 +2008,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 2,
-    elevation: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    height: 30,
   },
   dropdownButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
     marginRight: 2,
+    gap: 4,
   },
   dropdownButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '500',
     flex: 1,
     textAlign: 'center',
   },
@@ -1976,23 +2222,24 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'transparent',
   },
   modalDismiss: {
     flex: 1,
   },
   modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    width: '80%',
+    borderRadius: 16,
     borderWidth: 1,
     padding: 20,
     maxHeight: 400,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 15,
@@ -2006,24 +2253,15 @@ const styles = StyleSheet.create({
   },
   modalItem: {
     paddingVertical: 12,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginVertical: 2,
     alignItems: 'center',
   },
   modalItemActive: {
     borderRadius: 8,
   },
   modalItemText: {
-    fontSize: 14,
-  },
-  modalCloseBtn: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  modalCloseBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
     fontSize: 14,
   },
   footer: {
@@ -2041,22 +2279,39 @@ const styles = StyleSheet.create({
   toastContainer: {
     position: 'absolute',
     top: 100,
-    left: 32,
-    right: 32,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
-    shadowRadius: 6,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 99999,
+    borderWidth: 1,
+  },
+  checkmarkBubble: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 112 : 150,
+    alignSelf: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
     elevation: 4,
     zIndex: 99999,
   },
   toastText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 'bold',
     textAlign: 'center',
   },

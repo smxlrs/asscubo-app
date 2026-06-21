@@ -161,23 +161,26 @@ export default function AboutIndexScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.logoContainer}>
-          <Image source={require('../../assets/icon.png')} style={[styles.logoImage, { borderColor: colors.border }]} />
+          <View style={[styles.logoImageWrapper, { borderColor: colors.border }]}>
+            <Image source={require('../../assets/icon.png')} style={styles.logoImage} resizeMode="cover" />
+          </View>
           <Text style={[styles.appName, { color: colors.textPrimary }]}>{t('appName')}</Text>
+          <Text style={[styles.appSubtitle, { color: colors.textSecondary }]}>{t('appSubtitle')}</Text>
         </View>
 
         <View style={[styles.menuSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/about/association')}>
+          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/association')}>
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('aboutACSS')}</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
-          <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/about/intro')}>
+          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/intro')}>
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('platformIntro')}</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
           <Pressable
-            style={[styles.menuRow, { borderBottomColor: colors.border }]}
+            style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
             onPress={handleCheckUpdate}
             disabled={checkingUpdate}
           >
@@ -191,14 +194,35 @@ export default function AboutIndexScreen() {
             </View>
           </Pressable>
 
-          <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/about/feedback')}>
+          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/feedback')}>
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('feedback')}</Text>
+            <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+          </Pressable>
+
+          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/privacy')}>
+            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>隐私政策</Text>
+            <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+          </Pressable>
+
+          <Pressable style={styles.menuRow} onPress={() => router.push('/about/terms')}>
+            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>用户协议</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
         </View>
 
         <Text style={[styles.copyright, { color: colors.textMuted }]}>
-          © 2026 {t('copyright')}
+          © 2026{' '}
+          <Text
+            style={{ textDecorationLine: 'underline' }}
+            onPress={() => Linking.openURL('https://asscubo.it')}
+          >
+            {language === 'zh'
+              ? '博洛尼亚大学中国学联'
+              : language === 'zh-Hant'
+              ? '博洛尼亞大學中國學聯'
+              : 'ASSCUBO'}
+          </Text>
+          .{'\n'}All rights reserved.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -216,14 +240,28 @@ const styles = StyleSheet.create({
   headerPlaceholder: { width: 50 },
   content: { alignItems: 'center', padding: 20 },
   logoContainer: { alignItems: 'center', marginTop: 20, marginBottom: 30 },
-  logoImage: { width: 80, height: 80, borderRadius: 18, marginBottom: 12, borderWidth: 1.5 },
-  appName: { fontSize: 22, fontWeight: 'bold', marginBottom: 6 },
+  logoImageWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    marginBottom: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoImage: {
+    width: 125,
+    height: 125,
+  },
+  appName: { fontSize: 22, fontWeight: 'bold', marginBottom: 4 },
+  appSubtitle: { fontSize: 13, marginBottom: 8 },
   versionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10 },
   version: { fontSize: 14 },
   menuSection: { width: '100%', borderRadius: 12, borderWidth: 1, overflow: 'hidden', marginBottom: 16 },
   menuRow: {
     height: 54, flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, justifyContent: 'space-between',
+    paddingHorizontal: 16, justifyContent: 'space-between',
   },
   menuLabel: { fontSize: 15 },
   rowRight: { flexDirection: 'row', alignItems: 'center' },

@@ -9,9 +9,10 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   TouchableWithoutFeedback, 
-  Keyboard 
+  Keyboard,
+  Alert
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -20,6 +21,7 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -35,6 +37,11 @@ export default function RegisterScreen() {
 
     if (password.length < 6) {
       setErrorMsg('密码长度不能少于 6 位');
+      return;
+    }
+
+    if (!agree) {
+      Alert.alert('提示', '请先阅读并同意《用户协议》和《隐私政策》');
       return;
     }
 
@@ -145,6 +152,36 @@ export default function RegisterScreen() {
               )}
             </Pressable>
 
+            <View style={styles.agreementRow}>
+              <Pressable 
+                onPress={() => setAgree(!agree)} 
+                style={styles.checkboxContainer}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialCommunityIcons 
+                  name={agree ? "checkbox-marked" : "checkbox-blank-outline"} 
+                  size={18} 
+                  color={agree ? colors.primary : colors.textMuted} 
+                />
+              </Pressable>
+              <Text style={[styles.agreementText, { color: colors.textSecondary }]}>
+                我已阅读并同意
+                <Text 
+                  style={[styles.agreementLink, { color: colors.primaryLight }]} 
+                  onPress={() => router.push('/about/terms')}
+                >
+                  《用户协议》
+                </Text>
+                和
+                <Text 
+                  style={[styles.agreementLink, { color: colors.primaryLight }]} 
+                  onPress={() => router.push('/about/privacy')}
+                >
+                  《隐私政策》
+                </Text>
+              </Text>
+            </View>
+
             <View style={styles.footer}>
               <Text style={[styles.footerText, { color: colors.textSecondary }]}>已有账户？ </Text>
               <Link href="/(auth)/login" asChild>
@@ -234,6 +271,22 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  agreementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    paddingHorizontal: 10,
+  },
+  checkboxContainer: {
+    marginRight: 6,
+  },
+  agreementText: {
+    fontSize: 13,
+  },
+  agreementLink: {
     fontWeight: 'bold',
   },
   successContainer: {

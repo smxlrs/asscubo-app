@@ -7,6 +7,10 @@ export default function AboutLayout() {
       <Stack.Screen name="association" />
       <Stack.Screen name="intro" />
       <Stack.Screen name="feedback" />
+      <Stack.Screen name="privacy" />
+      <Stack.Screen name="terms" />
+      <Stack.Screen name="links" />
+      <Stack.Screen name="platforms" />
     </Stack>
   );
 }

@@ -175,12 +175,12 @@ CREATE POLICY "Profiles are viewable by authenticated users" ON public.profiles 
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
 
 -- Articles: 已发布的所有人可看，管理员可增删改
-CREATE POLICY "Published articles viewable by all" ON public.articles FOR SELECT TO authenticated USING (is_published = true);
+CREATE POLICY "Published articles viewable by all" ON public.articles FOR SELECT TO anon, authenticated USING (is_published = true);
 CREATE POLICY "Admins can manage articles" ON public.articles FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
 
 -- Events: 已发布的所有人可看
-CREATE POLICY "Published events viewable by all" ON public.events FOR SELECT TO authenticated USING (is_published = true);
+CREATE POLICY "Published events viewable by all" ON public.events FOR SELECT TO anon, authenticated USING (is_published = true);
 CREATE POLICY "Admins can manage events" ON public.events FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
 
@@ -192,7 +192,7 @@ CREATE POLICY "Admins can view all registrations" ON public.event_registrations 
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
 
 -- Handbook: 已发布章节所有人可看
-CREATE POLICY "Published handbook visible to all" ON public.handbook_chapters FOR SELECT TO authenticated USING (is_published = true);
+CREATE POLICY "Published handbook visible to all" ON public.handbook_chapters FOR SELECT TO anon, authenticated USING (is_published = true);
 CREATE POLICY "Admins can manage handbook" ON public.handbook_chapters FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
 
@@ -209,7 +209,7 @@ CREATE POLICY "Authenticated users can create replies" ON public.post_replies FO
 CREATE POLICY "Author can delete own reply" ON public.post_replies FOR DELETE TO authenticated USING (author_id = auth.uid());
 
 -- Notifications: 只读
-CREATE POLICY "Authenticated users can read notifications" ON public.notifications FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can read notifications" ON public.notifications FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Admins can manage notifications" ON public.notifications FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
 
@@ -219,3 +219,14 @@ CREATE POLICY "Admins can manage notifications" ON public.notifications FOR ALL 
 
 -- 注意：先在 Supabase Auth 创建管理员账号后，将其 UUID 替换下方的 YOUR_ADMIN_USER_UUID
 -- UPDATE public.profiles SET role = 'super_admin' WHERE id = 'YOUR_ADMIN_USER_UUID';
+
+-- ============================================================
+-- 安全注销并删除当前用户账户函数
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.delete_user_account()
+RETURNS void AS $$
+BEGIN
+  -- 只有当前经过身份验证的登录用户可以删除自己的账号
+  DELETE FROM auth.users WHERE id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

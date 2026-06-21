@@ -1,8 +1,4 @@
-# Expo HAS CHANGED
-
-Read the exact versioned docs at https://docs.expo.dev/versions/v56.0.0/ before writing any code.
-
-## Workspace Customization Rules
+# Workspace Customization Rules
 
 - **Articles vs. Notifications Separation**:
   - The "Articles" tab screen in the code is [notifications.tsx](file:///i:/PARTTIME/AG/student-app/app/(tabs)/notifications.tsx) (translated to Chinese as "文章"). It fetches WeChat articles exclusively from the `articles` table in Supabase.
@@ -13,5 +9,3 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v56.0.0/ before 
 - **Auto-Version Upgrade on Push**:
   - Whenever the user requests to push code, build, or deploy (e.g., "push", "eas build", "提交", "发布", "打包", etc.), the agent must **automatically increment the version number** in both [package.json](file:///i:/PARTTIME/AG/student-app/package.json) and [app.json](file:///i:/PARTTIME/AG/student-app/app.json) (specifically, incrementing the patch/last segment of the version string, e.g., `1.0.0.4` -> `1.0.0.5`) before executing the push/build commands.
   - This update must be done silently and automatically, without waiting for or asking the user for confirmation.
-
-

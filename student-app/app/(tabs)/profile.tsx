@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -7,16 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
   const { colors, t } = useTheme();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
-  };
 
   const navigateToLogin = () => {
     router.push('/(auth)/login');
@@ -31,20 +23,24 @@ export default function ProfileScreen() {
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.userInfo}>
               <View style={[styles.avatarContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-                <MaterialCommunityIcons name="account" size={32} color={colors.textSecondary} />
+                {profile?.avatar_url ? (
+                  <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
+                ) : (
+                  <MaterialCommunityIcons name="account" size={32} color={colors.textSecondary} />
+                )}
               </View>
               <View style={styles.userDetails}>
                 <Text style={[styles.welcome, { color: colors.textPrimary }]}>
                   {t('hello')}{profile?.name || '同学'}
                 </Text>
                 <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
-                <Text style={[styles.role, { color: colors.primaryLight }]}>
-                  {profile?.role === 'admin' ? t('adminRole') : t('studentRole')}
-                </Text>
               </View>
             </View>
-            <Pressable style={[styles.signOutButton, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]} onPress={handleSignOut}>
-              <Text style={[styles.signOutButtonText, { color: colors.error }]}>{t('logout')}</Text>
+            <Pressable 
+              style={[styles.profileButton, { backgroundColor: colors.primary }]} 
+              onPress={() => router.push('/settings/profile')}
+            >
+              <Text style={[styles.profileButtonText, { color: '#FFFFFF' }]}>个人资料</Text>
             </Pressable>
           </View>
         ) : (
@@ -66,20 +62,32 @@ export default function ProfileScreen() {
 
         <View style={[styles.menuSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {profile?.role === 'admin' && (
-            <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/admin')}>
+            <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/admin')}>
               <MaterialCommunityIcons name="shield-key-outline" size={22} color={colors.primaryLight} style={styles.menuIcon} />
               <Text style={[styles.menuLabel, { color: colors.textPrimary, fontWeight: 'bold' }]}>管理后台</Text>
               <Text style={[styles.arrow, { color: colors.primaryLight }]}>›</Text>
             </Pressable>
           )}
 
-          <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/settings')}>
+          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/settings')}>
             <MaterialCommunityIcons name="cog-outline" size={22} color={colors.textSecondary} style={styles.menuIcon} />
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('settings')}</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
-          <Pressable style={[styles.menuRow, { borderBottomColor: colors.border }]} onPress={() => router.push('/about')}>
+          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/links')}>
+            <MaterialCommunityIcons name="link-variant" size={22} color={colors.textSecondary} style={styles.menuIcon} />
+            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('usefulLinks') || '实用链接'}</Text>
+            <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+          </Pressable>
+
+          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/platforms')}>
+            <MaterialCommunityIcons name="account-group-outline" size={22} color={colors.textSecondary} style={styles.menuIcon} />
+            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('officialPlatforms') || '公众平台'}</Text>
+            <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+          </Pressable>
+
+          <Pressable style={styles.menuRow} onPress={() => router.push('/about')}>
             <MaterialCommunityIcons name="information-outline" size={22} color={colors.textSecondary} style={styles.menuIcon} />
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('about')}</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
@@ -123,6 +131,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 60,
+    height: 60,
   },
   userDetails: {
     flex: 1,
@@ -152,15 +165,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
   },
-  signOutButton: {
+  profileButton: {
     width: '100%',
     height: 44,
-    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
   },
-  signOutButtonText: {
+  profileButtonText: {
     fontSize: 15,
     fontWeight: 'bold',
   },
@@ -174,7 +186,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   menuIcon: {
     marginRight: 12,

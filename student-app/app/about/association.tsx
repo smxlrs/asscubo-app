@@ -32,9 +32,6 @@ export default function AssociationScreen() {
         <Text style={[styles.detailParagraph, { color: colors.textPrimary }]}>
           {t('acssDescription')}
         </Text>
-        <Text style={[styles.detailParagraph, { color: colors.textPrimary }]}>
-          学联致力于全心全意为学子服务，搭建立足本地、面向欧洲的学术桥梁，定期举办学术沙龙、求职交流会、文艺晚会以及体育赛事，丰富留学人员的精神生活，是学子在海外温暖的港湾。
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );

@@ -9,6 +9,7 @@ import {
   ScrollViewProps,
   FlatListProps,
   Easing,
+  PanResponder,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -88,34 +89,45 @@ function RefreshHeader({
 
   // Fade and scale interpolations for morphing
   const arrowScale = successAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0],
-  });
-
-  const arrowOpacity = successAnim.interpolate({
-    inputRange: [0, 0.5, 1],
+    inputRange: [0, 0.4, 1],
     outputRange: [1, 0, 0],
   });
 
-  const checkScale = successAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0.5, 1],
+  const arrowOpacity = successAnim.interpolate({
+    inputRange: [0, 0.4, 1],
+    outputRange: [1, 0, 0],
   });
 
   const checkOpacity = successAnim.interpolate({
-    inputRange: [0, 0.5, 1],
+    inputRange: [0, 0.1, 1],
     outputRange: [0, 1, 1],
   });
 
-  // Background and border color morphing
-  const circleBgColor = successAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [colors.surfaceElevated, colors.success],
+  // Stroke animations for drawing checkmark sequential strokes
+  const leftScale = successAnim.interpolate({
+    inputRange: [0, 0.4, 1],
+    outputRange: [0, 1, 1],
   });
 
+  const leftTranslateY = leftScale.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-4, 0],
+  });
+
+  const rightScale = successAnim.interpolate({
+    inputRange: [0, 0.4, 0.9, 1],
+    outputRange: [0, 0, 1, 1],
+  });
+
+  const rightTranslateY = rightScale.interpolate({
+    inputRange: [0, 1],
+    outputRange: [7, 0],
+  });
+
+  // Border color morphing (Background is always white surface)
   const circleBorderColor = successAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.border, colors.success],
+    outputRange: [colors.border, colors.primary],
   });
 
   // Header fade-in and scale-down
@@ -131,6 +143,13 @@ function RefreshHeader({
     extrapolate: 'clamp',
   });
 
+  // Translate header down from offscreen to top of view
+  const headerTranslateY = pullAnim.interpolate({
+    inputRange: [0, 60, 100],
+    outputRange: [-50, 15, 35],
+    extrapolate: 'clamp',
+  });
+
   return (
     <Animated.View
       style={[
@@ -138,6 +157,7 @@ function RefreshHeader({
         {
           opacity: refreshState === 'success' || refreshState === 'refreshing' ? 1 : headerOpacity,
           transform: [
+            { translateY: headerTranslateY },
             { scale: refreshState === 'success' || refreshState === 'refreshing' ? 1 : headerScale },
           ],
         },
@@ -147,7 +167,7 @@ function RefreshHeader({
         style={[
           styles.refreshCircle,
           {
-            backgroundColor: circleBgColor,
+            backgroundColor: colors.surface,
             borderColor: circleBorderColor,
           },
         ]}
@@ -163,21 +183,55 @@ function RefreshHeader({
             },
           ]}
         >
-          <MaterialCommunityIcons name="loading" size={24} color={colors.primary} />
+          <MaterialCommunityIcons name="refresh" size={24} color={colors.primary} />
         </Animated.View>
 
-        {/* Success Checkmark */}
+        {/* Success Checkmark (Stroke-by-stroke drawing animation) */}
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
             styles.centered,
             {
               opacity: checkOpacity,
-              transform: [{ scale: checkScale }],
             },
           ]}
         >
-          <MaterialCommunityIcons name="check" size={24} color="#FFFFFF" />
+          <View style={styles.checkmarkContainer}>
+            {/* Left stroke of checkmark */}
+            <Animated.View
+              style={[
+                styles.checkmarkStroke,
+                {
+                  height: 8,
+                  left: 5,
+                  top: 11,
+                  backgroundColor: colors.primary,
+                  transform: [
+                    { rotate: '-45deg' },
+                    { translateY: leftTranslateY },
+                    { scaleY: leftScale },
+                  ],
+                },
+              ]}
+            />
+            {/* Right stroke of checkmark */}
+            <Animated.View
+              style={[
+                styles.checkmarkStroke,
+                {
+                  height: 14,
+                  left: 12,
+                  top: 6,
+                  backgroundColor: colors.primary,
+                  transform: [
+                    { rotate: '45deg' },
+                    { translateY: rightTranslateY },
+                    { scaleY: rightScale },
+                  ],
+                },
+              ]}
+            />
+          </View>
         </Animated.View>
       </Animated.View>
     </Animated.View>
@@ -190,8 +244,16 @@ export const PremiumScrollView = React.forwardRef<ScrollView, PremiumScrollViewP
     const pullAnim = useRef(new Animated.Value(0)).current;
     const [refreshState, setRefreshState] = useState<RefreshState>('idle');
     const scrollOffsetRef = useRef(0);
-    const touchStartY = useRef(0);
-    const isPulling = useRef(false);
+    const pullDistanceRef = useRef(0);
+
+    useEffect(() => {
+      const listenerId = pullAnim.addListener(({ value }) => {
+        pullDistanceRef.current = value;
+      });
+      return () => {
+        pullAnim.removeListener(listenerId);
+      };
+    }, []);
 
     useEffect(() => {
       if (refreshing) {
@@ -201,7 +263,7 @@ export const PremiumScrollView = React.forwardRef<ScrollView, PremiumScrollViewP
         setTimeout(() => {
           Animated.spring(pullAnim, {
             toValue: 0,
-            useNativeDriver: true,
+            useNativeDriver: false,
             tension: 30,
             friction: 8,
           }).start(() => {
@@ -218,82 +280,70 @@ export const PremiumScrollView = React.forwardRef<ScrollView, PremiumScrollViewP
       }
     };
 
-    const handleTouchStart = (e: any) => {
-      touchStartY.current = e.nativeEvent.pageY;
-      if (props.onTouchStart) {
-        props.onTouchStart(e);
-      }
-    };
-
-    const handleTouchMove = (e: any) => {
-      const currentY = e.nativeEvent.pageY;
-      const dy = currentY - touchStartY.current;
-
-      if (scrollOffsetRef.current <= 1 && dy > 0 && refreshState !== 'refreshing' && refreshState !== 'success') {
-        isPulling.current = true;
-        setRefreshState('pulling');
-        // Drag resistance
-        const pullDistance = Math.min(100, dy * 0.45);
-        pullAnim.setValue(pullDistance);
-      }
-      if (props.onTouchMove) {
-        props.onTouchMove(e);
-      }
-    };
-
-    const handleTouchEnd = (e: any) => {
-      if (isPulling.current) {
-        isPulling.current = false;
-        // @ts-ignore
-        const currentPull = pullAnim._value || 0;
-        if (currentPull >= 60) {
-          Animated.spring(pullAnim, {
-            toValue: 60,
-            useNativeDriver: true,
-            tension: 40,
-            friction: 7,
-          }).start();
-          setRefreshState('refreshing');
-          onRefresh();
-        } else {
+    const panResponder = useRef(
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (evt, gestureState) => {
+          // Only intercept when at the top and pulling down
+          const isAtTop = scrollOffsetRef.current <= 2;
+          const isPullingDown = gestureState.dy > 5;
+          const isStateAllowsPull = refreshState === 'idle' || refreshState === 'pulling';
+          return isAtTop && isPullingDown && isStateAllowsPull;
+        },
+        onPanResponderGrant: () => {
+          setRefreshState('pulling');
+        },
+        onPanResponderMove: (evt, gestureState) => {
+          // Apply drag resistance
+          const pullDistance = Math.min(100, gestureState.dy * 0.45);
+          pullAnim.setValue(pullDistance);
+        },
+        onPanResponderRelease: () => {
+          const currentPull = pullDistanceRef.current;
+          if (currentPull >= 60) {
+            Animated.spring(pullAnim, {
+              toValue: 60,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }).start();
+            setRefreshState('refreshing');
+            onRefresh();
+          } else {
+            Animated.spring(pullAnim, {
+              toValue: 0,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }).start(() => {
+              setRefreshState('idle');
+            });
+          }
+        },
+        onPanResponderTerminate: () => {
           Animated.spring(pullAnim, {
             toValue: 0,
-            useNativeDriver: true,
+            useNativeDriver: false,
             tension: 40,
             friction: 7,
           }).start(() => {
             setRefreshState('idle');
           });
-        }
-      }
-      if (props.onTouchEnd) {
-        props.onTouchEnd(e);
-      }
-    };
+        },
+      })
+    ).current;
 
     return (
-      <View style={styles.container}>
+      <View style={styles.container} {...panResponder.panHandlers}>
         <RefreshHeader pullAnim={pullAnim} refreshState={refreshState} colors={colors} />
-        <Animated.View
-          style={[
-            styles.container,
-            {
-              transform: [{ translateY: pullAnim }],
-            },
-          ]}
+        <ScrollView
+          ref={ref}
+          scrollEventThrottle={16}
+          onScroll={handleScroll}
+          {...props}
         >
-          <ScrollView
-            ref={ref}
-            scrollEventThrottle={16}
-            onScroll={handleScroll}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            {...props}
-          >
-            {children}
-          </ScrollView>
-        </Animated.View>
+          {children}
+        </ScrollView>
       </View>
     );
   }
@@ -305,8 +355,16 @@ export const PremiumFlatList = React.forwardRef<FlatList, PremiumFlatListProps<a
     const pullAnim = useRef(new Animated.Value(0)).current;
     const [refreshState, setRefreshState] = useState<RefreshState>('idle');
     const scrollOffsetRef = useRef(0);
-    const touchStartY = useRef(0);
-    const isPulling = useRef(false);
+    const pullDistanceRef = useRef(0);
+
+    useEffect(() => {
+      const listenerId = pullAnim.addListener(({ value }) => {
+        pullDistanceRef.current = value;
+      });
+      return () => {
+        pullAnim.removeListener(listenerId);
+      };
+    }, []);
 
     useEffect(() => {
       if (refreshing) {
@@ -316,7 +374,7 @@ export const PremiumFlatList = React.forwardRef<FlatList, PremiumFlatListProps<a
         setTimeout(() => {
           Animated.spring(pullAnim, {
             toValue: 0,
-            useNativeDriver: true,
+            useNativeDriver: false,
             tension: 30,
             friction: 8,
           }).start(() => {
@@ -333,79 +391,66 @@ export const PremiumFlatList = React.forwardRef<FlatList, PremiumFlatListProps<a
       }
     };
 
-    const handleTouchStart = (e: any) => {
-      touchStartY.current = e.nativeEvent.pageY;
-      if (props.onTouchStart) {
-        props.onTouchStart(e);
-      }
-    };
-
-    const handleTouchMove = (e: any) => {
-      const currentY = e.nativeEvent.pageY;
-      const dy = currentY - touchStartY.current;
-
-      if (scrollOffsetRef.current <= 1 && dy > 0 && refreshState !== 'refreshing' && refreshState !== 'success') {
-        isPulling.current = true;
-        setRefreshState('pulling');
-        const pullDistance = Math.min(100, dy * 0.45);
-        pullAnim.setValue(pullDistance);
-      }
-      if (props.onTouchMove) {
-        props.onTouchMove(e);
-      }
-    };
-
-    const handleTouchEnd = (e: any) => {
-      if (isPulling.current) {
-        isPulling.current = false;
-        // @ts-ignore
-        const currentPull = pullAnim._value || 0;
-        if (currentPull >= 60) {
-          Animated.spring(pullAnim, {
-            toValue: 60,
-            useNativeDriver: true,
-            tension: 40,
-            friction: 7,
-          }).start();
-          setRefreshState('refreshing');
-          onRefresh();
-        } else {
+    const panResponder = useRef(
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (evt, gestureState) => {
+          const isAtTop = scrollOffsetRef.current <= 2;
+          const isPullingDown = gestureState.dy > 5;
+          const isStateAllowsPull = refreshState === 'idle' || refreshState === 'pulling';
+          return isAtTop && isPullingDown && isStateAllowsPull;
+        },
+        onPanResponderGrant: () => {
+          setRefreshState('pulling');
+        },
+        onPanResponderMove: (evt, gestureState) => {
+          const pullDistance = Math.min(100, gestureState.dy * 0.45);
+          pullAnim.setValue(pullDistance);
+        },
+        onPanResponderRelease: () => {
+          const currentPull = pullDistanceRef.current;
+          if (currentPull >= 60) {
+            Animated.spring(pullAnim, {
+              toValue: 60,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }).start();
+            setRefreshState('refreshing');
+            onRefresh();
+          } else {
+            Animated.spring(pullAnim, {
+              toValue: 0,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }).start(() => {
+              setRefreshState('idle');
+            });
+          }
+        },
+        onPanResponderTerminate: () => {
           Animated.spring(pullAnim, {
             toValue: 0,
-            useNativeDriver: true,
+            useNativeDriver: false,
             tension: 40,
             friction: 7,
           }).start(() => {
             setRefreshState('idle');
           });
-        }
-      }
-      if (props.onTouchEnd) {
-        props.onTouchEnd(e);
-      }
-    };
+        },
+      })
+    ).current;
 
     return (
-      <View style={styles.container}>
+      <View style={styles.container} {...panResponder.panHandlers}>
         <RefreshHeader pullAnim={pullAnim} refreshState={refreshState} colors={colors} />
-        <Animated.View
-          style={[
-            styles.container,
-            {
-              transform: [{ translateY: pullAnim }],
-            },
-          ]}
-        >
-          <FlatList
-            ref={ref}
-            scrollEventThrottle={16}
-            onScroll={handleScroll}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            {...props}
-          />
-        </Animated.View>
+        <FlatList
+          ref={ref}
+          scrollEventThrottle={16}
+          onScroll={handleScroll}
+          {...props}
+        />
       </View>
     );
   }
@@ -417,7 +462,6 @@ const styles = StyleSheet.create({
   },
   refreshHeader: {
     position: 'absolute',
-    top: 10,
     left: 0,
     right: 0,
     height: 40,
@@ -441,5 +485,15 @@ const styles = StyleSheet.create({
   centered: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  checkmarkContainer: {
+    width: 24,
+    height: 24,
+    position: 'relative',
+  },
+  checkmarkStroke: {
+    position: 'absolute',
+    width: 3,
+    borderRadius: 1.5,
   },
 });

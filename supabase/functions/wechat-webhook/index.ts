@@ -38,20 +38,7 @@ async function saveAndPushArticle(title: string, summary: string, url: string, c
   }
   const articleId = articleData && articleData[0]?.id;
 
-  // 2. 插入通知数据到 notifications 表
-  const { error: notificationError } = await supabase
-    .from('notifications')
-    .insert([{
-      title: title,
-      content: summary,
-      category: 'general',
-      link: url,
-      cover_image: coverImage
-    }]);
-
-  if (notificationError) {
-    console.error('Error inserting notification into Supabase:', notificationError);
-  }
+  // 2. [Removed insertion into notifications table to separate articles and notifications]
 
   // 3. 获取所有设备的 Push Token
   const { data: tokensData, error: tokensError } = await supabase
@@ -67,7 +54,7 @@ async function saveAndPushArticle(title: string, summary: string, url: string, c
   console.log(`Sending mass push to ${tokens.length} devices...`);
 
   // 4. 构造 Expo 推送消息 Payload
-  const pushTitle = `【综合公告】${title}`;
+  const pushTitle = `【综合通知】${title}`;
   const messages = tokens.map(token => ({
     to: token,
     sound: 'default',

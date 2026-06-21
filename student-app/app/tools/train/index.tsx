@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,7 +11,8 @@ import {
   Keyboard,
   Dimensions,
   Linking,
-  Modal
+  Modal,
+  Animated
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -152,6 +153,24 @@ export default function TrainToolIndex() {
   };
 
   const [activeTab, setActiveTab] = useState<'train' | 'station'>('train');
+  const scrollViewRef = useRef<any>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
+
+  const translateX = scrollX.interpolate({
+    inputRange: [0, width],
+    outputRange: [0, width / 2],
+    extrapolate: 'clamp'
+  });
+
+  const handleScroll = (event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const page = Math.round(offsetX / width);
+    if (page === 0 && activeTab !== 'train') {
+      setActiveTab('train');
+    } else if (page === 1 && activeTab !== 'station') {
+      setActiveTab('station');
+    }
+  };
 
   // Train Tab State
   const [trainNo, setTrainNo] = useState('');
@@ -320,7 +339,7 @@ export default function TrainToolIndex() {
           <MaterialIcons
             name={starred ? "star" : "star-border"}
             size={24}
-            color={starred ? "#EAB308" : colors.textMuted}
+            color={starred ? colors.primary : colors.textMuted}
           />
         </Pressable>
       </View>
@@ -352,7 +371,7 @@ export default function TrainToolIndex() {
           <MaterialIcons
             name={starred ? "star" : "star-border"}
             size={24}
-            color={starred ? "#EAB308" : colors.textMuted}
+            color={starred ? colors.primary : colors.textMuted}
           />
         </Pressable>
       </View>
@@ -626,11 +645,9 @@ export default function TrainToolIndex() {
           onPress={() => {
             setActiveTab('train');
             setTrainError('');
+            scrollViewRef.current?.scrollTo({ x: 0, animated: true });
           }}
-          style={[
-            styles.tab,
-            activeTab === 'train' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
-          ]}
+          style={styles.tab}
         >
           <Text
             style={[
@@ -645,11 +662,9 @@ export default function TrainToolIndex() {
           onPress={() => {
             setActiveTab('station');
             setTrainError('');
+            scrollViewRef.current?.scrollTo({ x: width, animated: true });
           }}
-          style={[
-            styles.tab,
-            activeTab === 'station' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
-          ]}
+          style={styles.tab}
         >
           <Text
             style={[
@@ -660,96 +675,136 @@ export default function TrainToolIndex() {
             {t('tabStation')}
           </Text>
         </Pressable>
+
+        {/* Sliding Indicator */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: width / 2,
+            height: 2,
+            backgroundColor: colors.primary,
+            transform: [{ translateX }]
+          }}
+        />
       </View>
 
-      {activeTab === 'train' ? (
-        /* ==================== TRACK TRAIN TAB ==================== */
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.searchBox}>
-            <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <MaterialIcons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
-              <TextInput
-                style={[styles.input, { color: colors.textPrimary }]}
-                placeholder={t('trainNumberPlaceholder')}
-                placeholderTextColor={colors.textMuted}
-                value={trainNo}
-                onChangeText={setTrainNo}
-                keyboardType="numeric"
-                onSubmitEditing={handleTrainSearch}
-                returnKeyType="search"
-              />
-              {trainNo.length > 0 && (
-                <Pressable onPress={() => setTrainNo('')} style={styles.clearInputBtn}>
-                  <MaterialIcons name="close" size={18} color={colors.textSecondary} />
-                </Pressable>
-              )}
-            </View>
-            <Pressable
-              onPress={handleTrainSearch}
-              style={({ pressed }) => [
-                styles.searchButton,
-                { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 }
-              ]}
-            >
-              <Text style={styles.searchButtonText}>{t('searchButton')}</Text>
-            </Pressable>
-          </View>
-
-          {loadingTrain && (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.statusText, { color: colors.textSecondary }]}>{t('searching')}</Text>
-            </View>
-          )}
-
-          {trainError.length > 0 && !loadingTrain && (
-            <View style={styles.errorContainer}>
-              <MaterialIcons name="error-outline" size={24} color={colors.error} />
-              <Text style={[styles.errorText, { color: colors.error }]}>{trainError}</Text>
-            </View>
-          )}
-
-          {/* Multiple matches results */}
-          {trainMatches.length > 0 && !loadingTrain && (
-            <View style={styles.resultsWrapper}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('resultsTitle')}</Text>
-              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('selectTrainRunHint')}</Text>
-              {trainMatches.map((item) => renderTrainCard(item))}
-            </View>
-          )}
-
-          {/* Starred Trains */}
-          {favoriteTrains.length > 0 && !loadingTrain && trainMatches.length === 0 && (
-            <View style={styles.historyWrapper}>
-              <View style={styles.historyHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>已收藏车次</Text>
+      <Animated.ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScroll}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ width: width * 2 }}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          {
+            useNativeDriver: true,
+            listener: (event: any) => {
+              const offsetX = event.nativeEvent.contentOffset.x;
+              const page = Math.round(offsetX / width);
+              if (page === 0 && activeTab !== 'train') {
+                setActiveTab('train');
+              } else if (page === 1 && activeTab !== 'station') {
+                setActiveTab('station');
+              }
+            }
+          }
+        )}
+      >
+        {/* Page 1: Train Search */}
+        <View style={{ width: width, flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+            <View style={styles.searchBox}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <MaterialIcons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+                <TextInput
+                  style={[styles.input, { color: colors.textPrimary }]}
+                  placeholder={t('trainNumberPlaceholder')}
+                  placeholderTextColor={colors.textMuted}
+                  value={trainNo}
+                  onChangeText={setTrainNo}
+                  keyboardType="numeric"
+                  onSubmitEditing={handleTrainSearch}
+                  returnKeyType="search"
+                />
+                {trainNo.length > 0 && (
+                  <Pressable onPress={() => setTrainNo('')} style={styles.clearInputBtn}>
+                    <MaterialIcons name="close" size={18} color={colors.textSecondary} />
+                  </Pressable>
+                )}
               </View>
-              {favoriteTrains.map((item) => renderTrainCard(item))}
+              <Pressable
+                onPress={handleTrainSearch}
+                style={({ pressed }) => [
+                  styles.searchButton,
+                  { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 }
+                ]}
+              >
+                <MaterialIcons name="search" size={22} color="#FFF" />
+              </Pressable>
             </View>
-          )}
 
-          {/* Recent Trains History */}
-          {recentTrains.length > 0 && !loadingTrain && trainMatches.length === 0 && (
-            <View style={[styles.historyWrapper, { marginTop: favoriteTrains.length > 0 ? 16 : 10 }]}>
-              <View style={styles.historyHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('recentSearches')}</Text>
-                <Pressable onPress={clearTrainHistory}>
-                  <Text style={[styles.clearBtnText, { color: colors.primary }]}>{t('clearHistory')}</Text>
-                </Pressable>
+            {loadingTrain && (
+              <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[styles.statusText, { color: colors.textSecondary }]}>{t('searching')}</Text>
               </View>
-              {recentTrains.map((item) => renderTrainCard(item))}
-            </View>
-          )}
+            )}
 
-          <View style={styles.disclaimerContainer}>
-            <Text style={[styles.disclaimerText, { color: colors.textMuted }]}>
-              {t('disclaimer')}
-            </Text>
-          </View>
-        </ScrollView>
-      ) : (
-        /* ==================== STATION BOARDS TAB ==================== */
-        <View style={{ flex: 1 }}>
+            {trainError.length > 0 && !loadingTrain && (
+              <View style={styles.errorContainer}>
+                <MaterialIcons name="error-outline" size={24} color={colors.error} />
+                <Text style={[styles.errorText, { color: colors.error }]}>{trainError}</Text>
+              </View>
+            )}
+
+            {/* Multiple matches results */}
+            {trainMatches.length > 0 && !loadingTrain && (
+              <View style={styles.resultsWrapper}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('resultsTitle')}</Text>
+                <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('selectTrainRunHint')}</Text>
+                {trainMatches.map((item) => renderTrainCard(item))}
+              </View>
+            )}
+
+            {/* Starred Trains */}
+            {favoriteTrains.length > 0 && !loadingTrain && trainMatches.length === 0 && (
+              <View style={styles.historyWrapper}>
+                <View style={styles.historyHeader}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>已收藏车次</Text>
+                </View>
+                {favoriteTrains.map((item) => renderTrainCard(item))}
+              </View>
+            )}
+
+            {/* Recent Trains History */}
+            {recentTrains.length > 0 && !loadingTrain && trainMatches.length === 0 && (
+              <View style={[styles.historyWrapper, { marginTop: favoriteTrains.length > 0 ? 16 : 10 }]}>
+                <View style={styles.historyHeader}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('recentSearches')}</Text>
+                  <Pressable onPress={clearTrainHistory}>
+                    <Text style={[styles.clearBtnText, { color: colors.primary }]}>{t('clearHistory')}</Text>
+                  </Pressable>
+                </View>
+                {recentTrains.map((item) => renderTrainCard(item))}
+              </View>
+            )}
+
+            <View style={styles.disclaimerContainer}>
+              <Text style={[styles.disclaimerText, { color: colors.textMuted }]}>
+                {t('disclaimer')}
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Page 2: Station Boards */}
+        <View style={{ width: width, flex: 1 }}>
           <View style={[styles.searchBox, { paddingHorizontal: 16, paddingTop: 16 }]}>
             <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <MaterialIcons name="train" size={20} color={colors.textSecondary} style={styles.searchIcon} />
@@ -906,7 +961,7 @@ export default function TrainToolIndex() {
             </View>
           </ScrollView>
         </View>
-      )}
+      </Animated.ScrollView>
 
     </SafeAreaView>
   );
@@ -975,8 +1030,8 @@ const styles = StyleSheet.create({
   searchButton: {
     marginLeft: 12,
     height: 48,
+    width: 48,
     borderRadius: 12,
-    paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 1,

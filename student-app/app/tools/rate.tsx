@@ -8,7 +8,8 @@ import {
   ActivityIndicator, 
   Dimensions,
   Animated,
-  RefreshControl
+  RefreshControl,
+  Platform
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
@@ -75,23 +76,36 @@ export default function RateConverterScreen() {
     setToastMessage(msg);
     setToastType(type);
     
+    const isSuccess = msg === '刷新成功';
+    const fadeInDuration = isSuccess ? 150 : 250;
+    const keepDuration = isSuccess ? 1000 : 2000;
+    const fadeOutDuration = 250;
+
     // Reset animations
     fadeAnim.setValue(0);
     slideAnim.setValue(-20);
     
     // Animate in
-    Animated.parallel([
+    if (isSuccess) {
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 250,
+        duration: fadeInDuration,
         useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      })
-    ]).start();
+      }).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: fadeInDuration,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: fadeInDuration,
+          useNativeDriver: true,
+        })
+      ]).start();
+    }
 
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
@@ -99,21 +113,31 @@ export default function RateConverterScreen() {
     
     toastTimeoutRef.current = setTimeout(() => {
       // Animate out
-      Animated.parallel([
+      if (isSuccess) {
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 250,
+          duration: fadeOutDuration,
           useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: -20,
-          duration: 250,
-          useNativeDriver: true,
-        })
-      ]).start(() => {
-        setToastMessage(null);
-      });
-    }, 2000);
+        }).start(() => {
+          setToastMessage(null);
+        });
+      } else {
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: fadeOutDuration,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: -20,
+            duration: fadeOutDuration,
+            useNativeDriver: true,
+          })
+        ]).start(() => {
+          setToastMessage(null);
+        });
+      }
+    }, keepDuration);
   };
 
   const fetchRates = async (isManual: boolean = false) => {
@@ -134,7 +158,7 @@ export default function RateConverterScreen() {
         recalculate(inputValues[activeCurrency] || '0', activeCurrency, data.rates);
         
         if (isManual) {
-          showToast('✓ 数据已刷新');
+          showToast('刷新成功');
         }
       } else {
         if (isManual) {
@@ -397,23 +421,27 @@ export default function RateConverterScreen() {
           </View>
         </View>
       )}
-      {/* Toast Notification */}
-      {toastMessage && (
-        <Animated.View 
-          style={[
-            styles.toastContainer, 
-            { 
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-              backgroundColor: toastType === 'success' ? 'rgba(16, 185, 129, 0.88)' : 'rgba(239, 68, 68, 0.88)',
-              borderColor: toastType === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-              borderWidth: 1,
-            }
-          ]}
-        >
-          <Text style={styles.toastText}>{toastMessage}</Text>
-        </Animated.View>
-      )}
+       {/* Toast Notification */}
+       {toastMessage && (
+         <Animated.View 
+           style={[
+             toastMessage === '刷新成功' ? styles.checkmarkBubble : styles.toastContainer, 
+             { 
+               opacity: fadeAnim,
+               transform: toastMessage === '刷新成功' ? [] : [{ translateY: slideAnim }],
+               backgroundColor: toastMessage === '刷新成功' ? '#FFFFFF' : colors.surface,
+               borderColor: toastMessage === '刷新成功' ? 'transparent' : (toastType === 'success' ? colors.primary : colors.error),
+               borderWidth: toastMessage === '刷新成功' ? 0 : 1,
+             }
+           ]}
+         >
+           {toastMessage === '刷新成功' ? (
+             <MaterialIcons name="check" size={24} color={colors.primary} />
+           ) : (
+             <Text style={[styles.toastText, { color: toastType === 'success' ? colors.primary : colors.error }]}>{toastMessage}</Text>
+           )}
+         </Animated.View>
+       )}
     </SafeAreaView>
   );
 }
@@ -581,25 +609,40 @@ const styles = StyleSheet.create({
   },
   toastContainer: {
     position: 'absolute',
-    top: 88,
-    left: 24,
-    right: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    top: 100,
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
     elevation: 4,
-    zIndex: 9999,
+    zIndex: 99999,
+  },
+  checkmarkBubble: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 104 : 142,
+    alignSelf: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 99999,
   },
   toastText: {
-    color: '#FFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     textAlign: 'center',
   },

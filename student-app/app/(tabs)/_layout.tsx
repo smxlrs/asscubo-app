@@ -35,7 +35,10 @@ function interpolateColorJS(value: number, color1: string, color2: string): stri
 }
 
 function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { label: string; iconName: string; focused: boolean; activeColor: string; inactiveColor: string }) {
-  const name = focused ? iconName : `${iconName}-outline`;
+  let name = focused ? iconName : `${iconName}-outline`;
+  if (iconName === 'newspaper' && !focused) {
+    name = 'newspaper-variant-outline';
+  }
   
   // Animation values
   const widthAnim = useRef(new Animated.Value(focused ? 56 : 30)).current;
@@ -171,7 +174,7 @@ export default function TabsLayout() {
         name="notifications"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon label={t('notifications')} iconName="bell" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+            <TabIcon label={t('notifications')} iconName="newspaper" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
           ),
         }}
       />

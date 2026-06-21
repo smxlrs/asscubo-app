@@ -41,13 +41,15 @@ export default function EventsScreen() {
     if (!eventsData) { setLoading(false); return; }
 
     // Check user registrations
-    const { data: myRegs } = await supabase
-      .from('event_registrations')
-      .select('event_id')
-      .eq('user_id', user?.id)
-      .eq('status', 'confirmed');
-
-    const myEventIds = new Set(myRegs?.map(r => r.event_id) || []);
+    let myEventIds = new Set<string>();
+    if (user) {
+      const { data: myRegs } = await supabase
+        .from('event_registrations')
+        .select('event_id')
+        .eq('user_id', user.id)
+        .eq('status', 'confirmed');
+      myEventIds = new Set(myRegs?.map(r => r.event_id) || []);
+    }
 
     setEvents(eventsData.map(e => ({
       ...e,
@@ -57,10 +59,20 @@ export default function EventsScreen() {
     setRefreshing(false);
   }
 
-  useEffect(() => { fetchEvents(); }, []);
+  useEffect(() => { fetchEvents(); }, [user]); // Re-fetch user status when auth state changes
 
   async function handleRegister(eventId: string, isRegistered: boolean) {
-    if (!user) return;
+    if (!user) {
+      Alert.alert(
+        '请先登录',
+        '报名参加活动需要先登录您的账号。',
+        [
+          { text: '取消', style: 'cancel' },
+          { text: '去登录', onPress: () => router.push('/(auth)/login') }
+        ]
+      );
+      return;
+    }
     setRegistering(eventId);
 
     if (isRegistered) {

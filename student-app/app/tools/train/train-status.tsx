@@ -7,7 +7,10 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
-  Dimensions
+  Alert,
+  Dimensions,
+  Animated,
+  Platform
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -209,6 +212,52 @@ export default function TrainStatusScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isStarred, setIsStarred] = useState(false);
+
+  const [headerHeight, setHeaderHeight] = useState(250);
+
+  // Toast State for Refresh feedback
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastFade = useRef(new Animated.Value(0)).current;
+  const toastTimeoutRef = useRef<any>(null);
+
+  const triggerToast = (msg: string) => {
+    setToastMsg(msg);
+    toastFade.setValue(0);
+    
+    const isSuccess = msg === '刷新成功';
+    const fadeInDuration = isSuccess ? 150 : 250;
+    const keepDuration = isSuccess ? 1000 : 2000;
+    const fadeOutDuration = 250;
+
+    Animated.timing(toastFade, {
+      toValue: 1,
+      duration: fadeInDuration,
+      useNativeDriver: true,
+    }).start();
+
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+
+    toastTimeoutRef.current = setTimeout(() => {
+      Animated.timing(toastFade, {
+        toValue: 0,
+        duration: fadeOutDuration,
+        useNativeDriver: true,
+      }).start(() => {
+        setToastMsg(null);
+      });
+    }, keepDuration);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const [alerts, setAlerts] = useState<VtAlert[]>([]);
 
   // Date selector local states
@@ -426,6 +475,9 @@ export default function TrainStatusScreen() {
         } catch (alertErr) {
           console.warn('Failed to load alerts:', alertErr);
         }
+        if (isRef) {
+          triggerToast('刷新成功');
+        }
       } else {
         setErrorMsg(t('error'));
       }
@@ -622,35 +674,30 @@ export default function TrainStatusScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
-        </Pressable>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('title')}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {status && (
-            <Pressable onPress={toggleStar} style={styles.backButton}>
-              <MaterialIcons
-                name={isStarred ? "star" : "star-border"}
-                size={24}
-                color={isStarred ? "#EAB308" : colors.textPrimary}
-              />
-            </Pressable>
-          )}
-          <Pressable onPress={handleRefresh} style={styles.backButton}>
-            <MaterialIcons name="refresh" size={24} color={colors.textPrimary} />
+      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
           </Pressable>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t('title')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {status && (
+              <Pressable onPress={toggleStar} style={styles.backButton}>
+                <MaterialIcons
+                  name={isStarred ? "star" : "star-border"}
+                  size={24}
+                  color={isStarred ? colors.primary : colors.textPrimary}
+                />
+              </Pressable>
+            )}
+            <Pressable onPress={handleRefresh} style={styles.backButton}>
+              <MaterialIcons name="refresh" size={24} color={colors.textPrimary} />
+            </Pressable>
+          </View>
         </View>
-      </View>
 
-
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} />
-          }
-        >
+        <View style={{ paddingHorizontal: 16 }}>
           {/* Train Summary Dashboard Card */}
           <View style={[styles.dashboardCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.dashboardHeader}>
@@ -772,7 +819,7 @@ export default function TrainStatusScreen() {
                             color: isSelected ? '#FFF' : colors.textSecondary,
                             fontWeight: isSelected ? 'bold' : 'normal'
                           }
-                         ]}
+                        ]}
                       >
                         {run.dateStr}
                       </Text>
@@ -782,8 +829,21 @@ export default function TrainStatusScreen() {
               </View>
             )}
           </View>
+        </View>
+      </View>
 
-          <View style={styles.timelineWrapper}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 0 }]}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh} 
+            colors={[colors.primary]} 
+            progressViewOffset={20}
+          />
+        }
+      >
+        <View style={styles.timelineWrapper}>
             {(() => {
               const isTrainNotStarted = status.stops.every(s => s.actualArrivalTime === null && s.actualDepartureTime === null);
               
@@ -970,6 +1030,23 @@ export default function TrainStatusScreen() {
             </Text>
           </View>
         </ScrollView>
+      {toastMsg && (
+        <Animated.View style={[
+          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? headerHeight + 50 : headerHeight + 84 }] : styles.toastContainer, 
+          { 
+            opacity: toastFade,
+            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+          }
+        ]}>
+          {toastMsg === '刷新成功' ? (
+            <MaterialIcons name="check" size={24} color={colors.primary} />
+          ) : (
+            <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>
+          )}
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1321,6 +1398,44 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     textAlign: 'center',
+  },
+  toastContainer: {
+    position: 'absolute',
+    top: 100,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 99999,
+    borderWidth: 1,
+  },
+  toastText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  checkmarkBubble: {
+    position: 'absolute',
+    alignSelf: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 99999,
   },
 });
 

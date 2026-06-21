@@ -10,6 +10,7 @@ type Profile = {
   major: string | null;
   campus: string | null;
   role: 'student' | 'admin' | 'super_admin';
+  avatar_url: string | null;
 };
 
 type AuthContextType = {

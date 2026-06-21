@@ -43,14 +43,33 @@ export default function ArticleDetailScreen() {
           .from('articles')
           .select('*')
           .eq('id', id)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
         if (data) {
           setArticle(data as ArticleData);
+        } else {
+          // 如果 articles 表找不到，退一步去 notifications 表查找
+          const { data: notifData, error: notifError } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+          if (notifError) throw notifError;
+          if (notifData) {
+            setArticle({
+              title: notifData.title,
+              category: notifData.category || 'general',
+              content: notifData.content || null,
+              link: notifData.link || null,
+              created_at: notifData.created_at,
+            });
+          } else {
+            console.warn('Article/Notification not found in both tables');
+          }
         }
       } catch (e) {
-        console.warn('Failed to load article detail:', e);
+        console.warn('Failed to load article/notification detail:', e);
       } finally {
         setLoading(false);
       }
@@ -80,25 +99,17 @@ export default function ArticleDetailScreen() {
 
   // 1. If it's a WeChat or Web Link, load it in WebView
   if (article.link) {
-    // Custom JS injection to hide unwanted WeChat page components on mobile and adapt dark mode if active
-    const injectedJS = `
+    // Custom JS injection to hide unwanted WeChat page components and apply dark mode style early
+    const injectedJSBeforeContent = `
       (function() {
-        // Hide unwanted elements (like QR code areas, PC share bars)
-        const style = document.createElement('style');
-        style.innerHTML = '#js_pc_qr_code, .qr_code_pc_outer, #js_share_app_msg, #js_profile_qrcode, .profile_qrcode_area, .global_share_dialog, .global_share_btn, .qr_code_pc_inner, .qr_code_pc { display: none !important; }';
-        document.head.appendChild(style);
-
-        ${isDark ? `
-          // Enable WeChat native dark theme
-          document.documentElement.setAttribute('data-theme', 'dark');
-          document.body.setAttribute('data-theme', 'dark');
-          document.documentElement.classList.add('theme-dark');
-          document.body.classList.add('theme-dark');
-
-          // Inject custom dark theme styles for backup override (covering container, text and bottom bar)
-          const darkStyle = document.createElement('style');
-          darkStyle.innerHTML = \`
-            html, body, .rich_media, .rich_media_inner, .rich_media_area_primary, .rich_media_content, #img-content, .rich_media_tool, .appmsg_tool, .appmsg_tool_wrp, .tool_wrp, .rich_media_extra, .rich_media_extra_inside, .like_comment_area, .like_comment_wrapper, #js_unshare_area, #js_to_share, .reward_area {
+        const cssRules = \`
+          #js_pc_qr_code, .qr_code_pc_outer, #js_share_app_msg, #js_profile_qrcode, .profile_qrcode_area, .global_share_dialog, .global_share_btn, .qr_code_pc_inner, .qr_code_pc {
+            display: none !important;
+          }
+          ${isDark ? `
+            /* Dark Mode Overrides */
+            html, body, .rich_media, .rich_media_inner, .rich_media_area_primary, .rich_media_content, #img-content, .rich_media_tool, .appmsg_tool, .appmsg_tool_wrp, .tool_wrp, .rich_media_extra, .rich_media_extra_inside, .like_comment_area, .like_comment_wrapper, #js_unshare_area, #js_to_share, .reward_area,
+            .appmsg_bottom_bar, .appmsg_bottom_bar_wrp, .js_cmt_input_wrp, .cmt_input_wrp, .comment_input_wrp, .js_comment_input_wrp, .bottom_bar, .appmsg_bottom, .js_cmt_mine, .cmt_mine, .js_cmt_list, .cmt_list, .js_cmt_area, .cmt_area, .js_cmt_wrp, .cmt_wrp, .rich_media_area_extra, .rich_media_area_extra_inside, .js_cmt_footer, .cmt_footer, .bottom_grid, .cmt_grid, .cmt_bar, .comment_area, .comment_wrp {
               background-color: #0F0F0F !important;
               color: #F5F5F5 !important;
             }
@@ -106,16 +117,47 @@ export default function ArticleDetailScreen() {
               color: #F5F5F5 !important;
               background-color: transparent !important;
             }
-            .appmsg_tool *, .rich_media_tool *, .rich_media_extra *, .rich_media_meta_list *, .profile_container * {
+            .appmsg_tool *, .rich_media_tool *, .rich_media_extra *, .rich_media_meta_list *, .profile_container *,
+            .appmsg_bottom_bar *, .appmsg_bottom_bar_wrp *, .js_cmt_input_wrp *, .cmt_input_wrp *, .comment_input_wrp *, .js_comment_input_wrp *, .bottom_bar *, .appmsg_bottom *, .js_cmt_mine *, .cmt_mine *, .js_cmt_list *, .cmt_list *, .js_cmt_area *, .cmt_area *, .js_cmt_wrp *, .cmt_wrp *, .rich_media_area_extra *, .rich_media_area_extra_inside *, .js_cmt_footer *, .cmt_footer *, .bottom_grid *, .cmt_grid *, .cmt_bar *, .comment_area *, .comment_wrp * {
               background-color: transparent !important;
               color: #A0A0A0 !important;
             }
             a {
               color: #C41E2A !important;
             }
-          \`;
-          document.head.appendChild(darkStyle);
-        ` : ''}
+          ` : ''}
+        \`;
+
+        function injectStyle() {
+          const styleId = 'injected-wechat-styles';
+          if (document.getElementById(styleId)) return;
+          const style = document.createElement('style');
+          style.id = styleId;
+          style.innerHTML = cssRules;
+          if (document.head) {
+            document.head.appendChild(style);
+          } else if (document.documentElement) {
+            document.documentElement.appendChild(style);
+          }
+        }
+
+        // Try injecting style immediately
+        injectStyle();
+
+        // Also inject when DOMContentLoaded is fired
+        window.addEventListener('DOMContentLoaded', () => {
+          injectStyle();
+          ${isDark ? `
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.body.setAttribute('data-theme', 'dark');
+            document.documentElement.classList.add('theme-dark');
+            document.body.classList.add('theme-dark');
+          ` : ''}
+        });
+
+        // Set up periodic check to ensure dynamically rendered parts are overridden
+        const interval = setInterval(injectStyle, 50);
+        setTimeout(() => clearInterval(interval), 3000);
       })();
       true;
     `;
@@ -136,7 +178,8 @@ export default function ArticleDetailScreen() {
         {/* WebView */}
         <WebView
           source={{ uri: article.link }}
-          injectedJavaScript={injectedJS}
+          injectedJavaScriptBeforeContentLoaded={injectedJSBeforeContent}
+          injectedJavaScript={injectedJSBeforeContent}
           style={{ flex: 1, backgroundColor: colors.background }}
           startInLoadingState
           renderLoading={() => (

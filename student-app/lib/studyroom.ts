@@ -8,6 +8,7 @@ export type StudyRoom = {
   capacity: number;
   affluencesUrl: string;
   affluencesId: string;
+  supportsBooking: boolean;
 };
 
 export type StudyRoomStatus = {
@@ -18,7 +19,7 @@ export type StudyRoomStatus = {
 };
 
 // Metadata for popular University of Bologna study rooms and libraries managed via Affluences
-export const STUDY_ROOMS: StudyRoom[] = [
+const RAW_STUDY_ROOMS = [
   {
     id: "bub-biblioteca-universitaria-di-bologna",
     nameCn: "博洛尼亚大学图书馆 (BUB)",
@@ -461,6 +462,23 @@ export const STUDY_ROOMS: StudyRoom[] = [
     affluencesId: "789ed336-c5bc-4dd9-b0ca-e52999662dfd",
   },
 ];
+
+const FREE_STUDY_ROOMS = [
+  'sala-studio-di-palazzo-paleotti',
+  'sala-studio-viale-berti-pichat',
+  'sala-studio-azzo-gardino',
+  'sala-studio-di-via-petroni',
+  'sala-studio-di-via-belle-arti',
+  'sala-studio-filippo-re',
+  'sala-studio-santorsola',
+  'sale-studio-dei-campus-e-di-imola',
+  'spazio-laboratorialesala-studio'
+];
+
+export const STUDY_ROOMS: StudyRoom[] = RAW_STUDY_ROOMS.map(room => ({
+  ...room,
+  supportsBooking: !FREE_STUDY_ROOMS.includes(room.id)
+})) as StudyRoom[];
 
 /**
  * Fetches the real-time occupancy and open status of a study room by its Affluences ID.

@@ -1,0 +1,105 @@
+微信公众号文章同步与配置保姆级教程
+
+---
+
+# 第一部分：历史文章同步（一次性操作）
+
+这个操作是用您的电脑运行我们写好的脚本，把微信公众号里以前发过的所有文章抓取并存入数据库中。
+
+### 准备工作一：获取 Supabase 的钥匙和地址
+1. 浏览器打开并登录您的 Supabase 官网后台。
+2. 点击左侧导航栏最下方的 齿轮图标（Settings - 设置）。
+3. 在弹出的菜单中选择 API（在 Project Settings 这一分类下）。
+4. 在右侧页面中，您会看到两个极其关键的信息，请复制并保存下来：
+   - **Project URL（地址）**：长得像 `https://xxxxxx.supabase.co`。
+   - **service_role API key（私钥）**：点击 Reveal（显示）按钮后，会展开一串极长的英文字符（千万不要复制 anon public，一定要复制 service_role，因为它才有写入数据库的最高权限）。
+
+### 准备工作二：获取微信的 AppID 和 AppSecret
+1. 浏览器打开并登录 微信公众平台官网（mp.weixin.qq.com）。
+2. 在左侧菜单最下方，找到 设置与开发 -> 点击 基本配置。
+3. 在页面中复制保存两个信息：
+   - **Developer ID (AppID)（应用ID）**：类似 `wx1234567890abcdef`。
+   - **AppSecret (开发密匙)**：如果未保存，需要点击“重置”，用管理员微信扫码后查看并复制下来。
+
+### 准备工作三：确认运行环境就绪（非技术人员注意）
+运行同步脚本需要您的电脑上安装有 Node.js 运行环境：
+1. 打开您的终端（PowerShell 或 CMD），输入 `node -v` 并回车。如果显示版本号（如 `v18.x.x` 或更高），说明已安装；如果报错未找到命令，请前往 Node.js 官网 (nodejs.org) 下载并安装 LTS 长期支持版。
+2. 在项目根目录（`student-app` 文件夹）下，确保您之前运行过 `npm install`。如果没有，请在终端输入 `npm install` 并回车以补全脚本依赖的第三方库（主要是 `@supabase/supabase-js`）。
+
+### 准备工作四：查询并白名单您的公网 IP
+微信出于安全考虑，只允许您在它后台登记过的电脑访问它的接口。
+1. 浏览器打开百度或 Google，搜索：IP，页面第一行就会显示：您的本地公网 IP 地址（例如：`112.96.128.45`）。
+2. 回到刚才微信公众平台的 基本配置 页面。
+3. 找到 IP白名单，点击 配置 / 修改。
+4. 将上一步查到的 IP 地址（例如 `112.96.128.45`）粘贴进去，点击确认保存（需要管理员微信扫码确认）。
+   
+💡 **贴心提示**：普通家用宽带的公网 IP 是动态变化的（通常重启路由器或每隔 24~48 小时就会变）。如果您今天同步完，过几天还想再次在电脑上手动运行脚本，发现报错提示 IP 不在白名单中，重新去查询您当时的公网 IP 并在微信后台更新即可。
+
+---
+
+### 开始同步：运行终端命令
+
+1. 在您的 Windows 电脑上，打开项目所在的文件夹（例如：`D:\YourProjectFolder\student-app\`）。
+2. 在文件夹的空白处，按住键盘上的 **Shift 键** 不放，同时 **鼠标右键** 点击空白处，选择 **“在此处打开 PowerShell 窗口”**（或者“在此处打开命令窗口”）。
+3. 复制下面这一行命令，先粘贴到记事本里，把里面的中文占位符替换为您刚才查到的实际内容：
+
+node scripts/wechat-sync.js --appid=替换为您的微信AppID --appsecret=替换为您的微信AppSecret --supabase-url=替换为您的SupabaseURL --supabase-key=替换为您的SupabaseServiceRole私钥
+
+替换后的实际命令看起来应该是这样的（仅为格式参考，请勿直接复制此参考数据）：
+node scripts/wechat-sync.js --appid=wx123456789a1b2c3d --appsecret=9876543210abcdef0123456789abcdef --supabase-url=https://avxzgaozbfeqttmhmlld.supabase.co --supabase-key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+4. 将修改好的一整行命令复制，在刚才打开的终端窗口中，按下 **Ctrl + V** 或者 **鼠标右键点击一下** 进行粘贴，然后按下 **Enter (回车键)**。
+5. 此时终端会显示同步进度。看到 `--- Sync Session Complete ---` 字样，说明所有历史推文已同步进 App 了！
+
+---
+
+# 第二部分：日常发布新文章自动同步（定时主动拉取，不破坏自定义菜单）
+
+为了能让公众号发表新文章后自动同步到 App，同时又不破坏微信后台已有的“自定义菜单”和“自动回复”功能，我们采用了**“Supabase定时主动拉取”**方案。
+
+本方案在 Supabase 后台运行一个定时任务，每 30 分钟自动去微信拉取一次最新发表的文章，若发现有新发布的推文则将其写入数据库并向全员发送 App 消息推送，整个过程服务器完全自动运转，无须改动微信的“服务器配置”按钮。
+
+### 第一步：在 Supabase 配置微信凭证环境变量
+1. 登录您的 Supabase 官网后台。
+2. 点击左侧导航栏的 齿轮图标（Settings - 设置），选择 API 选项。
+3. 记录或确认您的边缘函数环境变量可以在设置中输入。或者直接在项目目录下通过 Supabase CLI 运行以下命令配置，也可以通过网页端配置：
+   
+   在终端运行（将中文替换为您的实际配置，注意在 `student-app` 或项目根目录）：
+   ```bash
+   npx supabase secrets set WECHAT_APPID=您的微信AppID WECHAT_APPSECRET=您的微信AppSecret
+   ```
+   *注意：如果还没有配置过 Supabase 关联，您也可以直接在 Supabase 网页控制台 -> Settings -> Edge Functions 页面里，新建环境变量（Add Secret），名称分别为 `WECHAT_APPID` 和 `WECHAT_APPSECRET`。*
+
+### 第二步：运行 SQL 脚本注册定时任务
+1. 在 Supabase 网页后台，点击左侧的 **SQL Editor**（SQL编辑器）。
+2. 点击右上角 **New query**（新建查询）。
+3. 打开项目目录下的 `supabase/wechat_cron_setup.sql` 文件，复制里面的全部 SQL 代码。
+4. 将 SQL 代码粘贴到网页的编辑器中，并将代码中的 `<您的PROJECT_REF>` 和 `<您的SERVICE_ROLE_KEY>` 替换为您的实际项目标识和私钥。
+5. 点击右下角的 **Run**（运行）按钮。
+6. 运行成功后，下方列表会显示已成功注册名为 `wechat-scheduled-sync` 的定时任务。
+
+从现在起，系统将每 30 分钟默默自动检测公众号的文章更新，并在有新文章时瞬间完成同步和全员推送！
+
+---
+
+# 第三部分：清除已有测试文章/通知的标签分类
+
+我们在设计上，已经设置微信同步过来的所有文章**默认不带有任何标签分类**（分类设为 "general" 综合公告，前端不会在卡片上显示诸如“学术资讯”之类的标签，显得非常干净）。
+
+如果您想把之前导入的几篇测试推文也撤掉标签（修改分类为 general），您有两种方式：
+
+### 方式一：在 Supabase 控制台执行 SQL（推荐，最方便）
+1. 浏览器登录您的 Supabase 官网后台。
+2. 点击左侧导航栏的 SQL Editor（SQL编辑器）。
+3. 点击右上角 New query（新建查询），将以下两行 SQL 粘贴进去，然后点击 Run（运行）按钮：
+   ```sql
+   UPDATE public.notifications SET category = 'general';
+   UPDATE public.articles SET category = 'general';
+   ```
+
+### 方式二：在您的电脑运行命令行脚本
+1. 在 PowerShell 终端窗口中运行以下命令（将中文占位符替换为您实际的 Supabase 网址和 service_role 密钥）：
+   ```bash
+   node scripts/clear-categories.js --supabase-url=您的SupabaseURL --supabase-key=您的SupabaseServiceRole私钥
+   ```
+2. 运行成功后，终端会显示完成状态。

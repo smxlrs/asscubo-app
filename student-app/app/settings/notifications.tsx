@@ -143,7 +143,7 @@ export default function NotificationSettingsScreen() {
           {/* General Switch */}
           <View style={styles.row}>
             <View style={styles.labelCol}>
-              <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>综合公告</Text>
+              <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>综合通知</Text>
               <Text style={[styles.rowSubLabel, { color: colors.textSecondary }]}>学联日常通告、平台更新与其他重要事务</Text>
             </View>
             <Switch

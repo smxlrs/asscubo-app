@@ -17,12 +17,14 @@ import {
   LayoutAnimation,
   UIManager,
   TextInput,
-  PanResponder
+  PanResponder,
+  Modal
 } from 'react-native';
 import { router, useNavigation } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { WebView } from 'react-native-webview';
 
 import { supabase } from '../../../lib/supabase';
 
@@ -295,7 +297,7 @@ const parseInlineStyles = (text: string, fontSize: number, onLinkPress?: (url: s
   const elements: React.ReactNode[] = [];
   let currentIndex = 0;
   
-  const regex = /\*\*(.*?)\*\*|\[(.*?)\]\((.*?)\)|(https?:\/\/[^\s\)\],，。；;]+)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|\b((?:[a-zA-Z0-9-]+\.)+(?:com|org|net|it|edu|cn)(?:\/[^\s\)\],，。；;]*)?)\b|\b((?:Via|Piazza|Viale|Corso|Largo)\s+[A-Z][a-zA-Z0-9\s'’,.-]{2,30}(?:,\s*\d+|\s+\d+)?(?:,\s*\d{5})?(?:\s+[A-Za-z\s]+)?)\b|((?:\+39\s*|\b)(?:051|3\d{2})[\s-]?\d{3}[\s-]?\d{3,4})\b/g;
+  const regex = /\*\*(.*?)\*\*|\[(.*?)\]\((.*?)\)|(https?:\/\/[^\s\)\],，。；;]+)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|\b((?:[a-zA-Z0-9-]+\.)+(?:com|org|net|it|edu|cn)(?:\/[^\s\)\],，。；;]*)?)\b|\b((?:Via|Piazza|Viale|Corso|Largo|Galleria)\s+[A-Za-z][a-zA-Z0-9\s'’\u2019,.-]{2,40}(?:,\s*\d+(?:\/[a-zA-Z]+|[a-zA-Z])?|\s+\d+(?:\/[a-zA-Z]+|[a-zA-Z])?)?(?:,\s*\d{5})?(?:\s+[A-Za-z\s]+)?)\b|((?:\+39\s*|\b)(?:051|3\d{2})[\s-]?\d{3,4}(?:[\s-]?\d{2,4})?)\b/g;
   let match;
   let keyCount = 0;
   
@@ -430,6 +432,63 @@ const resolveImageSource = (alt: string, url: string) => {
   }
   
   return { uri: url };
+};
+
+const AutoHeightImage = ({ source, alt, style, selectedTheme, onPress }: {
+  source: any;
+  alt: string;
+  style: any;
+  selectedTheme: ReaderTheme;
+  onPress: () => void;
+}) => {
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (source.uri) {
+      Image.getSize(source.uri, (w, h) => {
+        if (active && w && h) {
+          setAspectRatio(w / h);
+        }
+      }, () => {
+        if (active) setAspectRatio(16 / 9);
+      });
+    } else if (typeof source === 'number') {
+      try {
+        const resolved = Image.resolveAssetSource(source);
+        if (resolved && resolved.width && resolved.height) {
+          setAspectRatio(resolved.width / resolved.height);
+        } else {
+          setAspectRatio(16 / 9);
+        }
+      } catch (e) {
+        setAspectRatio(16 / 9);
+      }
+    } else {
+      setAspectRatio(16 / 9);
+    }
+    return () => {
+      active = false;
+    };
+  }, [source]);
+
+  return (
+    <Pressable onPress={onPress} style={{ width: '100%' }}>
+      <Image
+        source={source}
+        style={[
+          style,
+          {
+            width: '100%',
+            height: undefined,
+            aspectRatio: aspectRatio || 16 / 9,
+            borderRadius: 8,
+          }
+        ]}
+        resizeMode="contain"
+      />
+    </Pressable>
+  );
 };
 
 const findChapterByTarget = (target: string, allChapters: Chapter[]): Chapter | null => {
@@ -624,6 +683,7 @@ export default function HandbookReaderScreen() {
 
   // Drawer Animation state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const drawerAnimation = useRef(new Animated.Value(0)).current;
 
   // Settings Animation state
@@ -985,10 +1045,17 @@ export default function HandbookReaderScreen() {
 
       parts.push(
         <View key={`img-${blockIdx}-${subIdx++}`} style={styles.imageContainer}>
-          <Image 
+          <AutoHeightImage 
             source={imageSource} 
+            alt={alt}
             style={[styles.inlineImage, { backgroundColor: 'transparent' }]} 
-            resizeMode="contain" 
+            selectedTheme={selectedTheme}
+            onPress={() => {
+              const uri = imageSource.uri || (typeof imageSource === 'number' ? Image.resolveAssetSource(imageSource).uri : null);
+              if (uri) {
+                setZoomImageUrl(uri);
+              }
+            }}
           />
           {showAlt ? <Text selectable={true} style={[styles.imageAlt, { color: selectedTheme.textColor + '80' }]}>{alt}</Text> : null}
         </View>
@@ -1596,6 +1663,68 @@ export default function HandbookReaderScreen() {
           </SafeAreaView>
         </View>
       )}
+
+      {/* Zoomable Image Viewer Modal */}
+      {zoomImageUrl && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setZoomImageUrl(null)}
+        >
+          <SafeAreaView style={styles.modalFullOverlay} edges={['top', 'bottom']}>
+            <View style={styles.modalHeaderRow}>
+              <Pressable 
+                onPress={() => setZoomImageUrl(null)} 
+                style={styles.closeButtonContainer}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              >
+                <MaterialIcons name="close" size={28} color="#FFFFFF" />
+              </Pressable>
+            </View>
+            <View style={{ flex: 1, backgroundColor: 'black' }}>
+              <WebView
+                originWhitelist={['*']}
+                source={{
+                  html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+                      <style>
+                        body, html {
+                          margin: 0;
+                          padding: 0;
+                          width: 100%;
+                          height: 100%;
+                          background-color: black;
+                          display: flex;
+                          justify-content: center;
+                          align-items: center;
+                          overflow: hidden;
+                        }
+                        img {
+                          max-width: 100%;
+                          max-height: 100%;
+                          object-fit: contain;
+                        }
+                      </style>
+                    </head>
+                    <body>
+                      <img src="${zoomImageUrl}" />
+                    </body>
+                    </html>
+                  `
+                }}
+                style={{ flex: 1, backgroundColor: 'black' }}
+                scalesPageToFit={true}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+              />
+            </View>
+          </SafeAreaView>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -2107,5 +2236,20 @@ const styles = StyleSheet.create({
   searchCardSnippet: {
     fontSize: 12,
     lineHeight: 18,
+  },
+  modalFullOverlay: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  modalHeaderRow: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+  },
+  closeButtonContainer: {
+    padding: 8,
   },
 });

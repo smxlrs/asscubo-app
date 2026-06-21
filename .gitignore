@@ -4,3 +4,10 @@ handbook_source/
 # qr code files
 qrcode.png
 generate-qr.js
+
+# Build artifacts & temp files
+android-release.apk
+wxsync.2.8.2.zip
+wxsync-extracted/
+supabase/.temp/
+

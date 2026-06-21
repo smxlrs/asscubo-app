@@ -8,7 +8,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Dimensions
+  Dimensions,
+  ScrollView,
+  Animated,
+  Platform
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -178,12 +181,80 @@ export default function StationBoardScreen() {
   };
 
   const [boardMode, setBoardMode] = useState<'departures' | 'arrivals'>(mode || 'departures');
-  const [trains, setTrains] = useState<VtBoardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [departures, setDepartures] = useState<VtBoardEntry[]>([]);
+  const [arrivals, setArrivals] = useState<VtBoardEntry[]>([]);
+  const [loadingDep, setLoadingDep] = useState(true);
+  const [loadingArr, setLoadingArr] = useState(true);
+  const [refreshingDep, setRefreshingDep] = useState(false);
+  const [refreshingArr, setRefreshingArr] = useState(false);
+  const [errorDep, setErrorDep] = useState('');
+  const [errorArr, setErrorArr] = useState('');
   const [resolvingTrain, setResolvingTrain] = useState(false);
   const [isStarred, setIsStarred] = useState(false);
+
+  const [headerHeight, setHeaderHeight] = useState(100);
+
+  // Toast State for Refresh feedback
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastFade = useRef(new Animated.Value(0)).current;
+  const toastTimeoutRef = useRef<any>(null);
+
+  const triggerToast = (msg: string) => {
+    setToastMsg(msg);
+    toastFade.setValue(0);
+    
+    const isSuccess = msg === '刷新成功';
+    const fadeInDuration = isSuccess ? 150 : 250;
+    const keepDuration = isSuccess ? 1000 : 2000;
+    const fadeOutDuration = 250;
+
+    Animated.timing(toastFade, {
+      toValue: 1,
+      duration: fadeInDuration,
+      useNativeDriver: true,
+    }).start();
+
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+
+    toastTimeoutRef.current = setTimeout(() => {
+      Animated.timing(toastFade, {
+        toValue: 0,
+        duration: fadeOutDuration,
+        useNativeDriver: true,
+      }).start(() => {
+        setToastMsg(null);
+      });
+    }, keepDuration);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const scrollViewRef = useRef<any>(null);
+  const scrollX = useRef(new Animated.Value(mode === 'arrivals' ? width : 0)).current;
+
+  const translateX = scrollX.interpolate({
+    inputRange: [0, width],
+    outputRange: [0, width / 2],
+    extrapolate: 'clamp'
+  });
+
+  const handleScroll = (event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const page = Math.round(offsetX / width);
+    if (page === 0 && boardMode !== 'departures') {
+      setBoardMode('departures');
+    } else if (page === 1 && boardMode !== 'arrivals') {
+      setBoardMode('arrivals');
+    }
+  };
 
   // States for background back-filling of missing endpoint times
   const [extraTrainTimes, setExtraTrainTimes] = useState<Record<string, { departureTime: number; arrivalTime: number; scheduledPlatform: string; actualPlatform: string }>>({});
@@ -192,9 +263,19 @@ export default function StationBoardScreen() {
   const FAVORITE_STATIONS_KEY = '@ag_favorite_stations';
 
   useEffect(() => {
-    fetchData();
+    fetchBoardData('departures');
+    fetchBoardData('arrivals');
     checkStarredStatus();
-  }, [boardMode, stationID]);
+  }, [stationID]);
+
+  useEffect(() => {
+    if (mode === 'arrivals') {
+      setBoardMode('arrivals');
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ x: width, animated: false });
+      }, 100);
+    }
+  }, [mode]);
 
   const checkStarredStatus = async () => {
     if (!stationID) return;
@@ -232,12 +313,17 @@ export default function StationBoardScreen() {
     }
   };
 
-  const fetchData = async (isRef = false) => {
+  const fetchBoardData = async (targetMode: 'departures' | 'arrivals', isRef = false) => {
     if (!stationID) return;
-    if (!isRef) setLoading(true);
-    setErrorMsg('');
+    if (targetMode === 'departures') {
+      if (!isRef) setLoadingDep(true);
+      setErrorDep('');
+    } else {
+      if (!isRef) setLoadingArr(true);
+      setErrorArr('');
+    }
     try {
-      const data = await getStationBoard(stationID, boardMode);
+      const data = await getStationBoard(stationID, targetMode);
       
       // Filter out trains that already arrived/departed more than 30 minutes ago
       const now = getRomeTimestampFromLocalDate(new Date());
@@ -249,13 +335,29 @@ export default function StationBoardScreen() {
         return expectedTime >= now - 30 * 60 * 1000;
       });
 
-      setTrains(filteredData);
+      if (targetMode === 'departures') {
+        setDepartures(filteredData);
+      } else {
+        setArrivals(filteredData);
+      }
       triggerBackgroundTimeLoading(filteredData);
+      if (isRef) {
+        triggerToast('刷新成功');
+      }
     } catch (e) {
-      setErrorMsg(t('error'));
+      if (targetMode === 'departures') {
+        setErrorDep(t('error'));
+      } else {
+        setErrorArr(t('error'));
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (targetMode === 'departures') {
+        setLoadingDep(false);
+        setRefreshingDep(false);
+      } else {
+        setLoadingArr(false);
+        setRefreshingArr(false);
+      }
     }
   };
 
@@ -294,8 +396,23 @@ export default function StationBoardScreen() {
   };
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchData(true);
+    if (boardMode === 'departures') {
+      setRefreshingDep(true);
+      fetchBoardData('departures', true);
+    } else {
+      setRefreshingArr(true);
+      fetchBoardData('arrivals', true);
+    }
+  };
+
+  const handleRefreshDep = () => {
+    setRefreshingDep(true);
+    fetchBoardData('departures', true);
+  };
+
+  const handleRefreshArr = () => {
+    setRefreshingArr(true);
+    fetchBoardData('arrivals', true);
   };
 
   const handleTrainPress = async (entry: VtBoardEntry) => {
@@ -541,7 +658,8 @@ export default function StationBoardScreen() {
   };
 
   const renderFooter = () => {
-    if (trains.length === 0) return null;
+    const listLength = boardMode === 'departures' ? departures.length : arrivals.length;
+    if (listLength === 0) return null;
     return (
       <View style={styles.disclaimerContainer}>
         <Text style={[styles.disclaimerText, { color: colors.textMuted }]}>
@@ -551,109 +669,206 @@ export default function StationBoardScreen() {
     );
   };
 
+  const isCurrentTabLoading = boardMode === 'departures' ? (refreshingDep || loadingDep) : (refreshingArr || loadingArr);
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
-        </Pressable>
-        <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-            {stationName || t('title')}
-          </Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {stationID && (
-            <Pressable onPress={toggleStar} style={styles.backButton}>
-              <MaterialIcons
-                name={isStarred ? "star" : "star-border"}
-                size={24}
-                color={isStarred ? "#EAB308" : colors.textPrimary}
-              />
-            </Pressable>
-          )}
-          <Pressable onPress={handleRefresh} style={styles.backButton} disabled={refreshing || loading}>
-            {refreshing || loading ? (
-              <ActivityIndicator size="small" color={colors.textPrimary} />
-            ) : (
-              <MaterialIcons name="refresh" size={24} color={colors.textPrimary} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
+      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
+          </Pressable>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+              {stationName || t('title')}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {stationID && (
+              <Pressable onPress={toggleStar} style={styles.backButton}>
+                <MaterialIcons
+                  name={isStarred ? "star" : "star-border"}
+                  size={24}
+                  color={isStarred ? colors.primary : colors.textPrimary}
+                />
+              </Pressable>
             )}
-          </Pressable>
+            <Pressable onPress={handleRefresh} style={styles.backButton} disabled={isCurrentTabLoading}>
+              {isCurrentTabLoading ? (
+                <ActivityIndicator size="small" color={colors.textPrimary} />
+              ) : (
+                <MaterialIcons name="refresh" size={24} color={colors.textPrimary} />
+              )}
+            </Pressable>
+          </View>
         </View>
-      </View>
 
-      {/* Mode Selector */}
-      <View style={[styles.modeSelector, { borderBottomColor: colors.border }]}>
-        <Pressable
-          style={[
-            styles.modeTab,
-            boardMode === 'departures' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
-          ]}
-          onPress={() => setBoardMode('departures')}
-        >
-          <Text
-            style={[
-              styles.modeTabText,
-              { color: boardMode === 'departures' ? colors.primary : colors.textSecondary }
-            ]}
-          >
-            {t('departures')}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.modeTab,
-            boardMode === 'arrivals' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
-          ]}
-          onPress={() => setBoardMode('arrivals')}
-        >
-          <Text
-            style={[
-              styles.modeTabText,
-              { color: boardMode === 'arrivals' ? colors.primary : colors.textSecondary }
-            ]}
-          >
-            {t('arrivals')}
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Main List / Loader */}
-      {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.statusText, { color: colors.textSecondary }]}>{t('loading')}</Text>
-        </View>
-      ) : errorMsg ? (
-        <View style={styles.centerContainer}>
-          <MaterialIcons name="error-outline" size={48} color={colors.error} />
-          <Text style={[styles.errorText, { color: colors.error }]}>{errorMsg}</Text>
+        {/* Mode Selector */}
+        <View style={[styles.modeSelector, { borderBottomColor: colors.border }]}>
           <Pressable
-            onPress={handleRefresh}
-            style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+            style={styles.modeTab}
+            onPress={() => {
+              setBoardMode('departures');
+              scrollViewRef.current?.scrollTo({ x: 0, animated: true });
+            }}
           >
-            <Text style={styles.retryBtnText}>{t('refresh')}</Text>
+            <Text
+              style={[
+                styles.modeTabText,
+                { color: boardMode === 'departures' ? colors.primary : colors.textSecondary }
+              ]}
+            >
+              {t('departures')}
+            </Text>
           </Pressable>
+          <Pressable
+            style={styles.modeTab}
+            onPress={() => {
+              setBoardMode('arrivals');
+              scrollViewRef.current?.scrollTo({ x: width, animated: true });
+            }}
+          >
+            <Text
+              style={[
+                styles.modeTabText,
+                { color: boardMode === 'arrivals' ? colors.primary : colors.textSecondary }
+              ]}
+            >
+              {t('arrivals')}
+            </Text>
+          </Pressable>
+
+          {/* Sliding Indicator */}
+          <Animated.View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              width: width / 2,
+              height: 2,
+              backgroundColor: colors.primary,
+              transform: [{ translateX }]
+            }}
+          />
         </View>
-      ) : (
-        <FlatList
-          data={trains}
-          keyExtractor={(item, index) => `${item.trainNumber}_${index}`}
-          renderItem={renderTrainItem}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} />
+      </View>
+
+      <Animated.ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScroll}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ width: width * 2 }}
+        scrollEventThrottle={16}
+        contentOffset={{ x: mode === 'arrivals' ? width : 0, y: 0 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          {
+            useNativeDriver: true,
+            listener: (event: any) => {
+              const offsetX = event.nativeEvent.contentOffset.x;
+              const page = Math.round(offsetX / width);
+              if (page === 0 && boardMode !== 'departures') {
+                setBoardMode('departures');
+              } else if (page === 1 && boardMode !== 'arrivals') {
+                setBoardMode('arrivals');
+              }
+            }
           }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <MaterialIcons name="inbox" size={48} color={colors.textMuted} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('noTrains')}</Text>
+        )}
+      >
+        {/* Departures Page */}
+        <View style={{ width: width, flex: 1 }}>
+          {loadingDep ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.statusText, { color: colors.textSecondary }]}>{t('loading')}</Text>
             </View>
-          }
-          ListFooterComponent={renderFooter}
-        />
-      )}
+          ) : errorDep ? (
+            <View style={styles.centerContainer}>
+              <MaterialIcons name="error-outline" size={48} color={colors.error} />
+              <Text style={[styles.errorText, { color: colors.error }]}>{errorDep}</Text>
+              <Pressable
+                onPress={handleRefreshDep}
+                style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+              >
+                <Text style={styles.retryBtnText}>{t('refresh')}</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <FlatList
+              data={departures}
+              keyExtractor={(item, index) => `${item.trainNumber}_${index}`}
+              renderItem={renderTrainItem}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl 
+                  refreshing={refreshingDep} 
+                  onRefresh={handleRefreshDep} 
+                  colors={[colors.primary]} 
+                  progressViewOffset={20}
+                />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="inbox" size={48} color={colors.textMuted} />
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('noTrains')}</Text>
+                </View>
+              }
+              ListFooterComponent={renderFooter}
+            />
+          )}
+        </View>
+
+        {/* Arrivals Page */}
+        <View style={{ width: width, flex: 1 }}>
+          {loadingArr ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.statusText, { color: colors.textSecondary }]}>{t('loading')}</Text>
+            </View>
+          ) : errorArr ? (
+            <View style={styles.centerContainer}>
+              <MaterialIcons name="error-outline" size={48} color={colors.error} />
+              <Text style={[styles.errorText, { color: colors.error }]}>{errorArr}</Text>
+              <Pressable
+                onPress={handleRefreshArr}
+                style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+              >
+                <Text style={styles.retryBtnText}>{t('refresh')}</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <FlatList
+              data={arrivals}
+              keyExtractor={(item, index) => `${item.trainNumber}_${index}`}
+              renderItem={renderTrainItem}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl 
+                  refreshing={refreshingArr} 
+                  onRefresh={handleRefreshArr} 
+                  colors={[colors.primary]} 
+                  progressViewOffset={20}
+                />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="inbox" size={48} color={colors.textMuted} />
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('noTrains')}</Text>
+                </View>
+              }
+              ListFooterComponent={renderFooter}
+            />
+          )}
+        </View>
+      </Animated.ScrollView>
 
       {/* Resolving Train Loader Overlay */}
       {resolvingTrain && (
@@ -663,6 +878,23 @@ export default function StationBoardScreen() {
             <Text style={[styles.overlayText, { color: colors.textPrimary }]}>{t('resolving')}</Text>
           </View>
         </View>
+      )}
+      {toastMsg && (
+        <Animated.View style={[
+          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? headerHeight + 50 : headerHeight + 84 }] : styles.toastContainer, 
+          { 
+            opacity: toastFade,
+            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+          }
+        ]}>
+          {toastMsg === '刷新成功' ? (
+            <MaterialIcons name="check" size={24} color={colors.primary} />
+          ) : (
+            <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>
+          )}
+        </Animated.View>
       )}
     </SafeAreaView>
   );
@@ -877,5 +1109,43 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     textAlign: 'center',
-  }
+  },
+  toastContainer: {
+    position: 'absolute',
+    top: 100,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 99999,
+    borderWidth: 1,
+  },
+  toastText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  checkmarkBubble: {
+    position: 'absolute',
+    alignSelf: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 99999,
+  },
 });

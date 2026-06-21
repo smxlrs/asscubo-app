@@ -30,9 +30,63 @@ export default function AdminDashboardScreen() {
             onPress={() => router.push('/admin/notification')}
           >
             <MaterialCommunityIcons name="bullhorn-outline" size={20} color={colors.primaryLight} style={styles.rowIcon} />
-            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>发布通知公告</Text>
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>发布通知</Text>
             <View style={styles.rowRight}>
               <Text style={[styles.rowValue, { color: colors.textSecondary }]}>群发推送</Text>
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
+            onPress={() => router.push('/admin/wechat-import')}
+          >
+            <MaterialCommunityIcons name="link-plus" size={20} color={colors.primaryLight} style={styles.rowIcon} />
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>一键导入微信文章</Text>
+            <View style={styles.rowRight}>
+              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>链接抓取</Text>
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
+            onPress={() => router.push('/admin/manage-articles')}
+          >
+            <MaterialCommunityIcons name="playlist-edit" size={20} color={colors.primaryLight} style={styles.rowIcon} />
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>管理已有文章及分类</Text>
+            <View style={styles.rowRight}>
+              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>分类与删除</Text>
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.rowPressable, { borderBottomWidth: 0 }]} 
+            onPress={() => router.push('/admin/manage-notifications')}
+          >
+            <MaterialCommunityIcons name="bell-ring-outline" size={20} color={colors.primaryLight} style={styles.rowIcon} />
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>管理已有通知及分类</Text>
+            <View style={styles.rowRight}>
+              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>分类与删除</Text>
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
+        </View>
+
+        <View style={styles.sectionHeaderContainer}>
+          <Text style={styles.sectionHeader}>用户与安全管理</Text>
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Pressable 
+            style={[styles.rowPressable, { borderBottomWidth: 0 }]} 
+            onPress={() => router.push('/admin/manage-users')}
+          >
+            <MaterialCommunityIcons name="account-multiple-outline" size={20} color={colors.primaryLight} style={styles.rowIcon} />
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>已注册用户管理</Text>
+            <View style={styles.rowRight}>
+              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>头像/昵称审核</Text>
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>
           </Pressable>

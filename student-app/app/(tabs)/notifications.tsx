@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, TextInput, BackHandler } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,17 +12,18 @@ type Notification = {
   id: string;
   title: string;
   content: string;
-  category: 'events' | 'academic' | 'life' | 'general';
+  category: string;
   link?: string;
   cover_image?: string;
   created_at: string;
+  is_pinned?: boolean;
 };
 
 const CATEGORY_DETAILS = {
   events: { label: '学联活动', icon: 'calendar-star', color: '#EF4444' },
   academic: { label: '学术资讯', icon: 'school', color: '#3B82F6' },
   life: { label: '生活辅助', icon: 'home-heart', color: '#10B981' },
-  general: { label: '综合公告', icon: 'bullhorn', color: '#8B5CF6' },
+  general: { label: '综合通知', icon: 'bullhorn', color: '#8B5CF6' },
 };
 
 export default function NotificationsScreen() {
@@ -30,68 +31,118 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
+  const [hasMore, setHasMore] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  async function fetchNotifications() {
+  async function fetchNotifications(isRefresh = false, filter = selectedFilter) {
+    if (!isRefresh && loadingMoreRef.current) return;
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .order('created_at', { ascending: false });
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+      }
+
+      const currentOffset = isRefresh ? 0 : notifications.length;
+
+      let query = supabase
+        .from('articles')
+        .select('id, title, summary, category, cover_image, created_at, link, is_pinned')
+        .eq('is_published', true)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(currentOffset, currentOffset + 14);
+
+      if (filter !== 'all') {
+        if (filter === 'events') {
+          query = query.eq('category', 'event_news');
+        } else if (filter === 'academic') {
+          query = query.eq('category', 'notice');
+        } else if (filter === 'life') {
+          query = query.eq('category', 'news');
+        } else if (filter === 'general') {
+          query = query.in('category', ['general', 'column', 'reprint']);
+        }
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         throw error;
       }
 
       if (data) {
-        setNotifications(data as Notification[]);
+        const normalizeCategory = (dbCategory: string): string => {
+          if (dbCategory === 'event_news') return 'events';
+          if (dbCategory === 'notice') return 'academic';
+          if (dbCategory === 'news') return 'life';
+          if (dbCategory === 'column' || dbCategory === 'reprint') return 'general';
+          return dbCategory || 'general';
+        };
+
+        const mapped = data.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          content: item.summary || '查看文章详情',
+          category: normalizeCategory(item.category),
+          link: item.link || undefined,
+          cover_image: item.cover_image || undefined,
+          created_at: item.created_at,
+          is_pinned: item.is_pinned
+        })) as Notification[];
+
+        setNotifications(prev => {
+          if (isRefresh) return mapped;
+          const combined = [...prev, ...mapped];
+          return combined.filter((item, index, self) => 
+            self.findIndex(n => n.id === item.id) === index
+          );
+        });
+        setHasMore(data.length === 15);
       }
     } catch (e) {
-      console.log('Failed to fetch from notifications table, using mock fallback:', e);
-      // Fallback Mock Data
-      const mockNotifications: Notification[] = [
-        {
-          id: '1',
-          title: '中秋联欢晚会正式开放报名',
-          content: '欧洲学生学者联合会将于本周五举办一年一度的中秋晚会！现场有精彩的文艺演出和丰厚的抽奖活动，请大家点击链接抓紧报名，席位有限。',
-          category: 'events',
-          link: 'https://mp.weixin.qq.com/s/example1',
-          cover_image: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=600&auto=format&fit=crop',
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        },
-        {
-          id: '2',
-          title: '博洛尼亚大学2026/2027学年注册指引',
-          content: '博大新学期注册和缴费入口现已开放。关于第一期学费减免（ISEE）的申报截止日期，以及新生入学税注册流程的详细图文指引现已发布。',
-          category: 'academic',
-          link: 'https://mp.weixin.qq.com/s/example2',
-          cover_image: 'https://mmbiz.qpic.cn/sz_mmbiz_jpg/2UvUwLMxhsjY0nxfIk8SuI6O7Swic4u24AHXFpXYX9F9Mz69SGBYbc3CibVarypwAZkhlEtOEuFgOWQPzXpJsf6DYvsxHSVSNzomficZ7q0Iia0/0?wx_fmt=jpeg',
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-        },
-        {
-          id: '3',
-          title: '米兰/博洛尼亚暑期租房安全预警',
-          content: '近期发生多起针对中国留学生的线上虚假租房诈骗案。特此提醒大家：切勿在未实地看房或未签正式合同前转账押金，如有疑问请查阅防骗手册。',
-          category: 'life',
-          cover_image: 'https://mmbiz.qpic.cn/mmbiz_jpg/2UvUwLMxhshzFGttnSquRZevjDLJlibnnMYicDIsBPn8icM6dEQ3JWYXlAkqdmEOpdoxMp9l14Xbnsv7qcqvxDkG2ZDkZKHmicI9d2dJhfTrvJE/0?wx_fmt=jpeg',
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-        },
-      ];
-      setNotifications(mockNotifications);
+      console.log('Failed to fetch from articles table:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
+      loadingMoreRef.current = false;
     }
   }
 
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+    setNotifications([]);
+    setHasMore(true);
+    setLoading(true);
+    fetchNotifications(true, selectedFilter);
+  }, [selectedFilter]);
+
+  useEffect(() => {
+    const backAction = () => {
+      if (isSearching) {
+        setIsSearching(false);
+        setSearchQuery('');
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [isSearching]);
 
   const onRefresh = () => {
-    setRefreshing(true);
-    fetchNotifications();
+    fetchNotifications(true, selectedFilter);
   };
 
   const handlePressNotification = (item: Notification) => {
@@ -102,9 +153,11 @@ export default function NotificationsScreen() {
     }
   };
 
-  const filteredNotifications = selectedFilter === 'all'
-    ? notifications
-    : notifications.filter(n => n.category === selectedFilter);
+  const filteredNotifications = notifications.filter(n => 
+    !searchQuery.trim() || 
+    n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    n.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -115,9 +168,28 @@ export default function NotificationsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar style={isDark ? "light" : "dark"} />
       {/* Title Header */}
-      <View style={styles.titleContainer}>
+      <View style={[styles.titleContainer, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{t('notifications') || '通知'}</Text>
+        <Pressable onPress={() => {
+          setIsSearching(!isSearching);
+          if (isSearching) setSearchQuery('');
+        }} style={styles.searchIconButton}>
+          <MaterialCommunityIcons name={isSearching ? "close" : "magnify"} size={24} color={colors.textPrimary} />
+        </Pressable>
       </View>
+
+      {isSearching && (
+        <View style={styles.searchBarContainer}>
+          <TextInput
+            style={[styles.searchInput, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
+            placeholder="搜索文章..."
+            placeholderTextColor={colors.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+          />
+        </View>
+      )}
 
       {/* Filter Chips */}
       <View style={styles.filterContainer}>
@@ -155,17 +227,27 @@ export default function NotificationsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onEndReached={() => {
+            if (hasMore && !loadingMore) {
+              fetchNotifications(false);
+            }
+          }}
+          onEndReachedThreshold={0.2}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
+          ListFooterComponent={
+            loadingMore ? <ActivityIndicator style={{ paddingVertical: 12 }} color={colors.primary} /> : null
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <MaterialCommunityIcons name="bell-off-outline" size={48} color={colors.textMuted} />
-              <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t('noNotifications') || '暂无新通知'}</Text>
+              <MaterialCommunityIcons name="newspaper" size={48} color={colors.textMuted} />
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t('noNotifications') || '暂无通知'}</Text>
             </View>
           }
           renderItem={({ item }) => {
-            const details = CATEGORY_DETAILS[item.category] || { label: '综合', icon: 'bell', color: '#8A8A8F' };
+            const details = CATEGORY_DETAILS[item.category as keyof typeof CATEGORY_DETAILS];
+            const showBadge = details && item.category !== 'general';
             const isExpanded = expandedId === item.id;
             return (
               <Pressable
@@ -173,9 +255,19 @@ export default function NotificationsScreen() {
                 onPress={() => handlePressNotification(item)}
               >
                 <View style={styles.cardHeader}>
-                  <View style={[styles.badge, { backgroundColor: details.color + '15' }]}>
-                    <MaterialCommunityIcons name={details.icon as any} size={14} color={details.color} style={styles.badgeIcon} />
-                    <Text style={[styles.badgeText, { color: details.color }]}>{details.label}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {item.is_pinned && (
+                      <View style={[styles.badge, { backgroundColor: '#F59E0B20' }]}>
+                        <MaterialCommunityIcons name="pin" size={14} color="#F59E0B" style={styles.badgeIcon} />
+                        <Text style={[styles.badgeText, { color: '#F59E0B' }]}>置顶</Text>
+                      </View>
+                    )}
+                    {showBadge ? (
+                      <View style={[styles.badge, { backgroundColor: details.color + '15' }]}>
+                        <MaterialCommunityIcons name={details.icon as any} size={14} color={details.color} style={styles.badgeIcon} />
+                        <Text style={[styles.badgeText, { color: details.color }]}>{details.label}</Text>
+                      </View>
+                    ) : null}
                   </View>
                   <Text style={[styles.dateText, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
                 </View>
@@ -259,6 +351,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 20,
+    paddingTop: 10,
     paddingBottom: 20,
     gap: 12,
   },
@@ -340,5 +433,20 @@ const styles = StyleSheet.create({
   footerLinkText: {
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  searchIconButton: {
+    padding: 8,
+    marginRight: -8,
+  },
+  searchBarContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  searchInput: {
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    fontSize: 14,
   },
 });
