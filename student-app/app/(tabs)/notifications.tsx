@@ -349,7 +349,7 @@ export default function NotificationsScreen() {
       )}
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? 120 : 162 }] : styles.toastContainer, 
+          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? 136 : 178 }] : styles.toastContainer, 
           { 
             opacity: toastFade,
             backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,

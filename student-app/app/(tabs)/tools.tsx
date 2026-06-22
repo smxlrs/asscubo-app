@@ -181,6 +181,15 @@ function DraggableCard({
   const translationY = useSharedValue(0);
   const initialScrollY = useSharedValue(0);
 
+  const isMounted = useSharedValue(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isMounted.value = true;
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     if (isEditing) {
       wiggleVal.value = withRepeat(
@@ -204,8 +213,8 @@ function DraggableCard({
     const zIndex = isDragging ? 999 : 1;
 
     const pos = getPosition(cardIndex.value);
-    const tx = isDragging ? dragX.value : withSpring(pos.x, { damping: 15, stiffness: 120 });
-    const ty = isDragging ? dragY.value : withSpring(pos.y, { damping: 15, stiffness: 120 });
+    const tx = isDragging ? dragX.value : (isMounted.value ? withSpring(pos.x, { damping: 15, stiffness: 120 }) : pos.x);
+    const ty = isDragging ? dragY.value : (isMounted.value ? withSpring(pos.y, { damping: 15, stiffness: 120 }) : pos.y);
 
     return {
       transform: [

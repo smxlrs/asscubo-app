@@ -965,7 +965,7 @@ export default function HomeScreen() {
       </Modal>
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? insets.top + 15 : insets.top + 84 }] : styles.toastContainer, 
+          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? insets.top + 35 : insets.top + 104 }] : styles.toastContainer, 
           { 
             opacity: toastFade,
             backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
