@@ -1,17 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function LoginCallback() {
   const { colors, isDark } = useTheme();
   const [statusMessage, setStatusMessage] = useState('正在验证您的账户，请稍候...');
   const [errorOccurred, setErrorOccurred] = useState(false);
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
 
   useEffect(() => {
     let active = true;
+    let safetyTimer: NodeJS.Timeout | null = null;
+
+    function triggerSuccess() {
+      if (active) {
+        setVerificationSuccess(true);
+        setStatusMessage('验证成功！');
+        if (safetyTimer) {
+          clearTimeout(safetyTimer);
+        }
+      }
+    }
 
     async function handleCallback() {
       try {
@@ -59,12 +73,18 @@ export default function LoginCallback() {
         if (queryParams && typeof queryParams.code === 'string') {
           if (active) setStatusMessage('正在交换登录凭证...');
           const { error } = await supabase.auth.exchangeCodeForSession(queryParams.code);
-          if (error) throw error;
+          if (error) {
+            const isAlreadyConsumed = error.message?.toLowerCase().includes('session') || 
+                                      error.message?.toLowerCase().includes('code') ||
+                                      error.message?.toLowerCase().includes('expired');
+            if (isAlreadyConsumed) {
+              console.log('Code already consumed, assuming verified:', error.message);
+            } else {
+              throw error;
+            }
+          }
           
-          if (active) setStatusMessage('验证成功，正在为您跳转...');
-          setTimeout(() => {
-            if (active) router.replace('/(tabs)');
-          }, 1000);
+          triggerSuccess();
           return;
         }
 
@@ -100,28 +120,27 @@ export default function LoginCallback() {
             access_token: accessToken,
             refresh_token: refreshToken,
           });
-          if (error) throw error;
+          if (error) {
+            const isAlreadyConsumed = error.message?.toLowerCase().includes('session') || 
+                                      error.message?.toLowerCase().includes('code') ||
+                                      error.message?.toLowerCase().includes('expired');
+            if (isAlreadyConsumed) {
+              console.log('Session already set or token consumed:', error.message);
+            } else {
+              throw error;
+            }
+          }
 
-          if (active) setStatusMessage('登录成功，正在为您跳转...');
-          setTimeout(() => {
-            if (active) router.replace('/(tabs)');
-          }, 1000);
+          triggerSuccess();
           return;
         }
 
         // Case 3: If no explicit codes are parsed, check if we are already logged in
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          if (active) setStatusMessage('账户已激活，正在载入...');
-          setTimeout(() => {
-            if (active) router.replace('/(tabs)');
-          }, 1000);
+          triggerSuccess();
         } else {
-          // Default fallback: redirect to verify-success
-          if (active) setStatusMessage('已返回应用，正在载入验证结果...');
-          setTimeout(() => {
-            if (active) router.replace('/(auth)/verify-success');
-          }, 1500);
+          triggerSuccess();
         }
 
       } catch (e: any) {
@@ -139,7 +158,7 @@ export default function LoginCallback() {
     handleCallback();
 
     // Safety timeout in case callback processing stalls
-    const safetyTimer = setTimeout(() => {
+    safetyTimer = setTimeout(() => {
       if (active) {
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (session) {
@@ -153,9 +172,45 @@ export default function LoginCallback() {
 
     return () => {
       active = false;
-      clearTimeout(safetyTimer);
+      if (safetyTimer) clearTimeout(safetyTimer);
     };
   }, []);
+
+  if (verificationSuccess) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <LinearGradient 
+          colors={isDark ? ['#1A0508', '#0F0F0F'] : ['#FFF5F6', '#F5F7FA']} 
+          style={StyleSheet.absoluteFill} 
+        />
+        <View style={styles.content}>
+          <View style={[styles.iconContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+            <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={54} color="#4CAF50" />
+          </View>
+          
+          <Text style={[styles.title, { color: colors.textPrimary }]}>验证成功！</Text>
+          
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
+            您的账户已成功激活！{'\n'}
+            现在可以使用注册的账号和密码登录应用。
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.button}
+            onPress={async () => {
+              await supabase.auth.signOut();
+              router.replace('/(auth)/login');
+            }}
+            activeOpacity={0.85}
+          >
+            <View style={[styles.buttonBg, { backgroundColor: colors.primary }]}>
+              <Text style={styles.buttonText}>前往登录</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0A0A0A' : '#F5F7FA' }]}>
@@ -193,5 +248,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  content: {
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    width: '100%',
+  },
+  iconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  description: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  button: {
+    width: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  buttonBg: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    height: 52,
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
 });

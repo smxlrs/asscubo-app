@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, BackHandler, ToastAndroid } from 'react-native';
+import { Platform, BackHandler, ToastAndroid, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { CustomSplashScreen } from '../components/CustomSplashScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { ThemeProvider as NavigationProvider, DefaultTheme, DarkTheme } from 'expo-router/react-navigation';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch((err) => {
@@ -51,11 +52,11 @@ if (Notifications) {
       }
 
       return {
-        shouldShowAlert: true,
-        shouldPlaySound: true,
+        shouldShowAlert: false,
+        shouldPlaySound: false,
         shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
+        shouldShowBanner: false,
+        shouldShowList: false,
       };
     },
   });
@@ -179,24 +180,38 @@ function AppContent() {
   const showSplashScreen = !isReady || loading || !splashAnimationDone || !minSplashTimeElapsed;
   const splashVisible = !isReady || loading || !minSplashTimeElapsed;
 
+  const navTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      background: isDark ? '#0A0A0A' : '#FFFFFF',
+    },
+  };
+
   return (
-    <>
+    <NavigationProvider value={navTheme}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="login-callback" />
-        <Stack.Screen name="settings" options={{ presentation: 'card' }} />
-        <Stack.Screen name="about" options={{ presentation: 'card' }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
+        <Stack screenOptions={{ 
+          headerShown: false, 
+          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }
+        }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="login-callback" />
+          <Stack.Screen name="settings" options={{ presentation: 'card' }} />
+          <Stack.Screen name="about" options={{ presentation: 'card' }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </View>
       {showSplashScreen && (
         <CustomSplashScreen
           visible={splashVisible}
           onAnimationComplete={() => setSplashAnimationDone(true)}
         />
       )}
-    </>
+    </NavigationProvider>
   );
 }
 

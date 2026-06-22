@@ -30,5 +30,11 @@ export default function AdminLayout() {
     return null;
   }
 
-  return <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />;
+  return (
+    <Stack screenOptions={{ 
+      headerShown: false, 
+      animation: 'slide_from_right',
+      contentStyle: { backgroundColor: colors.background }
+    }} />
+  );
 }

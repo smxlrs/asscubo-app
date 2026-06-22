@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Alert, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Alert, BackHandler, Animated as RNAnimated } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -167,6 +167,7 @@ function DraggableCard({
   scrollViewHeight,
   gridTopOffset,
 }: DraggableCardProps) {
+  const { tabGestureActive } = useTheme();
   const cardIndex = useDerivedValue(() => {
     return orderShared.value.indexOf(id);
   });
@@ -231,7 +232,7 @@ function DraggableCard({
       },
       shadowOpacity: withSpring(isDragging ? 0.3 : 0.05, { damping: 15, stiffness: 150 }),
       shadowRadius: withSpring(isDragging ? 12 : 8, { damping: 15, stiffness: 150 }),
-      elevation: withSpring(isDragging ? 8 : 2, { damping: 15, stiffness: 150 }),
+      elevation: withSpring(isDragging ? 8 : 0, { damping: 15, stiffness: 150 }),
     };
   });
 
@@ -347,7 +348,8 @@ function DraggableCard({
               backgroundColor: colors.surface,
               borderColor: colors.border,
               opacity: pressed && !isEditing ? 0.9 : 1,
-              transform: [{ scale: pressed && !isEditing ? 0.98 : 1 }]
+              transform: [{ scale: pressed && !isEditing ? 0.98 : 1 }],
+              elevation: tabGestureActive ? 0 : 2
             }
           ]}
           onPress={() => {
@@ -388,7 +390,7 @@ function DraggableCard({
 }
 
 export default function ToolsScreen() {
-  const { colors, t, tabBarStyle } = useTheme();
+  const { colors, t, tabBarStyle, tabGestureOpacity, isDark } = useTheme();
   const [eurToCny, setEurToCny] = useState<number>(7.8256);
   const [toolOrder, setToolOrder] = useState<string[]>(['handbook', 'dictionary', 'rate', 'classroom', 'train', 'bus', 'studyroom', 'links']);
   const [isEditing, setIsEditing] = useState(false);
@@ -474,7 +476,9 @@ export default function ToolsScreen() {
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
+      <RNAnimated.View style={{ flex: 1, opacity: tabGestureOpacity }}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <Animated.ScrollView 
           ref={scrollViewRef as any}
@@ -552,7 +556,9 @@ export default function ToolsScreen() {
           </Pressable>
         </Animated.ScrollView>
       </SafeAreaView>
-    </GestureHandlerRootView>
+        </GestureHandlerRootView>
+      </RNAnimated.View>
+    </View>
   );
 }
 

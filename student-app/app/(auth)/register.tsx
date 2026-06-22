@@ -81,6 +81,51 @@ export default function RegisterScreen() {
   const { colors, t, language } = useTheme();
   const insets = useSafeAreaInsets();
 
+  const checkNicknameSensitive = async (nickname: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('sensitive_words')
+        .select('word');
+      if (error || !data) return null;
+
+      const normalize = (str: string) => {
+        let s = str.toLowerCase();
+        s = s.replace(/[\s\.\_\*\-\/\\\|\|\~\!\@\#\$\%\^\&\(\)\+\=\?\,\:\;\[\]\{\}\<\>\"''，。、；：？！…—～（）《》〔〕【】『』「」“”‘’]+/g, '');
+        const trad = '習澤濤寶東门獨賴雙協產黨國華義評紀專總書记墻維輪';
+        const simp = '习泽涛宝东门独赖双协产党国华义评纪专总书记墙维轮';
+        let res = '';
+        for (let char of s) {
+          const idx = trad.indexOf(char);
+          if (idx !== -1) {
+            res += simp[idx];
+          } else {
+            res += char;
+          }
+        }
+        return res;
+      };
+
+      const normalizedName = normalize(nickname);
+      for (const row of data) {
+        const normalizedWord = normalize(row.word);
+        if (normalizedWord !== '') {
+          if (/^[a-z0-9]+$/.test(normalizedWord) && normalizedWord.length <= 3) {
+            if (normalizedName === normalizedWord) {
+              return row.word;
+            }
+          } else {
+            if (normalizedName.includes(normalizedWord)) {
+              return row.word;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Sensitive check failed:', e);
+    }
+    return null;
+  };
+
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
       setErrorMsg(t('fillRequiredFields'));
@@ -106,6 +151,14 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
+      // Check for sensitive nickname on the frontend first
+      const sensitiveMatch = await checkNicknameSensitive(name.trim());
+      if (sensitiveMatch) {
+        setErrorMsg(`昵称包含敏感词汇 "${sensitiveMatch}"，请更换其它昵称。`);
+        setLoading(false);
+        return;
+      }
+
       const { error } = await signUp(email.trim(), password, name.trim());
       if (error) {
         setErrorMsg(translateAuthError(error.message, language));
@@ -145,23 +198,15 @@ export default function RegisterScreen() {
            'Please open the email and click the verification link to activate your account. Once verified, you can sign in.'}
         </Text>
 
-        <Text style={[styles.spamWarningText, { color: colors.textSecondary }]}>
-          {language === 'zh' || language === 'zh-Hant' ? '💡 提示：若未收到邮件，请检查您的【垃圾箱】或【垃圾邮件】文件夹。' :
-           language === 'it' ? '💡 Nota: Se non ricevi l\'email, controlla la cartella 【Spam】 o 【Posta indesiderata】.' :
-           '💡 Note: If you do not receive the email, please check your 【Spam】 or 【Junk】 folder.'}
-        </Text>
-
-        <View style={{ height: 20 }} />
-
         <Pressable 
-          style={[styles.resendButton, { borderColor: colors.border }, resendCountdown > 0 && { opacity: 0.6 }]}
+          style={[styles.resendButton, { backgroundColor: colors.primary, borderWidth: 0 }, resendCountdown > 0 && { opacity: 0.6 }]}
           onPress={handleResendSignupEmail}
           disabled={resending || resendCountdown > 0}
         >
           {resending ? (
-            <ActivityIndicator color={colors.primary} size="small" />
+            <ActivityIndicator color="#FFF" size="small" />
           ) : (
-            <Text style={[styles.resendButtonText, { color: colors.primary }]}>
+            <Text style={[styles.resendButtonText, { color: '#FFF' }]}>
               {resendCountdown > 0 ? `重新发送验证邮件 (${resendCountdown}s)` : "重新发送验证邮件"}
             </Text>
           )}

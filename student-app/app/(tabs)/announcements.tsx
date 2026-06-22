@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  RefreshControl, ActivityIndicator, TextInput, Image,
+  RefreshControl, ActivityIndicator, TextInput, Image, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -197,8 +197,10 @@ export default function AnnouncementsScreen() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  const bgColor = isDark ? '#0A0A0A' : '#FFFFFF';
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={['top']}>
       <StatusBar style={isDark ? "light" : "dark"} />
       
       {/* Header */}
@@ -217,7 +219,12 @@ export default function AnnouncementsScreen() {
       </View>
 
       {/* Category Filter */}
-      <View style={styles.filterRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+        style={styles.filterScrollView}
+      >
         {CATEGORIES.map((cat) => (
           <TouchableOpacity
             key={cat.key}
@@ -243,14 +250,15 @@ export default function AnnouncementsScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+        <ActivityIndicator style={{ marginTop: 40, backgroundColor: bgColor }} color={colors.primary} />
       ) : (
         <FlatList
           data={displayItems}
           keyExtractor={(item) => item.id}
+          style={{ backgroundColor: bgColor }}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           onEndReached={handleEndReached}
@@ -359,7 +367,7 @@ export default function AnnouncementsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
   header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.base, paddingBottom: SPACING.sm },
   title: { fontSize: SIZES.xl, fontFamily: FONTS.bold, color: COLORS.textPrimary, marginBottom: SPACING.sm },
   searchInput: {
@@ -373,12 +381,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  filterScrollView: {
+    flexGrow: 0,
+  },
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.base,
     gap: SPACING.sm,
-    flexWrap: 'wrap',
   },
   filterChip: {
     paddingHorizontal: SPACING.md,

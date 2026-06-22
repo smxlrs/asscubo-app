@@ -250,7 +250,7 @@ const CITIES = [
 
 export default function HomeScreen() {
   const { user, profile } = useAuth();
-  const { colors, isDark, tabBarStyle } = useTheme();
+  const { colors, isDark, tabBarStyle, tabGestureOpacity, tabGestureActive } = useTheme();
   const insets = useSafeAreaInsets();
 
   const [selectedCity, setSelectedCity] = useState(CITIES[0]);
@@ -259,8 +259,8 @@ export default function HomeScreen() {
 
   // Theme-adapted banner styles
   const bannerColors: readonly [string, string, ...string[]] = isDark 
-    ? ['#A31621', '#7A1018', '#1A0508'] 
-    : ['#F5E6E8', '#E8C5C8', '#D89E9F']; // Soft pastel pink/rose gradient
+    ? ['#5C0D12', '#3E080B', '#270406', '#140102', '#0A0A0A'] 
+    : ['#F2E2E3', '#EABCBF', '#E29FA3', '#EAD2D4', '#FFFFFF'];
   
   const bannerTextColor = isDark ? '#FFFFFF' : '#7A1018';
   const bannerSubtitleColor = isDark ? 'rgba(255,255,255,0.7)' : '#5A6376';
@@ -553,19 +553,59 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <LinearGradient
-      colors={isDark ? ['#141414', '#0A0A0A'] : ['#FFFFFF', '#EFF2F6']}
-      style={styles.container}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-      <ScrollView
+    <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
+      <Animated.View style={{ flex: 1, opacity: tabGestureOpacity }}>
+        <LinearGradient
+          colors={isDark ? ['#0A0A0A', '#0A0A0A'] : ['#FFFFFF', '#FFFFFF']}
+          style={styles.container}
+        >
+          {/* Top Gradient Blur Mask (Status Bar Protection with Smooth Feathered Transition) */}
+          <View 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: insets.top + 35,
+              zIndex: 100,
+              overflow: 'hidden',
+            }}
+            pointerEvents="none"
+          >
+            <LinearGradient
+              colors={
+                isDark 
+                  ? [
+                      'rgba(92, 13, 18, 0.85)', 
+                      'rgba(92, 13, 18, 0.75)', 
+                      'rgba(92, 13, 18, 0.45)', 
+                      'rgba(92, 13, 18, 0.15)', 
+                      'transparent'
+                    ] 
+                  : [
+                      'rgba(242, 226, 227, 0.85)', 
+                      'rgba(242, 226, 227, 0.75)', 
+                      'rgba(242, 226, 227, 0.45)', 
+                      'rgba(242, 226, 227, 0.15)', 
+                      'transparent'
+                    ]
+              }
+              locations={[0.0, 0.45, 0.65, 0.85, 1.0]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+
+          <StatusBar style={isDark ? "light" : "dark"} />
+          <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: tabBarStyle === 'glassmorphism' ? 110 : 24 }}
         refreshControl={
@@ -580,6 +620,7 @@ export default function HomeScreen() {
         {/* Header Banner */}
         <LinearGradient
           colors={bannerColors}
+          locations={[0.0, 0.35, 0.65, 0.85, 1.0]}
           style={[styles.headerBanner, { paddingTop: insets.top + 16 }]}
         >
           <View style={styles.headerContent}>
@@ -709,8 +750,7 @@ export default function HomeScreen() {
           </View>
         </LinearGradient>
 
-        {/* Add padding spacer below header banner */}
-        <View style={{ height: 20 }} />
+        {/* Removed padding spacer to let header banner gradient transition smoothly */}
 
         {/* Upcoming Events */}
         {upcomingEvents.length > 0 && (
@@ -732,7 +772,7 @@ export default function HomeScreen() {
               {upcomingEvents.map((event) => (
                 <TouchableOpacity
                   key={event.id}
-                  style={[styles.eventCard, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(163,22,33,0.06)' }]}
+                  style={[styles.eventCard, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(163,22,33,0.06)', elevation: tabGestureActive ? 0 : 2 }]}
                   onPress={() => router.push(`/event/${event.id}` as any)}
                   activeOpacity={0.85}
                 >
@@ -779,7 +819,7 @@ export default function HomeScreen() {
             articles.map((item, index) => (
               <TouchableOpacity
                 key={item.id}
-                style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(163,22,33,0.06)' }]}
+                style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(163,22,33,0.06)', elevation: tabGestureActive ? 0 : 2 }]}
                 onPress={() => {
                   if (item.type === 'notification') {
                     if (item.link) {
@@ -981,21 +1021,22 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
-    </LinearGradient>
+        </LinearGradient>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
   },
   headerBanner: {
     paddingTop: SPACING.lg,
-    paddingBottom: SPACING.xl,
+    paddingBottom: SPACING.xl * 2, // 48px to allow a very smooth transition to white/black
     paddingHorizontal: SPACING.lg,
   },
   headerContent: {

@@ -2,7 +2,7 @@
   "expo": {
     "name": "博学",
     "slug": "union-student-app",
-    "version": "1.0.0.20",
+    "version": "1.0.0.21",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -24,13 +24,21 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
           "color": "#A31621",
           "sounds": []
         }
       ],
       "expo-sqlite",
       "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#B8362C"
+        }
+      ],
       [
         "expo-build-properties",
         {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useColorScheme, View, Platform, NativeModules } from 'react-native';
+import { useColorScheme, View, Platform, NativeModules, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const safeStorage = {
@@ -40,6 +40,9 @@ type ThemeContextType = {
   isReady: boolean;
   tabBarStyle: 'traditional' | 'glassmorphism';
   setTabBarStyle: (style: 'traditional' | 'glassmorphism') => Promise<void>;
+  tabGestureOpacity: Animated.Value;
+  tabGestureActive: boolean;
+  setTabGestureActive: (active: boolean) => void;
 };
 
 const darkColors = {
@@ -58,7 +61,7 @@ const darkColors = {
 };
 
 const lightColors = {
-  background: '#F5F7FA',
+  background: '#FFFFFF',
   surface: '#FFFFFF',
   surfaceElevated: '#E4E7EC',
   border: '#D0D5DD',
@@ -166,7 +169,7 @@ const translations: Record<Language, Record<string, string>> = {
     trainToolDesc: '实时查看意大利各火车站出发和到达表，追踪列车时刻和站台信息。',
     usefulLinks: '实用链接',
     officialPlatforms: '公众平台',
-    loginSubtitle: '博洛尼亚大学中国学联官方移动端',
+    loginSubtitle: '博洛尼亚大学中国学联官方APP',
     loginButton: '登录',
     registerButton: '注册',
     backToLogin: '返回登录',
@@ -488,7 +491,7 @@ const translations: Record<Language, Record<string, string>> = {
     trainToolDesc: '即時查看意大利各火車站出發和到達表，追蹤列車時刻和站台信息。',
     usefulLinks: '實用鏈接',
     officialPlatforms: '公眾平台',
-    loginSubtitle: '博洛尼亞大學中國學聯官方移動端',
+    loginSubtitle: '博洛尼亞大學中國學聯官方APP',
     loginButton: '登錄',
     registerButton: '註冊',
     backToLogin: '返回登錄',
@@ -554,6 +557,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [tabBarStyle, setTabBarStyleState] = useState<'traditional' | 'glassmorphism'>('glassmorphism');
   const [isReady, setIsReady] = useState(false);
   const [tick, setTick] = useState(0);
+  const tabGestureOpacity = React.useRef(new Animated.Value(1)).current;
+  const [tabGestureActive, setTabGestureActive] = useState(false);
 
   const systemScheme = useColorScheme();
 
@@ -679,7 +684,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setLanguage,
       isReady,
       tabBarStyle,
-      setTabBarStyle
+      setTabBarStyle,
+      tabGestureOpacity,
+      tabGestureActive,
+      setTabGestureActive
     }}>
       {children}
     </ThemeContext.Provider>

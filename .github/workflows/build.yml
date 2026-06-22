@@ -65,6 +65,14 @@ jobs:
       - name: 🔧 Install EAS CLI
         run: npm install -g eas-cli@latest
 
+      - name: ☕ Setup JDK 17
+        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
       - name: 🔑 Verify Expo login
         working-directory: student-app
         env:
@@ -124,48 +132,47 @@ jobs:
           fi
 
       # ── Android ──────────────────────────────────────────────
-      - name: 🤖 Build Android
+      - name: 🤖 Build Android (Local)
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         working-directory: student-app
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_LOCAL_BUILD_ARTIFACTS_DIR: build-artifacts
         run: |
+          # 运行本地构建
           eas build \
             --platform android \
             --profile ${{ steps.vars.outputs.profile }} \
-            --non-interactive \
-            --wait \
-            --json > /tmp/android_build.json
+            --local \
+            --non-interactive
 
-          echo "=== EAS JSON output ==="
-          cat /tmp/android_build.json
+          # 查看生成的文件并移动到指定位置
+          echo "=== Local Build Artifacts ==="
+          ls -la build-artifacts/
 
-          BUILD_URL=$(python3 << 'PYEOF'
-          import json, sys
-          try:
-              data = json.load(open('/tmp/android_build.json'))
-              item = data[0] if isinstance(data, list) else data
-              url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url', '')
-              if url: print(url)
-          except Exception as e:
-              print(f"error: {e}", file=sys.stderr)
-          PYEOF
-          )
+          # 寻找生成的 APK 或 AAB
+          APK_FILE=$(find build-artifacts -name "*.apk" | head -n 1)
+          AAB_FILE=$(find build-artifacts -name "*.aab" | head -n 1)
 
-          echo "Build URL: $BUILD_URL"
-          if [ -n "$BUILD_URL" ] && [ "$BUILD_URL" != "None" ]; then
-            curl -L -f -o boxue.apk "$BUILD_URL"
-            echo "✅ APK: $(ls -lh boxue.apk)"
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" boxue.apk
+            echo "✅ Android APK created: boxue.apk"
+          elif [ -n "$AAB_FILE" ]; then
+            cp "$AAB_FILE" boxue.aab
+            echo "✅ Android AAB created: boxue.aab"
           else
-            echo "⚠️ Download from expo.dev"
+            echo "❌ No build artifact (.apk or .aab) found!"
+            exit 1
           fi
 
-      - name: 📤 Upload APK Artifact
+      - name: 📤 Upload APK/AAB Artifact
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk-${{ steps.vars.outputs.profile }}-build${{ github.run_number }}
-          path: student-app/boxue.apk
+          name: android-build-${{ steps.vars.outputs.profile }}-build${{ github.run_number }}
+          path: |
+            student-app/boxue.apk
+            student-app/boxue.aab
           if-no-files-found: warn
           retention-days: 30
 
@@ -220,6 +227,7 @@ jobs:
           # 整理要附加的文件
           ASSETS=""
           [ -f student-app/boxue.apk ]           && ASSETS="$ASSETS student-app/boxue.apk"
+          [ -f student-app/boxue.aab ]           && ASSETS="$ASSETS student-app/boxue.aab"
           [ -f student-app/ios-release.ipa ]     && ASSETS="$ASSETS student-app/ios-release.ipa"
 
           # 创建 Release（如果 tag 不存在则自动创建）
@@ -228,7 +236,8 @@ jobs:
             --notes "## 版本 ${VERSION}
 
           **下载方式：**
-          - **Android** 用户：下载 \`boxue.apk\` 文件安装
+          - **Android** 用户：下载 \`boxue.apk\` 文件进行安装。如果是上架 Google Play，请使用 \`boxue.aab\`。
+          - **iOS** 用户：下载 \`ios-release.ipa\` 安装。
 
           > 在 App 内「关于」页面检查更新即可。" \
             $ASSETS \

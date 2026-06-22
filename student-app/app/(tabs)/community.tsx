@@ -142,7 +142,7 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
   header: {
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.base,

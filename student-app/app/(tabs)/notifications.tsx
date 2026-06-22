@@ -29,7 +29,7 @@ const CATEGORY_DETAILS = {
 };
 
 export default function NotificationsScreen() {
-  const { colors, isDark, t, tabBarStyle } = useTheme();
+  const { colors, isDark, t, tabBarStyle, tabGestureOpacity, tabGestureActive } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -199,7 +199,9 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
+      <Animated.View style={{ flex: 1, opacity: tabGestureOpacity }}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar style={isDark ? "light" : "dark"} />
       {/* Title Header */}
       <View style={[styles.titleContainer, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
@@ -290,7 +292,7 @@ export default function NotificationsScreen() {
             const isExpanded = expandedId === item.id;
             return (
               <Pressable
-                style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, elevation: tabGestureActive ? 0 : 1 }]}
                 onPress={() => handlePressNotification(item)}
               >
                 <View style={styles.cardHeader}>
@@ -364,7 +366,9 @@ export default function NotificationsScreen() {
           )}
         </Animated.View>
       )}
-    </SafeAreaView>
+        </SafeAreaView>
+      </Animated.View>
+    </View>
   );
 }
 
