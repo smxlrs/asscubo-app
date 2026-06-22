@@ -121,7 +121,10 @@ export default function EditProfileScreen() {
     
     setSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({ email: cleanedEmail });
+      const { error } = await supabase.auth.updateUser(
+        { email: cleanedEmail },
+        { options: { emailRedirectTo: 'https://asscubo.it/verified.html' } }
+      );
       if (error) throw error;
       
       Alert.alert(
