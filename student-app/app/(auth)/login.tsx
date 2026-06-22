@@ -61,7 +61,7 @@ export default function LoginScreen() {
         email: email.trim(),
         options: {
           shouldCreateUser: false,
-          emailRedirectTo: 'https://asscubo.it/verified.html',
+          emailRedirectTo: Linking.createURL('login-callback'),
         }
       });
 
