@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import * as Linking from 'expo-linking';
 
 type Profile = {
   id: string;
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password, 
       options: { 
         data: { name },
-        emailRedirectTo: 'exp://192.168.1.25:8081' // Redirect back to Expo Go after verification
+        emailRedirectTo: Linking.createURL('login-callback') // Redirect back to App dynamically after verification
       } 
     });
     

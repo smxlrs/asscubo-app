@@ -1,20 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as FileSystem from 'expo-file-system/legacy';
+
+function formatBytes(bytes: number, decimals = 1) {
+  if (bytes === 0) return '0.0 KB';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+async function getCacheSize(): Promise<number> {
+  let size = 0;
+  const cacheDir = FileSystem.cacheDirectory;
+  if (!cacheDir) return 0;
+  try {
+    const info = await FileSystem.getInfoAsync(cacheDir);
+    if (!info.exists) return 0;
+    
+    const files = await FileSystem.readDirectoryAsync(cacheDir);
+    for (const file of files) {
+      const fileUri = `${cacheDir}${file}`;
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      if (fileInfo.exists) {
+        size += fileInfo.size || 0;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to calculate cache size:', e);
+  }
+  return size;
+}
+
+async function clearCacheDir() {
+  const cacheDir = FileSystem.cacheDirectory;
+  if (!cacheDir) return;
+  try {
+    const files = await FileSystem.readDirectoryAsync(cacheDir);
+    for (const file of files) {
+      const fileUri = `${cacheDir}${file}`;
+      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+    }
+  } catch (e) {
+    console.warn('Failed to clear cache directory:', e);
+  }
+}
 
 export default function SettingsIndexScreen() {
   const { colors, t, themeMode, languageMode } = useTheme();
-  const [cacheSize, setCacheSize] = useState('12.4 MB');
+  const [cacheSize, setCacheSize] = useState('0.0 KB');
+
+  useEffect(() => {
+    async function updateCacheSize() {
+      const size = await getCacheSize();
+      setCacheSize(formatBytes(size));
+    }
+    updateCacheSize();
+  }, []);
 
   const handleClearCache = () => {
     Alert.alert(t('clearCache'), t('confirmClearCache'), [
       { text: t('cancel'), style: 'cancel' },
       { 
         text: t('confirm'), 
-        onPress: () => {
-          setCacheSize('0.0 KB');
+        onPress: async () => {
+          await clearCacheDir();
+          const size = await getCacheSize();
+          setCacheSize(formatBytes(size));
           Alert.alert(t('clearCache'), t('cacheCleared'));
         } 
       }
@@ -61,11 +117,11 @@ export default function SettingsIndexScreen() {
       <ScrollView style={styles.content}>
         {/* Main Settings Page */}
         <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>{t('systemSettings')}</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{t('systemSettings')}</Text>
         </View>
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Theme Link */}
-          <Pressable style={[styles.rowPressable, { borderBottomColor: colors.border }]} onPress={() => router.push('/settings/theme')}>
+          <Pressable style={[styles.rowPressable, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/settings/theme')}>
             <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t('themeSetting')}</Text>
             <View style={styles.rowRight}>
               <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{getThemeLabel()}</Text>
@@ -74,7 +130,7 @@ export default function SettingsIndexScreen() {
           </Pressable>
 
           {/* Language Link */}
-          <Pressable style={[styles.rowPressable, { borderBottomColor: colors.border }]} onPress={() => router.push('/settings/language')}>
+          <Pressable style={[styles.rowPressable, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/settings/language')}>
             <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t('languageSetting')}</Text>
             <View style={styles.rowRight}>
               <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{getLanguageLabel()}</Text>
@@ -83,7 +139,7 @@ export default function SettingsIndexScreen() {
           </Pressable>
 
           {/* Notifications Settings Link */}
-          <Pressable style={[styles.rowPressable, { borderBottomColor: colors.border }]} onPress={() => router.push('/settings/notifications')}>
+          <Pressable style={styles.rowPressable} onPress={() => router.push('/settings/notifications')}>
             <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>通知设置</Text>
             <View style={styles.rowRight}>
               <Text style={[styles.rowValue, { color: colors.textSecondary }]}>管理订阅</Text>
@@ -94,7 +150,7 @@ export default function SettingsIndexScreen() {
 
         {/* Cache & Storage Section */}
         <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>{t('dataStorage')}</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{t('dataStorage')}</Text>
         </View>
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Pressable style={styles.rowPressable} onPress={handleClearCache}>
@@ -105,8 +161,6 @@ export default function SettingsIndexScreen() {
             </View>
           </Pressable>
         </View>
-
-        <Text style={[styles.versionText, { color: colors.textMuted }]}>{t('version')}</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -143,19 +197,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionHeaderContainer: {
-    marginLeft: 16,
+    marginLeft: 20,
     marginTop: 20,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   sectionHeader: {
     fontSize: 13,
-    color: '#8A8A8F',
     fontWeight: 'bold',
-    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   section: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginHorizontal: 16,
+    overflow: 'hidden',
   },
   rowPressable: {
     height: 50,
@@ -163,7 +218,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   rowLabel: {
     fontSize: 15,

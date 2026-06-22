@@ -4,6 +4,49 @@ import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { supabase } from '../../lib/supabase';
+
+// Helper to decode base64 string to ArrayBuffer for Supabase Storage uploads
+const decodeBase64 = (base64: string): ArrayBuffer => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const lookup = new Uint8Array(256);
+  for (let i = 0; i < chars.length; i++) {
+    lookup[chars.charCodeAt(i)] = i;
+  }
+
+  let bufferLength = base64.length * 0.75,
+    len = base64.length,
+    i,
+    p = 0,
+    encoded1,
+    encoded2,
+    encoded3,
+    encoded4;
+
+  if (base64[base64.length - 1] === '=') {
+    bufferLength--;
+    if (base64[base64.length - 2] === '=') {
+      bufferLength--;
+    }
+  }
+
+  const arraybuffer = new ArrayBuffer(bufferLength),
+    bytes = new Uint8Array(arraybuffer);
+
+  for (i = 0; i < len; i += 4) {
+    encoded1 = lookup[base64.charCodeAt(i)];
+    encoded2 = lookup[base64.charCodeAt(i + 1)];
+    encoded3 = lookup[base64.charCodeAt(i + 2)];
+    encoded4 = lookup[base64.charCodeAt(i + 3)];
+
+    bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+    bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+    bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+  }
+
+  return arraybuffer;
+};
 
 export default function FeedbackScreen() {
   const { colors, t, language } = useTheme();
@@ -98,7 +141,7 @@ export default function FeedbackScreen() {
     setMediaType(null);
   };
 
-  const handleFeedbackSubmit = () => {
+  const handleFeedbackSubmit = async () => {
     if (!email.trim() || !feedbackText.trim()) {
       Alert.alert(t('feedback'), getFillFieldsWarning());
       return;
@@ -111,16 +154,63 @@ export default function FeedbackScreen() {
     }
 
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      Alert.alert(t('feedback'), t('feedbackSuccess'));
+    try {
+      let uploadedMediaUrl = null;
+
+      // 1. Upload media to Supabase Storage if selected
+      if (mediaUri) {
+        const base64 = await FileSystem.readAsStringAsync(mediaUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        const fileExt = mediaUri.split('.').pop() || (mediaType === 'video' ? 'mp4' : 'jpg');
+        const fileName = `feedback-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const arrayBuffer = decodeBase64(base64);
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('covers')
+          .upload(filePath, arrayBuffer, {
+            contentType: mediaType === 'video' ? 'video/mp4' : `image/${fileExt === 'png' ? 'png' : 'jpeg'}`,
+          });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('covers')
+          .getPublicUrl(filePath);
+
+        uploadedMediaUrl = publicUrl;
+      }
+
+      // 2. Insert feedback data to feedbacks table
+      const { error: dbError } = await supabase
+        .from('feedbacks')
+        .insert([{
+          email: email.trim(),
+          wechat: wechat.trim() || null,
+          content: feedbackText.trim(),
+          media_url: uploadedMediaUrl,
+          created_at: new Date().toISOString()
+        }]);
+
+      if (dbError) throw dbError;
+
+      Alert.alert(t('feedback'), t('feedbackSuccess') || '提交成功！非常感谢您的意见反馈。');
       setEmail('');
       setWechat('');
       setFeedbackText('');
       setMediaUri(null);
       setMediaType(null);
       router.back();
-    }, 1500);
+    } catch (err: any) {
+      console.error('Failed to submit feedback:', err);
+      Alert.alert(t('feedback'), err.message || '提交失败，请重试。');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

@@ -80,13 +80,25 @@ export default function AdminDashboardScreen() {
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Pressable 
-            style={[styles.rowPressable, { borderBottomWidth: 0 }]} 
+            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
             onPress={() => router.push('/admin/manage-users')}
           >
             <MaterialCommunityIcons name="account-multiple-outline" size={20} color={colors.primaryLight} style={styles.rowIcon} />
             <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>已注册用户管理</Text>
             <View style={styles.rowRight}>
               <Text style={[styles.rowValue, { color: colors.textSecondary }]}>头像/昵称审核</Text>
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.rowPressable, { borderBottomWidth: 0 }]} 
+            onPress={() => router.push('/admin/manage-feedbacks')}
+          >
+            <MaterialCommunityIcons name="message-draw" size={20} color={colors.primaryLight} style={styles.rowIcon} />
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>用户意见反馈管理</Text>
+            <View style={styles.rowRight}>
+              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>状态标记与查看</Text>
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>
           </Pressable>

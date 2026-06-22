@@ -252,35 +252,11 @@ export default function PublishNotificationScreen() {
       const finalCover = getFinalCoverImage();
       const finalLink = getFinalWechatLink();
 
-      // 1. Insert into articles table (default category to 'general' for article feed compatibility)
-      const articlePayload = {
-        title: title.trim(),
-        summary: summary.trim(),
-        category: category ? (category === 'events' ? 'event_news' : category === 'academic' ? 'notice' : category === 'life' ? 'news' : 'general') : 'general',
-        cover_image: finalCover,
-        link: finalLink,
-        content: contentBody.trim() || null,
-        is_published: true,
-        created_at: new Date().toISOString(),
-        view_count: 0,
-      };
-
-      const { data: articleData, error: articleError } = await supabase
-        .from('articles')
-        .insert([articlePayload])
-        .select();
-
-      if (articleError) {
-        throw articleError;
-      }
-
-      const articleId = articleData && articleData[0]?.id;
-
-      // 2. Insert into notifications table (category can be NULL)
+      // 1. Insert into notifications table (default category to 'general' if null to satisfy DB not-null constraint)
       const notificationPayload = {
         title: title.trim(),
         content: summary.trim(),
-        category: category,
+        category: category || 'general',
         link: finalLink,
         cover_image: finalCover,
         created_at: new Date().toISOString(),
@@ -291,10 +267,10 @@ export default function PublishNotificationScreen() {
         .insert([notificationPayload]);
 
       if (notificationError) {
-        console.warn('Failed to insert into notifications table:', notificationError);
+        throw notificationError;
       }
 
-      // 3. Broadcast Expo Push Notification to all users if checked
+      // 2. Broadcast Expo Push Notification to all users if checked
       if (sendPush) {
         const categoryLabel = category ? CATEGORIES.find(c => c.value === category)?.label : '系统通知';
         const pushTitle = `【${categoryLabel}】${title}`;
@@ -303,7 +279,7 @@ export default function PublishNotificationScreen() {
           summary.trim(),
           category || 'general', // Fallback to general for preference delivery
           finalLink || undefined,
-          articleId || undefined
+          undefined // No native article ID for pure notifications
         );
 
         if (pushResult.success) {

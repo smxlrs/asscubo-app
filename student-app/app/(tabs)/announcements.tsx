@@ -11,44 +11,37 @@ import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
 
-type Article = {
+type NotificationItem = {
   id: string;
   title: string;
   summary: string | null;
   category: string;
   cover_image: string | null;
   created_at: string;
-  view_count: number;
   link?: string | null;
-  type: 'article' | 'notification';
   is_pinned: boolean;
+  type: 'notification' | 'article';
 };
 
 const CATEGORIES = [
   { key: 'all', label: '全部' },
-  { key: 'event_news', label: '学联活动' },
-  { key: 'notice', label: '学术资讯' },
-  { key: 'news', label: '生活辅助' },
-  { key: 'column', label: '原创专栏' },
-  { key: 'reprint', label: '转载' },
-  { key: 'general', label: '综合' },
+  { key: 'events', label: '学联活动' },
+  { key: 'academic', label: '学术资讯' },
+  { key: 'life', label: '生活辅助' },
+  { key: 'general', label: '综合通知' },
 ];
 
 const getCategoryLabel = (category: string) => {
-  if (category === 'event_news' || category === 'events') return '学联活动';
-  if (category === 'notice' || category === 'academic') return '学术资讯';
-  if (category === 'news' || category === 'life') return '生活辅助';
-  if (category === 'column') return '原创专栏';
-  if (category === 'reprint') return '转载';
-  return '综合';
+  if (category === 'events' || category === 'event_news') return '学联活动';
+  if (category === 'academic' || category === 'notice') return '学术资讯';
+  if (category === 'life' || category === 'news') return '生活辅助';
+  return '综合通知';
 };
 
 const getCategoryColor = (category: string) => {
-  if (category === 'event_news' || category === 'events') return '#EF4444';
-  if (category === 'notice' || category === 'academic') return '#3B82F6';
-  if (category === 'news' || category === 'life') return '#10B981';
-  if (category === 'column') return '#F59E0B';
-  if (category === 'reprint') return '#6B7280';
+  if (category === 'events' || category === 'event_news') return '#EF4444';
+  if (category === 'academic' || category === 'notice') return '#3B82F6';
+  if (category === 'life' || category === 'news') return '#10B981';
   return '#8B5CF6';
 };
 
@@ -56,12 +49,11 @@ export default function AnnouncementsScreen() {
   const { colors, isDark } = useTheme();
   
   // Loaded database items
-  const [loadedArticles, setLoadedArticles] = useState<Article[]>([]);
-  const [loadedNotifications, setLoadedNotifications] = useState<Article[]>([]);
+  const [loadedNotifications, setLoadedNotifications] = useState<NotificationItem[]>([]);
   
   // Pagination limits and offset
   const [displayLimit, setDisplayLimit] = useState(15);
-  const [hasMoreArticles, setHasMoreArticles] = useState(true);
+  const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -72,34 +64,29 @@ export default function AnnouncementsScreen() {
   const [search, setSearch] = useState('');
 
   // Combined, filtered, and sliced items currently shown in FlatList
-  const [displayItems, setDisplayItems] = useState<Article[]>([]);
+  const [displayItems, setDisplayItems] = useState<NotificationItem[]>([]);
 
   async function fetchInitialData() {
     try {
       setLoading(true);
-      // Fetch initial 10 articles and all notifications (up to 100)
-      const [articlesRes, notificationsRes] = await Promise.all([
-        supabase
-          .from('articles')
-          .select('id, title, summary, category, cover_image, created_at, view_count, link, is_pinned')
-          .eq('is_published', true)
-          .order('created_at', { ascending: false })
-          .limit(10),
+      
+      const [notificationsRes, articlesRes] = await Promise.all([
         supabase
           .from('notifications')
           .select('id, title, content, category, cover_image, created_at, link, is_pinned')
           .order('created_at', { ascending: false })
-          .limit(100)
+          .limit(20),
+        supabase
+          .from('articles')
+          .select('id, title, summary, category, cover_image, created_at, link, is_pinned')
+          .eq('is_published', true)
+          .order('created_at', { ascending: false })
+          .limit(20)
       ]);
 
-      if (articlesRes.error) throw articlesRes.error;
       if (notificationsRes.error) throw notificationsRes.error;
+      if (articlesRes.error) throw articlesRes.error;
 
-      const articlesData = (articlesRes.data || []).map(item => ({ 
-        ...item, 
-        type: 'article' as const 
-      }));
-      
       const notificationsData = (notificationsRes.data || []).map(item => ({
         id: item.id,
         title: item.title,
@@ -107,16 +94,35 @@ export default function AnnouncementsScreen() {
         category: item.category || 'general',
         cover_image: item.cover_image || null,
         created_at: item.created_at,
-        view_count: 0,
         link: item.link || null,
-        type: 'notification' as const,
-        is_pinned: item.is_pinned
+        is_pinned: item.is_pinned,
+        type: 'notification' as const
       }));
 
-      setLoadedArticles(articlesData);
-      setLoadedNotifications(notificationsData);
-      setHasMoreArticles(articlesData.length === 10);
-      setDisplayLimit(15);
+      const articlesData = (articlesRes.data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        summary: item.summary || null,
+        category: item.category || 'general',
+        cover_image: item.cover_image || null,
+        created_at: item.created_at,
+        link: item.link || null,
+        is_pinned: item.is_pinned,
+        type: 'article' as const
+      }));
+
+      const combined = [...notificationsData, ...articlesData];
+
+      // Sort by is_pinned DESC, then created_at DESC
+      combined.sort((a, b) => {
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+      setLoadedNotifications(combined);
+      setHasMoreNotifications(false); // Cap reached
+      setDisplayLimit(40);
     } catch (e) {
       console.error('Failed to fetch initial announcements data:', e);
     } finally {
@@ -125,43 +131,8 @@ export default function AnnouncementsScreen() {
     }
   }
 
-  async function loadMoreArticles() {
-    if (loadingMoreRef.current || !hasMoreArticles) return;
-
-    try {
-      loadingMoreRef.current = true;
-      setLoadingMore(true);
-      const currentOffset = loadedArticles.length;
-      console.log(`Paging more articles from offset: ${currentOffset}...`);
-      
-      const { data, error } = await supabase
-        .from('articles')
-        .select('id, title, summary, category, cover_image, created_at, view_count, link, is_pinned')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false })
-        .range(currentOffset, currentOffset + 9);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const newArticles = data.map(item => ({ ...item, type: 'article' as const }));
-        setLoadedArticles(prev => {
-          const combined = [...prev, ...newArticles];
-          return combined.filter((art, idx, self) => self.findIndex(a => a.id === art.id) === idx);
-        });
-        setHasMoreArticles(data.length === 10);
-      } else {
-        setHasMoreArticles(false);
-      }
-
-      // Increment limit
-      setDisplayLimit(prev => prev + 15);
-    } catch (e) {
-      console.error('Failed to load more articles:', e);
-    } finally {
-      loadingMoreRef.current = false;
-      setLoadingMore(false);
-    }
+  async function loadMoreNotifications() {
+    setHasMoreNotifications(false);
   }
 
   useEffect(() => {
@@ -173,19 +144,22 @@ export default function AnnouncementsScreen() {
     fetchInitialData();
   };
 
-  // Re-combine, filter, sort and slice list items
+  // Filter, sort and slice list items
   useEffect(() => {
-    let combined = [...loadedArticles, ...loadedNotifications];
+    let combined = [...loadedNotifications];
 
     // Filter by category
     if (selectedCategory !== 'all') {
       combined = combined.filter(item => {
-        const cat = item.category;
-        if (selectedCategory === 'event_news') return cat === 'event_news' || cat === 'events';
-        if (selectedCategory === 'notice') return cat === 'notice' || cat === 'academic';
-        if (selectedCategory === 'news') return cat === 'news' || cat === 'life';
-        if (selectedCategory === 'general') return cat === 'general';
-        return cat === selectedCategory;
+        if (item.type === 'article') {
+          if (selectedCategory === 'events') return item.category === 'event_news';
+          if (selectedCategory === 'academic') return item.category === 'notice';
+          if (selectedCategory === 'life') return item.category === 'news';
+          if (selectedCategory === 'general') return item.category === 'general';
+          return item.category === selectedCategory;
+        } else {
+          return item.category === selectedCategory;
+        }
       });
     }
 
@@ -206,13 +180,12 @@ export default function AnnouncementsScreen() {
     });
 
     setDisplayItems(combined.slice(0, displayLimit));
-  }, [loadedArticles, loadedNotifications, selectedCategory, search, displayLimit]);
+  }, [loadedNotifications, selectedCategory, search, displayLimit]);
 
   const handleEndReached = () => {
-    // Only load from network if we reached the display limit
     if (displayItems.length >= displayLimit) {
-      if (hasMoreArticles) {
-        loadMoreArticles();
+      if (hasMoreNotifications) {
+        loadMoreNotifications();
       } else {
         setDisplayLimit(prev => prev + 15);
       }
@@ -277,7 +250,7 @@ export default function AnnouncementsScreen() {
       ) : (
         <FlatList
           data={displayItems}
-          keyExtractor={(item) => `${item.type}-${item.id}`}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           onEndReached={handleEndReached}
@@ -298,12 +271,10 @@ export default function AnnouncementsScreen() {
             <TouchableOpacity
               style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => {
-                if (item.type === 'notification') {
-                  if (item.link) {
-                    router.push(`/article/web?url=${encodeURIComponent(item.link)}&title=${encodeURIComponent(item.title)}` as any);
-                  } else {
-                    router.push('/(tabs)/notifications');
-                  }
+                if (item.type === 'article') {
+                  router.push(`/article/${item.id}` as any);
+                } else if (item.link) {
+                  router.push(`/article/web?url=${encodeURIComponent(item.link)}&title=${encodeURIComponent(item.title)}` as any);
                 } else {
                   router.push(`/article/${item.id}` as any);
                 }
@@ -374,14 +345,9 @@ export default function AnnouncementsScreen() {
                 ) : null}
               </View>
               <View style={styles.cardBottom}>
-                {item.type === 'article' ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <MaterialCommunityIcons name="eye-outline" size={14} color={colors.textMuted} style={{ marginRight: 4 }} />
-                    <Text style={[styles.views, { color: colors.textMuted }]}>{item.view_count} 次阅读</Text>
-                  </View>
-                ) : <View />}
+                <View />
                 <Text style={[styles.readMore, { color: colors.primary }]}>
-                  {item.type === 'notification' && !item.link ? '查看详情 →' : '阅读全文 →'}
+                  {!item.link ? '查看详情 →' : '阅读全文 →'}
                 </Text>
               </View>
             </TouchableOpacity>

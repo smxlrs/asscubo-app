@@ -1147,7 +1147,7 @@ export default function EmptyClassroomScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={handleBack}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.primary} />
+          <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{getTxt('title')}</Text>
         <Pressable 
@@ -2296,7 +2296,8 @@ const styles = StyleSheet.create({
   checkmarkBubble: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 112 : 150,
-    alignSelf: 'center',
+    left: '50%',
+    marginLeft: -20,
     width: 40,
     height: 40,
     borderRadius: 20,

@@ -61,7 +61,7 @@ export default function ThemeSettingsScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>{t('themeSetting')}</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{t('themeSetting')}</Text>
         </View>
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {([
@@ -69,10 +69,16 @@ export default function ThemeSettingsScreen() {
             { id: 'dark', label: t('darkMode') },
             { id: 'system', label: t('systemMode') },
             { id: 'custom', label: t('customMode') }
-          ] as { id: ThemeMode; label: string }[]).map((mode) => (
+          ] as { id: ThemeMode; label: string }[]).map((mode, index, arr) => (
             <Pressable 
               key={mode.id}
-              style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
+              style={[
+                styles.rowPressable, 
+                { 
+                  borderBottomColor: colors.border,
+                  borderBottomWidth: index === arr.length - 1 ? 0 : StyleSheet.hairlineWidth
+                }
+              ]} 
               onPress={() => setThemeMode(mode.id)}
             >
               <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{mode.label}</Text>
@@ -172,19 +178,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionHeaderContainer: {
-    marginLeft: 16,
+    marginLeft: 20,
     marginTop: 20,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   sectionHeader: {
     fontSize: 13,
-    color: '#8A8A8F',
     fontWeight: 'bold',
-    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   section: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginHorizontal: 16,
+    overflow: 'hidden',
   },
   rowPressable: {
     height: 50,
@@ -192,7 +199,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   rowLabel: {
     fontSize: 15,
@@ -205,7 +211,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
   },
   customTimeRangeInfo: {

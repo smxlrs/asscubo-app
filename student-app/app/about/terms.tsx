@@ -52,7 +52,8 @@ export default function TermsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>四、 免责声明</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
             1. 数据准确性：本App提供的工具（如火车车次实时状态查询、空教室查询等）数据来源于第三方公共服务平台，学联将尽最大努力保障信息的有效性，但不保证所有查询结果的绝对实时与准确。请您在出行或选择教室时以学校或火车站官方的物理布告牌信息为最终准则。{"\n"}
-            2. 外部链接与图片：学联管理员在发布通知时可能包含外部链接或图片媒体。这些内容仅供便利参考，本平台不对任何第三方外部链接的安全性和内容的真实性承担法律责任。
+            2. 外部链接与图片：学联管理员在发布通知时可能包含外部链接或图片媒体。这些内容仅供便利参考，本平台不对任何第三方外部链接的安全性和内容的真实性承担法律责任。{"\n"}
+            3. 定位服务：若您在公交查询中启用定位功能，App将请求访问设备GPS以在地图上显示位置。定位精度取决于您的硬件设备及网络环境，该定位数据仅供参考且完全在本地处理，学联不对定位的精确度、实时性或因此产生的任何使用偏差承担责任。
           </Text>
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>五、 适用法律</Text>
@@ -85,7 +86,8 @@ export default function TermsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. Disclaimer of Warranties</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
             1. Data Accuracy: Utility tools (e.g. train status, empty classrooms) retrieve data from public third-party services. We strive to maintain updates but do not warrant absolute real-time accuracy. Please refer to official university/station boards for critical travel and study decisions.{"\n"}
-            2. External Links & Media: Announcements published by administrators may contain external links or image attachments. These are provided for convenience only; we do not assume any legal responsibility for the security, accuracy, or integrity of third-party websites or files.
+            2. External Links & Media: Announcements published by administrators may contain external links or image attachments. These are provided for convenience only; we do not assume any legal responsibility for the security, accuracy, or integrity of third-party websites or files.{"\n"}
+            3. Location Services: If you enable location services in the bus tool, the App requests GPS data solely to center and show your position on the local map. The geolocation accuracy depends on your hardware and network connection; this data is for guidance only, and we are not liable for any positioning discrepancies or related errors.
           </Text>
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>5. Governing Law</Text>
@@ -118,7 +120,8 @@ export default function TermsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. Esclusione di Responsabilità</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
             1. Accuratezza dei Dati: Gli strumenti di utilità (es. stato dei treni, aule libere) recuperano i dati da servizi pubblici di terze parti. L'Associazione si impegna al massimo ma non garantisce l'accuratezza in tempo reale. Fare riferimento alle bacheche ufficiali per decisioni critiche.{"\n"}
-            2. Link Esterni e Media: Gli annunci pubblicati possono contenere link esterni o allegati multimediali. Questi sono forniti solo per comodità di riferimento; l'Associazione non si assume alcuna responsabilità per la sicurezza, accuratezza o integrità di siti web o file di terzi.
+            2. Link Esterni e Media: Gli annunci pubblicati possono contenere link esterni o allegati multimediali. Questi sono forniti solo per comodità di riferimento; l'Associazione non si assume alcuna responsabilità per la sicurezza, accuratezza o integrità di siti web o file di terzi.{"\n"}
+            3. Servizi di Localizzazione: Se attivi la localizzazione nello strumento autobus, l'App richiederà i dati GPS solo per mostrare e centrare la tua posizione sulla mappa locale. L'accuratezza dipende dal tuo dispositivo e dalla rete; questi dati sono solo indicativi e l'Associazione non si assume alcuna responsabilità per discrepanze di posizionamento o errori correlati.
           </Text>
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>5. Legge Applicabile</Text>

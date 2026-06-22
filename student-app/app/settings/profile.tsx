@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Image, Modal, TextInput } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -11,6 +11,9 @@ export default function ProfileScreen() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { colors } = useTheme();
   const [deleting, setDeleting] = React.useState(false);
+  const [isOtpModalVisible, setIsOtpModalVisible] = React.useState(false);
+  const [otpToken, setOtpToken] = React.useState('');
+  const [verifying, setVerifying] = React.useState(false);
 
   // Refresh profile on focus to ensure data is updated when returning from edit page
   useFocusEffect(
@@ -44,25 +47,22 @@ export default function ProfileScreen() {
         text: '确认删除',
         style: 'destructive',
         onPress: () => {
-          Alert.alert('再次确认', '为了安全起见，请再次确认是否要彻底删除账号？', [
+          Alert.alert('安全验证', '为了您的账户安全，我们需要向您的邮箱发送一个安全验证码以确认身份。', [
             { text: '取消', style: 'cancel' },
             {
-              text: '彻底删除',
-              style: 'destructive',
+              text: '发送验证码',
               onPress: async () => {
                 setDeleting(true);
                 try {
-                  // Call RPC function to delete account
-                  const { error } = await supabase.rpc('delete_user_account');
+                  const { error } = await supabase.auth.reauthenticate();
                   if (error) throw error;
                   
-                  // Delete local session
-                  await signOut();
-                  Alert.alert('注销成功', '您的账户及数据已被永久删除。');
-                  router.replace('/(tabs)');
+                  // Send successful, show code input modal
+                  setOtpToken('');
+                  setIsOtpModalVisible(true);
                 } catch (err: any) {
-                  console.error('Delete account error:', err);
-                  Alert.alert('注销失败', '无法自动删除账号，可能是您的数据库尚未部署删除账户的触发函数。请联系管理员，或重试。');
+                  console.error('Reauthenticate error:', err);
+                  Alert.alert('发送失败', err.message || '无法发送验证码，请稍后再试。');
                 } finally {
                   setDeleting(false);
                 }
@@ -72,6 +72,42 @@ export default function ProfileScreen() {
         }
       }
     ]);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpToken.length !== 6) {
+      Alert.alert('提示', '请输入完整的 6 位验证码。');
+      return;
+    }
+    
+    setVerifying(true);
+    try {
+      // 1. Verify the OTP code with type 'reauthentication'
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: user?.email || '',
+        token: otpToken,
+        type: 'reauthentication'
+      });
+      
+      if (verifyError) {
+        throw new Error(verifyError.message || '验证码错误，请重新输入');
+      }
+      
+      // 2. Verification succeeded! Now call RPC to delete user account
+      const { error: deleteError } = await supabase.rpc('delete_user_account');
+      if (deleteError) throw deleteError;
+      
+      // 3. Delete local session and redirect
+      setIsOtpModalVisible(false);
+      await signOut();
+      Alert.alert('注销成功', '您的账户及数据已被永久删除。');
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      console.error('Delete account flow error:', err);
+      Alert.alert('验证失败', err.message || '无法完成账户删除，请联系管理员或重试。');
+    } finally {
+      setVerifying(false);
+    }
   };
 
   return (
@@ -160,6 +196,66 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Safety Reauthentication Verification Modal */}
+      <Modal
+        visible={isOtpModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          if (!verifying) setIsOtpModalVisible(false);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>安全身份验证</Text>
+            <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
+              我们已向您的邮箱 {user?.email} 发送了一个 6 位验证码，请在下方输入以确认注销账户。
+            </Text>
+            
+            <TextInput
+              style={[
+                styles.otpInput,
+                { 
+                  color: colors.textPrimary,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surfaceElevated,
+                }
+              ]}
+              placeholder="000000"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="number-pad"
+              maxLength={6}
+              value={otpToken}
+              onChangeText={setOtpToken}
+              autoFocus={true}
+              editable={!verifying}
+            />
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalButton, styles.cancelButton, { borderColor: colors.border }]}
+                onPress={() => setIsOtpModalVisible(false)}
+                disabled={verifying}
+              >
+                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>取消</Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.modalButton, styles.confirmButton, { backgroundColor: colors.error }]}
+                onPress={handleVerifyOtp}
+                disabled={verifying}
+              >
+                {verifying ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>确认注销</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -265,5 +361,74 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSub: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  otpInput: {
+    width: '100%',
+    height: 52,
+    borderWidth: 1,
+    borderRadius: 8,
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    letterSpacing: 8,
+    marginBottom: 24,
+    paddingHorizontal: 12,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    marginRight: 12,
+    borderWidth: 1,
+  },
+  confirmButton: {},
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  confirmButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

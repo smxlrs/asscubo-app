@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS, SHADOWS } from '../../constants/theme';
 
 type LinkItem = {
@@ -115,8 +115,8 @@ export default function UsefulLinksScreen() {
           color: '#EC4899',
         },
         {
-          title: '博洛尼亚地区取居留查询与预约',
-          desc: '博洛尼亚警局取居留状态查询、补件及相关业务的预约预约平台',
+          title: '博洛尼亚取居留查询与预约',
+          desc: '博洛尼亚警局取居留状态查询及预约平台',
           url: 'https://www.questura.bologna.it/verifica',
           icon: 'calendar-check-outline',
           color: '#3B82F6',
@@ -138,16 +138,7 @@ export default function UsefulLinksScreen() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <View style={{
-            width: 10,
-            height: 10,
-            borderLeftWidth: 2,
-            borderBottomWidth: 2,
-            borderColor: colors.primaryLight,
-            transform: [{ rotate: '45deg' }],
-            marginHorizontal: 8,
-            marginVertical: 4,
-          }} />
+          <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>实用链接</Text>
         <View style={styles.headerPlaceholder} />

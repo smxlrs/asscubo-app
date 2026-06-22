@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 type Article = {
   id: string;
   title: string;
-  category: string;
+  category: string | null;
   link: string | null;
   created_at: string;
   is_pinned: boolean;
@@ -60,7 +60,7 @@ export default function ManageArticlesScreen() {
     fetchArticles();
   }, []);
 
-  const handleCategoryChange = async (articleId: string, newCategory: string) => {
+  const handleCategoryChange = async (articleId: string, newCategory: string | null) => {
     try {
       const { error } = await supabase
         .from('articles')
@@ -102,7 +102,7 @@ export default function ManageArticlesScreen() {
 
   const showCategoryPicker = (article: Article) => {
     setActiveArticle(article);
-    setSelectedCategory(article.category === 'general' ? null : article.category);
+    setSelectedCategory((!article.category || article.category === 'general') ? null : article.category);
     setPickerVisible(true);
   };
 
@@ -138,7 +138,9 @@ export default function ManageArticlesScreen() {
   };
 
   const renderItem = ({ item }: { item: Article }) => {
-    const cat = ARTICLE_CATEGORIES[item.category] || ARTICLE_CATEGORIES.general;
+    const cat = (item.category && item.category !== 'general') ? ARTICLE_CATEGORIES[item.category] : null;
+    const catColor = cat ? cat.color : '#8A8A8F';
+    const catLabel = cat ? cat.label : '未分类';
     const formattedDate = new Date(item.created_at).toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -156,11 +158,11 @@ export default function ManageArticlesScreen() {
           <View style={styles.itemMeta}>
             <Text style={[styles.itemDate, { color: colors.textMuted }]}>{formattedDate}</Text>
             <Pressable 
-              style={[styles.categoryTag, { backgroundColor: cat.color + '15', borderColor: cat.color + '40' }]}
+              style={[styles.categoryTag, { backgroundColor: catColor + '15', borderColor: catColor + '40' }]}
               onPress={() => showCategoryPicker(item)}
             >
-              <Text style={[styles.categoryTagText, { color: cat.color }]}>
-                {cat.label} ▾
+              <Text style={[styles.categoryTagText, { color: catColor }]}>
+                {catLabel} ▾
               </Text>
             </Pressable>
           </View>
@@ -291,7 +293,7 @@ export default function ManageArticlesScreen() {
                 onPress={async () => {
                   if (activeArticle) {
                     setPickerVisible(false);
-                    await handleCategoryChange(activeArticle.id, selectedCategory || 'general');
+                    await handleCategoryChange(activeArticle.id, selectedCategory);
                   }
                 }}
               >

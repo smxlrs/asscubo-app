@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, TextInput, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, TextInput, BackHandler, Animated, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,10 +20,12 @@ type Notification = {
 };
 
 const CATEGORY_DETAILS = {
-  events: { label: '学联活动', icon: 'calendar-star', color: '#EF4444' },
-  academic: { label: '学术资讯', icon: 'school', color: '#3B82F6' },
-  life: { label: '生活辅助', icon: 'home-heart', color: '#10B981' },
-  general: { label: '综合通知', icon: 'bullhorn', color: '#8B5CF6' },
+  event_news: { label: '学联活动', icon: 'calendar-star', color: '#EF4444' },
+  notice: { label: '学术资讯', icon: 'school', color: '#3B82F6' },
+  news: { label: '生活辅助', icon: 'home-heart', color: '#10B981' },
+  column: { label: '原创专栏', icon: 'book-open-variant', color: '#F59E0B' },
+  reprint: { label: '转载', icon: 'share-variant', color: '#6B7280' },
+  general: { label: '综合公告', icon: 'bullhorn', color: '#8B5CF6' },
 };
 
 export default function NotificationsScreen() {
@@ -39,7 +41,50 @@ export default function NotificationsScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  async function fetchNotifications(isRefresh = false, filter = selectedFilter) {
+  // Toast State for Refresh feedback
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastFade = useRef(new Animated.Value(0)).current;
+  const toastTimeoutRef = useRef<any>(null);
+
+  const triggerToast = (msg: string) => {
+    setToastMsg(msg);
+    toastFade.setValue(0);
+    
+    const isSuccess = msg === '刷新成功';
+    const fadeInDuration = isSuccess ? 150 : 250;
+    const keepDuration = isSuccess ? 1000 : 2000;
+    const fadeOutDuration = 250;
+
+    Animated.timing(toastFade, {
+      toValue: 1,
+      duration: fadeInDuration,
+      useNativeDriver: true,
+    }).start();
+
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+
+    toastTimeoutRef.current = setTimeout(() => {
+      Animated.timing(toastFade, {
+        toValue: 0,
+        duration: fadeOutDuration,
+        useNativeDriver: true,
+      }).start(() => {
+        setToastMsg(null);
+      });
+    }, keepDuration);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  async function fetchNotifications(isRefresh = false, filter = selectedFilter, showToast = false) {
     if (!isRefresh && loadingMoreRef.current) return;
     try {
       if (isRefresh) {
@@ -60,15 +105,7 @@ export default function NotificationsScreen() {
         .range(currentOffset, currentOffset + 14);
 
       if (filter !== 'all') {
-        if (filter === 'events') {
-          query = query.eq('category', 'event_news');
-        } else if (filter === 'academic') {
-          query = query.eq('category', 'notice');
-        } else if (filter === 'life') {
-          query = query.eq('category', 'news');
-        } else if (filter === 'general') {
-          query = query.in('category', ['general', 'column', 'reprint']);
-        }
+        query = query.eq('category', filter);
       }
 
       const { data, error } = await query;
@@ -78,19 +115,11 @@ export default function NotificationsScreen() {
       }
 
       if (data) {
-        const normalizeCategory = (dbCategory: string): string => {
-          if (dbCategory === 'event_news') return 'events';
-          if (dbCategory === 'notice') return 'academic';
-          if (dbCategory === 'news') return 'life';
-          if (dbCategory === 'column' || dbCategory === 'reprint') return 'general';
-          return dbCategory || 'general';
-        };
-
         const mapped = data.map((item: any) => ({
           id: item.id,
           title: item.title,
           content: item.summary || '查看文章详情',
-          category: normalizeCategory(item.category),
+          category: item.category || 'general',
           link: item.link || undefined,
           cover_image: item.cover_image || undefined,
           created_at: item.created_at,
@@ -113,6 +142,11 @@ export default function NotificationsScreen() {
       setRefreshing(false);
       setLoadingMore(false);
       loadingMoreRef.current = false;
+      if (isRefresh && showToast) {
+        setTimeout(() => {
+          triggerToast('刷新成功');
+        }, 150);
+      }
     }
   }
 
@@ -120,7 +154,7 @@ export default function NotificationsScreen() {
     setNotifications([]);
     setHasMore(true);
     setLoading(true);
-    fetchNotifications(true, selectedFilter);
+    fetchNotifications(true, selectedFilter, false);
   }, [selectedFilter]);
 
   useEffect(() => {
@@ -142,7 +176,7 @@ export default function NotificationsScreen() {
   }, [isSearching]);
 
   const onRefresh = () => {
-    fetchNotifications(true, selectedFilter);
+    fetchNotifications(true, selectedFilter, true);
   };
 
   const handlePressNotification = (item: Notification) => {
@@ -308,6 +342,23 @@ export default function NotificationsScreen() {
           }}
         />
       )}
+      {toastMsg && (
+        <Animated.View style={[
+          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? 120 : 138 }] : styles.toastContainer, 
+          { 
+            opacity: toastFade,
+            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+          }
+        ]}>
+          {toastMsg === '刷新成功' ? (
+            <MaterialCommunityIcons name="check" size={24} color={colors.primary} />
+          ) : (
+            <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>
+          )}
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -448,5 +499,44 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 12,
     fontSize: 14,
+  },
+  toastContainer: {
+    position: 'absolute',
+    top: 100,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 99999,
+    borderWidth: 1,
+  },
+  toastText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  checkmarkBubble: {
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 99999,
   },
 });

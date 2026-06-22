@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Linking, FlatList, RefreshControl, Animated, TextInput, Modal, BackHandler, Platform } from 'react-native';
 import { router, useNavigation } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { STUDY_ROOMS, fetchStudyRoomStatus, StudyRoom, StudyRoomStatus } from '../../../lib/studyroom';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -249,7 +249,7 @@ export default function StudyRoomsScreen() {
           {showSearch ? (
             <View style={styles.searchHeaderContainer}>
               <Pressable style={styles.backButton} onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
-                <View style={[styles.backArrow, { borderColor: colors.primaryLight }]} />
+                <MaterialIcons name="arrow-back" size={24} color="#A31621" />
               </Pressable>
               <View style={[styles.searchInputContainer, { backgroundColor: colors.background }]}>
                 <MaterialCommunityIcons name="magnify" size={18} color={colors.textSecondary} style={{ marginRight: 6 }} />
@@ -271,7 +271,7 @@ export default function StudyRoomsScreen() {
           ) : (
             <>
               <Pressable style={styles.backButton} onPress={() => router.back()}>
-                <View style={[styles.backArrow, { borderColor: colors.primaryLight }]} />
+                <MaterialIcons name="arrow-back" size={24} color="#A31621" />
               </Pressable>
               <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>自习室与图书馆</Text>
               <Pressable style={{ padding: 8 }} onPress={() => setShowSearch(true)}>
@@ -744,7 +744,8 @@ const styles = StyleSheet.create({
   checkmarkBubble: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 70 : 80,
-    alignSelf: 'center',
+    left: '50%',
+    marginLeft: -20,
     width: 40,
     height: 40,
     borderRadius: 20,

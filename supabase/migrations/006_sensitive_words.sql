@@ -61,12 +61,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- 4. Create check trigger function to validate profile nicknames using normalization
+-- 4. Create check trigger function to validate profile nicknames using normalization (with defensive logic)
 CREATE OR REPLACE FUNCTION public.check_sensitive_nickname()
 RETURNS TRIGGER AS $$
 DECLARE
   normalized_name TEXT;
   word_match RECORD;
+  normalized_word TEXT;
 BEGIN
   -- Only validate name when it is set and has changed
   IF NEW.name IS NOT NULL AND (TG_OP = 'INSERT' OR NEW.name IS DISTINCT FROM OLD.name) THEN
@@ -75,9 +76,20 @@ BEGIN
     
     -- Check against the normalized sensitive words
     FOR word_match IN SELECT word FROM public.sensitive_words LOOP
-      -- We also normalize the sensitive word just in case
-      IF normalized_name LIKE '%' || public.normalize_nickname(word_match.word) || '%' THEN
-        RAISE EXCEPTION '昵称包含敏感词汇 "%"，请更换其它昵称。', word_match.word;
+      normalized_word := public.normalize_nickname(word_match.word);
+      -- 防御性逻辑 1：只在敏感词归一化后非空时才进行匹配，防止空匹配导致误杀所有昵称
+      IF normalized_word <> '' THEN
+        -- 防御性逻辑 2：如果是纯英文/数字（ASCII字符）且长度小于等于 3，则必须精确匹配，避免子串误杀（如 an, it, 23）
+        IF normalized_word ~ '^[a-z0-9]+$' AND length(normalized_word) <= 3 THEN
+          IF normalized_name = normalized_word THEN
+            RAISE EXCEPTION '昵称包含敏感词汇 "%"，请更换其它昵称。', word_match.word;
+          END IF;
+        ELSE
+          -- 其它情况（包含中文，或英文数字长度大于 3），允许子串模糊匹配
+          IF normalized_name LIKE '%' || normalized_word || '%' THEN
+            RAISE EXCEPTION '昵称包含敏感词汇 "%"，请更换其它昵称。', word_match.word;
+          END IF;
+        END IF;
       END IF;
     END LOOP;
   END IF;

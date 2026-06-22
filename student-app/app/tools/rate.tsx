@@ -261,7 +261,7 @@ export default function RateConverterScreen() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border, zIndex: 10 }]}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.primary} />
+          <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>汇率换算</Text>
         <Pressable style={styles.refreshBtn} onPress={() => fetchRates(true)} disabled={loading}>
@@ -627,7 +627,8 @@ const styles = StyleSheet.create({
   checkmarkBubble: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 104 : 142,
-    alignSelf: 'center',
+    left: '50%',
+    marginLeft: -20,
     width: 40,
     height: 40,
     borderRadius: 20,

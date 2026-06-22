@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Alert, BackHandler } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,11 @@ import Animated, {
   withTiming,
   runOnJS,
   Easing,
-  SharedValue
+  SharedValue,
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  scrollTo,
+  useFrameCallback
 } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
@@ -96,6 +100,15 @@ const getToolDefinition = (id: string, eurToCny: number, t: (key: string) => str
         route: '/tools/train',
         color: '#E30613',
       };
+    case 'bus':
+      return {
+        id: 'bus',
+        title: '博洛尼亚公交查询',
+        description: '实时查询博洛尼亚等地区的公交到站倒计时，支持地图选点与线路查询。',
+        icon: 'bus',
+        route: '/tools/bus',
+        color: '#F59E0B',
+      };
     case 'studyroom':
       return {
         id: 'studyroom',
@@ -104,6 +117,15 @@ const getToolDefinition = (id: string, eurToCny: number, t: (key: string) => str
         icon: 'library-outline',
         route: '/tools/studyroom',
         color: '#4F46E5',
+      };
+    case 'links':
+      return {
+        id: 'links',
+        title: '实用链接',
+        description: '快速访问博洛尼亚大学系统、各类常用办事网站与生活链接。',
+        icon: 'link-variant',
+        route: '/about/links',
+        color: '#0EA5E9',
       };
     default:
       return null;
@@ -122,6 +144,10 @@ interface DraggableCardProps {
   onDragStart: () => void;
   onDragEnd: (newOrder: string[]) => void;
   onStartEditing: () => void;
+  scrollViewRef: any;
+  scrollY: SharedValue<number>;
+  scrollViewHeight: SharedValue<number>;
+  gridTopOffset: SharedValue<number>;
 }
 
 function DraggableCard({
@@ -136,6 +162,10 @@ function DraggableCard({
   onDragStart,
   onDragEnd,
   onStartEditing,
+  scrollViewRef,
+  scrollY,
+  scrollViewHeight,
+  gridTopOffset,
 }: DraggableCardProps) {
   const cardIndex = useDerivedValue(() => {
     return orderShared.value.indexOf(id);
@@ -146,6 +176,10 @@ function DraggableCard({
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
   const wiggleVal = useSharedValue(0);
+
+  const translationX = useSharedValue(0);
+  const translationY = useSharedValue(0);
+  const initialScrollY = useSharedValue(0);
 
   useEffect(() => {
     if (isEditing) {
@@ -192,6 +226,69 @@ function DraggableCard({
     };
   });
 
+  const checkReordering = (curX: number, curY: number) => {
+    'worklet';
+    // Calculate the closest target column and row
+    const targetCol = Math.max(0, Math.min(COLUMNS - 1, Math.round(curX / colWidth)));
+    const targetRow = Math.max(0, Math.min(Math.floor((orderShared.value.length - 1) / COLUMNS), Math.round(curY / rowHeight)));
+    const targetIndex = targetRow * COLUMNS + targetCol;
+
+    const oldIndex = orderShared.value.indexOf(id);
+    if (oldIndex === -1) return;
+
+    if (targetIndex !== oldIndex && targetIndex < orderShared.value.length) {
+      const newOrder = [...orderShared.value];
+      newOrder.splice(oldIndex, 1);
+      newOrder.splice(targetIndex, 0, id);
+      orderShared.value = newOrder;
+    }
+  };
+
+  const SCROLL_THRESHOLD = 80;
+  const MAX_SCROLL_SPEED = 15;
+
+  const frameCallback = useFrameCallback(() => {
+    const isDragging = activeIdShared.value === id;
+    if (!isDragging) {
+      return;
+    }
+
+    const cardTop = dragY.value + gridTopOffset.value;
+    const cardBottom = cardTop + 165; // card height is 165
+    const cardTopInViewport = cardTop - scrollY.value;
+    const cardBottomInViewport = cardBottom - scrollY.value;
+
+    let scrollDiff = 0;
+    if (cardTopInViewport < SCROLL_THRESHOLD) {
+      const ratio = (SCROLL_THRESHOLD - cardTopInViewport) / SCROLL_THRESHOLD;
+      scrollDiff = -Math.min(MAX_SCROLL_SPEED, ratio * MAX_SCROLL_SPEED);
+    } else if (cardBottomInViewport > scrollViewHeight.value - SCROLL_THRESHOLD) {
+      const ratio = (cardBottomInViewport - (scrollViewHeight.value - SCROLL_THRESHOLD)) / SCROLL_THRESHOLD;
+      scrollDiff = Math.min(MAX_SCROLL_SPEED, ratio * MAX_SCROLL_SPEED);
+    }
+
+    if (scrollDiff !== 0) {
+      const maxScroll = Math.max(
+        0,
+        Math.ceil(orderShared.value.length / COLUMNS) * rowHeight + gridTopOffset.value + 30 - scrollViewHeight.value
+      );
+      const newScrollY = Math.max(0, Math.min(maxScroll, scrollY.value + scrollDiff));
+
+      if (newScrollY !== scrollY.value) {
+        scrollTo(scrollViewRef, 0, newScrollY, false);
+        scrollY.value = newScrollY;
+
+        // Compensate dragY
+        dragY.value = startY.value + translationY.value + (scrollY.value - initialScrollY.value);
+        checkReordering(dragX.value, dragY.value);
+      }
+    }
+  }, false);
+
+  const toggleFrameCallback = (active: boolean) => {
+    frameCallback.setActive(active);
+  };
+
   const gesture = Gesture.Pan()
     .activateAfterLongPress(isEditing ? 100 : 600)
     .onStart(() => {
@@ -205,27 +302,20 @@ function DraggableCard({
       startY.value = pos.y;
       dragX.value = pos.x;
       dragY.value = pos.y;
+      translationX.value = 0;
+      translationY.value = 0;
+      initialScrollY.value = scrollY.value;
+      runOnJS(toggleFrameCallback)(true);
     })
     .onUpdate((event) => {
-      const curX = startX.value + event.translationX;
-      const curY = startY.value + event.translationY;
-      dragX.value = curX;
-      dragY.value = curY;
-
-      // Calculate the closest target column and row
-      const targetCol = Math.max(0, Math.min(COLUMNS - 1, Math.round(curX / colWidth)));
-      const targetRow = Math.max(0, Math.min(Math.floor((orderShared.value.length - 1) / COLUMNS), Math.round(curY / rowHeight)));
-      const targetIndex = targetRow * COLUMNS + targetCol;
-
-      if (targetIndex !== cardIndex.value && targetIndex < orderShared.value.length) {
-        const newOrder = [...orderShared.value];
-        const oldIndex = cardIndex.value;
-        newOrder.splice(oldIndex, 1);
-        newOrder.splice(targetIndex, 0, id);
-        orderShared.value = newOrder;
-      }
+      translationX.value = event.translationX;
+      translationY.value = event.translationY;
+      dragX.value = startX.value + event.translationX;
+      dragY.value = startY.value + event.translationY + (scrollY.value - initialScrollY.value);
+      checkReordering(dragX.value, dragY.value);
     })
     .onEnd(() => {
+      runOnJS(toggleFrameCallback)(false);
       activeIdShared.value = null;
       runOnJS(onDragEnd)(orderShared.value);
     });
@@ -291,16 +381,41 @@ function DraggableCard({
 export default function ToolsScreen() {
   const { colors, t } = useTheme();
   const [eurToCny, setEurToCny] = useState<number>(7.8256);
-  const [toolOrder, setToolOrder] = useState<string[]>(['handbook', 'dictionary', 'rate', 'classroom', 'train', 'studyroom']);
+  const [toolOrder, setToolOrder] = useState<string[]>(['handbook', 'dictionary', 'rate', 'classroom', 'train', 'bus', 'studyroom', 'links']);
   const [isEditing, setIsEditing] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const orderShared = useSharedValue(toolOrder);
   const activeIdShared = useSharedValue<string | null>(null);
 
+  // References and layout metrics for auto-scrolling
+  const scrollViewRef = useAnimatedRef<any>();
+  const scrollY = useSharedValue(0);
+  const scrollViewHeight = useSharedValue(600); // sensible default
+  const gridTopOffset = useSharedValue(90); // sensible default
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+    },
+  });
+
   useEffect(() => {
     orderShared.value = toolOrder;
   }, [toolOrder]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const handleBackPress = () => {
+      setIsEditing(false);
+      return true; // prevent default back navigation
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+    return () => subscription.remove();
+  }, [isEditing]);
 
   useEffect(() => {
     const fetchRate = async () => {
@@ -324,14 +439,18 @@ export default function ToolsScreen() {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const validIds = ['handbook', 'dictionary', 'rate', 'classroom', 'train', 'studyroom'];
-            const filtered = parsed.filter((id: any) => validIds.includes(id));
-            const missing = validIds.filter(id => !filtered.includes(id));
-            setToolOrder([...filtered, ...missing]);
+            const validIds = ['handbook', 'dictionary', 'rate', 'classroom', 'train', 'bus', 'studyroom', 'links'];
+            const uniqueParsed = Array.from(new Set(parsed)).filter((id: any) => validIds.includes(id));
+            const missing = validIds.filter(id => !uniqueParsed.includes(id));
+            const merged = [...uniqueParsed, ...missing];
+            setToolOrder(merged);
+            orderShared.value = merged;
           }
         }
       } catch (e) {
         console.warn('Failed to load tools order:', e);
+      } finally {
+        setIsLoaded(true);
       }
     };
     loadOrder();
@@ -348,10 +467,16 @@ export default function ToolsScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <ScrollView 
+        <Animated.ScrollView 
+          ref={scrollViewRef as any}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
           scrollEnabled={scrollEnabled}
+          onLayout={(e) => {
+            scrollViewHeight.value = e.nativeEvent.layout.height;
+          }}
         >
           <Pressable 
             style={{ flex: 1, minHeight: '100%' }}
@@ -370,38 +495,53 @@ export default function ToolsScreen() {
               </View>
             </View>
 
-            <View style={[styles.grid, { height: Math.ceil(toolOrder.length / COLUMNS) * rowHeight }]}>
-            {toolOrder.map((id) => {
-              const tool = getToolDefinition(id, eurToCny, t);
-              if (!tool) return null;
-              return (
-                <DraggableCard
-                  key={tool.id}
-                  id={tool.id}
-                  tool={tool}
-                  eurToCny={eurToCny}
-                  t={t}
-                  colors={colors}
-                  isEditing={isEditing}
-                  orderShared={orderShared}
-                  activeIdShared={activeIdShared}
-                  onDragStart={() => {
-                    setScrollEnabled(false);
-                  }}
-                  onDragEnd={(newOrder) => {
-                    setScrollEnabled(true);
-                    setToolOrder(newOrder);
-                    saveOrder(newOrder);
-                  }}
-                  onStartEditing={() => {
-                    setIsEditing(true);
-                  }}
-                />
-              );
-            })}
-            </View>
+            {isLoaded ? (
+              <View 
+                style={[styles.grid, { height: Math.ceil(toolOrder.length / COLUMNS) * rowHeight }]}
+                onLayout={(e) => {
+                  gridTopOffset.value = e.nativeEvent.layout.y;
+                }}
+              >
+              {toolOrder.map((id) => {
+                const tool = getToolDefinition(id, eurToCny, t);
+                if (!tool) return null;
+                return (
+                  <DraggableCard
+                    key={tool.id}
+                    id={tool.id}
+                    tool={tool}
+                    eurToCny={eurToCny}
+                    t={t}
+                    colors={colors}
+                    isEditing={isEditing}
+                    orderShared={orderShared}
+                    activeIdShared={activeIdShared}
+                    scrollViewRef={scrollViewRef}
+                    scrollY={scrollY}
+                    scrollViewHeight={scrollViewHeight}
+                    gridTopOffset={gridTopOffset}
+                    onDragStart={() => {
+                      setScrollEnabled(false);
+                    }}
+                    onDragEnd={(newOrder) => {
+                      const deduplicated = Array.from(new Set(newOrder));
+                      setScrollEnabled(true);
+                      setToolOrder(deduplicated);
+                      saveOrder(deduplicated);
+                    }}
+                    onStartEditing={() => {
+                      setIsEditing(true);
+                    }}
+                  />
+                );
+              })}
+              </View>
+            ) : (
+              <View style={[styles.grid, { height: Math.ceil(toolOrder.length / COLUMNS) * rowHeight }]} />
+            )}
+
           </Pressable>
-        </ScrollView>
+        </Animated.ScrollView>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -512,6 +652,25 @@ const styles = StyleSheet.create({
   },
   comingSoonText: {
     fontSize: 9,
+    fontWeight: 'bold',
+  },
+  linksSection: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    marginBottom: 20,
+  },
+  linksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  linksLabel: {
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

@@ -29,7 +29,7 @@ export default function LanguageSettingsScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>{t('languageSetting')}</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{t('languageSetting')}</Text>
         </View>
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {([
@@ -38,10 +38,16 @@ export default function LanguageSettingsScreen() {
             { id: 'zh-Hant', label: '繁體中文' },
             { id: 'en', label: 'English' },
             { id: 'it', label: 'Italiano' }
-          ] as { id: LanguageMode; label: string }[]).map((lang) => (
+          ] as { id: LanguageMode; label: string }[]).map((lang, index, arr) => (
             <Pressable 
               key={lang.id}
-              style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
+              style={[
+                styles.rowPressable, 
+                { 
+                  borderBottomColor: colors.border,
+                  borderBottomWidth: index === arr.length - 1 ? 0 : StyleSheet.hairlineWidth 
+                }
+              ]} 
               onPress={() => setLanguage(lang.id)}
             >
               <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{lang.label}</Text>
@@ -87,19 +93,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionHeaderContainer: {
-    marginLeft: 16,
+    marginLeft: 20,
     marginTop: 20,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   sectionHeader: {
     fontSize: 13,
-    color: '#8A8A8F',
     fontWeight: 'bold',
-    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   section: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginHorizontal: 16,
+    overflow: 'hidden',
   },
   rowPressable: {
     height: 50,
@@ -107,7 +114,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   rowLabel: {
     fontSize: 15,

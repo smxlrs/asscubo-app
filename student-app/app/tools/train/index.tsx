@@ -633,7 +633,7 @@ export default function TrainToolIndex() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
+          <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{t('title')}</Text>
         <View style={{ width: 40 }} />

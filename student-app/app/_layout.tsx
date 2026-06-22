@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform } from 'react-native';
+import { Platform, BackHandler, ToastAndroid } from 'react-native';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 let Notifications: any = null;
@@ -135,10 +135,35 @@ function AppContent() {
     return () => subscription.remove();
   }, []);
 
+  useEffect(() => {
+    let lastPressTime = 0;
+
+    const handleBackPress = () => {
+      if (router.canGoBack()) {
+        return false;
+      }
+
+      const now = Date.now();
+      if (now - lastPressTime < 2000) {
+        BackHandler.exitApp();
+        return true;
+      }
+
+      lastPressTime = now;
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('再按一次退出博学', ToastAndroid.SHORT);
+      }
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+    return () => subscription.remove();
+  }, []);
+
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="settings" options={{ presentation: 'card' }} />

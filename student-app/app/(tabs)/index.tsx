@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  RefreshControl, Image, ActivityIndicator, Animated, Easing, Modal, TextInput,
+  RefreshControl, Image, ActivityIndicator, Animated, Easing, Modal, TextInput, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -278,6 +278,49 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Toast State for Refresh feedback
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastFade = useRef(new Animated.Value(0)).current;
+  const toastTimeoutRef = useRef<any>(null);
+
+  const triggerToast = (msg: string) => {
+    setToastMsg(msg);
+    toastFade.setValue(0);
+    
+    const isSuccess = msg === '刷新成功';
+    const fadeInDuration = isSuccess ? 150 : 250;
+    const keepDuration = isSuccess ? 1000 : 2000;
+    const fadeOutDuration = 250;
+
+    Animated.timing(toastFade, {
+      toValue: 1,
+      duration: fadeInDuration,
+      useNativeDriver: true,
+    }).start();
+
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+
+    toastTimeoutRef.current = setTimeout(() => {
+      Animated.timing(toastFade, {
+        toValue: 0,
+        duration: fadeOutDuration,
+        useNativeDriver: true,
+      }).start(() => {
+        setToastMsg(null);
+      });
+    }, keepDuration);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const [weather, setWeather] = useState<{
     temp: number;
     apparentTemp: number;
@@ -385,17 +428,17 @@ export default function HomeScreen() {
     }
   }
 
-  async function fetchData() {
-    const [articlesRes, notificationsRes, eventsRes] = await Promise.all([
-      supabase
-        .from('articles')
-        .select('id, title, summary, category, cover_image, created_at, view_count, link, is_pinned')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false })
-        .limit(5),
+  async function fetchData(isRefresh = false) {
+    const [notificationsRes, articlesRes, eventsRes] = await Promise.all([
       supabase
         .from('notifications')
         .select('id, title, content, category, cover_image, created_at, link, is_pinned')
+        .order('created_at', { ascending: false })
+        .limit(5),
+      supabase
+        .from('articles')
+        .select('id, title, summary, category, cover_image, created_at, link, is_pinned, view_count')
+        .eq('is_published', true)
         .order('created_at', { ascending: false })
         .limit(5),
       supabase
@@ -408,23 +451,6 @@ export default function HomeScreen() {
     ]);
 
     const combined: Article[] = [];
-
-    if (articlesRes.data) {
-      articlesRes.data.forEach((item: any) => {
-        combined.push({
-          id: item.id,
-          title: item.title,
-          summary: item.summary,
-          category: item.category,
-          cover_image: item.cover_image,
-          created_at: item.created_at,
-          view_count: item.view_count || 0,
-          link: item.link,
-          type: 'article',
-          is_pinned: item.is_pinned
-        });
-      });
-    }
 
     if (notificationsRes.data) {
       notificationsRes.data.forEach((item: any) => {
@@ -443,6 +469,23 @@ export default function HomeScreen() {
       });
     }
 
+    if (articlesRes.data) {
+      articlesRes.data.forEach((item: any) => {
+        combined.push({
+          id: item.id,
+          title: item.title,
+          summary: item.summary || null,
+          category: item.category || 'general',
+          cover_image: item.cover_image || null,
+          created_at: item.created_at,
+          view_count: item.view_count || 0,
+          link: item.link || null,
+          type: 'article',
+          is_pinned: item.is_pinned
+        });
+      });
+    }
+
     // Sort by is_pinned DESC, then created_at DESC
     combined.sort((a, b) => {
       if (a.is_pinned && !b.is_pinned) return -1;
@@ -456,6 +499,11 @@ export default function HomeScreen() {
     if (eventsRes.data) setUpcomingEvents(eventsRes.data);
     setLoading(false);
     setRefreshing(false);
+    if (isRefresh) {
+      setTimeout(() => {
+        triggerToast('刷新成功');
+      }, 150);
+    }
   }
 
   async function changeCity(city: typeof CITIES[0]) {
@@ -490,7 +538,7 @@ export default function HomeScreen() {
 
   function onRefresh() {
     setRefreshing(true);
-    fetchData();
+    fetchData(true);
   }
 
   function formatDate(dateStr: string) {
@@ -517,7 +565,14 @@ export default function HomeScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor={colors.primary} 
+            progressViewOffset={insets.top + 20}
+          />
+        }
       >
         {/* Header Banner */}
         <LinearGradient
@@ -727,7 +782,7 @@ export default function HomeScreen() {
                     if (item.link) {
                       router.push(`/article/web?url=${encodeURIComponent(item.link)}&title=${encodeURIComponent(item.title)}` as any);
                     } else {
-                      router.push('/(tabs)/notifications');
+                      router.push(`/article/${item.id}` as any);
                     }
                   } else {
                     router.push(`/article/${item.id}` as any);
@@ -905,6 +960,23 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+      {toastMsg && (
+        <Animated.View style={[
+          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? insets.top + 15 : insets.top + 56 }] : styles.toastContainer, 
+          { 
+            opacity: toastFade,
+            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+          }
+        ]}>
+          {toastMsg === '刷新成功' ? (
+            <MaterialCommunityIcons name="check" size={24} color={colors.primary} />
+          ) : (
+            <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>
+          )}
+        </Animated.View>
+      )}
     </LinearGradient>
   );
 }
@@ -1259,5 +1331,44 @@ const styles = StyleSheet.create({
   cityItemText: {
     fontSize: SIZES.md,
     fontFamily: FONTS.medium,
+  },
+  toastContainer: {
+    position: 'absolute',
+    top: 100,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 99999,
+    borderWidth: 1,
+  },
+  toastText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  checkmarkBubble: {
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 99999,
   },
 });

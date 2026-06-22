@@ -75,11 +75,6 @@ export default function ProfileScreen() {
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
-          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/links')}>
-            <MaterialCommunityIcons name="link-variant" size={22} color={colors.textSecondary} style={styles.menuIcon} />
-            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('usefulLinks') || '实用链接'}</Text>
-            <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
-          </Pressable>
 
           <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/platforms')}>
             <MaterialCommunityIcons name="account-group-outline" size={22} color={colors.textSecondary} style={styles.menuIcon} />

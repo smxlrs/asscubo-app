@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>验证成功 | 博学</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+  <style>
+    :root {
+      --primary: #A31621;
+      --primary-hover: #821018;
+      --bg-light: #F5F7FA;
+      --card-light: #FFFFFF;
+      --text-main-light: #1D2939;
+      --text-sub-light: #475467;
+      --border-light: #E4E7EC;
+      
+      --bg-dark: #0A0A0A;
+      --card-dark: #141414;
+      --text-main-dark: #F5F5F5;
+      --text-sub-dark: #A0A0A0;
+      --border-dark: #2A2A2A;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-main-light);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Dark Mode Support */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: var(--bg-dark);
+        color: var(--text-main-dark);
+      }
+      .card {
+        background-color: var(--card-dark) !important;
+        border-color: var(--border-dark) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+      }
+      .subtitle {
+        color: var(--text-sub-dark) !important;
+      }
+      .divider {
+        background-color: var(--border-dark) !important;
+      }
+      .info-box {
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        border-color: var(--border-dark) !important;
+      }
+      .info-box p {
+        color: var(--text-sub-dark) !important;
+      }
+    }
+
+    .card {
+      background-color: var(--card-light);
+      border: 1px solid var(--border-light);
+      width: 100%;
+      max-width: 420px;
+      border-radius: 24px;
+      padding: 40px 30px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+
+    /* Success Checkmark Animation */
+    .success-icon-container {
+      width: 80px;
+      height: 80px;
+      background-color: rgba(34, 197, 94, 0.1);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto 24px auto;
+      position: relative;
+      animation: pulse-green 2s infinite;
+    }
+
+    .success-icon-container svg {
+      width: 40px;
+      height: 40px;
+      fill: none;
+      stroke: #22C55E;
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: draw-check 0.8s ease-in-out forwards 0.2s;
+    }
+
+    @keyframes draw-check {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes pulse-green {
+      0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 12px rgba(34, 197, 94, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+      }
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-sub-light);
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 52px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      border-radius: 14px;
+      transition: background-color 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(163, 22, 33, 0.2);
+    }
+
+    .btn:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .divider {
+      height: 1px;
+      background-color: var(--border-light);
+      margin: 24px 0;
+      width: 100%;
+    }
+
+    .info-box {
+      background-color: #F8F9FA;
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .info-box p {
+      color: var(--text-sub-light);
+    }
+
+    .countdown-text {
+      font-size: 13px;
+      margin-top: 16px;
+      color: #22C55E;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="success-icon-container">
+      <svg viewBox="0 0 24 24">
+        <path d="M20 6L9 17L4 12" />
+      </svg>
+    </div>
+    
+    <h1 class="title">验证成功</h1>
+    <p class="subtitle">您已成功完成验证，请返回 App 继续您的操作。</p>
+    
+    <!-- Deep Link Trigger Button -->
+    <a href="union-app://login-callback" class="btn">返回博学</a>
+    
+    <p class="countdown-text" id="countdown">正在尝试自动跳转 (3s)...</p>
+
+    <div class="divider"></div>
+    
+    <div class="info-box">
+      <p>如果您未安装 App，请在确认验证后，直接返回您已下载的手机客户端继续进行操作。</p>
+    </div>
+  </div>
+
+  <script>
+    // 1. Auto redirect attempt on mount
+    var schemeUrl = "union-app://login-callback";
+    
+    // Attempt redirect immediately
+    window.location.href = schemeUrl;
+    
+    // 2. Countdown redirect handler
+    var count = 3;
+    var countdownEl = document.getElementById('countdown');
+    
+    var interval = setInterval(function() {
+      count--;
+      if (count > 0) {
+        countdownEl.innerText = "正在尝试自动跳转 (" + count + "s)...";
+      } else {
+        countdownEl.innerText = "自动跳转完成";
+        clearInterval(interval);
+        window.location.href = schemeUrl;
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

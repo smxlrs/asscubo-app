@@ -29,7 +29,7 @@ import {
   getRomeTimestampFromLocalDate,
   formatRomeTimeStr
 } from '../../../lib/viaggiaTrenoService';
-
+import { MarqueeText } from '../../../components/MarqueeText';
 const { width } = Dimensions.get('window');
 
 const LOCALIZED: Record<Language, Record<string, string>> = {
@@ -578,9 +578,12 @@ export default function StationBoardScreen() {
                     <View style={styles.boardTimelineStep}>
                       <View style={[styles.timelineMiniDot, { backgroundColor: op.color }]} />
                       <Text style={[styles.timelineMiniTime, { color: colors.textPrimary }]}>{timeStr}</Text>
-                      <Text style={[styles.timelineMiniStation, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {stationName || '此站'} (出发)
-                      </Text>
+                      <View style={styles.timelineMiniStationContainer}>
+                        <MarqueeText
+                          style={[styles.timelineMiniStation, { color: colors.textSecondary }]}
+                          text={`${stationName || '此站'} (出发)`}
+                        />
+                      </View>
                     </View>
                     <View style={[styles.timelineMiniLine, { backgroundColor: colors.border }]} />
                     <View style={styles.boardTimelineStep}>
@@ -588,9 +591,12 @@ export default function StationBoardScreen() {
                       <Text style={[styles.timelineMiniTime, { color: colors.textMuted }]}>
                         {extraTime ? formatTimeStr(extraTime.arrivalTime) : '--:--'}
                       </Text>
-                      <Text style={[styles.timelineMiniStation, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {item.destination}
-                      </Text>
+                      <View style={styles.timelineMiniStationContainer}>
+                        <MarqueeText
+                          style={[styles.timelineMiniStation, { color: colors.textSecondary }]}
+                          text={item.destination}
+                        />
+                      </View>
                     </View>
                   </>
                 ) : (
@@ -600,17 +606,23 @@ export default function StationBoardScreen() {
                       <Text style={[styles.timelineMiniTime, { color: colors.textMuted }]}>
                         {item.originDepartureTime ? formatTimeStr(item.originDepartureTime) : (extraTime ? formatTimeStr(extraTime.departureTime) : '--:--')}
                       </Text>
-                      <Text style={[styles.timelineMiniStation, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {item.origin || '始发站'}
-                      </Text>
+                      <View style={styles.timelineMiniStationContainer}>
+                        <MarqueeText
+                          style={[styles.timelineMiniStation, { color: colors.textSecondary }]}
+                          text={item.origin || '始发站'}
+                        />
+                      </View>
                     </View>
                     <View style={[styles.timelineMiniLine, { backgroundColor: colors.border }]} />
                     <View style={styles.boardTimelineStep}>
                       <View style={[styles.timelineMiniDot, { borderColor: op.color, borderWidth: 1.5, backgroundColor: 'transparent' }]} />
                       <Text style={[styles.timelineMiniTime, { color: colors.textPrimary }]}>{timeStr}</Text>
-                      <Text style={[styles.timelineMiniStation, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {stationName || '此站'} (到达)
-                      </Text>
+                      <View style={styles.timelineMiniStationContainer}>
+                        <MarqueeText
+                          style={[styles.timelineMiniStation, { color: colors.textSecondary }]}
+                          text={`${stationName || '此站'} (到达)`}
+                        />
+                      </View>
                     </View>
                   </>
                 );
@@ -680,12 +692,13 @@ export default function StationBoardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
+            <MaterialIcons name="arrow-back" size={24} color="#A31621" />
           </Pressable>
           <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-              {stationName || t('title')}
-            </Text>
+            <MarqueeText
+              style={[styles.headerTitle, { color: colors.textPrimary, textAlign: 'center' }]}
+              text={stationName || t('title')}
+            />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {stationID && (
@@ -993,16 +1006,19 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 8,
+    marginRight: 6,
   },
   timelineMiniTime: {
     fontSize: 11,
     fontWeight: '600',
-    width: 42,
+    width: 38,
   },
   timelineMiniStation: {
-    fontSize: 12,
+    fontSize: 11,
+  },
+  timelineMiniStationContainer: {
     flex: 1,
+    overflow: 'hidden',
   },
   timelineMiniLine: {
     width: 1,
@@ -1011,7 +1027,7 @@ const styles = StyleSheet.create({
   },
   cardRight: {
     alignItems: 'flex-end',
-    marginLeft: 10,
+    marginLeft: 6,
     justifyContent: 'center',
     paddingTop: 3,
   },
@@ -1134,7 +1150,8 @@ const styles = StyleSheet.create({
   },
   checkmarkBubble: {
     position: 'absolute',
-    alignSelf: 'center',
+    left: '50%',
+    marginLeft: -20,
     width: 40,
     height: 40,
     borderRadius: 20,

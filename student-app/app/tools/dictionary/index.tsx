@@ -927,7 +927,7 @@ export default function DictionaryScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>意语词典</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>意汉词典</Text>
         <Pressable 
           style={styles.settingsButton} 
           onPress={() => router.push('/tools/dictionary/settings')}

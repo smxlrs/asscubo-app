@@ -36,8 +36,9 @@ export default function PrivacyScreen() {
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
             1. 账户信息：当您注册账号时，我们会收集您的邮箱地址、密码以及您填写的昵称、头像。{"\n"}
             2. 设备与通知信息：为了向您推送重要的学联公告与动态通知，我们会在您授权后收集并存储您的 Expo 推送 Token（Push Token）。{"\n"}
-            3. 匿名使用数据：在您使用按车次查询或空教室等工具时，我们仅处理必要的即时查询请求，不收集您的地理位置或浏览轨迹。{"\n"}
-            4. 用户发布内容与媒体文件：为了便于学联管理员发布带有图文的通知，当授权用户上传图片时，我们会收集并安全存储您上传的媒体文件于 Supabase 存储空间中。
+            3. 匿名使用数据：在您使用按车次查询或空教室等工具时，我们仅处理必要的即时查询请求，不收集您的浏览轨迹。{"\n"}
+            4. 用户发布内容与媒体文件：为了便于学联管理员发布带有图文的通知，当授权用户上传图片时，我们会收集并安全存储您上传的媒体文件于 Supabase 存储空间中。{"\n"}
+            5. 位置信息（GPS）：当您使用公交查询地图上的定位服务时，在获得您的授权后，我们会获取您的当前位置。该位置数据仅用于在您的设备本地渲染地图上的蓝点并移动地图中心，我们绝不会将您的地理位置上传、共享或存储至任何服务器。
           </Text>
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>二、 数据的使用与安全</Text>
@@ -73,8 +74,9 @@ export default function PrivacyScreen() {
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
             1. Account Information: When you register, we collect your email address, password, nickname, and profile avatar.{"\n"}
             2. Device & Notification Info: To send you important announcements, we collect your Expo Push Token upon your explicit authorization.{"\n"}
-            3. Usage Data: Tools like train status or empty classrooms process real-time queries locally or anonymously and do not track your location or browsing history.{"\n"}
-            4. User-generated Content & Media: To allow authorized users to publish notices with visual content, we collect and store media files you upload securely within our Supabase Storage Bucket.
+            3. Usage Data: Tools like train status or empty classrooms process real-time queries locally or anonymously and do not track your browsing history.{"\n"}
+            4. User-generated Content & Media: To allow authorized users to publish notices with visual content, we collect and store media files you upload securely within our Supabase Storage Bucket.{"\n"}
+            5. Location Information (GPS): When you use the location feature in the bus query map, we request access to your device's geolocation upon your explicit permission. This data is processed entirely locally on your device to display your position and center the map; we never upload, store, or share your location data.
           </Text>
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Data Usage & Security</Text>
@@ -110,8 +112,9 @@ export default function PrivacyScreen() {
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
             1. Informazioni sull'account: quando ti registri, raccogliamo il tuo indirizzo e-mail, la password, il nickname e l'avatar del profilo.{"\n"}
             2. Notifiche e Dispositivo: per inviarti comunicazioni e annunci importanti dall'associazione, raccogliamo il tuo Token di Notifica Expo previa tua autorizzazione.{"\n"}
-            3. Dati di Utilizzo: strumenti come lo stato dei treni o le aule libere elaborano query in tempo reale in modo locale o anonimo e non tracciano la tua posizione o cronologia di navigazione.{"\n"}
-            4. Contenuti e Media dell'Utente: Per consentire agli amministratori autorizzati di pubblicare avvisi con immagini, raccogliamo e memorizziamo i file multimediali caricati in modo sicuro nel nostro Storage Bucket di Supabase.
+            3. Dati di Utilizzo: strumenti come lo stato dei treni o le aule libere elaborano query in tempo reale in modo locale o anonimo e non tracciano la tua cronologia di navigazione.{"\n"}
+            4. Contenuti e Media dell'Utente: Per consentire agli amministratori autorizzati di pubblicare avvisi con immagini, raccogliamo e memorizziamo i file multimediali caricati in modo sicuro nel nostro Storage Bucket di Supabase.{"\n"}
+            5. Informazioni sulla Posizione (GPS): Quando utilizzi la funzione di localizzazione sulla mappa dell'autobus, richiediamo l'accesso alla geolocalizzazione del tuo dispositivo previa tua esplicita autorizzazione. Questi dati vengono elaborati esclusivamente in locale sul tuo dispositivo per mostrare la tua posizione e centrare la mappa; non carichiamo, memorizziamo o condividiamo mai i tuoi dati di posizione sui nostri server.
           </Text>
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Utilizzo e Sicurezza dei Dati</Text>

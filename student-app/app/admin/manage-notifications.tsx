@@ -60,15 +60,16 @@ export default function ManageNotificationsScreen() {
 
   const handleCategoryChange = async (notificationId: string, newCategory: string | null) => {
     try {
+      const finalCategory = newCategory || 'general';
       // Update category in notifications table
       const { error } = await supabase
         .from('notifications')
-        .update({ category: newCategory })
+        .update({ category: finalCategory })
         .eq('id', notificationId);
 
       if (error) throw error;
 
-      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, category: newCategory } : n));
+      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, category: finalCategory } : n));
     } catch (err: any) {
       console.error(err);
       Alert.alert('修改失败', err.message || '修改分类失败，请重试。');
@@ -165,7 +166,7 @@ export default function ManageNotificationsScreen() {
               onPress={() => showCategoryPicker(item)}
             >
               <Text style={[styles.categoryTagText, { color: cat ? cat.color : colors.textSecondary }]}>
-                {cat ? cat.label : '无分类'} ▾
+                {cat ? cat.label : '未分类'} ▾
               </Text>
             </Pressable>
           </View>

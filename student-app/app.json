@@ -2,11 +2,17 @@
   "expo": {
     "name": "博学",
     "slug": "union-student-app",
-    "version": "1.0.0.6",
+    "version": "1.0.0.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "union-app",
+    "updates": {
+      "url": "https://u.expo.dev/30915e7c-2905-4e7b-81b1-277f9d93128c"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -40,6 +46,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "允许访问相机以上传头像",
         "NSPhotoLibraryUsageDescription": "允许访问相册以上传头像",
+        "NSLocationWhenInUseUsageDescription": "我们需要您的位置以在公交地图上显示您的当前位置并查找附近站点。",
         "LSApplicationQueriesSchemes": [
           "trenitalia",
           "italo",
@@ -57,7 +64,9 @@
       "package": "com.studentunion.app",
       "permissions": [
         "NOTIFICATIONS",
-        "VIBRATE"
+        "VIBRATE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
       ]
     },
     "web": {

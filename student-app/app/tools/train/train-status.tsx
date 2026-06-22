@@ -571,7 +571,7 @@ export default function TrainStatusScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
+            <MaterialIcons name="arrow-back" size={24} color="#A31621" />
           </Pressable>
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t('title')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -678,7 +678,7 @@ export default function TrainStatusScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
+            <MaterialIcons name="arrow-back" size={24} color="#A31621" />
           </Pressable>
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t('title')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -1423,7 +1423,8 @@ const styles = StyleSheet.create({
   },
   checkmarkBubble: {
     position: 'absolute',
-    alignSelf: 'center',
+    left: '50%',
+    marginLeft: -20,
     width: 40,
     height: 40,
     borderRadius: 20,
