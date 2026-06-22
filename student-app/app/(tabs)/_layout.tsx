@@ -99,7 +99,10 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
   }, [inactiveColor, activeColor]);
 
   return (
-    <View style={[styles.tabIconContainer, USE_GLASSMORPHISM && { paddingTop: 6 }]}>
+    <View style={[
+      styles.tabIconContainer,
+      USE_GLASSMORPHISM ? { height: 72, paddingTop: 4 } : { height: 76, paddingTop: 15 }
+    ]}>
       <View style={styles.iconWrapper}>
         {/* Capsule Highlight Pill Background */}
         <Animated.View 
@@ -145,9 +148,10 @@ export default function TabsLayout() {
     right: 20,
     borderRadius: 24,
     height: 72,
-    backgroundColor: Platform.OS === 'ios' ? 'transparent' : (isDark ? 'rgba(20, 20, 20, 0.85)' : 'rgba(255, 255, 255, 0.85)'),
+    backgroundColor: isDark ? 'rgba(20, 20, 20, 0.4)' : 'rgba(255, 255, 255, 0.4)',
     borderWidth: 1.5,
-    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.15)',
+    borderTopWidth: 1.5,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.65)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: isDark ? 0.35 : 0.08,
@@ -166,14 +170,18 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      safeAreaInsets={USE_GLASSMORPHISM ? { bottom: 0, top: 0, left: 0, right: 0 } : undefined}
       screenOptions={{
         headerShown: false,
         tabBarStyle: tabStyle,
         tabBarShowLabel: false,
         tabBarBackground: USE_GLASSMORPHISM ? () => (
-          Platform.OS === 'ios' ? (
-            <BlurView tint={isDark ? 'dark' : 'light'} intensity={85} style={StyleSheet.absoluteFill} />
-          ) : undefined
+          <BlurView 
+            tint={isDark ? 'dark' : 'light'} 
+            intensity={80} 
+            blurMethod="dimezisBlurViewSdk31Plus" 
+            style={StyleSheet.absoluteFill} 
+          />
         ) : undefined,
         tabBarButton: (props) => {
           const { ref, style, ...rest } = props as any;
