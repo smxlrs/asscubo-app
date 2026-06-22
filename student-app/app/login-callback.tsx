@@ -11,6 +11,7 @@ export default function LoginCallback() {
   const { colors, isDark } = useTheme();
   const [statusMessage, setStatusMessage] = useState('正在验证您的账户，请稍候...');
   const [errorOccurred, setErrorOccurred] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [verificationSuccess, setVerificationSuccess] = useState(false);
 
   useEffect(() => {
@@ -21,6 +22,16 @@ export default function LoginCallback() {
       if (active) {
         setVerificationSuccess(true);
         setStatusMessage('验证成功！');
+        if (safetyTimer) {
+          clearTimeout(safetyTimer);
+        }
+      }
+    }
+
+    function triggerFailure(msg: string) {
+      if (active) {
+        setErrorMessage(msg);
+        setErrorOccurred(true);
         if (safetyTimer) {
           clearTimeout(safetyTimer);
         }
@@ -55,30 +66,28 @@ export default function LoginCallback() {
       const parsed = Linking.parse(url);
       const { queryParams } = parsed;
 
-      // Check for errors passed in query params
+      // 1. Check if we have the verified=true flag from verified.html
+      const isVerifiedFromWeb = queryParams && queryParams.verified === 'true';
+
+      // 2. Check for errors passed in query params
       if (queryParams && queryParams.error) {
         const errMsg = queryParams.error_description || queryParams.error || '验证失败';
-        if (active) {
-          setStatusMessage(decodeURIComponent(errMsg as string));
-          setErrorOccurred(true);
-        }
-        setTimeout(() => {
-          if (active) router.replace('/(auth)/login');
-        }, 3000);
+        triggerFailure(decodeURIComponent(errMsg as string));
         return;
       }
 
       try {
         // Case 1: PKCE flow (auth code in query parameters)
         if (queryParams && typeof queryParams.code === 'string') {
-          if (active) setStatusMessage('正在交换登录凭证...');
+          if (active) setStatusMessage('正在激活账户会话...');
           const { error } = await supabase.auth.exchangeCodeForSession(queryParams.code);
           if (error) {
             const isAlreadyConsumed = error.message?.toLowerCase().includes('session') || 
                                       error.message?.toLowerCase().includes('code') ||
-                                      error.message?.toLowerCase().includes('expired');
-            if (isAlreadyConsumed) {
-              console.log('Code already consumed, assuming verified:', error.message);
+                                      error.message?.toLowerCase().includes('expired') ||
+                                      error.message?.toLowerCase().includes('consumed');
+            if (isAlreadyConsumed || isVerifiedFromWeb) {
+              console.log('Code already consumed or verified from web, assuming success:', error.message);
             } else {
               throw error;
             }
@@ -88,7 +97,7 @@ export default function LoginCallback() {
           return;
         }
 
-        // Case 2: Implicit flow (access token in hash fragment)
+        // Case 2: Implicit flow (access token in hash fragment or query params)
         let accessToken: string | null = null;
         let refreshToken: string | null = null;
 
@@ -96,7 +105,6 @@ export default function LoginCallback() {
         const hash = hashIndex !== -1 ? url.substring(hashIndex + 1) : '';
 
         if (hash) {
-          // Parse hash fragment parameters
           const cleanHash = hash.startsWith('#') ? hash.substring(1) : hash;
           const params = cleanHash.split('&').reduce((acc: Record<string, string>, part: string) => {
             const [key, value] = part.split('=');
@@ -108,7 +116,6 @@ export default function LoginCallback() {
           refreshToken = params['refresh_token'] || null;
         }
 
-        // Check queryParams as fallback for tokens
         if (!accessToken && queryParams) {
           accessToken = (queryParams['access_token'] as string) || null;
           refreshToken = (queryParams['refresh_token'] as string) || null;
@@ -123,9 +130,10 @@ export default function LoginCallback() {
           if (error) {
             const isAlreadyConsumed = error.message?.toLowerCase().includes('session') || 
                                       error.message?.toLowerCase().includes('code') ||
-                                      error.message?.toLowerCase().includes('expired');
-            if (isAlreadyConsumed) {
-              console.log('Session already set or token consumed:', error.message);
+                                      error.message?.toLowerCase().includes('expired') ||
+                                      error.message?.toLowerCase().includes('consumed');
+            if (isAlreadyConsumed || isVerifiedFromWeb) {
+              console.log('Session already set or verified from web, assuming success:', error.message);
             } else {
               throw error;
             }
@@ -135,40 +143,31 @@ export default function LoginCallback() {
           return;
         }
 
-        // Case 3: If no explicit codes are parsed, check if we are already logged in
+        // Case 3: Fallback check if we are already logged in or marked verified from web
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
+        if (session || isVerifiedFromWeb) {
           triggerSuccess();
         } else {
-          triggerSuccess();
+          throw new Error('验证链接已失效或不完整。如果您已经激活过账户，请尝试直接登录。');
         }
 
       } catch (e: any) {
         console.error('Auth callback error:', e);
-        if (active) {
-          setStatusMessage(e.message || '账户验证过程中出错');
-          setErrorOccurred(true);
-        }
-        setTimeout(() => {
-          if (active) router.replace('/(auth)/login');
-        }, 3000);
+        const friendlyMsg = e.message?.includes('expired') || e.message?.includes('invalid')
+          ? '验证链接已失效或已被使用。如果您已激活过账户，请直接登录；否则请尝试重新发送验证邮件。'
+          : (e.message || '账户验证过程中出错');
+        triggerFailure(friendlyMsg);
       }
     }
 
     handleCallback();
 
-    // Safety timeout in case callback processing stalls
+    // Safety timeout in case callback processing stalls (e.g. network issue)
     safetyTimer = setTimeout(() => {
-      if (active) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) {
-            router.replace('/(tabs)');
-          } else {
-            router.replace('/(auth)/login');
-          }
-        });
+      if (active && !verificationSuccess && !errorOccurred) {
+        triggerFailure('验证请求响应超时，可能由于网络连接较差。请确保网络畅通后重试，或尝试直接登录。');
       }
-    }, 8000);
+    }, 10000);
 
     return () => {
       active = false;
@@ -176,6 +175,7 @@ export default function LoginCallback() {
     };
   }, []);
 
+  // ── Success State ─────────────────────────────────────────
   if (verificationSuccess) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -188,7 +188,7 @@ export default function LoginCallback() {
             <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={54} color="#4CAF50" />
           </View>
           
-          <Text style={[styles.title, { color: colors.textPrimary }]}>验证成功！</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>认证成功！</Text>
           
           <Text style={[styles.description, { color: colors.textSecondary }]}>
             您的账户已成功激活！{'\n'}
@@ -212,16 +212,46 @@ export default function LoginCallback() {
     );
   }
 
+  // ── Error State ───────────────────────────────────────────
+  if (errorOccurred) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <LinearGradient 
+          colors={isDark ? ['#1A0508', '#0F0F0F'] : ['#FFF5F6', '#F5F7FA']} 
+          style={StyleSheet.absoluteFill} 
+        />
+        <View style={styles.content}>
+          <View style={[styles.iconContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, shadowColor: colors.error }]}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={54} color={colors.error} />
+          </View>
+          
+          <Text style={[styles.title, { color: colors.textPrimary }]}>认证失败</Text>
+          
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
+            {errorMessage || '无法完成账户激活，请确认验证链接是否有效。'}
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => {
+              router.replace('/(auth)/login');
+            }}
+            activeOpacity={0.85}
+          >
+            <View style={[styles.buttonBg, { backgroundColor: colors.primary }]}>
+              <Text style={styles.buttonText}>返回登录</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Loading State ─────────────────────────────────────────
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0A0A0A' : '#F5F7FA' }]}>
-      {!errorOccurred ? (
-        <ActivityIndicator size="large" color={colors.primary} />
-      ) : (
-        <View style={[styles.errorIcon, { backgroundColor: colors.error + '20' }]}>
-          <Text style={{ color: colors.error, fontSize: 24, fontWeight: 'bold' }}>✕</Text>
-        </View>
-      )}
-      <Text style={[styles.statusText, { color: errorOccurred ? colors.error : colors.textSecondary }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={[styles.statusText, { color: colors.textSecondary }]}>
         {statusMessage}
       </Text>
     </View>
@@ -240,14 +270,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
-  },
-  errorIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
   },
   content: {
     justifyContent: 'center',
