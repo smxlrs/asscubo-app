@@ -104,6 +104,14 @@ function AppContent() {
   const { isDark, isReady } = useTheme();
   const { user, loading } = useAuth();
   const [splashAnimationDone, setSplashAnimationDone] = useState(false);
+  const [minSplashTimeElapsed, setMinSplashTimeElapsed] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinSplashTimeElapsed(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     async function setupNotifications() {
@@ -168,8 +176,8 @@ function AppContent() {
     return () => subscription.remove();
   }, []);
 
-  const showSplashScreen = !isReady || loading || !splashAnimationDone;
-  const splashVisible = !isReady || loading;
+  const showSplashScreen = !isReady || loading || !splashAnimationDone || !minSplashTimeElapsed;
+  const splashVisible = !isReady || loading || !minSplashTimeElapsed;
 
   return (
     <>
