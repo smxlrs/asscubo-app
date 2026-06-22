@@ -101,7 +101,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
   return (
     <View style={[
       styles.tabIconContainer,
-      USE_GLASSMORPHISM ? { height: 68, paddingTop: 4 } : { height: 76, paddingTop: 15 }
+      USE_GLASSMORPHISM ? { height: 68, paddingTop: 9 } : { height: 76, paddingTop: 15 }
     ]}>
       <View style={styles.iconWrapper}>
         {/* Capsule Highlight Pill Background */}
@@ -150,7 +150,7 @@ export default function TabsLayout() {
     height: 68,
     backgroundColor: Platform.OS === 'ios' 
       ? 'transparent' 
-      : (isDark ? 'rgba(25, 25, 25, 0.88)' : 'rgba(255, 255, 255, 0.88)'),
+      : (isDark ? 'rgba(25, 25, 25, 0.72)' : 'rgba(255, 255, 255, 0.72)'),
     borderWidth: 1.5,
     borderTopWidth: 1.5,
     borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.65)',
@@ -179,8 +179,8 @@ export default function TabsLayout() {
         tabBarShowLabel: false,
         tabBarBackground: USE_GLASSMORPHISM && Platform.OS === 'ios' ? () => (
           <BlurView 
-            tint={isDark ? 'dark' : 'light'} 
-            intensity={80} 
+            tint={isDark ? 'dark' : 'extraLight'} 
+            intensity={90} 
             style={StyleSheet.absoluteFill} 
           />
         ) : undefined,

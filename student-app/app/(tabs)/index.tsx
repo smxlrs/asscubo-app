@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { BlurView } from 'expo-blur';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, Image, ActivityIndicator, Animated, Easing, Modal, TextInput, Platform,
@@ -978,6 +979,20 @@ export default function HomeScreen() {
           )}
         </Animated.View>
       )}
+      {/* Top Status Bar Blur Mask */}
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: insets.top,
+        zIndex: 999,
+        backgroundColor: isDark ? 'rgba(10, 10, 10, 0.4)' : 'rgba(245, 247, 250, 0.4)',
+      }}>
+        {Platform.OS === 'ios' && (
+          <BlurView tint={isDark ? 'dark' : 'extraLight'} intensity={90} style={StyleSheet.absoluteFill} />
+        )}
+      </View>
     </LinearGradient>
   );
 }
