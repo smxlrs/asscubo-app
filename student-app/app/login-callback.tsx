@@ -117,10 +117,10 @@ export default function LoginCallback() {
             if (active) router.replace('/(tabs)');
           }, 1000);
         } else {
-          // Default fallback: redirect to login
-          if (active) setStatusMessage('已返回应用，正在跳转到登录页...');
+          // Default fallback: redirect to verify-success
+          if (active) setStatusMessage('已返回应用，正在载入验证结果...');
           setTimeout(() => {
-            if (active) router.replace('/(auth)/login');
+            if (active) router.replace('/(auth)/verify-success');
           }, 1500);
         }
 

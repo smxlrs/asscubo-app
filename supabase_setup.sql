@@ -53,3 +53,20 @@ CREATE POLICY "Allow anyone to register or update their own push token" ON publi
 CREATE POLICY "Admins can select all push tokens" ON public.push_tokens
   FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
+
+
+-- 3. 升级用户注册触发器，自动将 auth.users 中的注册昵称（name）和角色同步到 public.profiles 表中
+-- 这样在邮箱验证前，即使用户处于未登录状态且受 RLS 限制，数据库触发器也能安全地写入昵称
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, role)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data ->> 'name', ''),
+    'student'
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+

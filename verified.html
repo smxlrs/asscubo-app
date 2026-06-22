@@ -202,7 +202,7 @@
     <p class="subtitle">您已成功完成验证，请返回 App 继续您的操作。</p>
     
     <!-- Deep Link Trigger Button -->
-    <a href="union-app://login-callback" class="btn">返回博学</a>
+    <a href="union-app://login-callback?verified=true" class="btn">返回博学</a>
     
     <p class="countdown-text" id="countdown">正在尝试自动跳转 (3s)...</p>
 
@@ -215,7 +215,7 @@
 
   <script>
     // 1. Auto redirect attempt on mount
-    var schemeUrl = "union-app://login-callback";
+    var schemeUrl = "union-app://login-callback?verified=true";
     
     // Attempt redirect immediately
     window.location.href = schemeUrl;

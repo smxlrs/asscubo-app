@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
+      if (session?.user) fetchProfile(session.user.id, session.user);
       else setLoading(false);
     });
 
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user);
       } else {
         setProfile(null);
         setLoading(false);
@@ -54,11 +54,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function fetchProfile(userId: string) {
+  async function fetchProfile(userId: string, currentUser?: User | null) {
     try {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
       if (!error && data) {
-        setProfile(data as Profile);
+        let currentProfile = data as Profile;
+        
+        // Sync missing profile name from auth user metadata if RLS blocked upsert during signup
+        const metaName = currentUser?.user_metadata?.name;
+        if (!currentProfile.name && metaName) {
+          const { data: updatedData, error: updateError } = await supabase
+            .from('profiles')
+            .update({ name: metaName })
+            .eq('id', userId)
+            .select()
+            .single();
+          
+          if (!updateError && updatedData) {
+            currentProfile = updatedData as Profile;
+          }
+        }
+        
+        setProfile(currentProfile);
       }
     } catch (e) {
       console.error('Error fetching profile:', e);
@@ -104,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function refreshProfile() { 
-    if (user) await fetchProfile(user.id); 
+    if (user) await fetchProfile(user.id, user); 
   }
 
   return (
