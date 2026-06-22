@@ -143,9 +143,11 @@ export default function TabsLayout() {
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: isDark ? 'rgba(15, 15, 15, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: Platform.OS === 'ios' 
+      ? 'transparent' 
+      : (isDark ? 'rgba(25, 25, 25, 0.88)' : 'rgba(255, 255, 255, 0.88)'),
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+    borderTopColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
     elevation: 0,
     shadowOpacity: 0,
   } : {
@@ -163,11 +165,10 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: tabStyle,
         tabBarShowLabel: false,
-        tabBarBackground: USE_GLASSMORPHISM ? () => (
+        tabBarBackground: USE_GLASSMORPHISM && Platform.OS === 'ios' ? () => (
           <BlurView 
             tint={isDark ? 'dark' : 'light'} 
             intensity={80} 
-            blurMethod="dimezisBlurViewSdk31Plus" 
             style={StyleSheet.absoluteFill} 
           />
         ) : undefined,
