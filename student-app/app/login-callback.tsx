@@ -225,7 +225,7 @@ export default function LoginCallback() {
             <MaterialCommunityIcons name="alert-circle-outline" size={54} color={colors.error} />
           </View>
           
-          <Text style={[styles.title, { color: colors.textPrimary }]}>认证失败</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>出了点问题</Text>
           
           <Text style={[styles.description, { color: colors.textSecondary }]}>
             {errorMessage || '无法完成账户激活，请确认验证链接是否有效。'}
