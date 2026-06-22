@@ -99,7 +99,10 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
   }, [inactiveColor, activeColor]);
 
   return (
-    <View style={[styles.tabIconContainer, USE_GLASSMORPHISM && { paddingTop: 6 }]}>
+    <View style={[
+      styles.tabIconContainer,
+      USE_GLASSMORPHISM ? { height: 68, paddingTop: 4 } : { height: 76, paddingTop: 15 }
+    ]}>
       <View style={styles.iconWrapper}>
         {/* Capsule Highlight Pill Background */}
         <Animated.View 
@@ -140,16 +143,24 @@ export default function TabsLayout() {
 
   const tabStyle = USE_GLASSMORPHISM ? {
     position: 'absolute' as const,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: Platform.OS === 'ios' ? 24 : 16,
+    left: 20,
+    right: 20,
+    borderRadius: 24,
+    height: 68,
     backgroundColor: Platform.OS === 'ios' 
       ? 'transparent' 
       : (isDark ? 'rgba(25, 25, 25, 0.88)' : 'rgba(255, 255, 255, 0.88)'),
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
-    elevation: 0,
-    shadowOpacity: 0,
+    borderWidth: 1.5,
+    borderTopWidth: 1.5,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.65)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: isDark ? 0.35 : 0.08,
+    shadowRadius: 18,
+    elevation: 8,
+    overflow: 'hidden' as const,
+    paddingBottom: 0,
   } : {
     backgroundColor: colors.surface,
     borderTopWidth: 0,
@@ -161,6 +172,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      safeAreaInsets={USE_GLASSMORPHISM ? { bottom: 0, top: 0, left: 0, right: 0 } : undefined}
       screenOptions={{
         headerShown: false,
         tabBarStyle: tabStyle,
