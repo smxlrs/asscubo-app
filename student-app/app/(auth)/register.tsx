@@ -50,7 +50,7 @@ export default function RegisterScreen() {
         type: 'signup',
         email: email.trim(),
         options: {
-          emailRedirectTo: Linking.createURL('login-callback')
+          emailRedirectTo: 'https://asscubo.it/verified.html'
         }
       });
       

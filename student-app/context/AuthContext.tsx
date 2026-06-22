@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password, 
       options: { 
         data: { name },
-        emailRedirectTo: Linking.createURL('login-callback') // Redirect back to App dynamically after verification
+        emailRedirectTo: 'https://asscubo.it/verified.html' // Redirect back to App dynamically after verification
       } 
     });
     

@@ -214,13 +214,28 @@
   </div>
 
   <script>
-    // 1. Auto redirect attempt on mount
-    var schemeUrl = "union-app://login-callback?verified=true";
+    // 1. 获取当前网页的 query 参数和 hash 凭证，并完整传递给 App
+    var search = window.location.search;
+    var hash = window.location.hash;
     
-    // Attempt redirect immediately
-    window.location.href = schemeUrl;
+    // 拼接 App 的唤醒地址，并保留所有凭证
+    var schemeUrl = "union-app://login-callback" + search;
+    if (hash) {
+      schemeUrl += hash;
+    }
     
-    // 2. Countdown redirect handler
+    // 确保携带 verified=true 标识给 App 内部做提示
+    if (schemeUrl.indexOf('verified=') === -1) {
+      schemeUrl += (schemeUrl.indexOf('?') === -1 ? '?' : '&') + 'verified=true';
+    }
+    
+    // 动态更新“返回博学”按钮的 href，以防用户不想等 3 秒直接手动点击
+    var btn = document.querySelector('.btn');
+    if (btn) {
+      btn.setAttribute('href', schemeUrl);
+    }
+    
+    // 2. 倒计时 3 秒结束后再进行自动跳转
     var count = 3;
     var countdownEl = document.getElementById('countdown');
     
@@ -229,7 +244,7 @@
       if (count > 0) {
         countdownEl.innerText = "正在尝试自动跳转 (" + count + "s)...";
       } else {
-        countdownEl.innerText = "自动跳转完成";
+        countdownEl.innerText = "自动跳转中...";
         clearInterval(interval);
         window.location.href = schemeUrl;
       }
