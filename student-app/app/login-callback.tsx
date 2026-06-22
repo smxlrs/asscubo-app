@@ -167,7 +167,7 @@ export default function LoginCallback() {
       if (active && !verificationSuccess && !errorOccurred) {
         triggerFailure('验证请求响应超时，可能由于网络连接较差。请确保网络畅通后重试，或尝试直接登录。');
       }
-    }, 10000);
+    }, 30000);
 
     return () => {
       active = false;
