@@ -99,60 +99,65 @@ export default function LoginScreen() {
       return;
     }
 
-    if (loginMode === 'password') {
-      if (!email || !password) {
-        setErrorMsg(t('enterEmailAndPassword'));
-        return;
-      }
-      
-      setErrorMsg(null);
-      setLoading(true);
-      
-      try {
-        const { error } = await signIn(email.trim(), password);
-        if (error) {
-          setErrorMsg(translateAuthError(error.message, language));
-        } else {
-          router.replace('/(tabs)');
+    // 收起键盘并让输入框失焦，给原生层留出几毫秒处理失焦的时间，然后再更新 loading 状态
+    Keyboard.dismiss();
+
+    setTimeout(async () => {
+      if (loginMode === 'password') {
+        if (!email || !password) {
+          setErrorMsg(t('enterEmailAndPassword'));
+          return;
         }
-      } catch (err) {
-        setErrorMsg(t('networkError'));
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // OTP mode login
-      if (!email || !otpCode) {
-        setErrorMsg("请输入邮箱和验证码");
-        return;
-      }
-
-      if (otpCode.length !== 6) {
-        setErrorMsg("请输入完整的 6 位验证码");
-        return;
-      }
-
-      setErrorMsg(null);
-      setLoading(true);
-
-      try {
-        const { error } = await supabase.auth.verifyOtp({
-          email: email.trim(),
-          token: otpCode.trim(),
-          type: 'email'
-        });
-
-        if (error) {
-          setErrorMsg(translateAuthError(error.message, language));
-        } else {
-          router.replace('/(tabs)');
+        
+        setErrorMsg(null);
+        setLoading(true);
+        
+        try {
+          const { error } = await signIn(email.trim(), password);
+          if (error) {
+            setErrorMsg(translateAuthError(error.message, language));
+          } else {
+            router.replace('/(tabs)');
+          }
+        } catch (err) {
+          setErrorMsg(t('networkError'));
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        setErrorMsg("网络错误，登录验证失败");
-      } finally {
-        setLoading(false);
+      } else {
+        // OTP mode login
+        if (!email || !otpCode) {
+          setErrorMsg("请输入邮箱和验证码");
+          return;
+        }
+
+        if (otpCode.length !== 6) {
+          setErrorMsg("请输入完整的 6 位验证码");
+          return;
+        }
+
+        setErrorMsg(null);
+        setLoading(true);
+
+        try {
+          const { error } = await supabase.auth.verifyOtp({
+            email: email.trim(),
+            token: otpCode.trim(),
+            type: 'email'
+          });
+
+          if (error) {
+            setErrorMsg(translateAuthError(error.message, language));
+          } else {
+            router.replace('/(tabs)');
+          }
+        } catch (err) {
+          setErrorMsg("网络错误，登录验证失败");
+        } finally {
+          setLoading(false);
+        }
       }
-    }
+    }, 100);
   };
 
   return (
@@ -262,6 +267,9 @@ export default function LoginScreen() {
                       onChangeText={setPassword}
                       secureTextEntry
                       autoCapitalize="none"
+                      blurOnSubmit={true}
+                      onSubmitEditing={handleLogin}
+                      returnKeyType="done"
                     />
                   </View>
                 )}
@@ -285,6 +293,9 @@ export default function LoginScreen() {
                         maxLength={6}
                         autoCapitalize="none"
                         editable={otpSent}
+                        blurOnSubmit={true}
+                        onSubmitEditing={handleLogin}
+                        returnKeyType="done"
                       />
                       <Pressable 
                         style={[

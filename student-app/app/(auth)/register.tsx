@@ -147,29 +147,34 @@ export default function RegisterScreen() {
       return;
     }
 
-    setErrorMsg(null);
-    setLoading(true);
+    // 收起键盘并让输入框失焦，给原生层留出几毫秒处理失焦的时间，然后再更新 loading 状态
+    Keyboard.dismiss();
 
-    try {
-      // Check for sensitive nickname on the frontend first
-      const sensitiveMatch = await checkNicknameSensitive(name.trim());
-      if (sensitiveMatch) {
-        setErrorMsg(`昵称包含敏感词汇 "${sensitiveMatch}"，请更换其它昵称。`);
+    setTimeout(async () => {
+      setErrorMsg(null);
+      setLoading(true);
+
+      try {
+        // Check for sensitive nickname on the frontend first
+        const sensitiveMatch = await checkNicknameSensitive(name.trim());
+        if (sensitiveMatch) {
+          setErrorMsg(`昵称包含敏感词汇 "${sensitiveMatch}"，请更换其它昵称。`);
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await signUp(email.trim(), password, name.trim());
+        if (error) {
+          setErrorMsg(translateAuthError(error.message, language));
+        } else {
+          setSuccess(true);
+        }
+      } catch (err) {
+        setErrorMsg(t('networkError'));
+      } finally {
         setLoading(false);
-        return;
       }
-
-      const { error } = await signUp(email.trim(), password, name.trim());
-      if (error) {
-        setErrorMsg(translateAuthError(error.message, language));
-      } else {
-        setSuccess(true);
-      }
-    } catch (err) {
-      setErrorMsg(t('networkError'));
-    } finally {
-      setLoading(false);
-    }
+    }, 100);
   };
 
   if (success) {
@@ -314,6 +319,9 @@ export default function RegisterScreen() {
                     onChangeText={setConfirmPassword}
                     secureTextEntry
                     autoCapitalize="none"
+                    blurOnSubmit={true}
+                    onSubmitEditing={handleRegister}
+                    returnKeyType="done"
                   />
                 </View>
 
