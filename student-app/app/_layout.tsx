@@ -3,7 +3,6 @@ import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, BackHandler, ToastAndroid, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { CustomSplashScreen } from '../components/CustomSplashScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { ThemeProvider as NavigationProvider, DefaultTheme, DarkTheme } from 'expo-router/react-navigation';
@@ -104,15 +103,13 @@ async function registerForPushNotificationsAsync() {
 function AppContent() {
   const { isDark, isReady } = useTheme();
   const { user, loading } = useAuth();
-  const [splashAnimationDone, setSplashAnimationDone] = useState(false);
-  const [minSplashTimeElapsed, setMinSplashTimeElapsed] = useState(false);
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMinSplashTimeElapsed(true);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+    if (isReady && !loading) {
+      SplashScreen.hideAsync().catch((err) => {
+        console.warn('Error hiding native splash screen:', err);
+      });
+    }
+  }, [isReady, loading]);
 
   useEffect(() => {
     async function setupNotifications() {
@@ -177,9 +174,6 @@ function AppContent() {
     return () => subscription.remove();
   }, []);
 
-  const showSplashScreen = !isReady || loading || !splashAnimationDone || !minSplashTimeElapsed;
-  const splashVisible = !isReady || loading || !minSplashTimeElapsed;
-
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
     colors: {
@@ -205,12 +199,6 @@ function AppContent() {
           <Stack.Screen name="+not-found" />
         </Stack>
       </View>
-      {showSplashScreen && (
-        <CustomSplashScreen
-          visible={splashVisible}
-          onAnimationComplete={() => setSplashAnimationDone(true)}
-        />
-      )}
     </NavigationProvider>
   );
 }
