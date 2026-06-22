@@ -3,7 +3,7 @@ import { View, Text, Animated, StyleSheet, Easing, Pressable, Platform } from 'r
 import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useRef, useEffect, useState } from 'react';
-import { BlurView } from 'expo-blur';
+import { BlurView, BlurTargetView } from 'expo-blur';
 
 
 function interpolateColorJS(value: number, color1: string, color2: string): string {
@@ -45,7 +45,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
   }
   
   // Animation values
-  const widthAnim = useRef(new Animated.Value(focused ? 56 : 30)).current;
+  const widthAnim = useRef(new Animated.Value(focused ? 50 : 26)).current;
   const opacityAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
   const iconScaleAnim = useRef(new Animated.Value(focused ? 1.05 : 1.0)).current;
   const colorAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
@@ -62,7 +62,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
     // Sync animation values
     Animated.parallel([
       Animated.timing(widthAnim, {
-        toValue: focused ? 56 : 30,
+        toValue: focused ? 50 : 26,
         duration: 180,
         easing: Easing.out(Easing.ease),
         useNativeDriver: false,
@@ -101,7 +101,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
   return (
     <View style={[
       styles.tabIconContainer,
-      USE_GLASSMORPHISM ? { height: 68, paddingTop: 9 } : { height: 76, paddingTop: 15 }
+      USE_GLASSMORPHISM ? { height: 68, paddingTop: 16 } : { height: 76, paddingTop: 20 }
     ]}>
       <View style={styles.iconWrapper}>
         {/* Capsule Highlight Pill Background */}
@@ -112,6 +112,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
               backgroundColor: activeColor + '1D', // ~11% opacity primary tint
               opacity: opacityAnim,
               width: widthAnim,
+              alignSelf: 'center',
             }
           ]} 
         />
@@ -140,6 +141,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
 export default function TabsLayout() {
   const { colors, t, isDark, tabBarStyle } = useTheme();
   const USE_GLASSMORPHISM = tabBarStyle === 'glassmorphism';
+  const blurTargetRef = useRef(null);
 
   const tabStyle = USE_GLASSMORPHISM ? {
     position: 'absolute' as const,
@@ -148,19 +150,11 @@ export default function TabsLayout() {
     right: 20,
     borderRadius: 24,
     height: 68,
-    backgroundColor: Platform.OS === 'ios' 
-      ? 'transparent' 
-      : (isDark ? 'rgba(25, 25, 25, 0.72)' : 'rgba(255, 255, 255, 0.72)'),
-    borderWidth: 1.5,
-    borderTopWidth: 1.5,
-    borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.65)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: isDark ? 0.35 : 0.08,
-    shadowRadius: 18,
-    elevation: 8,
-    overflow: 'hidden' as const,
+    backgroundColor: 'transparent',
+    elevation: 0,
     paddingBottom: 0,
+    borderTopWidth: 0,
+    borderWidth: 0,
   } : {
     backgroundColor: colors.surface,
     borderTopWidth: 0,
@@ -171,86 +165,116 @@ export default function TabsLayout() {
   };
 
   return (
-    <Tabs
-      safeAreaInsets={USE_GLASSMORPHISM ? { bottom: 0, top: 0, left: 0, right: 0 } : undefined}
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: tabStyle,
-        tabBarShowLabel: false,
-        tabBarBackground: USE_GLASSMORPHISM && Platform.OS === 'ios' ? () => (
-          <BlurView 
-            tint={isDark ? 'dark' : 'extraLight'} 
-            intensity={90} 
-            style={StyleSheet.absoluteFill} 
-          />
-        ) : undefined,
-        tabBarButton: (props) => {
-          const { ref, style, ...rest } = props as any;
-          return (
-            <Pressable 
-              {...rest} 
-              ref={ref as any}
-              android_ripple={null} 
-              style={[
-                style,
-                { opacity: 1 }
-              ]} 
-            />
-          );
-        },
-      }}
+    <BlurTargetView 
+      ref={blurTargetRef} 
+      style={{ flex: 1 }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label={t('home')} iconName="home" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
-          ),
+      <Tabs
+        safeAreaInsets={USE_GLASSMORPHISM ? { bottom: 0, top: 0, left: 0, right: 0 } : undefined}
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: tabStyle,
+          tabBarShowLabel: false,
+          tabBarBackground: USE_GLASSMORPHISM ? () => (
+            Platform.OS === 'ios' ? (
+              <BlurView 
+                tint={isDark ? 'dark' : 'extraLight'} 
+                intensity={95} 
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    borderRadius: 24,
+                    borderWidth: 1.5,
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.65)',
+                  }
+                ]} 
+              />
+            ) : (
+              <BlurView 
+                blurTarget={blurTargetRef}
+                intensity={80} 
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    borderRadius: 24,
+                    borderWidth: 1.5,
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.65)',
+                    backgroundColor: isDark ? 'rgba(30, 30, 30, 0.72)' : 'rgba(255, 255, 255, 0.72)',
+                  }
+                ]} 
+              />
+            )
+          ) : undefined,
+          tabBarButton: (props) => {
+            const { ref, style, ...rest } = props as any;
+            const flatStyle = StyleSheet.flatten(style) || {};
+            const { backgroundColor, ...cleanStyle } = flatStyle;
+            return (
+              <Pressable 
+                {...rest} 
+                ref={ref as any}
+                android_ripple={null} 
+                style={[
+                  cleanStyle,
+                  { opacity: 1 }
+                ]} 
+              />
+            );
+          },
         }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label={t('notifications')} iconName="newspaper" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="tools"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label={t('tools')} iconName="view-grid" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label={t('profile')} iconName="account" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="announcements"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="events"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="community"
-        options={{
-          href: null,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon label={t('home')} iconName="home" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="notifications"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon label={t('notifications')} iconName="newspaper" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="tools"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon label={t('tools')} iconName="view-grid" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon label={t('profile')} iconName="account" focused={focused} activeColor={colors.primary} inactiveColor={colors.textMuted} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="announcements"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="events"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="community"
+          options={{
+            href: null,
+          }}
+        />
+      </Tabs>
+    </BlurTargetView>
   );
 }
 
@@ -258,23 +282,19 @@ const styles = StyleSheet.create({
   tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 15,
   },
   iconWrapper: {
     width: 56,
-    height: 30,
-    borderRadius: 15,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   pillBg: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    borderRadius: 15,
+    height: 28,
+    borderRadius: 14,
   },
   tabLabel: {
     fontSize: 10,

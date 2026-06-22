@@ -1,9 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, BackHandler, ToastAndroid } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { CustomSplashScreen } from '../components/CustomSplashScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch((err) => {
+  console.warn('Error calling SplashScreen.preventAutoHideAsync():', err);
+});
 let Notifications: any = null;
 try {
   Notifications = require('expo-notifications');
@@ -94,8 +101,9 @@ async function registerForPushNotificationsAsync() {
 }
 
 function AppContent() {
-  const { isDark } = useTheme();
-  const { user } = useAuth();
+  const { isDark, isReady } = useTheme();
+  const { user, loading } = useAuth();
+  const [splashAnimationDone, setSplashAnimationDone] = useState(false);
 
   useEffect(() => {
     async function setupNotifications() {
@@ -160,16 +168,26 @@ function AppContent() {
     return () => subscription.remove();
   }, []);
 
+  const showSplashScreen = !isReady || loading || !splashAnimationDone;
+  const splashVisible = !isReady || loading;
+
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="login-callback" />
         <Stack.Screen name="settings" options={{ presentation: 'card' }} />
         <Stack.Screen name="about" options={{ presentation: 'card' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
+      {showSplashScreen && (
+        <CustomSplashScreen
+          visible={splashVisible}
+          onAnimationComplete={() => setSplashAnimationDone(true)}
+        />
+      )}
     </>
   );
 }

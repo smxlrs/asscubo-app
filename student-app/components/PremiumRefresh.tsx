@@ -17,6 +17,7 @@ import { useTheme } from '../context/ThemeContext';
 export interface PremiumRefreshProps {
   refreshing: boolean;
   onRefresh: () => void | Promise<void>;
+  topInset?: number;
 }
 
 export type PremiumScrollViewProps = ScrollViewProps & PremiumRefreshProps;
@@ -28,10 +29,12 @@ function RefreshHeader({
   pullAnim,
   refreshState,
   colors,
+  topInset = 0,
 }: {
   pullAnim: Animated.Value;
   refreshState: RefreshState;
   colors: any;
+  topInset?: number;
 }) {
   const spinAnim = useRef(new Animated.Value(0)).current;
   const successAnim = useRef(new Animated.Value(0)).current;
@@ -146,7 +149,7 @@ function RefreshHeader({
   // Translate header down from offscreen to top of view
   const headerTranslateY = pullAnim.interpolate({
     inputRange: [0, 60, 100],
-    outputRange: [-50, 15, 35],
+    outputRange: [-50 + topInset, 15 + topInset, 35 + topInset],
     extrapolate: 'clamp',
   });
 
@@ -239,7 +242,7 @@ function RefreshHeader({
 }
 
 export const PremiumScrollView = React.forwardRef<ScrollView, PremiumScrollViewProps>(
-  ({ refreshing, onRefresh, children, ...props }, ref) => {
+  ({ refreshing, onRefresh, children, topInset, ...props }, ref) => {
     const { colors } = useTheme();
     const pullAnim = useRef(new Animated.Value(0)).current;
     const [refreshState, setRefreshState] = useState<RefreshState>('idle');
@@ -335,7 +338,7 @@ export const PremiumScrollView = React.forwardRef<ScrollView, PremiumScrollViewP
 
     return (
       <View style={styles.container} {...panResponder.panHandlers}>
-        <RefreshHeader pullAnim={pullAnim} refreshState={refreshState} colors={colors} />
+        <RefreshHeader pullAnim={pullAnim} refreshState={refreshState} colors={colors} topInset={topInset} />
         <ScrollView
           ref={ref}
           scrollEventThrottle={16}
@@ -350,7 +353,7 @@ export const PremiumScrollView = React.forwardRef<ScrollView, PremiumScrollViewP
 );
 
 export const PremiumFlatList = React.forwardRef<FlatList, PremiumFlatListProps<any>>(
-  ({ refreshing, onRefresh, ...props }, ref) => {
+  ({ refreshing, onRefresh, topInset, ...props }, ref) => {
     const { colors } = useTheme();
     const pullAnim = useRef(new Animated.Value(0)).current;
     const [refreshState, setRefreshState] = useState<RefreshState>('idle');
@@ -444,7 +447,7 @@ export const PremiumFlatList = React.forwardRef<FlatList, PremiumFlatListProps<a
 
     return (
       <View style={styles.container} {...panResponder.panHandlers}>
-        <RefreshHeader pullAnim={pullAnim} refreshState={refreshState} colors={colors} />
+        <RefreshHeader pullAnim={pullAnim} refreshState={refreshState} colors={colors} topInset={topInset} />
         <FlatList
           ref={ref}
           scrollEventThrottle={16}

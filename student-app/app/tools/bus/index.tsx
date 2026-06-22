@@ -175,14 +175,14 @@ const getMapHtml = (isDark: boolean) => `
       font-weight: bold;
       font-size: 14px;
     }
-    /* Custom Attribution Styling positioned in top-right */
+    /* Custom Attribution Styling positioned in bottom-left */
     .leaflet-control-attribution {
-      background: rgba(255, 255, 255, 0.8) !important;
-      color: #333333 !important;
+      background: rgba(255, 255, 255, 0.85) !important;
+      color: #444444 !important;
       padding: 3px 8px !important;
       border-radius: 6px !important;
-      margin-right: 10px !important;
-      margin-top: 10px !important;
+      margin-left: 10px !important;
+      margin-bottom: 24px !important;
       font-size: 10px !important;
       box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
       border: 1px solid rgba(0,0,0,0.05) !important;
@@ -230,12 +230,12 @@ const getMapHtml = (isDark: boolean) => `
 <body>
   <div id="map"></div>
   <script>
-    // Initialize map centered in Bologna (with disabled zoom control and disabled default attribution control so we can add it custom positioned in top-right)
-    var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([44.4949, 11.3426], 15);
+    // Initialize map centered in Bologna (with disabled zoom control and enabled default attribution control)
+    var map = L.map('map', { zoomControl: false, attributionControl: true }).setView([44.4949, 11.3426], 15);
     
-    // Create custom attribution control, assign it to map.attributionControl so layers can register their attributions, and add to map
-    map.attributionControl = L.control.attribution({ position: 'topright' });
-    map.attributionControl.addTo(map);
+    // Position default attribution control in bottom-left and disable Leaflet prefix
+    map.attributionControl.setPosition('bottomleft');
+    map.attributionControl.setPrefix(false);
 
     // Google Maps Roadmap tile layer (clean, high-definition road rendering with retina scaling)
     var tileUrl = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';

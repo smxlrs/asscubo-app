@@ -3,6 +3,7 @@ import { BlurView } from 'expo-blur';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, Image, ActivityIndicator, Animated, Easing, Modal, TextInput, Platform,
+  Dimensions, Pressable
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -572,7 +573,7 @@ export default function HomeScreen() {
             refreshing={refreshing} 
             onRefresh={onRefresh} 
             tintColor={colors.primary} 
-            progressViewOffset={insets.top + 20}
+            progressViewOffset={Platform.OS === 'android' ? insets.top + 80 : undefined}
           />
         }
       >
@@ -964,7 +965,7 @@ export default function HomeScreen() {
       </Modal>
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? insets.top + 15 : insets.top + 56 }] : styles.toastContainer, 
+          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? insets.top + 15 : insets.top + 84 }] : styles.toastContainer, 
           { 
             opacity: toastFade,
             backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
@@ -979,20 +980,7 @@ export default function HomeScreen() {
           )}
         </Animated.View>
       )}
-      {/* Top Status Bar Blur Mask */}
-      <View style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: insets.top,
-        zIndex: 999,
-        backgroundColor: isDark ? 'rgba(10, 10, 10, 0.4)' : 'rgba(245, 247, 250, 0.4)',
-      }}>
-        {Platform.OS === 'ios' && (
-          <BlurView tint={isDark ? 'dark' : 'extraLight'} intensity={90} style={StyleSheet.absoluteFill} />
-        )}
-      </View>
+
     </LinearGradient>
   );
 }

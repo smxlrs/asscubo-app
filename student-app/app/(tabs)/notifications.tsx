@@ -268,7 +268,12 @@ export default function NotificationsScreen() {
           }}
           onEndReachedThreshold={0.2}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              tintColor={colors.primary} 
+              progressViewOffset={Platform.OS === 'android' ? 0 : undefined}
+            />
           }
           ListFooterComponent={
             loadingMore ? <ActivityIndicator style={{ paddingVertical: 12 }} color={colors.primary} /> : null
@@ -344,7 +349,7 @@ export default function NotificationsScreen() {
       )}
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? 120 : 138 }] : styles.toastContainer, 
+          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? 120 : 162 }] : styles.toastContainer, 
           { 
             opacity: toastFade,
             backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,

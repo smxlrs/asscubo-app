@@ -25,6 +25,7 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -81,13 +82,18 @@ export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
 
   const handleRegister = async () => {
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !confirmPassword) {
       setErrorMsg(t('fillRequiredFields'));
       return;
     }
 
     if (password.length < 6) {
       setErrorMsg(t('passwordTooShort'));
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg(t('passwordsDoNotMatch'));
       return;
     }
 
@@ -120,12 +126,32 @@ export default function RegisterScreen() {
           <MaterialCommunityIcons name="email-open-outline" size={44} color={colors.primary} />
         </View>
         <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t('successRegTitle')}</Text>
+        
         <Text style={[styles.successText, { color: colors.textPrimary }]}>
-          {t('successRegText')}
+          {language === 'zh' || language === 'zh-Hant' ? '已向以下邮箱发送了验证邮件：' :
+           language === 'it' ? 'Abbiamo inviato un\'email di verifica a:' :
+           'A verification email has been sent to:'}
         </Text>
+
+        <View style={[styles.emailDisplayContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.emailDisplayText, { color: colors.textPrimary }]}>
+            {email.trim()}
+          </Text>
+        </View>
+
         <Text style={[styles.successSubtext, { color: colors.textSecondary }]}>
-          {t('successRegSubtext')}
+          {language === 'zh' || language === 'zh-Hant' ? '请打开邮件并点击其中的验证链接激活账户。验证成功后，即可登录。' :
+           language === 'it' ? 'Apri l\'email e clicca sul link di verifica per attivare il tuo account. Dopo la verifica potrai accedere.' :
+           'Please open the email and click the verification link to activate your account. Once verified, you can sign in.'}
         </Text>
+
+        <Text style={[styles.spamWarningText, { color: colors.textSecondary }]}>
+          {language === 'zh' || language === 'zh-Hant' ? '💡 提示：若未收到邮件，请检查您的【垃圾箱】或【垃圾邮件】文件夹。' :
+           language === 'it' ? '💡 Nota: Se non ricevi l\'email, controlla la cartella 【Spam】 o 【Posta indesiderata】.' :
+           '💡 Note: If you do not receive the email, please check your 【Spam】 or 【Junk】 folder.'}
+        </Text>
+
+        <View style={{ height: 20 }} />
 
         <Pressable 
           style={[styles.resendButton, { borderColor: colors.border }, resendCountdown > 0 && { opacity: 0.6 }]}
@@ -141,11 +167,14 @@ export default function RegisterScreen() {
           )}
         </Pressable>
 
-        <Link href="/(auth)/login" asChild>
-          <Pressable style={[styles.successButton, { backgroundColor: colors.primary, marginTop: 12 }]}>
-            <Text style={styles.successButtonText}>{t('backToLogin')}</Text>
-          </Pressable>
-        </Link>
+        <Pressable 
+          style={{ marginTop: 12, paddingVertical: 10, paddingHorizontal: 20 }}
+          onPress={() => router.replace('/(auth)/login')}
+        >
+          <Text style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>
+            {t('backToLogin')}
+          </Text>
+        </Pressable>
       </View>
     );
   }
@@ -225,6 +254,19 @@ export default function RegisterScreen() {
                     placeholderTextColor={colors.textMuted}
                     value={password}
                     onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('confirmPasswordLabel')}</Text>
+                  <TextInput 
+                    style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+                    placeholder={t('confirmPasswordPlaceholder')}
+                    placeholderTextColor={colors.textMuted}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
                     secureTextEntry
                     autoCapitalize="none"
                   />
@@ -459,5 +501,26 @@ const styles = StyleSheet.create({
   resendButtonText: {
     fontSize: 15,
     fontWeight: '600',
+  },
+  emailDisplayContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  emailDisplayText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  spamWarningText: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: 8,
+    paddingHorizontal: 12,
   },
 });
