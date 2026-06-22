@@ -65,14 +65,6 @@ jobs:
       - name: 🔧 Install EAS CLI
         run: npm install -g eas-cli@latest
 
-      - name: ☕ Setup JDK 17
-        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
       - name: 🔑 Verify Expo login
         working-directory: student-app
         env:
@@ -130,6 +122,14 @@ jobs:
             echo "version=${VER}" >> $GITHUB_OUTPUT
             echo "create_release=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: ☕ Setup JDK 17
+        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
 
       # ── Android ──────────────────────────────────────────────
       - name: 🤖 Build Android (Local)
