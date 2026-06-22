@@ -248,7 +248,7 @@ const CITIES = [
 
 export default function HomeScreen() {
   const { user, profile } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, tabBarStyle } = useTheme();
   const insets = useSafeAreaInsets();
 
   const [selectedCity, setSelectedCity] = useState(CITIES[0]);
@@ -565,6 +565,7 @@ export default function HomeScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: tabBarStyle === 'glassmorphism' ? 110 : 24 }}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 

@@ -379,7 +379,7 @@ function DraggableCard({
 }
 
 export default function ToolsScreen() {
-  const { colors, t } = useTheme();
+  const { colors, t, tabBarStyle } = useTheme();
   const [eurToCny, setEurToCny] = useState<number>(7.8256);
   const [toolOrder, setToolOrder] = useState<string[]>(['handbook', 'dictionary', 'rate', 'classroom', 'train', 'bus', 'studyroom', 'links']);
   const [isEditing, setIsEditing] = useState(false);
@@ -471,7 +471,7 @@ export default function ToolsScreen() {
           ref={scrollViewRef as any}
           onScroll={scrollHandler}
           scrollEventThrottle={16}
-          contentContainerStyle={styles.scrollContent} 
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarStyle === 'glassmorphism' ? 110 : 30 }]} 
           showsVerticalScrollIndicator={false}
           scrollEnabled={scrollEnabled}
           onLayout={(e) => {
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 30,
+    paddingBottom: 110,
   },
   headerRow: {
     flexDirection: 'row',

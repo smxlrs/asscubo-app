@@ -38,6 +38,8 @@ type ThemeContextType = {
   setCustomEnd: (time: string) => Promise<void>;
   setLanguage: (lang: LanguageMode) => Promise<void>;
   isReady: boolean;
+  tabBarStyle: 'traditional' | 'glassmorphism';
+  setTabBarStyle: (style: 'traditional' | 'glassmorphism') => Promise<void>;
 };
 
 const darkColors = {
@@ -98,6 +100,9 @@ const translations: Record<Language, Record<string, string>> = {
     confirm: '确定',
     languageSetting: '语言设置',
     themeSetting: '主题模式',
+    tabBarSetting: '底栏样式',
+    tabBarTraditional: '传统',
+    tabBarGlassmorphism: '液态玻璃',
     appInfo: '平台简介',
     contactUs: '联系我们',
     officialWebsite: '官方网站',
@@ -200,6 +205,9 @@ const translations: Record<Language, Record<string, string>> = {
     confirm: 'Confirm',
     languageSetting: 'Language',
     themeSetting: 'Theme Mode',
+    tabBarSetting: 'Tab Bar Style',
+    tabBarTraditional: 'Traditional',
+    tabBarGlassmorphism: 'Liquid Glass',
     appInfo: 'App Info',
     contactUs: 'Contact Us',
     officialWebsite: 'Official Website',
@@ -302,6 +310,9 @@ const translations: Record<Language, Record<string, string>> = {
     confirm: 'Conferma',
     languageSetting: 'Lingua',
     themeSetting: 'Tema',
+    tabBarSetting: 'Stile Barra Tab',
+    tabBarTraditional: 'Tradizionale',
+    tabBarGlassmorphism: 'Vetro Liquido',
     appInfo: 'Info sul Progetto',
     contactUs: 'Contattaci',
     officialWebsite: 'Sito Ufficiale',
@@ -404,6 +415,9 @@ const translations: Record<Language, Record<string, string>> = {
     confirm: '確定',
     languageSetting: '語言設置',
     themeSetting: '主題模式',
+    tabBarSetting: '底欄樣式',
+    tabBarTraditional: '傳統',
+    tabBarGlassmorphism: '液態玻璃',
     appInfo: '平台簡介',
     contactUs: '聯繫我們',
     officialWebsite: '官方網站',
@@ -525,6 +539,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [customStart, setCustomStartState] = useState('20:00');
   const [customEnd, setCustomEndState] = useState('07:00');
   const [languageMode, setLanguageModeState] = useState<LanguageMode>('system');
+  const [tabBarStyle, setTabBarStyleState] = useState<'traditional' | 'glassmorphism'>('glassmorphism');
   const [isReady, setIsReady] = useState(false);
   const [tick, setTick] = useState(0);
 
@@ -538,10 +553,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const savedEnd = await safeStorage.getItem('custom_end');
         const savedLang = await safeStorage.getItem('language'); // Legacy
         const savedLangMode = await safeStorage.getItem('language_mode');
+        const savedTabBarStyle = await safeStorage.getItem('tab_bar_style');
 
         if (savedMode) setThemeModeState(savedMode as ThemeMode);
         if (savedStart) setCustomStartState(savedStart);
         if (savedEnd) setCustomEndState(savedEnd);
+        if (savedTabBarStyle) setTabBarStyleState(savedTabBarStyle as 'traditional' | 'glassmorphism');
 
         let initialMode: LanguageMode = 'system';
         if (savedLangMode) {
@@ -625,6 +642,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await safeStorage.setItem('language_mode', mode);
   };
 
+  const setTabBarStyle = async (style: 'traditional' | 'glassmorphism') => {
+    setTabBarStyleState(style);
+    await safeStorage.setItem('tab_bar_style', style);
+  };
+
   if (!isReady) {
     return <View style={{ flex: 1, backgroundColor: systemScheme === 'dark' ? '#0A0A0A' : '#F5F7FA' }} />;
   }
@@ -643,7 +665,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setCustomStart,
       setCustomEnd,
       setLanguage,
-      isReady
+      isReady,
+      tabBarStyle,
+      setTabBarStyle
     }}>
       {children}
     </ThemeContext.Provider>

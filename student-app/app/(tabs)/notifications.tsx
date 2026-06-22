@@ -29,7 +29,7 @@ const CATEGORY_DETAILS = {
 };
 
 export default function NotificationsScreen() {
-  const { colors, isDark, t } = useTheme();
+  const { colors, isDark, t, tabBarStyle } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -259,7 +259,7 @@ export default function NotificationsScreen() {
         <FlatList
           data={filteredNotifications}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: tabBarStyle === 'glassmorphism' ? 110 : 20 }]}
           showsVerticalScrollIndicator={false}
           onEndReached={() => {
             if (hasMore && !loadingMore) {
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 20,
+    paddingBottom: 110,
     gap: 12,
   },
   empty: {

@@ -1,10 +1,8 @@
 import { Tabs } from 'expo-router';
-import { View, Text, Animated, StyleSheet, Easing, Pressable, Platform } from 'react-native';
+import { View, Text, Animated, StyleSheet, Easing, Pressable } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useRef, useEffect, useState } from 'react';
-import { BlurView } from 'expo-blur';
-
 
 function interpolateColorJS(value: number, color1: string, color2: string): string {
   const hex = (c: string) => {
@@ -37,8 +35,6 @@ function interpolateColorJS(value: number, color1: string, color2: string): stri
 }
 
 function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { label: string; iconName: string; focused: boolean; activeColor: string; inactiveColor: string }) {
-  const { tabBarStyle } = useTheme();
-  const USE_GLASSMORPHISM = tabBarStyle === 'glassmorphism';
   let name = focused ? iconName : `${iconName}-outline`;
   if (iconName === 'newspaper' && !focused) {
     name = 'newspaper-variant-outline';
@@ -99,7 +95,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
   }, [inactiveColor, activeColor]);
 
   return (
-    <View style={[styles.tabIconContainer, USE_GLASSMORPHISM && { paddingTop: 6 }]}>
+    <View style={styles.tabIconContainer}>
       <View style={styles.iconWrapper}>
         {/* Capsule Highlight Pill Background */}
         <Animated.View 
@@ -135,46 +131,21 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
 }
 
 export default function TabsLayout() {
-  const { colors, t, isDark, tabBarStyle } = useTheme();
-  const USE_GLASSMORPHISM = tabBarStyle === 'glassmorphism';
-
-  const tabStyle = USE_GLASSMORPHISM ? {
-    position: 'absolute' as const,
-    bottom: Platform.OS === 'ios' ? 24 : 16,
-    left: 20,
-    right: 20,
-    borderRadius: 24,
-    height: 72,
-    backgroundColor: Platform.OS === 'ios' ? 'transparent' : (isDark ? 'rgba(20, 20, 20, 0.85)' : 'rgba(255, 255, 255, 0.85)'),
-    borderWidth: 1.5,
-    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.15)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: isDark ? 0.35 : 0.08,
-    shadowRadius: 18,
-    elevation: 8,
-    overflow: 'hidden' as const,
-    paddingBottom: 0,
-  } : {
-    backgroundColor: colors.surface,
-    borderTopWidth: 0,
-    elevation: 0,
-    shadowOpacity: 0,
-    height: 76,
-    paddingBottom: 0,
-  };
+  const { colors, t } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: tabStyle,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
+          height: 76,
+          paddingBottom: 0,
+        },
         tabBarShowLabel: false,
-        tabBarBackground: USE_GLASSMORPHISM ? () => (
-          Platform.OS === 'ios' ? (
-            <BlurView tint={isDark ? 'dark' : 'light'} intensity={85} style={StyleSheet.absoluteFill} />
-          ) : undefined
-        ) : undefined,
         tabBarButton: (props) => {
           const { ref, style, ...rest } = props as any;
           return (

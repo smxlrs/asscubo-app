@@ -8,7 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const { user, profile } = useAuth();
-  const { colors, t } = useTheme();
+  const { colors, t, tabBarStyle } = useTheme();
 
   const navigateToLogin = () => {
     router.push('/(auth)/login');
@@ -16,7 +16,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarStyle === 'glassmorphism' ? 110 : 20 }]}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{t('profile')}</Text>
         
         {user ? (
@@ -99,6 +99,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingBottom: 110,
   },
   title: {
     fontSize: 26,
