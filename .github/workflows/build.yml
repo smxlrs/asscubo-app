@@ -131,6 +131,12 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: 🔧 Configure Gradle Memory
+        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+UseG1GC" > ~/.gradle/gradle.properties
+
       # ── Android ──────────────────────────────────────────────
       - name: 🤖 Build Android (Local)
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
