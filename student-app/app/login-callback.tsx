@@ -9,8 +9,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginCallback() {
-  const { colors, isDark } = useTheme();
-  const [statusMessage, setStatusMessage] = useState('正在验证您的账户，请稍候...');
+  const { colors, isDark, t } = useTheme();
+  const [statusMessage, setStatusMessage] = useState(t('verifyingAccount'));
   const [errorOccurred, setErrorOccurred] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [verificationSuccess, setVerificationSuccess] = useState(false);
@@ -35,7 +35,7 @@ export default function LoginCallback() {
     async function triggerSuccess() {
       if (active) {
         setVerificationSuccess(true);
-        setStatusMessage('验证成功！');
+        setStatusMessage(t('verificationSuccessMsg'));
         if (safetyTimer) {
           clearTimeout(safetyTimer);
         }
@@ -141,7 +141,7 @@ export default function LoginCallback() {
 
       // 2. Check for errors passed in query params
       if (queryParams && queryParams.error) {
-        const errMsg = queryParams.error_description || queryParams.error || '验证失败';
+        const errMsg = queryParams.error_description || queryParams.error || t('verificationFailed');
         triggerFailure(decodeURIComponent(errMsg as string));
         return;
       }
@@ -149,7 +149,7 @@ export default function LoginCallback() {
       try {
         // Case 1: PKCE flow (auth code in query parameters)
         if (queryParams && typeof queryParams.code === 'string') {
-          if (active) setStatusMessage('正在激活账户会话...');
+          if (active) setStatusMessage(t('activatingSession'));
           const { error } = await supabase.auth.exchangeCodeForSession(queryParams.code);
           if (error) {
             const isAlreadyConsumed = error.message?.toLowerCase().includes('session') || 
@@ -206,7 +206,7 @@ export default function LoginCallback() {
         }
 
         if (accessToken && refreshToken) {
-          if (active) setStatusMessage('正在建立安全会话...');
+          if (active) setStatusMessage(t('establishingSession'));
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
@@ -239,13 +239,13 @@ export default function LoginCallback() {
           }
           await triggerSuccess();
         } else {
-          throw new Error('验证链接已失效或不完整。如果您已经激活过账户，请尝试直接登录。');
+          throw new Error(t('linkInvalidOrIncomplete'));
         }
 
       } catch (e: any) {
         console.error('Auth callback error:', e);
         const friendlyMsg = e.message?.includes('expired') || e.message?.includes('invalid')
-          ? '验证链接已失效或已被使用。如果您已激活过账户，请直接登录；否则请尝试重新发送验证邮件。'
+          ? t('linkConsumedOrExpired')
           : (e.message || '账户验证过程中出错');
         triggerFailure(friendlyMsg);
       }
@@ -256,7 +256,7 @@ export default function LoginCallback() {
     // Safety timeout in case callback processing stalls (e.g. network issue)
     safetyTimer = setTimeout(() => {
       if (active && !verificationSuccess && !errorOccurred) {
-        triggerFailure('验证请求响应超时，可能由于网络连接较差。请确保网络畅通后重试，或尝试直接登录。');
+        triggerFailure(t('verificationTimeout'));
       }
     }, 15000);
 
@@ -281,13 +281,12 @@ export default function LoginCallback() {
             <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={54} color="#4CAF50" />
           </View>
           
-          <Text style={[styles.title, { color: colors.textPrimary }]}>认证成功！</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t('authSuccess')}</Text>
           
           {hasActiveSession ? (
             <>
               <Text style={[styles.description, { color: colors.textSecondary }]}>
-                您的账户已成功激活并自动登录！{'\n'}
-                正在为您跳转至首页...
+                {t('accountActivatedAutoLogin')}
               </Text>
               
               <TouchableOpacity
@@ -298,15 +297,14 @@ export default function LoginCallback() {
                 activeOpacity={0.85}
               >
                 <View style={[styles.buttonBg, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.buttonText}>进入应用</Text>
+                  <Text style={styles.buttonText}>{t('enterApp')}</Text>
                 </View>
               </TouchableOpacity>
             </>
           ) : (
             <>
               <Text style={[styles.description, { color: colors.textSecondary }]}>
-                您的账户已成功激活！{'\n'}
-                现在可以使用注册的账号和密码登录应用。
+                {t('verifySuccessDesc')}
               </Text>
               
               <TouchableOpacity
@@ -318,7 +316,7 @@ export default function LoginCallback() {
                 activeOpacity={0.85}
               >
                 <View style={[styles.buttonBg, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.buttonText}>前往登录</Text>
+                  <Text style={styles.buttonText}>{t('goToLogin')}</Text>
                 </View>
               </TouchableOpacity>
             </>
@@ -341,10 +339,10 @@ export default function LoginCallback() {
             <MaterialCommunityIcons name="alert-circle-outline" size={54} color={colors.error} />
           </View>
           
-          <Text style={[styles.title, { color: colors.textPrimary }]}>出了点问题</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t('somethingWentWrong')}</Text>
           
           <Text style={[styles.description, { color: colors.textSecondary }]}>
-            {errorMessage || '无法完成账户激活，请确认验证链接是否有效。'}
+            {errorMessage || t('fallbackActivationError')}
           </Text>
           
           <TouchableOpacity
@@ -355,7 +353,7 @@ export default function LoginCallback() {
             activeOpacity={0.85}
           >
             <View style={[styles.buttonBg, { backgroundColor: colors.primary }]}>
-              <Text style={styles.buttonText}>返回登录</Text>
+              <Text style={styles.buttonText}>{t('backToLogin')}</Text>
             </View>
           </TouchableOpacity>
         </View>

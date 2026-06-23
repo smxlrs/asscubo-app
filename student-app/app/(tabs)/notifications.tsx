@@ -50,7 +50,7 @@ export default function NotificationsScreen() {
     setToastMsg(msg);
     toastFade.setValue(0);
     
-    const isSuccess = msg === '刷新成功';
+    const isSuccess = msg === 'refresh_success';
     const fadeInDuration = isSuccess ? 150 : 250;
     const keepDuration = isSuccess ? 1000 : 2000;
     const fadeOutDuration = 250;
@@ -118,7 +118,7 @@ export default function NotificationsScreen() {
         const mapped = data.map((item: any) => ({
           id: item.id,
           title: item.title,
-          content: item.summary || '查看文章详情',
+          content: item.summary || t('viewArticleDetail'),
           category: item.category || 'general',
           link: item.link || undefined,
           cover_image: item.cover_image || undefined,
@@ -144,7 +144,7 @@ export default function NotificationsScreen() {
       loadingMoreRef.current = false;
       if (isRefresh && showToast) {
         setTimeout(() => {
-          triggerToast('刷新成功');
+          triggerToast('refresh_success');
         }, 150);
       }
     }
@@ -218,7 +218,7 @@ export default function NotificationsScreen() {
         <View style={styles.searchBarContainer}>
           <TextInput
             style={[styles.searchInput, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-            placeholder="搜索文章..."
+            placeholder={t('searchArticlesPlaceholder')}
             placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -235,7 +235,7 @@ export default function NotificationsScreen() {
             onPress={() => setSelectedFilter('all')}
           >
             <Text style={[styles.filterText, { color: selectedFilter === 'all' ? colors.primaryLight : colors.textSecondary }]}>
-              全部
+              {t('category_all')}
             </Text>
           </Pressable>
           {Object.entries(CATEGORY_DETAILS).map(([key, value]) => (
@@ -245,7 +245,7 @@ export default function NotificationsScreen() {
               onPress={() => setSelectedFilter(key)}
             >
               <Text style={[styles.filterText, { color: selectedFilter === key ? value.color : colors.textSecondary }]}>
-                {value.label}
+                {t('category_' + key)}
               </Text>
             </Pressable>
           ))}
@@ -300,13 +300,13 @@ export default function NotificationsScreen() {
                     {item.is_pinned && (
                       <View style={[styles.badge, { backgroundColor: '#F59E0B20' }]}>
                         <MaterialCommunityIcons name="pin" size={14} color="#F59E0B" style={styles.badgeIcon} />
-                        <Text style={[styles.badgeText, { color: '#F59E0B' }]}>置顶</Text>
+                        <Text style={[styles.badgeText, { color: '#F59E0B' }]}>{t('featured')}</Text>
                       </View>
                     )}
                     {showBadge ? (
                       <View style={[styles.badge, { backgroundColor: details.color + '15' }]}>
                         <MaterialCommunityIcons name={details.icon as any} size={14} color={details.color} style={styles.badgeIcon} />
-                        <Text style={[styles.badgeText, { color: details.color }]}>{details.label}</Text>
+                        <Text style={[styles.badgeText, { color: details.color }]}>{t('category_' + item.category)}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -339,7 +339,7 @@ export default function NotificationsScreen() {
                 {!item.link && item.content.length > 80 && (
                   <View style={styles.cardFooter}>
                     <Text style={[styles.footerLinkText, { color: colors.textMuted }]}>
-                      {isExpanded ? '收起详情' : '展开阅读'}
+                      {isExpanded ? t('collapseDetails') : t('expandReading')}
                     </Text>
                     <MaterialCommunityIcons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.textMuted} />
                   </View>
@@ -351,18 +351,18 @@ export default function NotificationsScreen() {
       )}
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? 136 : 178 }] : styles.toastContainer, 
+          toastMsg === 'refresh_success' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? 136 : 178 }] : styles.toastContainer, 
           { 
             opacity: toastFade,
-            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
-            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
-            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+            backgroundColor: toastMsg === 'refresh_success' ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === 'refresh_success' ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === 'refresh_success' ? 0 : 1,
           }
         ]}>
-          {toastMsg === '刷新成功' ? (
+          {toastMsg === 'refresh_success' ? (
             <MaterialCommunityIcons name="check" size={24} color={colors.primary} />
           ) : (
-            <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>
+            <Text style={[styles.toastText, { color: colors.primary }]}>{t(toastMsg)}</Text>
           )}
         </Animated.View>
       )}

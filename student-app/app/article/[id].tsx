@@ -14,9 +14,42 @@ type ArticleData = {
   created_at: string;
 };
 
+const LOCALIZED = {
+  zh: {
+    articleDetails: '文章详情',
+    articleNotFound: '文章不存在或已被删除',
+    publishDate: '发布日期：',
+    details: '详情',
+  },
+  'zh-Hant': {
+    articleDetails: '文章詳情',
+    articleNotFound: '文章不存在或已被刪除',
+    publishDate: '發布日期：',
+    details: '詳情',
+  },
+  en: {
+    articleDetails: 'Article Details',
+    articleNotFound: 'Article does not exist or has been deleted',
+    publishDate: 'Published: ',
+    details: 'Details',
+  },
+  it: {
+    articleDetails: 'Dettagli Articolo',
+    articleNotFound: 'L\'articolo non esiste o è stato eliminato',
+    publishDate: 'Data di pubblicazione: ',
+    details: 'Dettagli',
+  }
+};
+
+const getLocalDateString = (dateStr: string, lang: string) => {
+  const locale = lang === 'it' ? 'it-IT' : lang === 'en' ? 'en-US' : lang === 'zh-Hant' ? 'zh-TW' : 'zh-CN';
+  return new Date(dateStr).toLocaleDateString(locale);
+};
+
 export default function ArticleDetailScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, t, language } = useTheme();
   const { id, url, title: queryTitle } = useLocalSearchParams<{ id: string; url?: string; title?: string }>();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   
   const [loading, setLoading] = useState(true);
   const [article, setArticle] = useState<ArticleData | null>(null);
@@ -27,7 +60,7 @@ export default function ArticleDetailScreen() {
         // Direct WebURL Mode (e.g. clicked notification link)
         if (url) {
           setArticle({
-            title: queryTitle || '文章详情',
+            title: queryTitle || localized.articleDetails,
             category: 'general',
             content: null,
             link: url,
@@ -43,6 +76,7 @@ export default function ArticleDetailScreen() {
           .from('articles')
           .select('*')
           .eq('id', id)
+          .eq('is_published', true)
           .maybeSingle();
 
         if (data) {
@@ -76,7 +110,7 @@ export default function ArticleDetailScreen() {
     }
 
     loadArticle();
-  }, [id, url, queryTitle]);
+  }, [id, url, queryTitle, language]);
 
   if (loading) {
     return (
@@ -89,9 +123,9 @@ export default function ArticleDetailScreen() {
   if (!article) {
     return (
       <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <Text style={{ color: colors.textSecondary }}>文章不存在或已被删除</Text>
+        <Text style={{ color: colors.textSecondary }}>{localized.articleNotFound}</Text>
         <Pressable style={[styles.backTextButton, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
-          <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>返回</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>{t('back')}</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -243,10 +277,10 @@ export default function ArticleDetailScreen() {
       <body>
         <h1>${article.title}</h1>
         <div class="meta">
-          发布日期：${new Date(article.created_at).toLocaleDateString('zh-CN')}
+          ${localized.publishDate}${getLocalDateString(article.created_at, language)}
         </div>
         <div>
-          ${article.content || '<p>暂无内容</p>'}
+          ${article.content || `<p>${t('noContent') || '暂无内容'}</p>`}
         </div>
       </body>
     </html>
@@ -260,7 +294,7 @@ export default function ArticleDetailScreen() {
           <View style={[styles.backArrow, { borderColor: colors.primaryLight }]} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-          详情
+          {localized.details}
         </Text>
         <View style={styles.headerPlaceholder} />
       </View>

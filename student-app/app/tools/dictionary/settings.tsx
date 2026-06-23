@@ -10,7 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useTheme } from '../../../context/ThemeContext';
+import { useTheme, Language } from '../../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import {
@@ -19,8 +19,63 @@ import {
   DictionaryInfo,
 } from '../../../lib/db';
 
+const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
+  zh: {
+    title: '词典库管理',
+    loading: '正在载入设置...',
+    installedDicts: '已安装的词典库 ({count} 个)',
+    listDesc: '点击右侧开关启用/禁用词典，使用上下箭头（▲/▼）调整查词时的渲染顺序。',
+    importTitle: '手动导入外部词典',
+    importDesc: '支持自定义导入符合 MDict 规范的 .mdx 词库文件。',
+    importBtn: '导入本地词典',
+    alertTitle: '导入词典库',
+    alertMsg: '自定义词典功能即将上线！\n\n未来版本中，您可以将外部购买或收集的 .mdx 格式词库文件（如朗氏、意意词典等）放入手机指定的本地文件夹中，App 将自动完成解压与索引入库。',
+    alertOk: '我知道了',
+  },
+  'zh-Hant': {
+    title: '詞典庫管理',
+    loading: '正在載入設置...',
+    installedDicts: '已安裝的詞典庫 ({count} 個)',
+    listDesc: '點擊右側開關啟用/禁用詞典，使用上下箭頭（▲/▼）調整查詞時的渲染順序。',
+    importTitle: '手動導入外部詞典',
+    importDesc: '支持自定義導入符合 MDict 規範的 .mdx 詞庫文件。',
+    importBtn: '導入本地詞典',
+    alertTitle: '導入詞典庫',
+    alertMsg: '自定義詞典功能即將上線！\n\n未來版本中，您可以將外部購買或收集看 .mdx 格式詞庫文件（如朗氏、意意詞典等）放入手機指定的本地文件夾中，App 將自動完成解壓與索引入庫。',
+    alertOk: '我知道了',
+  },
+  en: {
+    title: 'Dictionary Management',
+    loading: 'Loading settings...',
+    installedDicts: 'Installed Dictionaries ({count})',
+    listDesc: 'Toggle switch to enable/disable. Use arrows (▲/▼) to reorder search results rendering.',
+    importTitle: 'Import External Dictionaries',
+    importDesc: 'Import custom .mdx dictionary files compliant with MDict specifications.',
+    importBtn: 'Import Local Dict',
+    alertTitle: 'Import Dictionary',
+    alertMsg: 'Custom dictionary import is coming soon!\n\nIn future versions, you can place external .mdx dictionaries (such as Zingarelli, Garzanti, etc.) in a designated local folder on your device. The app will automatically index and load them.',
+    alertOk: 'Got it',
+  },
+  it: {
+    title: 'Gestione Dizionari',
+    loading: 'Caricamento impostazioni...',
+    installedDicts: 'Dizionari Installati ({count})',
+    listDesc: 'Attiva/disattiva gli switch. Usa le frecce (▲/▼) per riordinare la sequenza di visualizzazione.',
+    importTitle: 'Importa Dizionari Esterni',
+    importDesc: 'Supporta l\'importazione personalizzata di file dizionario .mdx conformi alle specifiche MDict.',
+    importBtn: 'Importa Dizionario',
+    alertTitle: 'Importa Dizionario',
+    alertMsg: 'L\'importazione di dizionari personalizzati sarà presto disponibile!\n\nNelle versioni future, potrai inserire dizionari esterni .mdx (come Zingarelli, Garzanti, ecc.) in una cartella locale. L\'app li indicizzerà e li caricherà automaticamente.',
+    alertOk: 'Ho capito',
+  }
+};
+
 export default function DictionarySettingsScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, language } = useTheme();
+  const activeLang = (['zh', 'zh-Hant', 'en', 'it'].includes(language) ? language : 'zh') as Language;
+  const ls = (key: string) => {
+    return LOCALIZED_STRINGS[activeLang]?.[key] || LOCALIZED_STRINGS['zh'][key] || key;
+  };
   const [dicts, setDicts] = useState<DictionaryInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -93,9 +148,9 @@ export default function DictionarySettingsScreen() {
   // Future Manual Import dialog placeholder
   const handleManualImportPress = () => {
     Alert.alert(
-      '导入词典库',
-      '自定义词典功能即将上线！\n\n未来版本中，您可以将外部购买或收集的 .mdx 格式词库文件（如朗氏、意意词典等）放入手机指定的本地文件夹中，App 将自动完成解压和索引入库。',
-      [{ text: '我知道了', style: 'default' }]
+      ls('alertTitle'),
+      ls('alertMsg'),
+      [{ text: ls('alertOk'), style: 'default' }]
     );
   };
 
@@ -108,22 +163,22 @@ export default function DictionarySettingsScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>词典库管理</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{ls('title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <Text style={{ color: colors.textSecondary }}>正在载入设置...</Text>
+          <Text style={{ color: colors.textSecondary }}>{ls('loading')}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            已安装的词典库 ({dicts.length} 个)
+            {ls('installedDicts').replace('{count}', String(dicts.length))}
           </Text>
           <Text style={[styles.sectionSubtitle, { color: colors.textMuted }]}>
-            点击右侧开关启用/禁用词典，使用上下箭头（▲/▼）调整查词时的渲染顺序。
+            {ls('listDesc')}
           </Text>
 
           {/* Dictionaries Config List */}
@@ -214,9 +269,9 @@ export default function DictionarySettingsScreen() {
             <View style={styles.importLeft}>
               <Text style={{ fontSize: 28, marginRight: 12 }}>📁</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.importTitle, { color: colors.textPrimary }]}>手动导入外部词典</Text>
+                <Text style={[styles.importTitle, { color: colors.textPrimary }]}>{ls('importTitle')}</Text>
                 <Text style={[styles.importDesc, { color: colors.textSecondary }]}>
-                  支持自定义导入符合 MDict 规范的 .mdx 词库文件。
+                  {ls('importDesc')}
                 </Text>
               </View>
             </View>
@@ -227,7 +282,7 @@ export default function DictionarySettingsScreen() {
               ]} 
               onPress={handleManualImportPress}
             >
-              <Text style={styles.importBtnText}>导入本地词典</Text>
+              <Text style={styles.importBtnText}>{ls('importBtn')}</Text>
             </Pressable>
           </View>
 

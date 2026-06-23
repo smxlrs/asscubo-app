@@ -20,18 +20,17 @@ const { width } = Dimensions.get('window');
 
 type Currency = {
   code: string;
-  name: string;
   flag: string;
 };
 
 const CURRENCIES: Currency[] = [
-  { code: 'EUR', name: '欧元', flag: '🇪🇺' },
-  { code: 'CNY', name: '人民币', flag: '🇨🇳' },
-  { code: 'USD', name: '美元', flag: '🇺🇸' },
-  { code: 'GBP', name: '英镑', flag: '🇬🇧' },
-  { code: 'JPY', name: '日元', flag: '🇯🇵' },
-  { code: 'KRW', name: '韩元', flag: '🇰🇷' },
-  { code: 'HKD', name: '港币', flag: '🇭🇰' },
+  { code: 'EUR', flag: '🇪🇺' },
+  { code: 'CNY', flag: '🇨🇳' },
+  { code: 'USD', flag: '🇺🇸' },
+  { code: 'GBP', flag: '🇬🇧' },
+  { code: 'JPY', flag: '🇯🇵' },
+  { code: 'KRW', flag: '🇰🇷' },
+  { code: 'HKD', flag: '🇭🇰' },
 ];
 
 const DEFAULT_RATES: Record<string, number> = {
@@ -44,12 +43,100 @@ const DEFAULT_RATES: Record<string, number> = {
   HKD: 8.4721,
 };
 
+const LOCALIZED = {
+  zh: {
+    title: '汇率换算',
+    defaultRates: '使用默认汇率',
+    refreshSuccess: '刷新成功',
+    invalidData: '⚠ 汇率数据异常',
+    offlineMode: '离线模式 (默认汇率)',
+    updateFail: '⚠ 汇率更新失败，请检查网络',
+    updatedAt: '更新于',
+    dataSource: '数据来源：ExchangeRate-API',
+    benchmarkLabel: '实时行情基准 ({name}兑人民币)',
+    inputSource: '输入源',
+    collapseKeyboard: '收起键盘 ▾',
+    reset: '重置',
+    eur: '欧元',
+    cny: '人民币',
+    usd: '美元',
+    gbp: '英镑',
+    jpy: '日元',
+    krw: '韩元',
+    hkd: '港币',
+  },
+  'zh-Hant': {
+    title: '匯率換算',
+    defaultRates: '使用默認匯率',
+    refreshSuccess: '刷新成功',
+    invalidData: '⚠ 匯率數據異常',
+    offlineMode: '離線模式 (默認匯率)',
+    updateFail: '⚠ 匯率更新失敗，請檢查網絡',
+    updatedAt: '更新於',
+    dataSource: '數據來源：ExchangeRate-API',
+    benchmarkLabel: '即時行情基準 ({name}兌人民幣)',
+    inputSource: '輸入源',
+    collapseKeyboard: '收起鍵盤 ▾',
+    reset: '重置',
+    eur: '歐元',
+    cny: '人民幣',
+    usd: '美元',
+    gbp: '英鎊',
+    jpy: '日圓',
+    krw: '韓圓',
+    hkd: '港幣',
+  },
+  en: {
+    title: 'Exchange Rate',
+    defaultRates: 'Using default rates',
+    refreshSuccess: 'Refresh successful',
+    invalidData: '⚠ Invalid rates data',
+    offlineMode: 'Offline mode (default rates)',
+    updateFail: '⚠ Failed to update, check connection',
+    updatedAt: 'Updated:',
+    dataSource: 'Source: ExchangeRate-API',
+    benchmarkLabel: 'Benchmark ({name} to CNY)',
+    inputSource: 'Input Source',
+    collapseKeyboard: 'Hide Keyboard ▾',
+    reset: 'Reset',
+    eur: 'Euro',
+    cny: 'Yuan',
+    usd: 'US Dollar',
+    gbp: 'Pound',
+    jpy: 'Yen',
+    krw: 'Won',
+    hkd: 'HK Dollar',
+  },
+  it: {
+    title: 'Tasso di Cambio',
+    defaultRates: 'Uso tassi di default',
+    refreshSuccess: 'Aggiornato con successo',
+    invalidData: '⚠ Dati tasso non validi',
+    offlineMode: 'Modalità offline (tassi di default)',
+    updateFail: '⚠ Aggiornamento fallito, verifica la rete',
+    updatedAt: 'Aggiornato il:',
+    dataSource: 'Fonte: ExchangeRate-API',
+    benchmarkLabel: 'Riferimento (da {name} a CNY)',
+    inputSource: 'Sorgente',
+    collapseKeyboard: 'Nascondi tastiera ▾',
+    reset: 'Ripristina',
+    eur: 'Euro',
+    cny: 'Yuan',
+    usd: 'Dollaro USA',
+    gbp: 'Sterlina',
+    jpy: 'Yen',
+    krw: 'Won',
+    hkd: 'Dollaro HK',
+  }
+};
+
 export default function RateConverterScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, language } = useTheme();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
 
   // Exchange rates state
   const [rates, setRates] = useState<Record<string, number>>(DEFAULT_RATES);
-  const [lastUpdated, setLastUpdated] = useState<string>('使用默认汇率');
+  const [lastUpdated, setLastUpdated] = useState<string>(localized.defaultRates);
   const [loading, setLoading] = useState<boolean>(false);
 
   // Active currency editing
@@ -76,7 +163,7 @@ export default function RateConverterScreen() {
     setToastMessage(msg);
     setToastType(type);
     
-    const isSuccess = msg === '刷新成功';
+    const isSuccess = msg === localized.refreshSuccess;
     const fadeInDuration = isSuccess ? 150 : 250;
     const keepDuration = isSuccess ? 1000 : 2000;
     const fadeOutDuration = 250;
@@ -152,24 +239,24 @@ export default function RateConverterScreen() {
         const date = new Date(data.time_last_update_unix * 1000);
         const hours = date.getHours().toString().padStart(2, '0');
         const minutes = date.getMinutes().toString().padStart(2, '0');
-        setLastUpdated(`更新于 ${date.toLocaleDateString()} ${hours}:${minutes}`);
+        setLastUpdated(`${localized.updatedAt} ${date.toLocaleDateString()} ${hours}:${minutes}`);
         
         // Recalculate values based on new rates
         recalculate(inputValues[activeCurrency] || '0', activeCurrency, data.rates);
         
         if (isManual) {
-          showToast('刷新成功');
+          showToast(localized.refreshSuccess);
         }
       } else {
         if (isManual) {
-          showToast('⚠ 汇率数据异常', 'error');
+          showToast(localized.invalidData, 'error');
         }
       }
     } catch (error) {
       console.log('Error fetching exchange rates:', error);
-      setLastUpdated('离线模式 (默认汇率)');
+      setLastUpdated(localized.offlineMode);
       if (isManual) {
-        showToast('⚠ 汇率更新失败，请检查网络', 'error');
+        showToast(localized.updateFail, 'error');
       }
     } finally {
       setLoading(false);
@@ -183,7 +270,7 @@ export default function RateConverterScreen() {
         clearTimeout(toastTimeoutRef.current);
       }
     };
-  }, []);
+  }, [language]);
 
   const recalculate = (valueStr: string, sourceCode: string, currentRates: Record<string, number>) => {
     const value = parseFloat(valueStr) || 0;
@@ -242,14 +329,14 @@ export default function RateConverterScreen() {
   const getDynamicCardInfo = () => {
     const isCny = activeCurrency === 'CNY';
     const displayCode = isCny ? 'EUR' : activeCurrency;
-    const displayName = isCny ? '欧元' : (CURRENCIES.find(c => c.code === activeCurrency)?.name || '');
+    const displayName = isCny ? localized.eur : (localized[activeCurrency.toLowerCase() as keyof typeof localized] || '');
     
     const rateToCny = isCny 
       ? (rates.CNY || DEFAULT_RATES.CNY)
       : (rates.CNY || DEFAULT_RATES.CNY) / (rates[activeCurrency] || DEFAULT_RATES[activeCurrency] || 1);
       
     return {
-      label: `实时行情基准 (${displayName}兑人民币)`,
+      label: localized.benchmarkLabel.replace('{name}', displayName),
       value: `1 ${displayCode} = ${rateToCny.toFixed(4)} CNY`
     };
   };
@@ -263,7 +350,7 @@ export default function RateConverterScreen() {
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>汇率换算</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{localized.title}</Text>
         <Pressable style={styles.refreshBtn} onPress={() => fetchRates(true)} disabled={loading}>
           {loading ? (
             <ActivityIndicator size="small" color={colors.primary} />
@@ -298,7 +385,7 @@ export default function RateConverterScreen() {
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
             <Text style={[styles.updatedText, { color: colors.textMuted }]}>{lastUpdated}</Text>
-            <Text style={{ fontSize: 11, color: colors.textMuted }}>数据来源：ExchangeRate-API</Text>
+            <Text style={{ fontSize: 11, color: colors.textMuted }}>{localized.dataSource}</Text>
           </View>
         </View>
 
@@ -326,7 +413,9 @@ export default function RateConverterScreen() {
                   <Text style={styles.flag}>{currency.flag}</Text>
                   <View style={styles.codeContainer}>
                     <Text style={[styles.codeText, { color: colors.textPrimary }]}>{currency.code}</Text>
-                    <Text style={[styles.nameText, { color: colors.textSecondary }]}>{currency.name}</Text>
+                    <Text style={[styles.nameText, { color: colors.textSecondary }]}>
+                      {localized[currency.code.toLowerCase() as keyof typeof localized]}
+                    </Text>
                   </View>
                 </View>
                 
@@ -356,10 +445,10 @@ export default function RateConverterScreen() {
       {showKeypad && (
         <View style={[styles.keypadToolbar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
           <Text style={[styles.toolbarTitle, { color: colors.textSecondary, fontSize: 12 }]}>
-            输入源: {CURRENCIES.find(c => c.code === activeCurrency)?.name || activeCurrency}
+            {localized.inputSource}: {localized[activeCurrency.toLowerCase() as keyof typeof localized] || activeCurrency}
           </Text>
           <Pressable style={styles.collapseBtn} onPress={() => setShowKeypad(false)}>
-            <Text style={[styles.collapseText, { color: colors.primary, fontSize: 13, fontWeight: '600' }]}>收起键盘 ▾</Text>
+            <Text style={[styles.collapseText, { color: colors.primary, fontSize: 13, fontWeight: '600' }]}>{localized.collapseKeyboard}</Text>
           </Pressable>
         </View>
       )}
@@ -413,7 +502,7 @@ export default function RateConverterScreen() {
                   onPress={() => isDone ? handleKeyPress('C') : handleKeyPress(key)} // Done clears back to 0 or resets
                 >
                   <Text style={[styles.keyText, { color: isDone ? '#FFF' : colors.textPrimary }]}>
-                    {isDone ? '重置' : key}
+                    {isDone ? localized.reset : key}
                   </Text>
                 </Pressable>
               );
@@ -425,17 +514,17 @@ export default function RateConverterScreen() {
        {toastMessage && (
          <Animated.View 
            style={[
-             toastMessage === '刷新成功' ? styles.checkmarkBubble : styles.toastContainer, 
+             toastMessage === localized.refreshSuccess ? styles.checkmarkBubble : styles.toastContainer, 
              { 
                opacity: fadeAnim,
-               transform: toastMessage === '刷新成功' ? [] : [{ translateY: slideAnim }],
-               backgroundColor: toastMessage === '刷新成功' ? '#FFFFFF' : colors.surface,
-               borderColor: toastMessage === '刷新成功' ? 'transparent' : (toastType === 'success' ? colors.primary : colors.error),
-               borderWidth: toastMessage === '刷新成功' ? 0 : 1,
+               transform: toastMessage === localized.refreshSuccess ? [] : [{ translateY: slideAnim }],
+               backgroundColor: toastMessage === localized.refreshSuccess ? '#FFFFFF' : colors.surface,
+               borderColor: toastMessage === localized.refreshSuccess ? 'transparent' : (toastType === 'success' ? colors.primary : colors.error),
+               borderWidth: toastMessage === localized.refreshSuccess ? 0 : 1,
              }
            ]}
          >
-           {toastMessage === '刷新成功' ? (
+           {toastMessage === localized.refreshSuccess ? (
              <MaterialIcons name="check" size={24} color={colors.primary} />
            ) : (
              <Text style={[styles.toastText, { color: toastType === 'success' ? colors.primary : colors.error }]}>{toastMessage}</Text>

@@ -7,15 +7,135 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 
+const LOCALIZED = {
+  zh: {
+    headerTitle: '个人资料',
+    baseInfo: '基本信息',
+    nickname: '昵称',
+    email: '邮箱',
+    notSet: '未设置',
+    editProfileBtn: '修改个人资料',
+    accountManage: '账号管理',
+    logout: '退出登录',
+    deleteAccount: '注销并删除账户',
+    confirmLogoutTitle: '确认退出',
+    confirmLogoutMsg: '您确定要退出登录吗？',
+    confirmDeleteTitle: '⚠️ 危险操作',
+    confirmDeleteMsg: '您确定要注销并删除您的账户吗？此操作将永久抹除您的个人资料和全部关联数据，且无法撤销！',
+    deleteVerifyTitle: '安全验证',
+    deleteVerifyMsg: '为了您的账户安全，我们需要向您的邮箱发送一个安全验证码以确认身份。',
+    sendOtp: '发送验证码',
+    sendOtpError: '发送失败',
+    sendOtpErrorMsg: '无法发送验证码，请稍后再试。',
+    enterOtpTitle: '请输入完整的 6 位验证码。',
+    otpCodeError: '验证码错误，请重新输入',
+    deleteSuccess: '注销成功',
+    deleteSuccessMsg: '您的账户及数据已被永久删除。',
+    deleteFail: '验证失败',
+    deleteFailMsg: '无法完成账户删除，请联系管理员或重试。',
+    modalTitle: '安全身份验证',
+    modalSub: '我们已向您的邮箱 {email} 发送了一个 6 位验证码，请在下方输入以确认注销账户。',
+    confirmDeleteBtn: '确认注销',
+  },
+  'zh-Hant': {
+    headerTitle: '個人資料',
+    baseInfo: '基本資訊',
+    nickname: '暱稱',
+    email: '郵箱',
+    notSet: '未設置',
+    editProfileBtn: '修改個人資料',
+    accountManage: '帳號管理',
+    logout: '退出登錄',
+    deleteAccount: '注銷並刪除帳戶',
+    confirmLogoutTitle: '確認退出',
+    confirmLogoutMsg: '您確定要退出登錄嗎？',
+    confirmDeleteTitle: '⚠️ 危險操作',
+    confirmDeleteMsg: '您確定要注銷並刪除您的帳戶嗎？此操作將永久抹除您的個人資料和全部關聯數據，且無法撤銷！',
+    deleteVerifyTitle: '安全驗證',
+    deleteVerifyMsg: '為了您的帳戶安全，我們需要向您的郵箱發送一個安全驗證碼以確認身份。',
+    sendOtp: '發送驗證碼',
+    sendOtpError: '發送失敗',
+    sendOtpErrorMsg: '無法發送驗證碼，請稍後再試。',
+    enterOtpTitle: '請輸入完整的 6 位驗證碼。',
+    otpCodeError: '驗證碼錯誤，請重新輸入',
+    deleteSuccess: '注銷成功',
+    deleteSuccessMsg: '您的帳戶及數據已被永久刪除。',
+    deleteFail: '驗證失敗',
+    deleteFailMsg: '無法完成帳戶刪除，請聯繫管理員或重試。',
+    modalTitle: '安全身份驗證',
+    modalSub: '我們已向您的郵箱 {email} 發送了一個 6 位驗證碼，請在下方輸入以確認注銷帳戶。',
+    confirmDeleteBtn: '確認注銷',
+  },
+  en: {
+    headerTitle: 'Profile Details',
+    baseInfo: 'Basic Info',
+    nickname: 'Nickname',
+    email: 'Email',
+    notSet: 'Not Set',
+    editProfileBtn: 'Edit Profile Details',
+    accountManage: 'Account Management',
+    logout: 'Logout',
+    deleteAccount: 'Delete Account',
+    confirmLogoutTitle: 'Confirm Logout',
+    confirmLogoutMsg: 'Are you sure you want to log out?',
+    confirmDeleteTitle: '⚠️ Dangerous Action',
+    confirmDeleteMsg: 'Are you sure you want to delete your account? This action will permanently erase your profile and all associated data, and cannot be undone!',
+    deleteVerifyTitle: 'Security Verification',
+    deleteVerifyMsg: 'For your account security, we need to send a verification code to your email to confirm your identity.',
+    sendOtp: 'Send Verification Code',
+    sendOtpError: 'Failed to Send',
+    sendOtpErrorMsg: 'Unable to send verification code, please try again later.',
+    enterOtpTitle: 'Please enter a complete 6-digit verification code.',
+    otpCodeError: 'Invalid code, please try again',
+    deleteSuccess: 'Account Deleted',
+    deleteSuccessMsg: 'Your account and data have been permanently deleted.',
+    deleteFail: 'Verification Failed',
+    deleteFailMsg: 'Unable to complete account deletion, please contact support or try again.',
+    modalTitle: 'Security Reauthentication',
+    modalSub: 'We have sent a 6-digit verification code to your email {email}. Please enter it below to confirm account deletion.',
+    confirmDeleteBtn: 'Confirm Deletion',
+  },
+  it: {
+    headerTitle: 'Dettagli Profilo',
+    baseInfo: 'Informazioni di Base',
+    nickname: 'Nickname',
+    email: 'Email',
+    notSet: 'Non Impostato',
+    editProfileBtn: 'Modifica Profilo',
+    accountManage: 'Gestione Account',
+    logout: 'Disconnetti',
+    deleteAccount: 'Elimina Account',
+    confirmLogoutTitle: 'Conferma Uscita',
+    confirmLogoutMsg: 'Sei sicuro di voler uscire?',
+    confirmDeleteTitle: '⚠️ Azione Pericolosa',
+    confirmDeleteMsg: 'Sei sicuro di voler eliminare il tuo account? Questa azione cancellerà permanentemente il tuo profilo e tutti i dati associati, e non può essere annullata!',
+    deleteVerifyTitle: 'Verifica di Sicurezza',
+    deleteVerifyMsg: 'Per la sicurezza del tuo account, dobbiamo inviare un codice di verifica alla tua email per confermare la tua identità.',
+    sendOtp: 'Invia Codice di Verifica',
+    sendOtpError: 'Invio Fallito',
+    sendOtpErrorMsg: 'Impossibile inviare il codice di verifica, riprova più tardi.',
+    enterOtpTitle: 'Inserisci un codice di verifica a 6 cifre completo.',
+    otpCodeError: 'Codice non valido, riprova',
+    deleteSuccess: 'Account Eliminato',
+    deleteSuccessMsg: 'Il tuo account e i tuoi dati sono stati eliminati permanentemente.',
+    deleteFail: 'Verifica Fallita',
+    deleteFailMsg: 'Impossibile completare l\'eliminazione dell\'account, contatta l\'assistenza o riprova.',
+    modalTitle: 'Verifica di Sicurezza',
+    modalSub: 'Abbiamo inviato un codice di verifica a 6 cifre alla tua email {email}. Inseriscilo qui sotto per confermare l\'eliminazione dell\'account.',
+    confirmDeleteBtn: 'Conferma Eliminazione',
+  }
+};
+
 export default function ProfileScreen() {
   const { user, profile, signOut, refreshProfile } = useAuth();
-  const { colors } = useTheme();
+  const { colors, t, language } = useTheme();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
+
   const [deleting, setDeleting] = React.useState(false);
   const [isOtpModalVisible, setIsOtpModalVisible] = React.useState(false);
   const [otpToken, setOtpToken] = React.useState('');
   const [verifying, setVerifying] = React.useState(false);
 
-  // Refresh profile on focus to ensure data is updated when returning from edit page
   useFocusEffect(
     useCallback(() => {
       refreshProfile().catch(console.error);
@@ -23,10 +143,10 @@ export default function ProfileScreen() {
   );
 
   const handleSignOut = async () => {
-    Alert.alert('确认退出', '您确定要退出登录吗？', [
-      { text: '取消', style: 'cancel' },
+    Alert.alert(localized.confirmLogoutTitle, localized.confirmLogoutMsg, [
+      { text: t('cancel') || '取消', style: 'cancel' },
       {
-        text: '退出',
+        text: t('confirm') || '确定',
         style: 'destructive',
         onPress: async () => {
           try {
@@ -41,28 +161,27 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = async () => {
-    Alert.alert('⚠️ 危险操作', '您确定要注销并删除您的账户吗？此操作将永久抹除您的个人资料和全部关联数据，且无法撤销！', [
-      { text: '取消', style: 'cancel' },
+    Alert.alert(localized.confirmDeleteTitle, localized.confirmDeleteMsg, [
+      { text: t('cancel') || '取消', style: 'cancel' },
       {
-        text: '确认删除',
+        text: t('confirm') || '确定',
         style: 'destructive',
         onPress: () => {
-          Alert.alert('安全验证', '为了您的账户安全，我们需要向您的邮箱发送一个安全验证码以确认身份。', [
-            { text: '取消', style: 'cancel' },
+          Alert.alert(localized.deleteVerifyTitle, localized.deleteVerifyMsg, [
+            { text: t('cancel') || '取消', style: 'cancel' },
             {
-              text: '发送验证码',
+              text: localized.sendOtp,
               onPress: async () => {
                 setDeleting(true);
                 try {
                   const { error } = await supabase.auth.reauthenticate();
                   if (error) throw error;
                   
-                  // Send successful, show code input modal
                   setOtpToken('');
                   setIsOtpModalVisible(true);
                 } catch (err: any) {
                   console.error('Reauthenticate error:', err);
-                  Alert.alert('发送失败', err.message || '无法发送验证码，请稍后再试。');
+                  Alert.alert(localized.sendOtpError, err.message || localized.sendOtpErrorMsg);
                 } finally {
                   setDeleting(false);
                 }
@@ -76,13 +195,12 @@ export default function ProfileScreen() {
 
   const handleVerifyOtp = async () => {
     if (otpToken.length !== 6) {
-      Alert.alert('提示', '请输入完整的 6 位验证码。');
+      Alert.alert(t('tip') || '提示', localized.enterOtpTitle);
       return;
     }
     
     setVerifying(true);
     try {
-      // 1. Verify the OTP code with type 'reauthentication'
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email: user?.email || '',
         token: otpToken,
@@ -90,21 +208,19 @@ export default function ProfileScreen() {
       });
       
       if (verifyError) {
-        throw new Error(verifyError.message || '验证码错误，请重新输入');
+        throw new Error(verifyError.message || localized.otpCodeError);
       }
       
-      // 2. Verification succeeded! Now call RPC to delete user account
       const { error: deleteError } = await supabase.rpc('delete_user_account');
       if (deleteError) throw deleteError;
       
-      // 3. Delete local session and redirect
       setIsOtpModalVisible(false);
       await signOut();
-      Alert.alert('注销成功', '您的账户及数据已被永久删除。');
+      Alert.alert(localized.deleteSuccess, localized.deleteSuccessMsg);
       router.replace('/(tabs)');
     } catch (err: any) {
       console.error('Delete account flow error:', err);
-      Alert.alert('验证失败', err.message || '无法完成账户删除，请联系管理员或重试。');
+      Alert.alert(localized.deleteFail, err.message || localized.deleteFailMsg);
     } finally {
       setVerifying(false);
     }
@@ -117,7 +233,7 @@ export default function ProfileScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.primaryLight} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>个人资料</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{localized.headerTitle}</Text>
         <View style={styles.headerPlaceholder} />
       </View>
 
@@ -137,20 +253,20 @@ export default function ProfileScreen() {
 
         {/* Form Fields */}
         <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>基本信息</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{localized.baseInfo}</Text>
         </View>
         
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Nickname */}
           <View style={[styles.row, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>昵称</Text>
-            <Text style={[styles.valueText, { color: colors.textPrimary }]}>{profile?.name || '未设置'}</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{localized.nickname}</Text>
+            <Text style={[styles.valueText, { color: colors.textPrimary }]}>{profile?.name || localized.notSet}</Text>
           </View>
 
           {/* Email */}
           <View style={styles.row}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>邮箱</Text>
-            <Text style={[styles.valueText, { color: colors.textPrimary }]}>{user?.email || '未设置'}</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{localized.email}</Text>
+            <Text style={[styles.valueText, { color: colors.textPrimary }]}>{user?.email || localized.notSet}</Text>
           </View>
         </View>
 
@@ -160,13 +276,13 @@ export default function ProfileScreen() {
             style={[styles.editButton, { backgroundColor: colors.primary }]}
             onPress={() => router.push('/settings/edit-profile')}
           >
-            <Text style={styles.editButtonText}>修改个人资料</Text>
+            <Text style={styles.editButtonText}>{localized.editProfileBtn}</Text>
           </Pressable>
         </View>
 
         {/* Dangerous Area */}
         <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>账号管理</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{localized.accountManage}</Text>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 40 }]}>
@@ -176,7 +292,7 @@ export default function ProfileScreen() {
             onPress={handleSignOut}
           >
             <MaterialCommunityIcons name="logout" size={20} color={colors.error} style={{ marginRight: 8 }} />
-            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>退出登录</Text>
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{localized.logout}</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
@@ -191,7 +307,7 @@ export default function ProfileScreen() {
             ) : (
               <MaterialCommunityIcons name="account-remove-outline" size={20} color={colors.error} style={{ marginRight: 8 }} />
             )}
-            <Text style={[styles.rowLabel, { color: colors.error }]}>注销并删除账户</Text>
+            <Text style={[styles.rowLabel, { color: colors.error }]}>{localized.deleteAccount}</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
         </View>
@@ -208,9 +324,9 @@ export default function ProfileScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>安全身份验证</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{localized.modalTitle}</Text>
             <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
-              我们已向您的邮箱 {user?.email} 发送了一个 6 位验证码，请在下方输入以确认注销账户。
+              {localized.modalSub.replace('{email}', user?.email || '')}
             </Text>
             
             <TextInput
@@ -238,7 +354,7 @@ export default function ProfileScreen() {
                 onPress={() => setIsOtpModalVisible(false)}
                 disabled={verifying}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>取消</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>{t('cancel') || '取消'}</Text>
               </Pressable>
               
               <Pressable
@@ -249,7 +365,7 @@ export default function ProfileScreen() {
                 {verifying ? (
                   <ActivityIndicator color="#FFF" size="small" />
                 ) : (
-                  <Text style={styles.confirmButtonText}>确认注销</Text>
+                  <Text style={styles.confirmButtonText}>{localized.confirmDeleteBtn}</Text>
                 )}
               </Pressable>
             </View>
@@ -313,7 +429,6 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 13,
-    color: '#8A8A8F',
     fontWeight: 'bold',
     textTransform: 'uppercase',
   },

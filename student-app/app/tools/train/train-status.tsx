@@ -103,7 +103,8 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     back: '返回',
     notStarted: '尚未开行',
     expiredError: '该车次已实际到达终点站超过4小时，无法再查询运行状态。',
-    disclaimer: '本服务展示的列车时刻、延误及站台等数据均来自意大利铁路公开实时运营信息，仅供出行参考。实际运行请以车站大屏幕及官方购票App（Trenitalia / Italo）实时公告为准。'
+    disclaimer: '本服务展示的列车时刻、延误及站台等数据均来自意大利铁路公开实时运营信息，仅供出行参考。实际运行请以车站大屏幕及官方购票App（Trenitalia / Italo）实时公告为准。',
+    refreshSuccess: '刷新成功'
   },
   'zh-Hant': {
     title: '車次追踪',
@@ -130,7 +131,8 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     back: '返回',
     notStarted: '尚未開行',
     expiredError: '該車次已實際到達終點站超過4小時，無法再查詢運行狀態。',
-    disclaimer: '本服務展示的列車時刻、延誤及月台等數據均來自義大利鐵路公開即時營運資訊，僅供出行參考。實際運行請以車站大屏幕及鐵路官方App（Trenitalia / Italo）即時公告為准。'
+    disclaimer: '本服務展示的列車時刻、延誤及月台等數據均來自義大利鐵路公開即時營運資訊，僅供出行參考。實際運行請以車站大屏幕及鐵路官方App（Trenitalia / Italo）即時公告為准。',
+    refreshSuccess: '刷新成功'
   },
   en: {
     title: 'Train Tracking',
@@ -157,7 +159,8 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     back: 'Back',
     notStarted: 'Not started yet',
     expiredError: 'This train actually arrived at the destination more than 4 hours ago and is no longer available.',
-    disclaimer: 'The train schedules, delays, and platform info displayed here are retrieved from Italian rail public live data and are for reference only. Please refer to station screens and official apps for actual operations.'
+    disclaimer: 'The train schedules, delays, and platform info displayed here are retrieved from Italian rail public live data and are for reference only. Please refer to station screens and official apps for actual operations.',
+    refreshSuccess: 'Refresh successful'
   },
   it: {
     title: 'Stato Treno',
@@ -184,7 +187,8 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     back: 'Indietro',
     notStarted: 'Non ancora partito',
     expiredError: 'Questo treno è arrivato a destinazione da più di 4 ore e non è più disponibile.',
-    disclaimer: 'Gli orari, ritardi e binari dei treni mostrati sono tratti dai dati pubblici in tempo reale delle ferrovie italiane e hanno valore puramente informativo. Fare riferimento ai tabelloni di stazione e alle app ufficiali per l\'operatività reale.'
+    disclaimer: 'Gli orari, ritardi e binari dei treni mostrati sono tratti dai dati pubblici in tempo reale delle ferrovie italiane e hanno valore puramente informativo. Fare riferimento ai tabelloni di stazione e alle app ufficiali per l\'operatività reale.',
+    refreshSuccess: 'Aggiornato con successo'
   }
 };
 
@@ -224,7 +228,7 @@ export default function TrainStatusScreen() {
     setToastMsg(msg);
     toastFade.setValue(0);
     
-    const isSuccess = msg === '刷新成功';
+    const isSuccess = msg === t('refreshSuccess');
     const fadeInDuration = isSuccess ? 150 : 250;
     const keepDuration = isSuccess ? 1000 : 2000;
     const fadeOutDuration = 250;
@@ -476,7 +480,7 @@ export default function TrainStatusScreen() {
           console.warn('Failed to load alerts:', alertErr);
         }
         if (isRef) {
-          triggerToast('刷新成功');
+          triggerToast(t('refreshSuccess'));
         }
       } else {
         setErrorMsg(t('error'));
@@ -777,12 +781,15 @@ export default function TrainStatusScreen() {
                   <Text style={[styles.alertText, { color: colors.textPrimary }]}>{alert.text}</Text>
                   {alert.timestamp > 0 && (
                     <Text style={[styles.alertDate, { color: colors.textMuted }]}>
-                      {new Date(alert.timestamp).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'it-IT', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {new Date(alert.timestamp).toLocaleDateString(
+                        language === 'zh' || language === 'zh-Hant' ? 'zh-CN' : (language === 'it' ? 'it-IT' : 'en-US'),
+                        {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }
+                      )}
                     </Text>
                   )}
                 </View>
@@ -1032,15 +1039,15 @@ export default function TrainStatusScreen() {
         </ScrollView>
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? headerHeight + 50 : headerHeight + 84 }] : styles.toastContainer, 
+          toastMsg === t('refreshSuccess') ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? headerHeight + 50 : headerHeight + 84 }] : styles.toastContainer, 
           { 
             opacity: toastFade,
-            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
-            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
-            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+            backgroundColor: toastMsg === t('refreshSuccess') ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === t('refreshSuccess') ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === t('refreshSuccess') ? 0 : 1,
           }
         ]}>
-          {toastMsg === '刷新成功' ? (
+          {toastMsg === t('refreshSuccess') ? (
             <MaterialIcons name="check" size={24} color={colors.primary} />
           ) : (
             <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>

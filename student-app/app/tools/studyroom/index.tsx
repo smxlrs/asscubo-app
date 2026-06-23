@@ -11,8 +11,116 @@ type RoomWithStatus = StudyRoom & {
   status: StudyRoomStatus;
 };
 
+const LOCALIZED = {
+  zh: {
+    title: '自习室与图书馆',
+    favRemoved: '已取消收藏',
+    favAdded: '已收藏并置顶',
+    searchPlaceholder: '搜索名称...',
+    disclaimer: '仅供参考，数据和预约服务来自 ',
+    allCampuses: '全部校区',
+    supportsBooking: '支持预约',
+    openNow: '开放中',
+    closed: '已关闭',
+    occupancy: '上座率：',
+    remainingSeats: '剩余 {available} / {capacity} 个座位',
+    bookSeat: '预约座位',
+    viewDetails: '查看详情',
+    navigate: '前往',
+    selectCampus: '选择校区',
+    refreshSuccess: '刷新成功',
+    
+    bologna: '博洛尼亚',
+    forli: '弗利',
+    cesena: '切塞纳',
+    rimini: '里米尼',
+    ravenna: '拉文纳',
+    imola: '伊莫拉',
+    ozzano: '奥扎诺',
+  },
+  'zh-Hant': {
+    title: '自習室與圖書館',
+    favRemoved: '已取消收藏',
+    favAdded: '已收藏並置頂',
+    searchPlaceholder: '搜索名稱...',
+    disclaimer: '僅供參考，數據和預約服務來自 ',
+    allCampuses: '全部校區',
+    supportsBooking: '預約',
+    openNow: '開放中',
+    closed: '已關閉',
+    occupancy: '上座率：',
+    remainingSeats: '剩餘 {available} / {capacity} 個座位',
+    bookSeat: '預約座位',
+    viewDetails: '查看詳情',
+    navigate: '前往',
+    selectCampus: '選擇校區',
+    refreshSuccess: '刷新成功',
+    
+    bologna: '博洛尼亞',
+    forli: '弗利',
+    cesena: '切塞納',
+    rimini: '里米尼',
+    ravenna: '拉文納',
+    imola: '伊莫拉',
+    ozzano: '奧扎諾',
+  },
+  en: {
+    title: 'Study Rooms & Libraries',
+    favRemoved: 'Removed from favorites',
+    favAdded: 'Added to favorites',
+    searchPlaceholder: 'Search name...',
+    disclaimer: 'For reference only, data & bookings from ',
+    allCampuses: 'All Campuses',
+    supportsBooking: 'Bookable',
+    openNow: 'Open Now',
+    closed: 'Closed',
+    occupancy: 'Occupancy: ',
+    remainingSeats: '{available} / {capacity} seats available',
+    bookSeat: 'Book Seat',
+    viewDetails: 'Details',
+    navigate: 'Go',
+    selectCampus: 'Select Campus',
+    refreshSuccess: 'Refresh successful',
+    
+    bologna: 'Bologna',
+    forli: 'Forlì',
+    cesena: 'Cesena',
+    rimini: 'Rimini',
+    ravenna: 'Ravenna',
+    imola: 'Imola',
+    ozzano: 'Ozzano',
+  },
+  it: {
+    title: 'Sale Studio e Biblioteche',
+    favRemoved: 'Rimosso dai preferiti',
+    favAdded: 'Aggiunto ai preferiti',
+    searchPlaceholder: 'Cerca nome...',
+    disclaimer: 'A scopo informativo, dati e prenotazioni da ',
+    allCampuses: 'Tutte le Sedi',
+    supportsBooking: 'Prenotabile',
+    openNow: 'Aperto Ora',
+    closed: 'Chiuso',
+    occupancy: 'Occupazione: ',
+    remainingSeats: '{available} / {capacity} posti liberi',
+    bookSeat: 'Prenota Posto',
+    viewDetails: 'Dettagli',
+    navigate: 'Vai',
+    selectCampus: 'Seleziona Sede',
+    refreshSuccess: 'Aggiornato con successo',
+    
+    bologna: 'Bologna',
+    forli: 'Forlì',
+    cesena: 'Cesena',
+    rimini: 'Rimini',
+    ravenna: 'Ravenna',
+    imola: 'Imola',
+    ozzano: 'Ozzano',
+  }
+};
+
 export default function StudyRoomsScreen() {
-  const { colors, t } = useTheme();
+  const { colors, t, language } = useTheme();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   const navigation = useNavigation();
   const [headerHeight, setHeaderHeight] = useState(142);
   
@@ -43,10 +151,10 @@ export default function StudyRoomsScreen() {
       const isFav = newFavorites.includes(roomId);
       if (isFav) {
         newFavorites = newFavorites.filter(id => id !== roomId);
-        triggerToast('已取消收藏');
+        triggerToast(localized.favRemoved);
       } else {
         newFavorites.push(roomId);
-        triggerToast('已收藏并置顶');
+        triggerToast(localized.favAdded);
       }
       setFavorites(newFavorites);
       await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
@@ -76,13 +184,13 @@ export default function StudyRoomsScreen() {
 
   const getCampusLabel = (campus: string) => {
     const c = campus.toLowerCase();
-    if (c === 'bologna') return '博洛尼亚';
-    if (c === 'forlì' || c === 'forli') return '弗利';
-    if (c === 'cesena') return '切塞纳';
-    if (c === 'rimini') return '里米尼';
-    if (c === 'ravenna') return '拉文纳';
-    if (c === 'imola') return '伊莫拉';
-    if (c === 'ozzano') return '奥扎诺';
+    if (c === 'bologna') return localized.bologna;
+    if (c === 'forlì' || c === 'forli') return localized.forli;
+    if (c === 'cesena') return localized.cesena;
+    if (c === 'rimini') return localized.rimini;
+    if (c === 'ravenna') return localized.ravenna;
+    if (c === 'imola') return localized.imola;
+    if (c === 'ozzano') return localized.ozzano;
     return campus;
   };
 
@@ -99,7 +207,7 @@ export default function StudyRoomsScreen() {
     const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (showSearch) {
+      if (showSearch && Platform.OS === 'ios') {
         e.preventDefault();
         setShowSearch(false);
         setSearchQuery('');
@@ -160,7 +268,7 @@ export default function StudyRoomsScreen() {
     setToastMsg(msg);
     toastFade.setValue(0);
     
-    const isSuccess = msg === '刷新成功';
+    const isSuccess = msg === localized.refreshSuccess;
     const fadeInDuration = isSuccess ? 150 : 250;
     const keepDuration = isSuccess ? 1000 : 2000;
     const fadeOutDuration = 250;
@@ -206,7 +314,7 @@ export default function StudyRoomsScreen() {
       const resolved = await Promise.all(roomPromises);
       setRooms(resolved);
       if (isRefresh) {
-        triggerToast('刷新成功');
+        triggerToast(localized.refreshSuccess);
       }
     } catch (e) {
       console.error('Failed to load study room occupancies:', e);
@@ -233,7 +341,8 @@ export default function StudyRoomsScreen() {
 
   const handleBookSeat = (room: RoomWithStatus) => {
     // Open the reservation page inside the app using our clean in-app WebView
-    router.push(`/article/web?url=${encodeURIComponent(room.affluencesUrl)}&title=${encodeURIComponent(room.nameCn)}` as any);
+    const webTitle = language === 'zh' || language === 'zh-Hant' ? room.nameCn : room.nameIt;
+    router.push(`/article/web?url=${encodeURIComponent(room.affluencesUrl)}&title=${encodeURIComponent(webTitle)}` as any);
   };
 
   const handleNavigate = (room: RoomWithStatus) => {
@@ -255,7 +364,7 @@ export default function StudyRoomsScreen() {
                 <MaterialCommunityIcons name="magnify" size={18} color={colors.textSecondary} style={{ marginRight: 6 }} />
                 <TextInput
                   style={[styles.searchInput, { color: colors.textPrimary }]}
-                  placeholder="搜索名称..."
+                  placeholder={localized.searchPlaceholder}
                   placeholderTextColor={colors.textMuted}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -273,7 +382,7 @@ export default function StudyRoomsScreen() {
               <Pressable style={styles.backButton} onPress={() => router.back()}>
                 <MaterialIcons name="arrow-back" size={24} color="#A31621" />
               </Pressable>
-              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>自习室与图书馆</Text>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{localized.title}</Text>
               <Pressable style={{ padding: 8 }} onPress={() => setShowSearch(true)}>
                 <MaterialCommunityIcons name="magnify" size={22} color={colors.primary} />
               </Pressable>
@@ -284,7 +393,7 @@ export default function StudyRoomsScreen() {
         {/* Disclaimer Banner */}
         <View style={[styles.disclaimerBanner, { backgroundColor: colors.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
           <Text style={[styles.disclaimerText, { color: colors.textSecondary }]}>
-            仅供参考，数据和预约服务来自{' '}
+            {localized.disclaimer}
             <Text
               style={[styles.disclaimerLink, { color: colors.primary }]}
               onPress={() => router.push('/article/web?url=https%3A%2F%2Faffluences.com%2Fit%2Fsites%3Fplaylist_id%3D32&title=Affluences' as any)}
@@ -302,7 +411,7 @@ export default function StudyRoomsScreen() {
             onPress={() => setShowCampusModal(true)}
           >
             <Text style={[styles.filterDropdownText, { color: selectedCampus === 'all' ? colors.textPrimary : colors.primary }]}>
-              {selectedCampus === 'all' ? '全部校区' : getCampusLabel(selectedCampus)}
+              {selectedCampus === 'all' ? localized.allCampuses : getCampusLabel(selectedCampus)}
             </Text>
             <MaterialCommunityIcons 
               name="chevron-down" 
@@ -323,7 +432,7 @@ export default function StudyRoomsScreen() {
             onPress={() => setFilterBooking(!filterBooking)}
           >
             <Text style={[styles.filterButtonText, { color: filterBooking ? colors.primary : colors.textSecondary }]}>
-              支持预约
+              {localized.supportsBooking}
             </Text>
           </Pressable>
 
@@ -339,7 +448,7 @@ export default function StudyRoomsScreen() {
             onPress={() => setFilterOpen(!filterOpen)}
           >
             <Text style={[styles.filterButtonText, { color: filterOpen ? colors.primary : colors.textSecondary }]}>
-              开放中
+              {localized.openNow}
             </Text>
           </Pressable>
         </View>
@@ -372,8 +481,12 @@ export default function StudyRoomsScreen() {
                 {/* Header Information */}
                 <View style={styles.cardHeader}>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.titleText, { color: colors.textPrimary }]}>{item.nameCn}</Text>
-                    <Text style={[styles.subTitleText, { color: colors.textSecondary }]}>{item.nameIt}</Text>
+                    <Text style={[styles.titleText, { color: colors.textPrimary }]}>
+                      {language === 'zh' || language === 'zh-Hant' ? item.nameCn : item.nameIt}
+                    </Text>
+                    <Text style={[styles.subTitleText, { color: colors.textSecondary }]}>
+                      {language === 'zh' || language === 'zh-Hant' ? item.nameIt : item.nameCn}
+                    </Text>
                   </View>
                   <View style={[
                     styles.statusTag, 
@@ -383,7 +496,7 @@ export default function StudyRoomsScreen() {
                       styles.statusTagText, 
                       { color: item.status.isOpen ? '#10B981' : '#EF4444' }
                     ]}>
-                      {item.status.isOpen ? '开放中' : '已关闭'}
+                      {item.status.isOpen ? localized.openNow : localized.closed}
                     </Text>
                   </View>
                 </View>
@@ -404,10 +517,20 @@ export default function StudyRoomsScreen() {
                   <View style={styles.occupancySection}>
                     <View style={styles.occupancyHeader}>
                       <Text style={[styles.occupancyLabel, { color: colors.textSecondary }]}>
-                        上座率：<Text style={{ fontWeight: 'bold', color: barColor }}>{item.status.occupancyPercent}%</Text>
+                        {localized.occupancy}<Text style={{ fontWeight: 'bold', color: barColor }}>{item.status.occupancyPercent}%</Text>
                       </Text>
                       <Text style={[styles.occupancyLabel, { color: colors.textSecondary }]}>
-                        剩余 <Text style={{ fontWeight: 'bold', color: barColor }}>{item.status.availableSeats}</Text> / {item.capacity} 个座位
+                        {localized.remainingSeats
+                          .split(/(\{available\}|\{capacity\})/g)
+                          .map((part, index) => {
+                            if (part === '{available}') {
+                              return <Text key={index} style={{ fontWeight: 'bold', color: barColor }}>{item.status.availableSeats}</Text>;
+                            }
+                            if (part === '{capacity}') {
+                              return <Text key={index}>{item.capacity}</Text>;
+                            }
+                            return <Text key={index}>{part}</Text>;
+                          })}
                       </Text>
                     </View>
                     
@@ -449,7 +572,7 @@ export default function StudyRoomsScreen() {
                       color={colors.primary} 
                     />
                     <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-                      {item.supportsBooking ? "预约座位" : "查看详情"}
+                      {item.supportsBooking ? localized.bookSeat : localized.viewDetails}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -457,7 +580,7 @@ export default function StudyRoomsScreen() {
                     onPress={() => handleNavigate(item)}
                   >
                     <MaterialCommunityIcons name="navigation" size={16} color="#FFFFFF" />
-                    <Text style={[styles.actionButtonText, { color: '#FFFFFF' }]}>前往</Text>
+                    <Text style={[styles.actionButtonText, { color: '#FFFFFF' }]}>{localized.navigate}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -477,7 +600,7 @@ export default function StudyRoomsScreen() {
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowCampusModal(false)}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>选择校区</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{localized.selectCampus}</Text>
             
             <Pressable 
               style={[
@@ -493,7 +616,7 @@ export default function StudyRoomsScreen() {
                 styles.modalItemText, 
                 { color: selectedCampus === 'all' ? colors.primary : colors.textPrimary, fontWeight: selectedCampus === 'all' ? 'bold' : 'normal' }
               ]}>
-                全部校区
+                {localized.allCampuses}
               </Text>
             </Pressable>
 
@@ -527,15 +650,15 @@ export default function StudyRoomsScreen() {
       {/* Toast Feedback */}
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? headerHeight + 50 : headerHeight + 84 }] : styles.toastContainer, 
+          toastMsg === localized.refreshSuccess ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? headerHeight + 50 : headerHeight + 84 }] : styles.toastContainer, 
           { 
             opacity: toastFade, 
-            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
-            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
-            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+            backgroundColor: toastMsg === localized.refreshSuccess ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === localized.refreshSuccess ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === localized.refreshSuccess ? 0 : 1,
           }
         ]}>
-          {toastMsg === '刷新成功' ? (
+          {toastMsg === localized.refreshSuccess ? (
             <MaterialCommunityIcons name="check" size={24} color={colors.primary} />
           ) : (
             <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>

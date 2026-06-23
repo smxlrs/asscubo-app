@@ -76,27 +76,27 @@ function getWeatherInfo(code: number, isDay: number) {
   switch (code) {
     case 0:
       return {
-        label: '晴朗',
+        label: 'weatherClear',
         icon: isDay ? 'sunny-outline' : 'moon-outline',
         color: isDay ? '#FFA726' : '#9575CD'
       };
     case 1:
     case 2:
       return {
-        label: '多云',
+        label: 'weatherCloudy',
         icon: isDay ? 'partly-sunny-outline' : 'cloudy-night-outline',
         color: isDay ? '#FFB74D' : '#90A4AE'
       };
     case 3:
       return {
-        label: '阴天',
+        label: 'weatherOvercast',
         icon: 'cloudy-outline',
         color: '#90A4AE'
       };
     case 45:
     case 48:
       return {
-        label: '有雾',
+        label: 'weatherFoggy',
         icon: 'cloud-outline',
         color: '#B0BEC5'
       };
@@ -104,34 +104,34 @@ function getWeatherInfo(code: number, isDay: number) {
     case 53:
     case 55:
       return {
-        label: '毛毛雨',
+        label: 'weatherDrizzle',
         icon: 'rainy-outline',
         color: '#4FC3F7'
       };
     case 56:
     case 57:
       return {
-        label: '冻雨',
+        label: 'weatherFreezingRain',
         icon: 'snow-outline',
         color: '#81D4FA'
       };
     case 61:
     case 63:
       return {
-        label: '小雨',
+        label: 'weatherLightRain',
         icon: 'rainy-outline',
         color: '#64B5F6'
       };
     case 65:
       return {
-        label: '大雨',
+        label: 'weatherHeavyRain',
         icon: 'rainy-outline',
         color: '#2196F3'
       };
     case 66:
     case 67:
       return {
-        label: '强冻雨',
+        label: 'weatherHeavyFreezingRain',
         icon: 'snow-outline',
         color: '#81D4FA'
       };
@@ -139,13 +139,13 @@ function getWeatherInfo(code: number, isDay: number) {
     case 73:
     case 75:
       return {
-        label: '降雪',
+        label: 'weatherSnow',
         icon: 'snow-outline',
         color: '#E0E0E0'
       };
     case 77:
       return {
-        label: '雪粒',
+        label: 'weatherSnowGrains',
         icon: 'snow-outline',
         color: '#E0E0E0'
       };
@@ -153,33 +153,33 @@ function getWeatherInfo(code: number, isDay: number) {
     case 81:
     case 82:
       return {
-        label: '阵雨',
+        label: 'weatherShowers',
         icon: 'rainy-outline',
         color: '#64B5F6'
       };
     case 85:
     case 86:
       return {
-        label: '阵雪',
+        label: 'weatherSnowShowers',
         icon: 'snow-outline',
         color: '#E0E0E0'
       };
     case 95:
       return {
-        label: '雷阵雨',
+        label: 'weatherThunderstorm',
         icon: 'thunderstorm-outline',
         color: '#FFD54F'
       };
     case 96:
     case 99:
       return {
-        label: '雷雨冰雹',
+        label: 'weatherThunderstormHail',
         icon: 'thunderstorm-outline',
         color: '#FFD54F'
       };
     default:
       return {
-        label: '多云',
+        label: 'weatherCloudy',
         icon: 'cloudy-outline',
         color: '#90A4AE'
       };
@@ -250,7 +250,7 @@ const CITIES = [
 
 export default function HomeScreen() {
   const { user, profile } = useAuth();
-  const { colors, isDark, tabBarStyle, tabGestureOpacity, tabGestureActive } = useTheme();
+  const { colors, isDark, tabBarStyle, tabGestureOpacity, tabGestureActive, t, language } = useTheme();
   const insets = useSafeAreaInsets();
 
   const [selectedCity, setSelectedCity] = useState(CITIES[0]);
@@ -289,7 +289,7 @@ export default function HomeScreen() {
     setToastMsg(msg);
     toastFade.setValue(0);
     
-    const isSuccess = msg === '刷新成功';
+    const isSuccess = msg === 'refresh_success';
     const fadeInDuration = isSuccess ? 150 : 250;
     const keepDuration = isSuccess ? 1000 : 2000;
     const fadeOutDuration = 250;
@@ -395,7 +395,7 @@ export default function HomeScreen() {
         windSpeed: 8.5,
         code: 0,
         isDay: 1,
-        label: '晴朗',
+        label: 'weatherClear',
         icon: 'sunny-outline',
         color: '#FFB300'
       });
@@ -503,7 +503,7 @@ export default function HomeScreen() {
     setRefreshing(false);
     if (isRefresh) {
       setTimeout(() => {
-        triggerToast('刷新成功');
+        triggerToast('refresh_success');
       }, 150);
     }
   }
@@ -545,11 +545,15 @@ export default function HomeScreen() {
 
   function formatDate(dateStr: string) {
     const d = new Date(dateStr);
-    return `${d.getMonth() + 1}月${d.getDate()}日`;
+    if (language === 'zh' || language === 'zh-Hant') {
+      return `${d.getMonth() + 1}月${d.getDate()}日`;
+    }
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return d.toLocaleDateString(language === 'it' ? 'it-IT' : 'en-US', options);
   }
 
   const greetingHour = new Date().getHours();
-  const greeting = greetingHour < 12 ? '早上好' : greetingHour < 18 ? '下午好' : '晚上好';
+  const greeting = greetingHour < 12 ? t('greetingMorning') : greetingHour < 18 ? t('greetingAfternoon') : t('greetingEvening');
 
   if (loading) {
     return (
@@ -628,7 +632,7 @@ export default function HomeScreen() {
               <Text style={[styles.greeting, { color: bannerTextColor }]}>
                 {user ? `${greeting}！${profile?.name || ''}` : greeting}
               </Text>
-              <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>博学 · 连接在意生活</Text>
+              <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
             </View>
             
             <View style={styles.headerRightActions}>
@@ -668,10 +672,10 @@ export default function HomeScreen() {
               >
                 <MaterialCommunityIcons name="map-marker-outline" size={14} color={isDark ? 'rgba(255,255,255,0.6)' : '#7A1018'} style={{ marginRight: 2 }} />
                 <Text style={[styles.weatherLocationText, { color: isDark ? 'rgba(255,255,255,0.8)' : '#7A1018' }]}>
-                  {selectedCity.name}
+                  {language === 'zh' || language === 'zh-Hant' ? selectedCity.name : (selectedCity.englishName ? selectedCity.englishName.split(' ')[0] : selectedCity.name)}
                 </Text>
                 <Text style={[styles.weatherSourceText, { color: isDark ? 'rgba(255,255,255,0.4)' : '#98A2B3', marginLeft: 4 }]}>
-                  数据来自: Open-Meteo
+                  {t('weatherDataSource')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity 
@@ -705,7 +709,7 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.weatherRowBottom}>
                     <Text style={[styles.weatherLabelText, { color: isDark ? '#FFFFFF' : '#7A1018' }]}>
-                      {weather?.label || '晴朗'}
+                      {t(weather?.label || 'weatherClear')}
                     </Text>
                   </View>
                 </View>
@@ -720,7 +724,7 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.weatherRowBottom}>
                     <Text style={[styles.weatherApparentText, { color: isDark ? 'rgba(255,255,255,0.6)' : '#5A6376' }]}>
-                      {weather ? `体感 ${Math.round(weather.apparentTemp)}°C` : '体感 --°C'}
+                      {weather ? t('weatherApparentTemp').replace('{temp}', String(Math.round(weather.apparentTemp))) : t('weatherApparentTempFallback')}
                     </Text>
                   </View>
                 </View>
@@ -750,21 +754,19 @@ export default function HomeScreen() {
           </View>
         </LinearGradient>
 
-        {/* Removed padding spacer to let header banner gradient transition smoothly */}
-
         {/* Upcoming Events */}
         {upcomingEvents.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <MaterialCommunityIcons name="calendar-month-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>近期活动</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('recentEvents')}</Text>
               </View>
               <TouchableOpacity 
                 onPress={() => router.push('/(tabs)/events')}
                 style={{ flexDirection: 'row', alignItems: 'center' }}
               >
-                <Text style={[styles.seeAll, { color: colors.primary, marginRight: 2 }]}>查看全部</Text>
+                <Text style={[styles.seeAll, { color: colors.primary, marginRight: 2 }]}>{t('seeAll')}</Text>
                 <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
@@ -799,13 +801,13 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <MaterialCommunityIcons name="bullhorn-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>动态与通知</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('latestUpdates')}</Text>
             </View>
             <TouchableOpacity 
               onPress={() => router.push('/(tabs)/announcements')}
               style={{ flexDirection: 'row', alignItems: 'center' }}
             >
-              <Text style={[styles.seeAll, { color: colors.primary, marginRight: 2 }]}>查看全部</Text>
+              <Text style={[styles.seeAll, { color: colors.primary, marginRight: 2 }]}>{t('seeAll')}</Text>
               <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
@@ -813,7 +815,7 @@ export default function HomeScreen() {
           {articles.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={[styles.emptyText, { color: colors.textMuted }]}>暂无动态与通知，敬请期待</Text>
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t('noContent')}</Text>
             </View>
           ) : (
             articles.map((item, index) => (
@@ -848,7 +850,7 @@ export default function HomeScreen() {
                         }
                       ]}>
                         <MaterialCommunityIcons name="pin" size={10} color="#F59E0B" style={{ marginRight: 2 }} />
-                        <Text style={[styles.featuredText, { color: '#F59E0B' }]}>置顶</Text>
+                        <Text style={[styles.featuredText, { color: '#F59E0B' }]}>{t('featured')}</Text>
                       </View>
                     )}
 
@@ -864,7 +866,7 @@ export default function HomeScreen() {
                         styles.categoryText, 
                         { color: '#FFFFFF', fontWeight: 'bold' }
                       ]}>
-                        {item.type === 'notification' ? '通知' : '文章'}
+                        {item.type === 'notification' ? t('notificationType') : t('articleType')}
                       </Text>
                     </View>
 
@@ -872,7 +874,7 @@ export default function HomeScreen() {
                     {item.category !== 'general' && (
                       <View style={[styles.categoryBadge, { backgroundColor: CATEGORY_COLORS[item.category] + '20' }]}>
                         <Text style={[styles.categoryText, { color: CATEGORY_COLORS[item.category] }]}>
-                          {CATEGORY_LABELS[item.category] || '综合'}
+                          {item.category ? t('category_' + item.category) : t('category_general')}
                         </Text>
                       </View>
                     )}
@@ -880,7 +882,7 @@ export default function HomeScreen() {
                     {/* Latest Badge */}
                     {index === 0 && (
                       <View style={[styles.featuredBadge, { backgroundColor: COLORS.gold + '20', marginLeft: 6 }]}>
-                        <Text style={[styles.featuredText, { color: COLORS.gold }]}>最新</Text>
+                        <Text style={[styles.featuredText, { color: COLORS.gold }]}>{t('latest')}</Text>
                       </View>
                     )}
                   </View>
@@ -937,7 +939,7 @@ export default function HomeScreen() {
           }}
         >
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF', borderColor: isDark ? '#333333' : '#E4E7EC' }]}>
-            <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#101828' }]}>选择城市</Text>
+            <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#101828' }]}>{t('selectCity')}</Text>
             
             <TextInput
               style={[
@@ -948,7 +950,7 @@ export default function HomeScreen() {
                   borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#D0D5DD' 
                 }
               ]}
-              placeholder="搜索城市 (中文/拼音/英文)..."
+              placeholder={t('searchCityPlaceholder')}
               placeholderTextColor={isDark ? 'rgba(255,255,255,0.35)' : '#98A2B3'}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -996,7 +998,7 @@ export default function HomeScreen() {
                 city.englishName.toLowerCase().includes(searchQuery.toLowerCase())
               ).length === 0 && (
                 <Text style={{ textAlign: 'center', color: '#98A2B3', paddingVertical: 20, fontSize: 13 }}>
-                  没有找到匹配的城市
+                  {t('noCityFound')}
                 </Text>
               )}
             </ScrollView>
@@ -1005,18 +1007,18 @@ export default function HomeScreen() {
       </Modal>
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? insets.top + 35 : insets.top + 104 }] : styles.toastContainer, 
+          toastMsg === 'refresh_success' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? insets.top + 35 : insets.top + 104 }] : styles.toastContainer, 
           { 
             opacity: toastFade,
-            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
-            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
-            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+            backgroundColor: toastMsg === 'refresh_success' ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === 'refresh_success' ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === 'refresh_success' ? 0 : 1,
           }
         ]}>
-          {toastMsg === '刷新成功' ? (
+          {toastMsg === 'refresh_success' ? (
             <MaterialCommunityIcons name="check" size={24} color={colors.primary} />
           ) : (
-            <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>
+            <Text style={[styles.toastText, { color: colors.primary }]}>{t(toastMsg)}</Text>
           )}
         </Animated.View>
       )}

@@ -13,9 +13,7 @@ export default function ThemeSettingsScreen() {
     customStart, 
     setCustomStart, 
     customEnd, 
-    setCustomEnd,
-    tabBarStyle,
-    setTabBarStyle
+    setCustomEnd
   } = useTheme();
 
   const adjustCustomTime = (type: 'start' | 'end', unit: 'hour' | 'min', operation: '+' | '-') => {
@@ -144,33 +142,6 @@ export default function ThemeSettingsScreen() {
             </View>
           </View>
         )}
-
-        <View style={styles.sectionHeaderContainer}>
-          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{t('tabBarSetting')}</Text>
-        </View>
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 20 }]}>
-          {([
-            { id: 'traditional', label: t('tabBarTraditional') },
-            { id: 'glassmorphism', label: t('tabBarGlassmorphism') }
-          ] as { id: 'traditional' | 'glassmorphism'; label: string }[]).map((styleOpt, index, arr) => (
-            <Pressable 
-              key={styleOpt.id}
-              style={[
-                styles.rowPressable, 
-                { 
-                  borderBottomColor: colors.border,
-                  borderBottomWidth: index === arr.length - 1 ? 0 : StyleSheet.hairlineWidth
-                }
-              ]} 
-              onPress={() => setTabBarStyle(styleOpt.id)}
-            >
-              <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{styleOpt.label}</Text>
-              {tabBarStyle === styleOpt.id && (
-                <Text style={[styles.checkmark, { color: colors.primaryLight }]}>✓</Text>
-              )}
-            </Pressable>
-          ))}
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

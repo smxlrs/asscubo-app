@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
 
 export default function VerifyScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, t } = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -19,17 +19,16 @@ export default function VerifyScreen() {
         <View style={[styles.iconContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
           <MaterialCommunityIcons name="email-open-outline" size={48} color={colors.primary} />
         </View>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>验证您的邮箱</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('verifyEmailTitle')}</Text>
         <Text style={[styles.description, { color: colors.textSecondary }]}>
-          我们已向您的教育邮箱发送了一封验证邮件。{'\n\n'}
-          请点击邮件中的链接完成验证后，再回来登录。
+          {t('verifyEmailDesc')}
         </Text>
         
         <View style={[styles.tipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.tipTitle, { color: colors.textPrimary }]}>注意事项</Text>
-          <Text style={[styles.tipText, { color: colors.textSecondary }]}>• 验证邮件可能需要几分钟才能到达</Text>
-          <Text style={[styles.tipText, { color: colors.textSecondary }]}>• 请检查垃圾邮件文件夹</Text>
-          <Text style={[styles.tipText, { color: colors.textSecondary }]}>• 验证链接有效期为 24 小时</Text>
+          <Text style={[styles.tipTitle, { color: colors.textPrimary }]}>{t('noticeTitle')}</Text>
+          <Text style={[styles.tipText, { color: colors.textSecondary }]}>{t('noticeTip1')}</Text>
+          <Text style={[styles.tipText, { color: colors.textSecondary }]}>{t('noticeTip2')}</Text>
+          <Text style={[styles.tipText, { color: colors.textSecondary }]}>{t('noticeTip3')}</Text>
         </View>
 
         <TouchableOpacity
@@ -43,7 +42,7 @@ export default function VerifyScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>已验证，去登录</Text>
+            <Text style={styles.buttonText}>{t('verifiedGoToLogin')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>

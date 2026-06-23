@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  RefreshControl, ActivityIndicator, TextInput,
+  RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
 
 type Post = {
   id: string;
@@ -29,6 +30,7 @@ const GROUP_TYPES = [
 
 export default function CommunityScreen() {
   const { user, profile } = useAuth();
+  const { colors, isDark, t, language } = useTheme();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,21 +56,25 @@ export default function CommunityScreen() {
     const d = new Date(dateStr);
     const now = new Date();
     const diffH = Math.floor((now.getTime() - d.getTime()) / 3600000);
-    if (diffH < 1) return '刚刚';
-    if (diffH < 24) return `${diffH}小时前`;
-    if (diffH < 168) return `${Math.floor(diffH / 24)}天前`;
-    return `${d.getMonth() + 1}月${d.getDate()}日`;
+    if (diffH < 1) return t('comm_time_just_now');
+    if (diffH < 24) return t('comm_time_hours_ago').replace('{hours}', String(diffH));
+    if (diffH < 168) return t('comm_time_days_ago').replace('{days}', String(Math.floor(diffH / 24)));
+    if (language === 'zh' || language === 'zh-Hant') {
+      return `${d.getMonth() + 1}月${d.getDate()}日`;
+    }
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return d.toLocaleDateString(language === 'it' ? 'it-IT' : 'en-US', options);
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>💬 社群广场</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('comm_title')}</Text>
         <TouchableOpacity
-          style={styles.newPostBtn}
+          style={[styles.newPostBtn, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/community/new' as any)}
         >
-          <Text style={styles.newPostText}>+ 发帖</Text>
+          <Text style={styles.newPostText}>{t('comm_new_post')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -77,18 +83,26 @@ export default function CommunityScreen() {
         {GROUP_TYPES.map((gt) => (
           <TouchableOpacity
             key={gt.key}
-            style={[styles.typeTab, selectedType === gt.key && styles.typeTabActive]}
+            style={[
+              styles.typeTab, 
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              selectedType === gt.key && { backgroundColor: colors.primary, borderColor: colors.primary }
+            ]}
             onPress={() => setSelectedType(gt.key)}
           >
-            <Text style={[styles.typeTabText, selectedType === gt.key && styles.typeTabTextActive]}>
-              {gt.label}
+            <Text style={[
+              styles.typeTabText, 
+              { color: colors.textSecondary },
+              selectedType === gt.key && { color: '#FFFFFF' }
+            ]}>
+              {t('comm_filter_' + (gt.key === 'general' ? 'all' : gt.key))}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.primary} />
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
         <FlatList
           data={posts}
@@ -96,42 +110,46 @@ export default function CommunityScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPosts(); }} tintColor={COLORS.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPosts(); }} tintColor={colors.primary} />
           }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>💭</Text>
-              <Text style={styles.emptyText}>暂无帖子，来发第一帖吧！</Text>
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t('comm_empty_posts')}</Text>
             </View>
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.postCard}
+              style={[styles.postCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => router.push(`/community/${item.id}` as any)}
               activeOpacity={0.85}
             >
               <View style={styles.postHeader}>
-                <View style={styles.authorAvatar}>
+                <View style={[styles.authorAvatar, { backgroundColor: colors.primary }]}>
                   <Text style={styles.authorAvatarText}>
-                    {item.author?.name?.[0] || '匿'}
+                    {item.author?.name?.[0] || t('comm_anon_avatar')}
                   </Text>
                 </View>
                 <View style={styles.authorInfo}>
-                  <Text style={styles.authorName}>{item.author?.name || '匿名用户'}</Text>
-                  <Text style={styles.postMeta}>
+                  <Text style={[styles.authorName, { color: colors.textPrimary }]}>
+                    {item.author?.name || t('comm_anon_user')}
+                  </Text>
+                  <Text style={[styles.postMeta, { color: colors.textMuted }]}>
                     {item.author?.faculty && `${item.author.faculty} · `}{formatDate(item.created_at)}
                   </Text>
                 </View>
                 {item.group_value !== 'all' && (
-                  <View style={styles.groupBadge}>
-                    <Text style={styles.groupBadgeText}>{item.group_value}</Text>
+                  <View style={[styles.groupBadge, { backgroundColor: colors.primarySoft }]}>
+                    <Text style={[styles.groupBadgeText, { color: colors.primary }]}>{item.group_value}</Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.postTitle} numberOfLines={1}>{item.title}</Text>
-              <Text style={styles.postContent} numberOfLines={2}>{item.content}</Text>
+              <Text style={[styles.postTitle, { color: colors.textPrimary }]} numberOfLines={1}>{item.title}</Text>
+              <Text style={[styles.postContent, { color: colors.textSecondary }]} numberOfLines={2}>{item.content}</Text>
               <View style={styles.postFooter}>
-                <Text style={styles.replyCount}>💬 {item.reply_count} 条回复</Text>
+                <Text style={[styles.replyCount, { color: colors.textMuted }]}>
+                  {t('comm_replies_count').replace('{count}', String(item.reply_count))}
+                </Text>
               </View>
             </TouchableOpacity>
           )}
@@ -151,9 +169,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  title: { fontSize: SIZES.xl, fontFamily: FONTS.bold, color: COLORS.textPrimary },
+  title: { fontSize: SIZES.xl, fontFamily: FONTS.bold },
   newPostBtn: {
-    backgroundColor: COLORS.primary,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
@@ -169,49 +186,41 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: SPACING.xs,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surface,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  typeTabActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  typeTabText: { fontSize: SIZES.xs, fontFamily: FONTS.medium, color: COLORS.textSecondary },
-  typeTabTextActive: { color: '#FFFFFF' },
+  typeTabText: { fontSize: SIZES.xs, fontFamily: FONTS.medium },
   list: { paddingHorizontal: SPACING.lg, paddingBottom: 20 },
   postCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
     padding: SPACING.base,
     marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.sm },
   authorAvatar: {
     width: 36,
     height: 36,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.sm,
   },
   authorAvatarText: { fontSize: SIZES.base, fontFamily: FONTS.bold, color: '#FFFFFF' },
   authorInfo: { flex: 1 },
-  authorName: { fontSize: SIZES.sm, fontFamily: FONTS.semiBold, color: COLORS.textPrimary },
-  postMeta: { fontSize: SIZES.xs, fontFamily: FONTS.regular, color: COLORS.textMuted },
+  authorName: { fontSize: SIZES.sm, fontFamily: FONTS.semiBold },
+  postMeta: { fontSize: SIZES.xs, fontFamily: FONTS.regular },
   groupBadge: {
-    backgroundColor: COLORS.primarySoft,
     borderRadius: RADIUS.sm,
     paddingHorizontal: SPACING.xs,
     paddingVertical: 2,
   },
-  groupBadgeText: { fontSize: SIZES.xs, fontFamily: FONTS.medium, color: COLORS.primary },
-  postTitle: { fontSize: SIZES.base, fontFamily: FONTS.semiBold, color: COLORS.textPrimary, marginBottom: SPACING.xs },
-  postContent: { fontSize: SIZES.sm, fontFamily: FONTS.regular, color: COLORS.textSecondary, lineHeight: 18, marginBottom: SPACING.sm },
+  groupBadgeText: { fontSize: SIZES.xs, fontFamily: FONTS.medium },
+  postTitle: { fontSize: SIZES.base, fontFamily: FONTS.semiBold, marginBottom: SPACING.xs },
+  postContent: { fontSize: SIZES.sm, fontFamily: FONTS.regular, lineHeight: 18, marginBottom: SPACING.sm },
   postFooter: {},
-  replyCount: { fontSize: SIZES.xs, fontFamily: FONTS.regular, color: COLORS.textMuted },
+  replyCount: { fontSize: SIZES.xs, fontFamily: FONTS.regular },
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: SPACING.base },
-  emptyText: { fontSize: SIZES.base, fontFamily: FONTS.regular, color: COLORS.textMuted },
+  emptyText: { fontSize: SIZES.base, fontFamily: FONTS.regular },
 });

@@ -1,12 +1,97 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { supabase } from '../../lib/supabase';
 
 export default function AdminDashboardScreen() {
   const { colors } = useTheme();
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncWechat = () => {
+    Alert.alert(
+      '立即同步微信文章',
+      '确定要立即检测并同步微信公众号的最新文章吗？\n这可能会需要几秒钟时间，同步成功后会自动给所有订阅用户发送推送通知。',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定同步',
+          onPress: async () => {
+            setSyncing(true);
+            try {
+              const { data, error } = await supabase.functions.invoke('wechat-sync');
+              if (error) throw error;
+              if (data && data.status === 'error') throw new Error(data.message || '同步失败');
+              
+              const synced = data?.synced ?? 0;
+              const skipped = data?.skipped ?? 0;
+              Alert.alert('同步完成', `检测同步成功！\n新增同步: ${synced} 篇\n跳过重复: ${skipped} 篇`);
+            } catch (err: any) {
+              console.error('Manual WeChat sync error:', err);
+              Alert.alert('同步失败', err.message || '请检查网络或配置后重试。');
+            } finally {
+              setSyncing(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const [clearing, setClearing] = useState(false);
+
+  const handleClearOldArticles = () => {
+    Alert.alert(
+      '清理历史已删文章',
+      '确定要彻底删除除了最新10篇之外的所有【已删除/未发布】的历史文章吗？此操作不可逆。未被删除的正常文章将继续保留。',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定清理',
+          style: 'destructive',
+          onPress: async () => {
+            setClearing(true);
+            try {
+              // 1. 获取最新10篇文章的ID（包括软删的，防止因误删而在此期间被微信重新同步）
+              const { data, error } = await supabase
+                .from('articles')
+                .select('id')
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+              if (error) throw error;
+
+              if (!data || data.length <= 10) {
+                const count = data ? data.length : 0;
+                Alert.alert('提示', `无需清理，当前数据库中总共仅有 ${count} 篇文章。`);
+                return;
+              }
+
+              const latestIds = data.map(item => item.id);
+              
+              // 2. 仅删除除了最新10个ID之外且【已被软删除/未发布】的文章
+              const { error: deleteError } = await supabase
+                .from('articles')
+                .delete()
+                .eq('is_published', false)
+                .not('id', 'in', `(${latestIds.join(',')})`);
+
+              if (deleteError) throw deleteError;
+
+              Alert.alert('清理成功', '已成功从数据库中彻底清除旧的历史已删文章。');
+            } catch (err: any) {
+              console.error('Failed to clear old articles:', err);
+              Alert.alert('清理失败', err.message || '请检查网络或权限后重试。');
+            } finally {
+              setClearing(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -45,6 +130,54 @@ export default function AdminDashboardScreen() {
             <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>一键导入微信文章</Text>
             <View style={styles.rowRight}>
               <Text style={[styles.rowValue, { color: colors.textSecondary }]}>链接抓取</Text>
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
+            onPress={handleSyncWechat}
+            disabled={syncing}
+          >
+            <MaterialCommunityIcons 
+              name="sync" 
+              size={20} 
+              color={syncing ? colors.textMuted : colors.primaryLight} 
+              style={styles.rowIcon} 
+            />
+            <Text style={[styles.rowLabel, { color: syncing ? colors.textMuted : colors.textPrimary }]}>
+              {syncing ? '正在同步微信文章...' : '立即同步微信文章'}
+            </Text>
+            <View style={styles.rowRight}>
+              {syncing ? (
+                <ActivityIndicator size="small" color={colors.primaryLight} style={{ marginRight: 8 }} />
+              ) : (
+                <Text style={[styles.rowValue, { color: colors.textSecondary }]}>后台检测并同步</Text>
+              )}
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
+            onPress={handleClearOldArticles}
+            disabled={clearing}
+          >
+            <MaterialCommunityIcons 
+              name="trash-can-outline" 
+              size={20} 
+              color={clearing ? colors.textMuted : '#EF4444'} 
+              style={styles.rowIcon} 
+            />
+            <Text style={[styles.rowLabel, { color: clearing ? colors.textMuted : colors.textPrimary }]}>
+              {clearing ? '正在清理已删文章...' : '清理历史已删文章'}
+            </Text>
+            <View style={styles.rowRight}>
+              {clearing ? (
+                <ActivityIndicator size="small" color="#EF4444" style={{ marginRight: 8 }} />
+              ) : (
+                <Text style={[styles.rowValue, { color: colors.textSecondary }]}>保留最新10篇的排重</Text>
+              )}
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>
           </Pressable>

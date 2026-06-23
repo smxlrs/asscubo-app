@@ -35,6 +35,221 @@ const { width } = Dimensions.get('window');
 const FAVORITES_KEY = '@ag_bus_favorites';
 const RECENTS_KEY = '@ag_bus_recents';
 
+const LOCALIZED = {
+  zh: {
+    title: '博洛尼亚公交查询',
+    searchTab: '搜索查询',
+    mapTab: '地图选点',
+    searchTitle: '查询车辆到站',
+    fermataLabel: '数字站牌号',
+    fermataPlaceholder: '如: 4306',
+    filterLabel: '指定线路 (可选)',
+    filterPlaceholder: '如: 25',
+    fuzzySearchLabel: '通过名字模糊搜索',
+    fuzzySearchPlaceholder: '输入站名关键词，如: Casaralta',
+    searchBtn: '查询到站信息',
+    favoritesTitle: '常用收藏',
+    dataSource: '数据来源: 博洛尼亚 TPER (Trasporto Passeggeri Emilia-Romagna) 官方实时数据接口',
+    mapGuide: '请在地图中拖动并点击红色标记选择站点',
+    realTime: '实时',
+    scheduled: '计划',
+    ramp: '无障碍踏板',
+    busNum: '车号: #',
+    liveArrivals: '实时到站 (Live Arrivals)',
+    routeFilter: '指定线路 (Routes)',
+    allRoutes: '全部',
+    stopCodeLabel: '站牌号: ',
+    emptyArrivals: '当前筛选条件下此站点无到站公交',
+    loadingArrivals: '正在获取公交实时到站信息...',
+    updating: '正在更新...',
+    favModalTitle: '收藏该站点',
+    favModalNote: '添加备注',
+    favModalPlaceholder: '留空则默认站名',
+    cancel: '取消',
+    favorite: '收藏',
+    arrivalDetailTitle: '车辆到站详情',
+    estArrival: '预计到站时间: ',
+    currStopLabel: '当前查询站点',
+    trackingLabel: '定位追踪方式',
+    liveTracking: '卫星实时追踪 (Live)',
+    scheduledTracking: '计划排班时刻 (Scheduled)',
+    licenseLabel: '车辆编号',
+    noLicense: '暂无车号信息',
+    accessibilityLabel: '无障碍设施',
+    rampEquipped: '配备无障碍踏板',
+    noRamp: '未配备或暂无信息',
+    detailTip: '提示: 卫星实时追踪（实时）的时间会根据公交车当前的 GPS 坐标及道路拥堵状况进行动态计算与调整。请提前前往站点候车。',
+    notice: '提示',
+    noLocPermission: '未获得定位权限，无法在地图上定位您的位置。',
+    locFail: '获取位置失败，请检查手机GPS定位是否已开启。',
+    noCoords: '未找到该站点的坐标信息，请在地图上拖动查找。',
+    leftStop: '已离站',
+    arriving: '即将到站',
+    minutesLeft: '{min} 分钟',
+    stopCode: '站牌号',
+    queryAtStop: '查询此站',
+  },
+  'zh-Hant': {
+    title: '博洛尼亞公交查詢',
+    searchTab: '搜索查詢',
+    mapTab: '地圖選點',
+    searchTitle: '查詢車輛到站',
+    fermataLabel: '數字站牌號',
+    fermataPlaceholder: '如: 4306',
+    filterLabel: '指定線路 (可選)',
+    filterPlaceholder: '如: 25',
+    fuzzySearchLabel: '通過名字模糊搜索',
+    fuzzySearchPlaceholder: '輸入站名關鍵詞，如: Casaralta',
+    searchBtn: '查詢到站信息',
+    favoritesTitle: '常用收藏',
+    dataSource: '數據來源: 博洛尼亞 TPER (Trasporto Passeggeri Emilia-Romagna) 官方實時數據接口',
+    mapGuide: '請在地圖中拖動並點擊紅色標記選擇站點',
+    realTime: '實時',
+    scheduled: '計劃',
+    ramp: '無障礙踏板',
+    busNum: '車號: #',
+    liveArrivals: '實時到站 (Live Arrivals)',
+    routeFilter: '指定線路 (Routes)',
+    allRoutes: '全部',
+    stopCodeLabel: '站牌號: ',
+    emptyArrivals: '當前篩選條件下此站點無到站公交',
+    loadingArrivals: '正在獲取公交實時到站信息...',
+    updating: '正在更新...',
+    favModalTitle: '收藏該站點',
+    favModalNote: '添加備註',
+    favModalPlaceholder: '留空則默認站名',
+    cancel: '取消',
+    favorite: '收藏',
+    arrivalDetailTitle: '車輛到站詳情',
+    estArrival: '預計到站時間: ',
+    currStopLabel: '當前查詢站點',
+    trackingLabel: '定位追蹤方式',
+    liveTracking: '衛星實時追蹤 (Live)',
+    scheduledTracking: '計劃排班時刻 (Scheduled)',
+    licenseLabel: '車輛編號',
+    noLicense: '暫無車號信息',
+    accessibilityLabel: '無障礙設施',
+    rampEquipped: '配備無障礙踏板',
+    noRamp: '未配備或暫無信息',
+    detailTip: '提示: 衛星實時追蹤（實時）的時間會根據公交車當前的 GPS 座標及道路擁堵狀況進行動態計算與調整。請提前前往站點候車。',
+    notice: '提示',
+    noLocPermission: '未獲得定位權限，無法在地圖上定位您的位置。',
+    locFail: '獲取位置失敗，請檢查手機GPS定位是否已開啟。',
+    noCoords: '未找到該站點的座標信息，請在地圖上拖動查找。',
+    leftStop: '已離站',
+    arriving: '即將到站',
+    minutesLeft: '{min} 分鐘',
+    stopCode: '站牌號',
+    queryAtStop: '查詢此站',
+  },
+  en: {
+    title: 'Bologna Bus Tracker',
+    searchTab: 'Search',
+    mapTab: 'Map',
+    searchTitle: 'Bus Arrivals',
+    fermataLabel: 'Stop Code',
+    fermataPlaceholder: 'e.g., 4306',
+    filterLabel: 'Specific Line (Optional)',
+    filterPlaceholder: 'e.g., 25',
+    fuzzySearchLabel: 'Search by Stop Name',
+    fuzzySearchPlaceholder: 'Enter stop name, e.g., Casaralta',
+    searchBtn: 'Search Arrivals',
+    favoritesTitle: 'Favorites',
+    dataSource: 'Source: Bologna TPER (Trasporto Passeggeri Emilia-Romagna) official real-time data API',
+    mapGuide: 'Drag the map and tap on red markers to select a stop',
+    realTime: 'real time',
+    scheduled: 'scheduled',
+    ramp: 'Accessible',
+    busNum: 'Bus: #',
+    liveArrivals: 'Live Arrivals',
+    routeFilter: 'Specific Routes',
+    allRoutes: 'All',
+    stopCodeLabel: 'Stop Code: ',
+    emptyArrivals: 'No incoming buses at this stop under current filters',
+    loadingArrivals: 'Fetching live bus arrivals...',
+    updating: 'Updating...',
+    favModalTitle: 'Favorite Stop',
+    favModalNote: 'Add Note / Custom Name',
+    favModalPlaceholder: 'Leave empty to use default name',
+    cancel: 'Cancel',
+    favorite: 'Save',
+    arrivalDetailTitle: 'Arrival Details',
+    estArrival: 'Estimated Arrival Time: ',
+    currStopLabel: 'Current Stop',
+    trackingLabel: 'Tracking Method',
+    liveTracking: 'Satellite Real-time Tracking (Live)',
+    scheduledTracking: 'Scheduled Time (Timetable)',
+    licenseLabel: 'Bus Number',
+    noLicense: 'No bus ID available',
+    accessibilityLabel: 'Accessibility',
+    rampEquipped: 'Equipped with wheelchair ramp',
+    noRamp: 'Not equipped or no information',
+    detailTip: 'Note: Live arrivals are dynamically calculated and adjusted based on the bus\'s current GPS coordinates and traffic conditions. Please arrive early at the stop.',
+    notice: 'Notice',
+    noLocPermission: 'Location permission not granted. Cannot show your position on the map.',
+    locFail: 'Failed to get location. Please check if GPS is enabled.',
+    noCoords: 'Coordinate info not found for this stop. Please locate it manually on the map.',
+    leftStop: 'Left stop',
+    arriving: 'Arriving',
+    minutesLeft: '{min} min',
+    stopCode: 'Stop Code',
+    queryAtStop: 'Search here',
+  },
+  it: {
+    title: 'Orari Bus Bologna',
+    searchTab: 'Cerca',
+    mapTab: 'Mappa',
+    searchTitle: 'Arrivi Bus',
+    fermataLabel: 'Codice Fermata',
+    fermataPlaceholder: 'es: 4306',
+    filterLabel: 'Linea Specifica (Opzionale)',
+    filterPlaceholder: 'es: 25',
+    fuzzySearchLabel: 'Cerca per Nome Fermata',
+    fuzzySearchPlaceholder: 'Inserisci nome fermata, es: Casaralta',
+    searchBtn: 'Mostra Arrivi',
+    favoritesTitle: 'Preferiti',
+    dataSource: 'Fonte: Dati in tempo reale ufficiali API TPER Bologna',
+    mapGuide: 'Trascina la mappa e tocca i marcatori rossi per selezionare una fermata',
+    realTime: 'in tempo reale',
+    scheduled: 'programmato',
+    ramp: 'Pedana Disabili',
+    busNum: 'Bus: #',
+    liveArrivals: 'Arrivi in Tempo Reale',
+    routeFilter: 'Linea Specifica',
+    allRoutes: 'Tutti',
+    stopCodeLabel: 'Codice Fermata: ',
+    emptyArrivals: 'Nessun bus in arrivo con i filtri selezionati',
+    loadingArrivals: 'Caricamento arrivi bus in tempo reale...',
+    updating: 'Aggiornamento in corso...',
+    favModalTitle: 'Salva nei Preferiti',
+    favModalNote: 'Aggiungi Nota / Nome Personalizzato',
+    favModalPlaceholder: 'Lascia vuoto per usare il nome predefinito',
+    cancel: 'Annulla',
+    favorite: 'Salva',
+    arrivalDetailTitle: 'Dettagli Arrivo',
+    estArrival: 'Orario Arrivo Previsto: ',
+    currStopLabel: 'Fermata Attuale',
+    trackingLabel: 'Metodo Tracciamento',
+    liveTracking: 'Tracciamento Satellitare (Live)',
+    scheduledTracking: 'Orario Programmato (Orario)',
+    licenseLabel: 'Matricola Bus',
+    noLicense: 'Nessun codice bus disponibile',
+    accessibilityLabel: 'Accessibilità',
+    rampEquipped: 'Dotato di pedana disabili',
+    noRamp: 'Non dotato o nessuna informazione',
+    detailTip: 'Nota: I tempi in tempo reale sono calcolati dinamicamente in base alle coordinate GPS attuali del bus e al traffico. Si consiglia di recarsi alla fermata in anticipo.',
+    notice: 'Avviso',
+    noLocPermission: 'Permesso di localizzazione non concesso. Impossibile mostrare la posizione sulla mappa.',
+    locFail: 'Impossibile ottenere la posizione. Verifica che il GPS sia attivo.',
+    noCoords: 'Informazioni coordinate non trovate per questa fermata. Cerca manualmente sulla mappa.',
+    leftStop: 'Partito',
+    arriving: 'In arrivo',
+    minutesLeft: '{min} min',
+    stopCode: 'Codice Fermata',
+    queryAtStop: 'Cerca qui',
+  }
+};
+
 interface FavoriteStop {
   code: string;
   name: string;
@@ -119,7 +334,7 @@ function getLineColor(line: string): string {
 }
 
 // Leaflet map HTML loading Google Maps roadmap layer and customized WeBus red bus icon pins
-const getMapHtml = (isDark: boolean) => `
+const getMapHtml = (isDark: boolean, localized: any) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -267,20 +482,33 @@ const getMapHtml = (isDark: boolean) => `
       popupAnchor: [0, -14]
     });
 
+    function sendMapState() {
+      if (window.ReactNativeWebView) {
+        var center = map.getCenter();
+        var bounds = map.getBounds();
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'MAP_MOVED',
+          lat: center.lat,
+          lon: center.lng,
+          zoom: map.getZoom(),
+          minLat: bounds.getSouthWest().lat,
+          maxLat: bounds.getNorthEast().lat,
+          minLon: bounds.getSouthWest().lng,
+          maxLon: bounds.getNorthEast().lng
+        }));
+      } else {
+        setTimeout(sendMapState, 100);
+      }
+    }
+
     // Send map movement end updates back to RN
     map.on('moveend', function() {
-      var center = map.getCenter();
-      var bounds = map.getBounds();
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'MAP_MOVED',
-        lat: center.lat,
-        lon: center.lng,
-        zoom: map.getZoom(),
-        minLat: bounds.getSouthWest().lat,
-        maxLat: bounds.getNorthEast().lat,
-        minLon: bounds.getSouthWest().lng,
-        maxLon: bounds.getNorthEast().lng
-      }));
+      sendMapState();
+    });
+
+    // Send initial view on load, waiting for window.ReactNativeWebView if necessary
+    map.whenReady(function() {
+      sendMapState();
     });
 
     // Update stops markers in batch
@@ -294,8 +522,8 @@ const getMapHtml = (isDark: boolean) => `
           
           var escapedName = stop.stop_name.replace(/'/g, "\\\\'");
           var popupContent = "<b>" + stop.stop_name + "</b><br>" + 
-                             "站牌号: <b>" + stop.stop_code + "</b><br>" +
-                             "<button onclick=\\"selectStop('" + stop.stop_code + "', '" + escapedName + "')\\" style='margin-top:8px;width:100%;padding:6px;background:#E30613;color:white;border:none;border-radius:6px;font-weight:bold;font-size:12px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);'>在此站查询</button>";
+                             "${localized.stopCode}: <b>" + stop.stop_code + "</b><br>" +
+                             "<button onclick=\\"selectStop('" + stop.stop_code + "', '" + escapedName + "')\\" style='margin-top:8px;width:100%;padding:6px;background:#E30613;color:white;border:none;border-radius:6px;font-weight:bold;font-size:12px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);'>${localized.queryAtStop}</button>";
           
           marker.bindPopup(popupContent);
           markersArray.push(marker);
@@ -336,7 +564,8 @@ const getMapHtml = (isDark: boolean) => `
 `;
 
 export default function BusBoardScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, language } = useTheme();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   const webViewRef = useRef<WebView>(null);
 
   // Input states
@@ -351,6 +580,7 @@ export default function BusBoardScreen() {
   // Active stop query states
   const [activeStopCode, setActiveStopCode] = useState<string | null>(null);
   const [activeStopName, setActiveStopName] = useState<string | null>(null);
+  const [cardCollapsed, setCardCollapsed] = useState(false);
   const [activeStopLines, setActiveStopLines] = useState<string[]>([]);
   const [selectedRouteFilter, setSelectedRouteFilter] = useState<string>('ALL');
 
@@ -457,7 +687,7 @@ export default function BusBoardScreen() {
       stiffness: 150,
       useNativeDriver: true,
     }).start(() => {
-      setActiveStopCode(null);
+      handleCloseCard();
     });
   };
 
@@ -576,6 +806,7 @@ export default function BusBoardScreen() {
     setQueryLoading(true);
     setQueryError(null);
     setActiveStopCode(code);
+    setCardCollapsed(false);
     
     let displayName = name || '公交站';
     let stopLinesStr = '';
@@ -653,6 +884,17 @@ export default function BusBoardScreen() {
     }
   };
 
+  const handleCloseCard = () => {
+    setActiveStopCode(null);
+    setActiveStopName(null);
+    setArrivals([]);
+    setAllArrivals([]);
+    setQueryError(null);
+    setStopCodeInput('');
+    setStopNameInput('');
+    setSuggestions([]);
+  };
+
   // Filter display list by selected route tab
   const getFilteredArrivals = () => {
     if (selectedRouteFilter === 'ALL') {
@@ -676,7 +918,7 @@ export default function BusBoardScreen() {
       }
 
       if (status !== 'granted') {
-        Alert.alert('提示', '未获得定位权限，无法在地图上定位您的位置。');
+        Alert.alert(localized.notice, localized.noLocPermission);
         return;
       }
       
@@ -691,7 +933,7 @@ export default function BusBoardScreen() {
       `);
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert('提示', '获取位置失败，请检查手机GPS定位是否已开启。');
+      Alert.alert(localized.notice, localized.locFail);
     }
   };
 
@@ -770,11 +1012,11 @@ export default function BusBoardScreen() {
     }
 
     if (diff < 0) {
-      return '已离站';
+      return localized.leftStop;
     } else if (diff === 0) {
-      return '即将到站';
+      return localized.arriving;
     } else {
-      return `${diff} 分钟`;
+      return localized.minutesLeft.replace('{min}', String(diff));
     }
   };
 
@@ -790,7 +1032,7 @@ export default function BusBoardScreen() {
           webViewRef.current?.injectJavaScript(`window.panTo(${stop.latitude}, ${stop.longitude})`);
         }, 500); // 500ms delay to give the map WebView time to mount and layout
       } else {
-        Alert.alert('提示', '未找到该站点的坐标信息，请在地图上拖动查找。');
+        Alert.alert(localized.notice, localized.noCoords);
       }
     } catch (e) {
       console.warn('Failed to pan map to stop:', e);
@@ -801,6 +1043,74 @@ export default function BusBoardScreen() {
 
   // Extract arrivals board rendering to prevent duplication
   const renderArrivalsBoard = (hideHeader = false) => {
+    if (cardCollapsed && !hideHeader) {
+      return (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 4 }]}>
+          <View style={[styles.resultHeader, { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.activeStopName, { color: colors.textPrimary }]} numberOfLines={1}>
+                {activeStopName}
+              </Text>
+              <Text style={[styles.activeStopCode, { color: colors.textSecondary }]}>
+                {localized.stopCodeLabel}{activeStopCode}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+              <Pressable
+                style={[
+                  styles.favIconBtn,
+                  { 
+                    borderColor: colors.border,
+                    backgroundColor: 'transparent',
+                    width: 38,
+                    height: 38,
+                  }
+                ]}
+                onPress={() => setCardCollapsed(false)}
+              >
+                <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.favIconBtn,
+                  { 
+                    borderColor: isFavorite ? colors.primary : colors.border,
+                    backgroundColor: isFavorite ? colors.primary + '15' : 'transparent',
+                    width: 38,
+                    height: 38,
+                  }
+                ]}
+                onPress={isFavorite ? () => handleRemoveFavorite(activeStopCode!) : handleAddFavorite}
+              >
+                <Ionicons 
+                  name={isFavorite ? "star" : "star-outline"} 
+                  size={20} 
+                  color={isFavorite ? colors.primary : colors.textSecondary} 
+                />
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.favIconBtn,
+                  { 
+                    borderColor: colors.border,
+                    backgroundColor: 'transparent',
+                    width: 38,
+                    height: 38,
+                  }
+                ]}
+                onPress={handleCloseCard}
+              >
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={hideHeader ? { paddingHorizontal: 4 } : [styles.card, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 4 }]}>
         {!hideHeader && (
@@ -810,30 +1120,71 @@ export default function BusBoardScreen() {
                 {activeStopName}
               </Text>
               <Text style={[styles.activeStopCode, { color: colors.textSecondary }]}>
-                站牌号: {activeStopCode}
+                {localized.stopCodeLabel}{activeStopCode}
               </Text>
             </View>
 
-            <Pressable
-              style={[
-                styles.favIconBtn,
-                { 
-                  borderColor: isFavorite ? colors.primary : colors.border,
-                  backgroundColor: isFavorite ? colors.primary + '15' : 'transparent' 
-                }
-              ]}
-              onPress={isFavorite ? () => handleRemoveFavorite(activeStopCode!) : handleAddFavorite}
-            >
-              <Ionicons 
-                name={isFavorite ? "star" : "star-outline"} 
-                size={22} 
-                color={isFavorite ? colors.primary : colors.textSecondary} 
-              />
-            </Pressable>
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+              <Pressable
+                style={[
+                  styles.favIconBtn,
+                  { 
+                    borderColor: colors.border,
+                    backgroundColor: 'transparent',
+                    width: 38,
+                    height: 38,
+                  }
+                ]}
+                onPress={() => setCardCollapsed(true)}
+              >
+                <Ionicons name="chevron-up" size={20} color={colors.textSecondary} />
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.favIconBtn,
+                  { 
+                    borderColor: isFavorite ? colors.primary : colors.border,
+                    backgroundColor: isFavorite ? colors.primary + '15' : 'transparent',
+                    width: 38,
+                    height: 38,
+                  }
+                ]}
+                onPress={isFavorite ? () => handleRemoveFavorite(activeStopCode!) : handleAddFavorite}
+              >
+                <Ionicons 
+                  name={isFavorite ? "star" : "star-outline"} 
+                  size={20} 
+                  color={isFavorite ? colors.primary : colors.textSecondary} 
+                />
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.favIconBtn,
+                  { 
+                    borderColor: colors.border,
+                    backgroundColor: 'transparent',
+                    width: 38,
+                    height: 38,
+                  }
+                ]}
+                onPress={handleCloseCard}
+              >
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
+              </Pressable>
+            </View>
           </View>
         )}
 
-        {queryError ? (
+        {queryLoading && displayedArrivals.length === 0 ? (
+          <View style={[styles.emptyContainer, { paddingVertical: 40 }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 12 }]}>
+              {localized.loadingArrivals}
+            </Text>
+          </View>
+        ) : queryError ? (
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons name="alert-circle-outline" size={32} color={colors.error} />
             <Text style={[styles.errorText, { color: colors.textPrimary }]}>{queryError}</Text>
@@ -842,12 +1193,18 @@ export default function BusBoardScreen() {
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="bus-alert" size={40} color={colors.textMuted} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              当前筛选条件下此站点无到站公交
+              {localized.emptyArrivals}
             </Text>
           </View>
         ) : (
           <View style={styles.arrivalsList}>
-            <Text style={[styles.listHeaderTitle, { color: colors.textSecondary }]}>实时到站 (Live Arrivals)</Text>
+            {queryLoading && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6, gap: 6, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 8 }}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: 'bold' }}>{localized.updating}</Text>
+              </View>
+            )}
+            <Text style={[styles.listHeaderTitle, { color: colors.textSecondary }]}>{localized.liveArrivals}</Text>
             {displayedArrivals.map((bus, idx) => {
               const dest = ROUTE_DESTINATIONS[bus.line] || 
                            ROUTE_DESTINATIONS[bus.line.replace(/[a-zA-Z]/g, '')] || 
@@ -888,7 +1245,7 @@ export default function BusBoardScreen() {
                           styles.statusText, 
                           { color: bus.type === 'satellite' ? '#10B981' : '#6B7280' }
                         ]}>
-                          {bus.type === 'satellite' ? 'real time' : 'scheduled'}
+                          {bus.type === 'satellite' ? localized.realTime : localized.scheduled}
                         </Text>
                       </View>
                     </View>
@@ -901,12 +1258,12 @@ export default function BusBoardScreen() {
                       {bus.hasRamp && (
                         <View style={styles.rampBadge}>
                           <FontIcon name="wheelchair" size={11} color={colors.primary} style={{ marginRight: 2 }} />
-                          <Text style={[styles.rampText, { color: colors.primary }]}>无障碍踏板</Text>
+                          <Text style={[styles.rampText, { color: colors.primary }]}>{localized.ramp}</Text>
                         </View>
                       )}
                       {bus.busNumber && (
                         <Text style={{ fontSize: 10, color: colors.textMuted, marginLeft: bus.hasRamp ? 8 : 0 }}>
-                          车号: #{bus.busNumber}
+                          {localized.busNum}{bus.busNumber}
                         </Text>
                       )}
                     </View>
@@ -927,7 +1284,7 @@ export default function BusBoardScreen() {
         {/* WeBus style Route filter tabs */}
         {activeStopLines.length > 0 && !queryError && (
           <View style={[styles.routesFilterContainer, { borderTopColor: colors.border }]}>
-            <Text style={[styles.routesFilterTitle, { color: colors.textSecondary }]}>线路过滤 (Routes)</Text>
+            <Text style={[styles.routesFilterTitle, { color: colors.textSecondary }]}>{localized.routeFilter}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.routesFilterList}>
               <Pressable
                 style={[
@@ -940,7 +1297,7 @@ export default function BusBoardScreen() {
                 onPress={() => setSelectedRouteFilter('ALL')}
               >
                 <Text style={[styles.routeFilterBtnText, { color: selectedRouteFilter === 'ALL' ? '#FFF' : colors.textPrimary }]}>
-                  全部
+                  {localized.allRoutes}
                 </Text>
               </Pressable>
               {activeStopLines.map(line => (
@@ -974,7 +1331,7 @@ export default function BusBoardScreen() {
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>博洛尼亚公交查询</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{localized.title}</Text>
         <Pressable
           style={styles.refreshBtn}
           onPress={() => activeStopCode && executeQuery(activeStopCode, activeStopName || undefined)}
@@ -1000,7 +1357,7 @@ export default function BusBoardScreen() {
               { color: activeTab === 'search' ? colors.primary : colors.textSecondary }
             ]}
           >
-            搜索查询
+            {localized.searchTab}
           </Text>
         </Pressable>
         <Pressable
@@ -1013,7 +1370,7 @@ export default function BusBoardScreen() {
               { color: activeTab === 'map' ? colors.primary : colors.textSecondary }
             ]}
           >
-            地图选点
+            {localized.mapTab}
           </Text>
         </Pressable>
 
@@ -1039,11 +1396,11 @@ export default function BusBoardScreen() {
         >
           {/* Search Panel */}
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: SPACING.md }]}>查询车辆到站</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: SPACING.md }]}>{localized.searchTitle}</Text>
             
             <View style={styles.rowInputs}>
               <View style={{ flex: 2, marginRight: 8 }}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>数字站牌号 (Fermata)</Text>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{localized.fermataLabel}</Text>
                 <View style={styles.inputContainer}>
                   <TextInput
                     style={[
@@ -1054,7 +1411,7 @@ export default function BusBoardScreen() {
                         borderColor: colors.border 
                       }
                     ]}
-                    placeholder="如: 4306"
+                    placeholder={localized.fermataPlaceholder}
                     placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
                     value={stopCodeInput}
@@ -1069,7 +1426,7 @@ export default function BusBoardScreen() {
               </View>
 
               <View style={{ flex: 1 }}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>过滤线路 (可选)</Text>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{localized.filterLabel}</Text>
                 <View style={styles.inputContainer}>
                   <TextInput
                     style={[
@@ -1080,7 +1437,7 @@ export default function BusBoardScreen() {
                         borderColor: colors.border 
                       }
                     ]}
-                    placeholder="如: 25"
+                    placeholder={localized.filterPlaceholder}
                     placeholderTextColor={colors.textMuted}
                     value={lineFilterInput}
                     onChangeText={setLineFilterInput}
@@ -1091,7 +1448,7 @@ export default function BusBoardScreen() {
             </View>
 
             <View style={{ marginTop: 12 }}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>通过名字模糊搜索 (Nome Fermata)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{localized.fuzzySearchLabel}</Text>
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[
@@ -1102,7 +1459,7 @@ export default function BusBoardScreen() {
                       borderColor: colors.border 
                     }
                   ]}
-                  placeholder="输入站名关键词，如: Casaralta"
+                  placeholder={localized.fuzzySearchPlaceholder}
                   placeholderTextColor={colors.textMuted}
                   value={stopNameInput}
                   onChangeText={setStopNameInput}
@@ -1141,7 +1498,7 @@ export default function BusBoardScreen() {
                       <Text style={[styles.suggestionName, { color: colors.textPrimary }]} numberOfLines={1}>
                         {item.stop_name}
                       </Text>
-                      <Text style={{ fontSize: 11, color: colors.textMuted }}>站牌号: {item.stop_code} {item.lines ? `(${item.lines})` : ''}</Text>
+                      <Text style={{ fontSize: 11, color: colors.textMuted }}>{localized.stopCodeLabel}{item.stop_code} {item.lines ? `(${item.lines})` : ''}</Text>
                     </View>
                     <MaterialIcons name="chevron-right" size={18} color={colors.textMuted} />
                   </Pressable>
@@ -1161,7 +1518,7 @@ export default function BusBoardScreen() {
                 disabled={!stopCodeInput.trim()}
                 onPress={() => executeQuery(stopCodeInput)}
               >
-                <Text style={styles.actionButtonText}>查询到站信息</Text>
+                <Text style={styles.actionButtonText}>{localized.searchBtn}</Text>
               </Pressable>
             </View>
           </View>
@@ -1172,7 +1529,7 @@ export default function BusBoardScreen() {
           {/* Favorite Stops */}
           {favorites.length > 0 && (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>常用收藏</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{localized.favoritesTitle}</Text>
               <View style={styles.favoritesGrid}>
                 {favorites.map((fav) => (
                   <Pressable
@@ -1191,7 +1548,7 @@ export default function BusBoardScreen() {
                       <Text style={[styles.favChipTitle, { color: colors.textPrimary }]} numberOfLines={1}>
                         {fav.customName || fav.name}
                       </Text>
-                      <Text style={{ fontSize: 11, color: colors.textMuted }}>站牌号: {fav.code}</Text>
+                      <Text style={{ fontSize: 11, color: colors.textMuted }}>{localized.stopCodeLabel}{fav.code}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                       <Pressable
@@ -1215,7 +1572,7 @@ export default function BusBoardScreen() {
 
           <View style={styles.dataSourceFooter}>
             <Text style={[styles.dataSourceText, { color: colors.textMuted }]}>
-              数据来源: 博洛尼亚 TPER (Trasporto Passeggeri Emilia-Romagna) 官方实时数据接口
+              {localized.dataSource}
             </Text>
           </View>
 
@@ -1228,7 +1585,7 @@ export default function BusBoardScreen() {
             <WebView
               ref={webViewRef}
               originWhitelist={['*']}
-              source={{ html: getMapHtml(isDark) }}
+              source={{ html: getMapHtml(isDark, localized) }}
               style={{ flex: 1 }}
               onMessage={handleMapMessage}
               domStorageEnabled={true}
@@ -1241,7 +1598,7 @@ export default function BusBoardScreen() {
             <View style={[styles.floatingMapGuide, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Ionicons name="information-circle-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
               <Text style={[styles.floatingMapGuideText, { color: colors.textSecondary }]}>
-                请在地图中拖动并点击红色标记选择站点
+                {localized.mapGuide}
               </Text>
             </View>
           )}
@@ -1289,7 +1646,7 @@ export default function BusBoardScreen() {
                       {activeStopName}
                     </Text>
                     <Text style={[styles.activeStopCode, { color: colors.textSecondary }]}>
-                      站牌号: {activeStopCode}
+                      {localized.stopCodeLabel}{activeStopCode}
                     </Text>
                   </View>
 
@@ -1333,7 +1690,7 @@ export default function BusBoardScreen() {
                 
                 <View style={styles.dataSourceFooter}>
                   <Text style={[styles.dataSourceText, { color: colors.textMuted }]}>
-                    数据来源: 博洛尼亚 TPER (Trasporto Passeggeri Emilia-Romagna) 官方实时数据接口
+                    {localized.dataSource}
                   </Text>
                 </View>
                 
@@ -1353,9 +1710,9 @@ export default function BusBoardScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF', borderColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>收藏该站点</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{localized.favModalTitle}</Text>
             <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8, fontWeight: '500' }}>
-              添加备注
+              {localized.favModalNote}
             </Text>
             <TextInput
               style={[
@@ -1366,7 +1723,7 @@ export default function BusBoardScreen() {
                   borderColor: colors.border
                 }
               ]}
-              placeholder="留空则默认站名"
+              placeholder={localized.favModalPlaceholder}
               placeholderTextColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'}
               value={newFavCustomName}
               onChangeText={setNewFavCustomName}
@@ -1377,13 +1734,13 @@ export default function BusBoardScreen() {
                 style={[styles.modalBtn, { borderColor: colors.border }]}
                 onPress={() => setFavModalVisible(false)}
               >
-                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>取消</Text>
+                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{localized.cancel}</Text>
               </Pressable>
               <Pressable
                 style={[styles.modalBtn, { backgroundColor: colors.primary }]}
                 onPress={confirmAddFavorite}
               >
-                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>收藏</Text>
+                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>{localized.favorite}</Text>
               </Pressable>
             </View>
           </View>
@@ -1402,7 +1759,7 @@ export default function BusBoardScreen() {
             <View style={[styles.modalContent, { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF', borderColor: colors.border }]}>
               {/* Modal Header */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary, marginBottom: 0 }]}>车辆到站详情</Text>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary, marginBottom: 0 }]}>{localized.arrivalDetailTitle}</Text>
                 <Pressable onPress={() => setSelectedArrival(null)}>
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </Pressable>
@@ -1425,7 +1782,7 @@ export default function BusBoardScreen() {
                     {getCountdownString(selectedArrival.time)}
                   </Text>
                   <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>
-                    预计到站时间: {selectedArrival.time}
+                    {localized.estArrival}{selectedArrival.time}
                   </Text>
                 </View>
               </View>
@@ -1434,7 +1791,7 @@ export default function BusBoardScreen() {
               <View style={{ gap: 12, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 16, marginBottom: 16 }}>
                 {/* Stop info */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>当前查询站点</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{localized.currStopLabel}</Text>
                   <Text style={{ color: colors.textPrimary, fontWeight: '500', fontSize: 13, maxWidth: '60%' }} numberOfLines={1}>
                     {activeStopName} ({activeStopCode})
                   </Text>
@@ -1442,31 +1799,31 @@ export default function BusBoardScreen() {
 
                 {/* Tracking type */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>定位追踪方式</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{localized.trackingLabel}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <View style={[
                       styles.statusDot, 
                       { backgroundColor: selectedArrival.type === 'satellite' ? '#10B981' : '#6B7280', marginRight: 6 }
                     ]} />
                     <Text style={{ color: selectedArrival.type === 'satellite' ? '#10B981' : colors.textPrimary, fontWeight: '600', fontSize: 13 }}>
-                      {selectedArrival.type === 'satellite' ? '卫星实时追踪 (Live)' : '计划排班时刻 (Scheduled)'}
+                      {selectedArrival.type === 'satellite' ? localized.liveTracking : localized.scheduledTracking}
                     </Text>
                   </View>
                 </View>
 
                 {/* Vehicle number */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>公交车牌号</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{localized.licenseLabel}</Text>
                   <Text style={{ color: colors.textPrimary, fontWeight: '500', fontSize: 13 }}>
-                    {selectedArrival.busNumber ? `#${selectedArrival.busNumber}` : '暂无车号信息'}
+                    {selectedArrival.busNumber ? `#${selectedArrival.busNumber}` : localized.noLicense}
                   </Text>
                 </View>
 
                 {/* Wheelchair ramp */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>无障碍设施</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{localized.accessibilityLabel}</Text>
                   <Text style={{ color: selectedArrival.hasRamp ? colors.primary : colors.textSecondary, fontWeight: '500', fontSize: 13 }}>
-                    {selectedArrival.hasRamp ? '配备无障碍踏板' : '未配备或暂无信息'}
+                    {selectedArrival.hasRamp ? localized.rampEquipped : localized.noRamp}
                   </Text>
                 </View>
               </View>
@@ -1474,7 +1831,7 @@ export default function BusBoardScreen() {
               {/* Information Tip */}
               <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', padding: 12, borderRadius: 10 }}>
                 <Text style={{ fontSize: 11, color: colors.textMuted, lineHeight: 15 }}>
-                  提示: 卫星实时追踪（实时）的时间会根据公交车当前的 GPS 坐标及道路拥堵状况进行动态计算与调整。请提前前往站点候车。
+                  {localized.detailTip}
                 </Text>
               </View>
             </View>

@@ -31,11 +31,11 @@ const CATEGORIES = [
   { key: 'general', label: '综合通知' },
 ];
 
-const getCategoryLabel = (category: string) => {
-  if (category === 'events' || category === 'event_news') return '学联活动';
-  if (category === 'academic' || category === 'notice') return '学术资讯';
-  if (category === 'life' || category === 'news') return '生活辅助';
-  return '综合通知';
+const getCategoryLabel = (category: string, t: (key: string) => string) => {
+  if (category === 'events' || category === 'event_news') return t('category_events');
+  if (category === 'academic' || category === 'notice') return t('category_academic');
+  if (category === 'life' || category === 'news') return t('category_life');
+  return t('category_general');
 };
 
 const getCategoryColor = (category: string) => {
@@ -46,7 +46,7 @@ const getCategoryColor = (category: string) => {
 };
 
 export default function AnnouncementsScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, t } = useTheme();
   
   // Loaded database items
   const [loadedNotifications, setLoadedNotifications] = useState<NotificationItem[]>([]);
@@ -207,11 +207,11 @@ export default function AnnouncementsScreen() {
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.sm }}>
           <MaterialCommunityIcons name="bullhorn-outline" size={24} color={colors.primary} style={{ marginRight: 8 }} />
-          <Text style={[styles.title, { color: colors.textPrimary, marginBottom: 0 }]}>动态与通知</Text>
+          <Text style={[styles.title, { color: colors.textPrimary, marginBottom: 0 }]}>{t('latestUpdates')}</Text>
         </View>
         <TextInput
           style={[styles.searchInput, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-          placeholder="搜索动态与通知..."
+          placeholder={t('searchAnnouncementsPlaceholder')}
           placeholderTextColor={colors.textMuted}
           value={search}
           onChangeText={setSearch}
@@ -242,11 +242,9 @@ export default function AnnouncementsScreen() {
           >
             <Text style={[
               styles.filterText, 
-              { 
-                color: selectedCategory === cat.key ? '#FFFFFF' : colors.textSecondary 
-              }
+              { color: selectedCategory === cat.key ? '#FFFFFF' : colors.textSecondary }
             ]}>
-              {cat.label}
+              {t('category_' + cat.key)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -272,7 +270,7 @@ export default function AnnouncementsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={[styles.emptyText, { color: colors.textMuted }]}>暂无相关内容</Text>
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t('noRelatedContent')}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -305,7 +303,7 @@ export default function AnnouncementsScreen() {
                           }
                         ]}>
                           <MaterialCommunityIcons name="pin" size={10} color="#F59E0B" style={{ marginRight: 2 }} />
-                          <Text style={[styles.typeText, { color: '#F59E0B' }]}>置顶</Text>
+                          <Text style={[styles.typeText, { color: '#F59E0B' }]}>{t('featured')}</Text>
                         </View>
                       )}
 
@@ -321,7 +319,7 @@ export default function AnnouncementsScreen() {
                           styles.typeText, 
                           { color: '#FFFFFF', fontWeight: 'bold' }
                         ]}>
-                          {item.type === 'notification' ? '通知' : '文章'}
+                          {item.type === 'notification' ? t('notificationType') : t('articleType')}
                         </Text>
                       </View>
 
@@ -329,7 +327,7 @@ export default function AnnouncementsScreen() {
                       {item.category !== 'general' && (
                         <View style={[styles.catBadge, { backgroundColor: getCategoryColor(item.category) + '25' }]}>
                           <Text style={[styles.catText, { color: getCategoryColor(item.category) }]}>
-                            {getCategoryLabel(item.category)}
+                            {getCategoryLabel(item.category, t)}
                           </Text>
                         </View>
                       )}
@@ -355,7 +353,7 @@ export default function AnnouncementsScreen() {
               <View style={styles.cardBottom}>
                 <View />
                 <Text style={[styles.readMore, { color: colors.primary }]}>
-                  {!item.link ? '查看详情 →' : '阅读全文 →'}
+                  {!item.link ? t('viewDetailsArrow') : t('readFullArticleArrow')}
                 </Text>
               </View>
             </TouchableOpacity>

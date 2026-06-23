@@ -50,7 +50,7 @@ export default function LoginScreen() {
 
   const handleSendOtp = async () => {
     if (!email) {
-      setErrorMsg("请输入邮箱地址");
+      setErrorMsg(t('enterEmailAddress'));
       return;
     }
     
@@ -67,13 +67,13 @@ export default function LoginScreen() {
 
       if (error) {
         if (error.message.includes('User not found') || error.message.includes('Signups not allowed')) {
-          setErrorMsg("该邮箱未注册，请先注册账户");
+          setErrorMsg(t('emailNotRegistered'));
         } else {
           setErrorMsg(translateAuthError(error.message, language));
         }
       } else {
         setOtpSent(true);
-        Alert.alert("验证码已发送", "登录验证码已发送至您的邮箱，请注意查收。");
+        Alert.alert(t('otpSentTitle'), t('otpSentMsg'));
         setCountdown(60);
         timerRef.current = setInterval(() => {
           setCountdown((prev) => {
@@ -87,7 +87,7 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       console.error('Send OTP error:', err);
-      setErrorMsg("网络错误，发送验证码失败");
+      setErrorMsg(t('sendOtpError'));
     } finally {
       setSendingOtp(false);
     }
@@ -127,12 +127,12 @@ export default function LoginScreen() {
       } else {
         // OTP mode login
         if (!email || !otpCode) {
-          setErrorMsg("请输入邮箱和验证码");
+          setErrorMsg(t('enterEmailAndOtp'));
           return;
         }
 
         if (otpCode.length !== 6) {
-          setErrorMsg("请输入完整的 6 位验证码");
+          setErrorMsg(t('enter6DigitOtp'));
           return;
         }
 
@@ -152,7 +152,7 @@ export default function LoginScreen() {
             router.replace('/(tabs)');
           }
         } catch (err) {
-          setErrorMsg("网络错误，登录验证失败");
+          setErrorMsg(t('loginVerifyFailed'));
         } finally {
           setLoading(false);
         }
@@ -221,7 +221,7 @@ export default function LoginScreen() {
                       styles.tabButtonText, 
                       { color: loginMode === 'password' ? colors.primary : colors.textSecondary }
                     ]}>
-                      密码登录
+                      {t('passwordLogin')}
                     </Text>
                   </Pressable>
 
@@ -236,7 +236,7 @@ export default function LoginScreen() {
                       styles.tabButtonText, 
                       { color: loginMode === 'otp' ? colors.primary : colors.textSecondary }
                     ]}>
-                      验证码登录
+                      {t('otpLogin')}
                     </Text>
                   </Pressable>
                 </View>
@@ -277,7 +277,7 @@ export default function LoginScreen() {
                 {/* OTP Mode Fields */}
                 {loginMode === 'otp' && (
                   <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>验证码</Text>
+                    <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('otpCodeLabel')}</Text>
                     <View style={styles.otpInputRow}>
                       <TextInput 
                         style={[
@@ -285,7 +285,7 @@ export default function LoginScreen() {
                           styles.otpCodeInput, 
                           { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }
                         ]}
-                        placeholder="请输入 6 位验证码"
+                        placeholder={t('otpCodePlaceholder')}
                         placeholderTextColor={colors.textMuted}
                         value={otpCode}
                         onChangeText={setOtpCode}
@@ -313,7 +313,7 @@ export default function LoginScreen() {
                             styles.sendOtpButtonText, 
                             { color: isSendDisabled ? colors.textMuted : "#FFF" }
                           ]}>
-                            {countdown > 0 ? `${countdown}s` : (otpSent ? "重新发送" : "获取验证码")}
+                            {countdown > 0 ? `${countdown}s` : (otpSent ? t('resend') : t('getOtpCode'))}
                           </Text>
                         )}
                       </Pressable>

@@ -58,7 +58,9 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     depTime: '始发时间',
     origin: '始发站',
     dest: '终到站',
-    disclaimer: '本服务展示的列车时刻、延误及站台等数据均来自意大利铁路公开实时运营信息，仅供出行参考。实际运行请以车站大屏幕及官方购票App（Trenitalia / Italo）实时公告为准。'
+    disclaimer: '本服务展示的列车时刻、延误及站台等数据均来自意大利铁路公开实时运营信息，仅供出行参考。实际运行请以车站大屏幕及官方购票App（Trenitalia / Italo）实时公告为准。',
+    favTrains: '已收藏车次',
+    favStations: '已收藏车站'
   },
   'zh-Hant': {
     title: '意大利火車查詢',
@@ -84,7 +86,9 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     depTime: '始發時間',
     origin: '始發站',
     dest: '終到站',
-    disclaimer: '本服務展示的列車時刻、延誤及月台等數據均來自義大利鐵路公開即時營運資訊，僅供出行參考。實際運行請以車站大屏幕及鐵路官方App（Trenitalia / Italo）即時公告為準。'
+    disclaimer: '本服務展示的列車時刻、延誤及月台等數據均來自義大利鐵路公開即時營運資訊，僅供出行參考。實際運行請以車站大屏幕及鐵路官方App（Trenitalia / Italo）即時公告為準。',
+    favTrains: '已收藏車次',
+    favStations: '已收藏車站'
   },
   en: {
     title: 'Italian Train Info',
@@ -110,10 +114,12 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     depTime: 'Departure',
     origin: 'From',
     dest: 'To',
-    disclaimer: 'The train schedules, delays, and platform info displayed here are retrieved from Italian rail public live data and are for reference only. Please refer to station screens and official apps for actual operations.'
+    disclaimer: 'The train schedules, delays, and platform info displayed here are retrieved from Italian rail public live data and are for reference only. Please refer to station screens and official apps for actual operations.',
+    favTrains: 'Favorite Trains',
+    favStations: 'Favorite Stations'
   },
   it: {
-    title: 'Stato e Orari Treni',
+    title: 'Treni Stato e Orari',
     tabTrain: 'Per Numero Treno',
     tabStation: 'Per Stazione',
     trainNumberPlaceholder: 'Inserisci numero treno, es. 9604, 2235',
@@ -136,7 +142,9 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     depTime: 'Partenza',
     origin: 'Da',
     dest: 'A',
-    disclaimer: 'Disclaimer: Gli orari, ritardi e binari dei treni mostrati sono tratti dai dati pubblici in tempo reale delle ferrovie italiane e hanno valore puramente informativo. Fare riferimento ai tabelloni di stazione e alle app ufficiali per l\'operatività reale.'
+    disclaimer: 'Disclaimer: Gli orari, ritardi e binari dei treni mostrati sono tratti dai dati pubblici in tempo reale delle ferrovie italiane e hanno valore puramente informativo. Fare riferimento ai tabelloni di stazione e alle app ufficiali per l\'operatività reale.',
+    favTrains: 'Treni Preferiti',
+    favStations: 'Stazioni Preferite'
   }
 };
 
@@ -776,7 +784,7 @@ export default function TrainToolIndex() {
             {favoriteTrains.length > 0 && !loadingTrain && trainMatches.length === 0 && (
               <View style={styles.historyWrapper}>
                 <View style={styles.historyHeader}>
-                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>已收藏车次</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('favTrains')}</Text>
                 </View>
                 {favoriteTrains.map((item) => renderTrainCard(item))}
               </View>
@@ -935,7 +943,7 @@ export default function TrainToolIndex() {
             {favoriteStations.length > 0 && !selectedStation && stationMatches.length === 0 && (
               <View style={styles.historyWrapper}>
                 <View style={styles.historyHeader}>
-                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>已收藏车站</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('favStations')}</Text>
                 </View>
                 {favoriteStations.map((item) => renderStationCard(item))}
               </View>

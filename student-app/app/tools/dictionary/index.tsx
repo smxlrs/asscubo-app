@@ -13,7 +13,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
-import { useTheme } from '../../../context/ThemeContext';
+import { useTheme, Language } from '../../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -33,6 +33,77 @@ const { width } = Dimensions.get('window');
 const HISTORY_LIMIT = 20;
 const HISTORY_KEY = 'user_dictionary_history';
 
+const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
+  zh: {
+    title: '意汉词典',
+    placeholder: '请输入中文或意大利文',
+    search: '查询',
+    loading: '正在调装本地词库中...',
+    recentSearch: '最近查询记录',
+    clearAll: '清除全部',
+    noHistory: '无历史查询，输入以开始查词。',
+    searchingRemaining: '正在检索其余 {count} 个词库...',
+    noResultTitle: '未找到 "{word}" 的释义',
+    noResultDesc: '请检查拼写，或者在右上角设置中开启更多词典库。',
+    welcomeTitle: '意语智能词典',
+    welcomeDesc: '输入单词、变位反查或中文释义，快速调阅 8 套精编词库。',
+    systemDict: '内置词库',
+    importedDict: '外部导入',
+    noSuggestions: '未找到以 "{query}" 开头的词汇',
+  },
+  'zh-Hant': {
+    title: '意漢詞典',
+    placeholder: '請輸入中文或意大利文',
+    search: '查詢',
+    loading: '正在調裝本地詞庫中...',
+    recentSearch: '最近查詢記錄',
+    clearAll: '清除全部',
+    noHistory: '無歷史查詢，輸入以開始查詞。',
+    searchingRemaining: '正在檢索其餘 {count} 個詞庫...',
+    noResultTitle: '未找到 "{word}" 的釋義',
+    noResultDesc: '請檢查拼寫，或者在右上角設置中開啟更多詞典庫。',
+    welcomeTitle: '意語智能詞典',
+    welcomeDesc: '輸入單詞、變位反查或中文釋義，快速調閱 8 套精編詞庫。',
+    systemDict: '內置詞庫',
+    importedDict: '外部導入',
+    noSuggestions: '未找到以 "{query}" 開頭的詞彙',
+  },
+  en: {
+    title: 'IT-ZH Dictionary',
+    placeholder: 'Enter Chinese or Italian',
+    search: 'Search',
+    loading: 'Loading local dictionary databases...',
+    recentSearch: 'Recent Searches',
+    clearAll: 'Clear All',
+    noHistory: 'No search history. Enter text to start searching.',
+    searchingRemaining: 'Searching remaining {count} dictionaries...',
+    noResultTitle: 'No definitions found for "{word}"',
+    noResultDesc: 'Please check spelling, or enable more dictionary databases in settings.',
+    welcomeTitle: 'Smart IT-ZH Dictionary',
+    welcomeDesc: 'Enter words, conjugations, or Chinese meanings to search 8 curated dictionaries.',
+    systemDict: 'Built-in',
+    importedDict: 'Imported',
+    noSuggestions: 'No words start with "{query}"',
+  },
+  it: {
+    title: 'Dizionario IT-ZH',
+    placeholder: 'Inserisci cinese o italiano',
+    search: 'Cerca',
+    loading: 'Caricamento database dizionario locale...',
+    recentSearch: 'Ricerche Recenti',
+    clearAll: 'Cancella Tutto',
+    noHistory: 'Nessuna cronologia. Inserisci del testo per cercare.',
+    searchingRemaining: 'Ricerca nei restanti {count} dizionari...',
+    noResultTitle: 'Nessuna definizione trovata per "{word}"',
+    noResultDesc: 'Verifica l\'ortografia, o abilita altri dizionari nelle impostazioni.',
+    welcomeTitle: 'Dizionario IT-ZH Smart',
+    welcomeDesc: 'Inserisci parole, coniugazioni o significati in cinese per cercare in 8 dizionari.',
+    systemDict: 'Integrato',
+    importedDict: 'Importato',
+    noSuggestions: 'Nessuna parola inizia con "{query}"',
+  }
+};
+
 // Generate a unified HTML page to render definitions in a WebView with collapsible cards
 const buildHtmlString = (
   defs: { dict_id: string; definition: string }[],
@@ -40,7 +111,8 @@ const buildHtmlString = (
   collapsed: { [dictId: string]: boolean },
   themeColors: any,
   dark: boolean,
-  enabledDictIds: string[]
+  enabledDictIds: string[],
+  ls: (key: string) => string
 ) => {
   const cardsHtml = defs.map((defItem) => {
     const dict = dicts.find(d => d.id === defItem.dict_id);
@@ -53,7 +125,7 @@ const buildHtmlString = (
         <div class="dict-header">
           <div class="dict-header-left">
             <span class="dict-name">${dict.name}</span>
-            <span class="dict-tag">${dict.isSystem ? '内置词库' : '外部导入'}</span>
+            <span class="dict-tag">${dict.isSystem ? ls('systemDict') : ls('importedDict')}</span>
           </div>
           <svg class="dict-toggle-icon" viewBox="0 0 24 24">
             <path d="M7 10l5 5 5-5z"/>
@@ -578,7 +650,11 @@ const buildHtmlString = (
 };
 
 export default function DictionaryScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, language } = useTheme();
+  const activeLang = (['zh', 'zh-Hant', 'en', 'it'].includes(language) ? language : 'zh') as Language;
+  const ls = (key: string) => {
+    return LOCALIZED_STRINGS[activeLang]?.[key] || LOCALIZED_STRINGS['zh'][key] || key;
+  };
 
   // Search & input states
   const [searchQuery, setSearchQuery] = useState('');
@@ -629,11 +705,12 @@ export default function DictionaryScreen() {
         collapsedDictsRef.current,
         colors,
         isDark,
-        enabledDictIds
+        enabledDictIds,
+        ls
       );
       setWebViewHtml(html);
     }
-  }, [colors, isDark, dictionaries, enabledDictIds]);
+  }, [colors, isDark, dictionaries, enabledDictIds, language]);
 
   // Load dictionaries and history on focus (in case config changed in settings)
   useFocusEffect(
@@ -796,7 +873,8 @@ export default function DictionaryScreen() {
         collapsedDictsRef.current,
         colors,
         isDark,
-        enabledDictIds
+        enabledDictIds,
+        ls
       );
       setWebViewHtml(html);
       setSearching(false);
@@ -927,7 +1005,7 @@ export default function DictionaryScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>意汉词典</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{ls('title')}</Text>
         <Pressable 
           style={styles.settingsButton} 
           onPress={() => router.push('/tools/dictionary/settings')}
@@ -943,7 +1021,7 @@ export default function DictionaryScreen() {
           <TextInput
             ref={textInputRef}
             style={[styles.input, { color: colors.textPrimary }]}
-            placeholder={inputFocused ? "" : "请输入中文或意大利文"}
+            placeholder={inputFocused ? "" : ls('placeholder')}
             placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -969,14 +1047,14 @@ export default function DictionaryScreen() {
           ]} 
           onPress={() => handleSearch(searchQuery)}
         >
-          <Text style={styles.queryButtonText}>查询</Text>
+          <Text style={styles.queryButtonText}>{ls('search')}</Text>
         </Pressable>
       </View>
 
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#A31621" />
-          <Text style={[styles.hintText, { color: colors.textSecondary, marginTop: 12 }]}>正在调装本地词库中...</Text>
+          <Text style={[styles.hintText, { color: colors.textSecondary, marginTop: 12 }]}>{ls('loading')}</Text>
         </View>
       ) : (
         <View style={{ flex: 1 }}>
@@ -1010,7 +1088,7 @@ export default function DictionaryScreen() {
               ListEmptyComponent={
                 loadingSuggestions ? null : (
                   <View style={styles.paddingContainer}>
-                    <Text style={[styles.hintText, { color: colors.textMuted }]}>未找到以 "{searchQuery}" 开头的词汇</Text>
+                    <Text style={[styles.hintText, { color: colors.textMuted }]}>{ls('noSuggestions').replace('{query}', searchQuery)}</Text>
                   </View>
                 )
               }
@@ -1019,10 +1097,10 @@ export default function DictionaryScreen() {
             // 2. Search history & recent words when input is empty & focused
             <ScrollView keyboardShouldPersistTaps="handled" style={styles.historyContainer}>
               <View style={styles.historyHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>最近查询记录</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{ls('recentSearch')}</Text>
                 {history.length > 0 && (
                   <Pressable onPress={handleClearHistory} style={styles.clearHistoryBtn}>
-                    <Text style={{ color: '#A31621', fontSize: 12, fontWeight: 'bold' }}>清除全部</Text>
+                    <Text style={{ color: '#A31621', fontSize: 12, fontWeight: 'bold' }}>{ls('clearAll')}</Text>
                   </Pressable>
                 )}
               </View>
@@ -1043,7 +1121,7 @@ export default function DictionaryScreen() {
                 </View>
               ) : (
                 <View style={styles.paddingContainer}>
-                  <Text style={[styles.hintText, { color: colors.textMuted }]}>无历史查询，输入以开始查词。</Text>
+                  <Text style={[styles.hintText, { color: colors.textMuted }]}>{ls('noHistory')}</Text>
                 </View>
               )}
             </ScrollView>
@@ -1064,7 +1142,7 @@ export default function DictionaryScreen() {
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           <ActivityIndicator size="small" color="#A31621" style={{ marginRight: 6 }} />
                           <Text style={{ fontSize: 11, color: colors.textSecondary }}>
-                            正在检索其余 {backgroundProgress.total - backgroundProgress.loaded} 个词库...
+                            {ls('searchingRemaining').replace('{count}', String(backgroundProgress.total - backgroundProgress.loaded))}
                           </Text>
                         </View>
                       )}
@@ -1082,9 +1160,9 @@ export default function DictionaryScreen() {
                     />
                   ) : (
                     <View style={styles.centerContainer}>
-                      <Text style={[styles.noResultText, { color: colors.textPrimary }]}>未找到 "{activeWord}" 的释义</Text>
+                      <Text style={[styles.noResultText, { color: colors.textPrimary }]}>{ls('noResultTitle').replace('{word}', activeWord)}</Text>
                       <Text style={[styles.hintText, { color: colors.textMuted, marginTop: 8 }]}>
-                        请检查拼写，或者在右上角设置中开启更多词典库。
+                        {ls('noResultDesc')}
                       </Text>
                     </View>
                   )}
@@ -1093,9 +1171,9 @@ export default function DictionaryScreen() {
                 // Home page welcome when not searching
                 <View style={styles.welcomeContainer}>
                   <Text style={styles.welcomeIcon}>🇮🇹</Text>
-                  <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>意语智能词典</Text>
+                  <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>{ls('welcomeTitle')}</Text>
                   <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
-                    输入单词、变位反查或中文释义，快速调阅 8 套精编词库。
+                    {ls('welcomeDesc')}
                   </Text>
                 </View>
               )}

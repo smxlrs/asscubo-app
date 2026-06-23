@@ -207,7 +207,8 @@ export default function FeedbackScreen() {
       router.back();
     } catch (err: any) {
       console.error('Failed to submit feedback:', err);
-      Alert.alert(t('feedback'), err.message || '提交失败，请重试。');
+      const failMsg = language === 'it' ? 'Invio fallito, riprova.' : language === 'en' ? 'Submission failed, please try again.' : language === 'zh-Hant' ? '提交失敗，請重試。' : '提交失败，请重试。';
+      Alert.alert(t('feedback'), err.message || failMsg);
     } finally {
       setSubmitting(false);
     }
@@ -291,7 +292,9 @@ export default function FeedbackScreen() {
               <Image source={{ uri: mediaUri }} style={styles.mediaPreview} />
             ) : (
               <View style={[styles.videoPlaceholder, { backgroundColor: colors.surfaceElevated }]}>
-                <Text style={[styles.videoPlaceholderText, { color: colors.textPrimary }]}>📹 Video Selected</Text>
+                <Text style={[styles.videoPlaceholderText, { color: colors.textPrimary }]}>
+                  {language === 'it' ? '📹 Video Selezionato' : language === 'en' ? '📹 Video Selected' : language === 'zh-Hant' ? '📹 已選擇影片' : '📹 已选择视频'}
+                </Text>
               </View>
             )}
             <Pressable style={[styles.removeMediaBtn, { backgroundColor: colors.error }]} onPress={handleRemoveMedia}>

@@ -101,7 +101,7 @@ async function registerForPushNotificationsAsync() {
 }
 
 function AppContent() {
-  const { isDark, isReady } = useTheme();
+  const { isDark, isReady, predictiveBack, t } = useTheme();
   const { user, loading } = useAuth();
   useEffect(() => {
     if (isReady && !loading) {
@@ -138,7 +138,7 @@ function AppContent() {
     const subscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
       const data = response.notification.request.content.data;
       if (data && typeof data.link === 'string') {
-        router.push(`/article/web?url=${encodeURIComponent(data.link)}&title=${encodeURIComponent((response.notification.request.content.title as string) || '详情')}` as any);
+        router.push(`/article/web?url=${encodeURIComponent(data.link)}&title=${encodeURIComponent((response.notification.request.content.title as string) || t('details'))}` as any);
       } else if (data && typeof data.articleId === 'string') {
         router.push(`/article/${data.articleId}` as any);
       } else {
@@ -147,14 +147,24 @@ function AppContent() {
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
+    if (predictiveBack) {
+      // If predictive back is enabled, we do not intercept the back press on root/sub screens.
+      // The system handles exit/pop natively with predictive back animations.
+      // Exit becomes single back press as requested.
+      return;
+    }
+
+    // If predictive back is disabled, we globally intercept back events to block
+    // the system predictive animations and use custom pop / double-press exit logic instead.
     let lastPressTime = 0;
 
     const handleBackPress = () => {
       if (router.canGoBack()) {
-        return false;
+        router.back();
+        return true; // Intercepted: handles back manually, blocking system gesture animation
       }
 
       const now = Date.now();
@@ -165,14 +175,14 @@ function AppContent() {
 
       lastPressTime = now;
       if (Platform.OS === 'android') {
-        ToastAndroid.show('再按一次退出博学', ToastAndroid.SHORT);
+        ToastAndroid.show(t('exitAppPrompt'), ToastAndroid.SHORT);
       }
       return true;
     };
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
     return () => subscription.remove();
-  }, []);
+  }, [predictiveBack, t]);
 
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),

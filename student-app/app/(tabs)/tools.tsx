@@ -28,7 +28,7 @@ const cardWidth = (width - 48) / 2;
 const COLUMNS = 2;
 const GAP = 16;
 const colWidth = cardWidth + GAP;
-const rowHeight = 185;
+const rowHeight = 200;
 
 const TOOLS_ORDER_KEY = '@ag_tools_order';
 
@@ -52,23 +52,115 @@ const getPosition = (index: number) => {
   };
 };
 
-const getToolDefinition = (id: string, eurToCny: number, t: (key: string) => string): ToolItem | null => {
+const LOCALIZED = {
+  zh: {
+    handbookTitle: '新生手册',
+    handbookDesc: '博洛尼亚大学中国学联新生手册，让你在博洛尼亚生活得更舒适，更开心。',
+    handbookBadge: '推荐',
+    dictTitle: '词典',
+    dictDesc: '意汉、汉意、动词变位、动词搭配以及同义词等查询。',
+    rateTitle: '汇率换算',
+    rateDescPrefix: '今日实时汇率：',
+    classroomTitle: '空教室查询',
+    classroomDesc: '实时查询博洛尼亚大学空闲教室，考前自习或讨论的好去处。',
+    busTitle: '博洛尼亚公交查询',
+    busDesc: '实时查询博洛尼亚等地区的公交到站倒计时，支持地图选点与线路查询。',
+    studyroomTitle: '自习室与图书馆',
+    studyroomDesc: '实时查看博大自习室与图书馆空余座位、开放时间，并支持一键预约。',
+    linksTitle: '实用链接',
+    linksDesc: '快速访问博洛尼亚大学系统、各类常用办事网站与生活链接。',
+    tip: '提示',
+    developing: '该工具正在全力研发中，敬请期待！',
+    comingSoon: '建设中',
+    subtitleNormal: '实用学术与生活辅助小工具箱',
+    subtitleEditing: '按住并拖动卡片以排序，点击空白处完成',
+  },
+  'zh-Hant': {
+    handbookTitle: '新生手冊',
+    handbookDesc: '博洛尼亞大學中國學聯新生手冊，讓你在博洛尼亞生活得更舒適，更開心。',
+    handbookBadge: '推薦',
+    dictTitle: '詞典',
+    dictDesc: '意漢、漢意、動詞變位、動詞搭配以及同義詞等查詢。',
+    rateTitle: '匯率換算',
+    rateDescPrefix: '今日實時匯率：',
+    classroomTitle: '空教室查詢',
+    classroomDesc: '實時查詢博洛尼亞大學空閒教室，考前自習或討論的好去處。',
+    busTitle: '博洛尼亞公交查詢',
+    busDesc: '實時查詢博洛尼亞等地區的公交到站倒計時，支持地圖選點與線路查詢。',
+    studyroomTitle: '自習室與圖書館',
+    studyroomDesc: '實時查看博大自習室與圖書館空余座位、開放時間，並支持一鍵預約。',
+    linksTitle: '實用鏈接',
+    linksDesc: '快速訪問博洛尼亞大學系統、各類常用辦事網站與生活鏈接。',
+    tip: '提示',
+    developing: '該工具正在全力研發中，敬請期待！',
+    comingSoon: '建設中',
+    subtitleNormal: '實用學術與生活輔助小工具箱',
+    subtitleEditing: '按住並拖動卡片以排序，點擊空白處完成',
+  },
+  en: {
+    handbookTitle: 'Handbook',
+    handbookDesc: 'ASSCUBO handbook for new students to live more comfortably and happily in Bologna.',
+    handbookBadge: 'Rec',
+    dictTitle: 'Dictionary',
+    dictDesc: 'Italian-Chinese, Chinese-Italian dictionary, verb conjugations, and collocations.',
+    rateTitle: 'Exchange Rate',
+    rateDescPrefix: 'Today\'s Rate: ',
+    classroomTitle: 'Empty Classrooms',
+    classroomDesc: 'Real-time query of empty classrooms at UniBo, a great place for self-study.',
+    busTitle: 'Bologna Bus',
+    busDesc: 'Real-time countdown of bus arrivals in Bologna, supports map selection.',
+    studyroomTitle: 'Studyrooms & Libs',
+    studyroomDesc: 'Real-time view of seats, opening hours in UniBo studyrooms, supports one-click booking.',
+    linksTitle: 'Useful Links',
+    linksDesc: 'Quick access to UniBo portals, administrative websites, and daily life services.',
+    tip: 'Notice',
+    developing: 'This tool is under development and will be available in future updates!',
+    comingSoon: 'Soon',
+    subtitleNormal: 'Practical academic & life utility toolkit',
+    subtitleEditing: 'Hold and drag card to reorder, click empty space to finish',
+  },
+  it: {
+    handbookTitle: 'Guida Matricole',
+    handbookDesc: 'Guida ASSCUBO per le nuove matricole per vivere più comodamente e felicemente a Bologna.',
+    handbookBadge: 'Cons.',
+    dictTitle: 'Dizionario',
+    dictDesc: 'Dizionario italiano-cinese, cinese-italiano, coniugazioni verbali e collocazioni.',
+    rateTitle: 'Cambio Valuta',
+    rateDescPrefix: 'Tasso di oggi: ',
+    classroomTitle: 'Aule Libere',
+    classroomDesc: 'Consultazione in tempo reale delle aule libere all\'UniBo, ideale per studiare.',
+    busTitle: 'Bus Bologna',
+    busDesc: 'Arrivi bus in tempo reale a Bologna, supporta la selezione sulla mappa.',
+    studyroomTitle: 'Aule Studio & Bib',
+    studyroomDesc: 'Posti liberi, orari di aule studio UniBo e prenotazione con un clic.',
+    linksTitle: 'Link Utili',
+    linksDesc: 'Accesso rapido ai portali UniBo, siti amministrativi e servizi quotidiani.',
+    tip: 'Avviso',
+    developing: 'Questo strumento è in fase di sviluppo e sarà disponibile nei prossimi aggiornamenti!',
+    comingSoon: 'Presto',
+    subtitleNormal: 'Cassetta degli attrezzi per la vita accademica e quotidiana',
+    subtitleEditing: 'Tieni premuto e trascina per riordinare, clicca lo spazio vuoto per terminare',
+  }
+};
+
+const getToolDefinition = (id: string, eurToCny: number, language: string, t: (key: string) => string): ToolItem | null => {
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   switch (id) {
     case 'handbook':
       return {
         id: 'handbook',
-        title: '新生手册',
-        description: '博洛尼亚大学中国学联新生手册，让你在博洛尼亚生活得更舒适，更开心。',
+        title: localized.handbookTitle,
+        description: localized.handbookDesc,
         icon: 'book-open-variant',
         route: '/tools/handbook',
-        badge: '推荐',
+        badge: localized.handbookBadge,
         color: '#A31621',
       };
     case 'dictionary':
       return {
         id: 'dictionary',
-        title: '词典',
-        description: '意汉、汉意、动词变位、动词搭配以及同义词等查询。',
+        title: localized.dictTitle,
+        description: localized.dictDesc,
         icon: 'translate',
         route: '/tools/dictionary',
         color: '#3B82F6',
@@ -76,8 +168,8 @@ const getToolDefinition = (id: string, eurToCny: number, t: (key: string) => str
     case 'rate':
       return {
         id: 'rate',
-        title: '汇率换算',
-        description: `今日实时汇率：1 EUR = ${eurToCny.toFixed(4)} CNY`,
+        title: localized.rateTitle,
+        description: `${localized.rateDescPrefix}1 EUR = ${eurToCny.toFixed(4)} CNY`,
         icon: 'currency-eur',
         route: '/tools/rate',
         color: '#10B981',
@@ -85,8 +177,8 @@ const getToolDefinition = (id: string, eurToCny: number, t: (key: string) => str
     case 'classroom':
       return {
         id: 'classroom',
-        title: '空教室查询',
-        description: '实时查询博洛尼亚大学空闲教室，考前自习或讨论的好去处。',
+        title: localized.classroomTitle,
+        description: localized.classroomDesc,
         icon: 'school-outline',
         route: '/tools/classroom',
         color: '#8B5CF6',
@@ -103,8 +195,8 @@ const getToolDefinition = (id: string, eurToCny: number, t: (key: string) => str
     case 'bus':
       return {
         id: 'bus',
-        title: '博洛尼亚公交查询',
-        description: '实时查询博洛尼亚等地区的公交到站倒计时，支持地图选点与线路查询。',
+        title: localized.busTitle,
+        description: localized.busDesc,
         icon: 'bus',
         route: '/tools/bus',
         color: '#F59E0B',
@@ -112,8 +204,8 @@ const getToolDefinition = (id: string, eurToCny: number, t: (key: string) => str
     case 'studyroom':
       return {
         id: 'studyroom',
-        title: '自习室与图书馆',
-        description: '实时查看博大自习室与图书馆空余座位、开放时间，并支持一键预约。',
+        title: localized.studyroomTitle,
+        description: localized.studyroomDesc,
         icon: 'library-outline',
         route: '/tools/studyroom',
         color: '#4F46E5',
@@ -121,8 +213,8 @@ const getToolDefinition = (id: string, eurToCny: number, t: (key: string) => str
     case 'links':
       return {
         id: 'links',
-        title: '实用链接',
-        description: '快速访问博洛尼亚大学系统、各类常用办事网站与生活链接。',
+        title: localized.linksTitle,
+        description: localized.linksDesc,
         icon: 'link-variant',
         route: '/about/links',
         color: '#0EA5E9',
@@ -136,6 +228,7 @@ interface DraggableCardProps {
   id: string;
   tool: ToolItem;
   eurToCny: number;
+  language: string;
   t: (key: string) => string;
   colors: any;
   isEditing: boolean;
@@ -154,6 +247,7 @@ function DraggableCard({
   id,
   tool,
   eurToCny,
+  language,
   t,
   colors,
   isEditing,
@@ -168,6 +262,7 @@ function DraggableCard({
   gridTopOffset,
 }: DraggableCardProps) {
   const { tabGestureActive } = useTheme();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   const cardIndex = useDerivedValue(() => {
     return orderShared.value.indexOf(id);
   });
@@ -334,7 +429,7 @@ function DraggableCard({
     if (tool.route) {
       router.push(tool.route as any);
     } else {
-      Alert.alert('提示', '该工具正在全力研发中，敬请期待！');
+      Alert.alert(localized.tip, localized.developing);
     }
   };
 
@@ -371,7 +466,7 @@ function DraggableCard({
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{tool.title}</Text>
             {tool.id === 'rate' ? (
               <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
-                今日实时汇率：{"\n"}1 EUR = <Text style={{ color: colors.success, fontWeight: 'bold' }}>{eurToCny.toFixed(4)}</Text> CNY
+                {localized.rateDescPrefix}{"\n"}1 EUR = <Text style={{ color: colors.success, fontWeight: 'bold' }}>{eurToCny.toFixed(4)}</Text> CNY
               </Text>
             ) : (
               <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>{tool.description}</Text>
@@ -380,7 +475,7 @@ function DraggableCard({
 
           {!tool.route && (
             <View style={[styles.comingSoonBadge, { backgroundColor: colors.surfaceElevated }]}>
-              <Text style={[styles.comingSoonText, { color: colors.textMuted }]}>建设中</Text>
+              <Text style={[styles.comingSoonText, { color: colors.textMuted }]}>{localized.comingSoon}</Text>
             </View>
           )}
         </Pressable>
@@ -390,7 +485,8 @@ function DraggableCard({
 }
 
 export default function ToolsScreen() {
-  const { colors, t, tabBarStyle, tabGestureOpacity, isDark } = useTheme();
+  const { colors, t, tabBarStyle, tabGestureOpacity, isDark, language } = useTheme();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   const [eurToCny, setEurToCny] = useState<number>(7.8256);
   const [toolOrder, setToolOrder] = useState<string[]>(['handbook', 'dictionary', 'rate', 'classroom', 'train', 'bus', 'studyroom', 'links']);
   const [isEditing, setIsEditing] = useState(false);
@@ -503,7 +599,7 @@ export default function ToolsScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.title, { color: colors.textPrimary }]}>{t('tools')}</Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  {isEditing ? '按住并拖动卡片以排序，点击空白处完成' : '实用学术与生活辅助小工具箱'}
+                  {isEditing ? localized.subtitleEditing : localized.subtitleNormal}
                 </Text>
               </View>
             </View>
@@ -516,7 +612,7 @@ export default function ToolsScreen() {
                 }}
               >
               {toolOrder.map((id) => {
-                const tool = getToolDefinition(id, eurToCny, t);
+                const tool = getToolDefinition(id, eurToCny, language, t);
                 if (!tool) return null;
                 return (
                   <DraggableCard
@@ -524,6 +620,7 @@ export default function ToolsScreen() {
                     id={tool.id}
                     tool={tool}
                     eurToCny={eurToCny}
+                    language={language}
                     t={t}
                     colors={colors}
                     isEditing={isEditing}
@@ -607,7 +704,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     width: cardWidth,
-    height: 165,
+    height: 180,
     position: 'absolute',
     left: 0,
     top: 0,

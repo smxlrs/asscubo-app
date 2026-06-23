@@ -7,11 +7,230 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
-import * as Linking from 'expo-linking';
+
+const LOCALIZED = {
+  zh: {
+    headerTitle: '修改个人资料',
+    permTitle: '需要权限',
+    permMsg: '更换头像需要读取相册的权限，请在设置中开启。',
+    changeSuccess: '更换成功',
+    avatarUpdated: '头像已更新！',
+    changeFail: '更换失败',
+    saveAvatarFail: '无法保存头像，请重试',
+    picSelectFail: '选择图片失败，请重试',
+    emptyNickname: '昵称不能为空',
+    updateSuccess: '修改成功',
+    nicknameUpdated: '您的昵称已成功更新！',
+    updateFail: '更新失败',
+    nicknameUpdateError: '更新昵称时出错',
+    emptyEmail: '邮箱不能为空',
+    invalidEmail: '请输入有效的邮箱地址',
+    sameEmail: '新邮箱不能与当前邮箱相同',
+    emailChangeSubmitted: '修改已提交',
+    emailChangeConfirm: '我们已向您的新旧邮箱发送了确认邮件，请通过邮件链接验证以完成邮箱修改。',
+    emailUpdateError: '更新邮箱时出错',
+    otpSent: '验证码已发送',
+    otpSentMsg: '安全验证码已发送至您的邮箱，请注意查收。',
+    otpSendFail: '发送失败',
+    otpSendFailMsg: '无法发送验证码，请稍后再试。',
+    emptyPass: '新密码和确认密码不能为空',
+    passMinLength: '新密码长度不能少于 6 位',
+    passMismatch: '两次输入的新密码不一致',
+    enterOtp: '请输入 6 位验证码',
+    otpCodeError: '验证码错误，请重新输入',
+    saveSuccess: '保存成功',
+    passUpdated: '您的账户密码已成功更新！',
+    passUpdateError: '修改密码时出错，请检查验证码或重试。',
+    changeAvatar: '点击更换头像',
+    basicInfo: '基本资料',
+    nickname: '昵称',
+    email: '邮箱',
+    notSet: '未设置',
+    securitySettings: '安全设置 (修改密码)',
+    loginPassword: '登录密码',
+    done: '完成',
+    editNickname: '修改昵称',
+    enterNewNickname: '请输入新昵称',
+    editEmail: '修改邮箱',
+    emailVerificationHint: '我们将向新旧邮箱发送验证信，点击其中的链接方可完成修改。',
+    enterNewEmail: '请输入新邮箱',
+    editPassword: '修改密码',
+    newPasswordPlaceholder: '新密码 (不少于6位)',
+    confirmPasswordPlaceholder: '再次输入新密码',
+    otpPlaceholder: '请输入6位验证码',
+    resend: '重新发送',
+    getOtp: '获取验证码',
+    tip: '提示',
+    securityTip: '安全提示',
+  },
+  'zh-Hant': {
+    headerTitle: '修改個人資料',
+    permTitle: '需要權限',
+    permMsg: '更換頭像需要讀取相冊的權限，請在設置中開啟。',
+    changeSuccess: '更換成功',
+    avatarUpdated: '頭像已更新！',
+    changeFail: '更換失敗',
+    saveAvatarFail: '無法保存頭像，請重試',
+    picSelectFail: '選擇圖片失敗，請重試',
+    emptyNickname: '暱稱不能為空',
+    updateSuccess: '修改成功',
+    nicknameUpdated: '您的暱稱已成功更新！',
+    updateFail: '更新失敗',
+    nicknameUpdateError: '更新暱稱時出錯',
+    emptyEmail: '郵箱不能為空',
+    invalidEmail: '請輸入有效的郵箱地址',
+    sameEmail: '新郵箱不能與當前郵箱相同',
+    emailChangeSubmitted: '修改已提交',
+    emailChangeConfirm: '我們已向您的新舊郵箱發送了確認郵件，請通過郵件鏈接驗證以完成郵箱修改。',
+    emailUpdateError: '更新郵箱時出錯',
+    otpSent: '驗證碼已發送',
+    otpSentMsg: '安全驗證碼已發送至您的郵箱，請注意查收。',
+    otpSendFail: '發送失敗',
+    otpSendFailMsg: '無法發送驗證碼，請稍後再試。',
+    emptyPass: '新密碼和確認密碼不能為空',
+    passMinLength: '新密碼長度不能少於 6 位',
+    passMismatch: '兩次輸入的新密碼不一致',
+    enterOtp: '請輸入 6 位驗證碼',
+    otpCodeError: '驗證碼錯誤，請重新輸入',
+    saveSuccess: '保存成功',
+    passUpdated: '您的帳戶密碼已成功更新！',
+    passUpdateError: '修改密碼時出錯，請檢查驗證碼或重試。',
+    changeAvatar: '點擊更換頭像',
+    basicInfo: '基本資料',
+    nickname: '暱稱',
+    email: '郵箱',
+    notSet: '未設置',
+    securitySettings: '安全設置 (修改密碼)',
+    loginPassword: '登錄密碼',
+    done: '完成',
+    editNickname: '修改暱稱',
+    enterNewNickname: '請輸入新暱稱',
+    editEmail: '修改郵箱',
+    emailVerificationHint: '我們將向新舊郵箱發送驗證信，點擊其中的鏈接方可完成修改。',
+    enterNewEmail: '請輸入新郵箱',
+    editPassword: '修改密碼',
+    newPasswordPlaceholder: '新密碼 (不少於6位)',
+    confirmPasswordPlaceholder: '再次輸入新密碼',
+    otpPlaceholder: '請輸入6位驗證碼',
+    resend: '重新發送',
+    getOtp: '獲取驗證碼',
+    tip: '提示',
+    securityTip: '安全提示',
+  },
+  en: {
+    headerTitle: 'Edit Profile Details',
+    permTitle: 'Permission Required',
+    permMsg: 'We need permission to access your photo library to change your avatar.',
+    changeSuccess: 'Success',
+    avatarUpdated: 'Avatar updated successfully!',
+    changeFail: 'Failed',
+    saveAvatarFail: 'Unable to save avatar, please try again.',
+    picSelectFail: 'Failed to select image, please try again.',
+    emptyNickname: 'Nickname cannot be empty',
+    updateSuccess: 'Success',
+    nicknameUpdated: 'Your nickname has been updated successfully!',
+    updateFail: 'Failed',
+    nicknameUpdateError: 'Error updating nickname',
+    emptyEmail: 'Email cannot be empty',
+    invalidEmail: 'Please enter a valid email address',
+    sameEmail: 'New email cannot be the same as your current one',
+    emailChangeSubmitted: 'Change Submitted',
+    emailChangeConfirm: 'We have sent a confirmation email to both your old and new email addresses. Please verify through the links to complete the change.',
+    emailUpdateError: 'Error updating email',
+    otpSent: 'Verification Code Sent',
+    otpSentMsg: 'A verification code has been sent to your email. Please check your inbox.',
+    otpSendFail: 'Failed to Send',
+    otpSendFailMsg: 'Unable to send verification code, please try again later.',
+    emptyPass: 'New password and confirmation password cannot be empty',
+    passMinLength: 'New password must be at least 6 characters',
+    passMismatch: 'Passwords do not match',
+    enterOtp: 'Please enter a 6-digit verification code',
+    otpCodeError: 'Invalid code, please try again',
+    saveSuccess: 'Success',
+    passUpdated: 'Your password has been updated successfully!',
+    passUpdateError: 'Error updating password, please check the code and try again.',
+    changeAvatar: 'Click to change avatar',
+    basicInfo: 'Basic Info',
+    nickname: 'Nickname',
+    email: 'Email',
+    notSet: 'Not Set',
+    securitySettings: 'Security (Change Password)',
+    loginPassword: 'Password',
+    done: 'Done',
+    editNickname: 'Edit Nickname',
+    enterNewNickname: 'Enter new nickname',
+    editEmail: 'Edit Email',
+    emailVerificationHint: 'We will send a verification email to both old and new addresses. Click the links to apply changes.',
+    enterNewEmail: 'Enter new email',
+    editPassword: 'Change Password',
+    newPasswordPlaceholder: 'New Password (at least 6 chars)',
+    confirmPasswordPlaceholder: 'Re-enter new password',
+    otpPlaceholder: 'Enter 6-digit code',
+    resend: 'Resend',
+    getOtp: 'Get Code',
+    tip: 'Notice',
+    securityTip: 'Security Notice',
+  },
+  it: {
+    headerTitle: 'Modifica Profilo',
+    permTitle: 'Permesso Richiesto',
+    permMsg: 'Abbiamo bisogno dell\'autorizzazione per accedere alla tua galleria foto per cambiare avatar.',
+    changeSuccess: 'Successo',
+    avatarUpdated: 'Avatar aggiornato con successo!',
+    changeFail: 'Errore',
+    saveAvatarFail: 'Impossibile salvare l\'avatar, riprova.',
+    picSelectFail: 'Selezione dell\'immagine fallita, riprova.',
+    emptyNickname: 'Il nickname non può essere vuoto',
+    updateSuccess: 'Successo',
+    nicknameUpdated: 'Il tuo nickname è stato aggiornato con successo!',
+    updateFail: 'Errore',
+    nicknameUpdateError: 'Errore durante l\'aggiornamento del nickname',
+    emptyEmail: 'L\'email non può essere vuota',
+    invalidEmail: 'Inserisci un indirizzo email valido',
+    sameEmail: 'La nuova email non può essere uguale a quella attuale',
+    emailChangeSubmitted: 'Richiesta Inviata',
+    emailChangeConfirm: 'Abbiamo inviato un\'email di conferma ai tuoi vecchi e nuovi indirizzi email. Clicca sui link per applicare le modifiche.',
+    emailUpdateError: 'Errore durante l\'aggiornamento dell\'email',
+    otpSent: 'Codice Inviato',
+    otpSentMsg: 'Un codice di verifica è stato inviato alla tua email. Controlla la posta.',
+    otpSendFail: 'Invio Fallito',
+    otpSendFailMsg: 'Impossibile inviare il codice, riprova più tardi.',
+    emptyPass: 'La password e la conferma non possono essere vuote',
+    passMinLength: 'La password deve contenere almeno 6 caratteri',
+    passMismatch: 'Le password non corrispondono',
+    enterOtp: 'Inserisci il codice a 6 cifre',
+    otpCodeError: 'Codice non valido, riprova',
+    saveSuccess: 'Successo',
+    passUpdated: 'La tua password è stata aggiornata con successo!',
+    passUpdateError: 'Errore durante l\'aggiornamento della password, controlla il codice e riprova.',
+    changeAvatar: 'Clicca per cambiare avatar',
+    basicInfo: 'Informazioni di Base',
+    nickname: 'Nickname',
+    email: 'Email',
+    notSet: 'Non Impostato',
+    securitySettings: 'Sicurezza (Modifica Password)',
+    loginPassword: 'Password',
+    done: 'Salva',
+    editNickname: 'Modifica Nickname',
+    enterNewNickname: 'Inserisci il nuovo nickname',
+    editEmail: 'Modifica Email',
+    emailVerificationHint: 'Invieremo un\'email di conferma a entrambi gli indirizzi. Clicca sui link per completare.',
+    enterNewEmail: 'Inserisci la nuova email',
+    editPassword: 'Modifica Password',
+    newPasswordPlaceholder: 'Nuova password (almeno 6 caratteri)',
+    confirmPasswordPlaceholder: 'Reinserisci la nuova password',
+    otpPlaceholder: 'Inserisci codice a 6 cifre',
+    resend: 'Reinvia',
+    getOtp: 'Ottieni Codice',
+    tip: 'Avviso',
+    securityTip: 'Avviso di Sicurezza',
+  }
+};
 
 export default function EditProfileScreen() {
   const { user, profile, refreshProfile } = useAuth();
-  const { colors, language } = useTheme();
+  const { colors, language, t } = useTheme();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
 
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
   const [saving, setSaving] = useState(false);
@@ -39,7 +258,7 @@ export default function EditProfileScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('需要权限', '更换头像需要读取相册的权限，请在设置中开启。');
+        Alert.alert(localized.permTitle, localized.permMsg);
         return;
       }
 
@@ -65,24 +284,24 @@ export default function EditProfileScreen() {
           if (error) throw error;
           
           setAvatarUrl(base64Data);
-          Alert.alert('更换成功', '头像已更新！');
+          Alert.alert(localized.changeSuccess, localized.avatarUpdated);
           await refreshProfile();
         } catch (err: any) {
           console.error(err);
-          Alert.alert('更换失败', '无法保存头像，请重试');
+          Alert.alert(localized.changeFail, localized.saveAvatarFail);
         } finally {
           setSaving(false);
         }
       }
     } catch (error) {
       console.error('Pick image error:', error);
-      Alert.alert('提示', '选择图片失败，请重试');
+      Alert.alert(localized.tip, localized.picSelectFail);
     }
   };
 
   const handleUpdateNickname = async () => {
     if (!modalNickname.trim()) {
-      Alert.alert('提示', '昵称不能为空');
+      Alert.alert(localized.tip, localized.emptyNickname);
       return;
     }
     setSaving(true);
@@ -93,12 +312,12 @@ export default function EditProfileScreen() {
         .eq('id', user?.id);
       if (error) throw error;
       
-      Alert.alert('修改成功', '您的昵称已成功更新！');
+      Alert.alert(localized.updateSuccess, localized.nicknameUpdated);
       setActiveModal(null);
       await refreshProfile();
     } catch (err: any) {
       console.error(err);
-      Alert.alert('更新失败', err.message || '更新昵称时出错');
+      Alert.alert(localized.updateFail, err.message || localized.nicknameUpdateError);
     } finally {
       setSaving(false);
     }
@@ -107,15 +326,15 @@ export default function EditProfileScreen() {
   const handleUpdateEmail = async () => {
     const cleanedEmail = modalEmail.trim();
     if (!cleanedEmail) {
-      Alert.alert('提示', '邮箱不能为空');
+      Alert.alert(localized.tip, localized.emptyEmail);
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanedEmail)) {
-      Alert.alert('提示', '请输入有效的邮箱地址');
+      Alert.alert(localized.tip, localized.invalidEmail);
       return;
     }
     if (cleanedEmail.toLowerCase() === user?.email?.toLowerCase()) {
-      Alert.alert('提示', '新邮箱不能与当前邮箱相同');
+      Alert.alert(localized.tip, localized.sameEmail);
       return;
     }
     
@@ -128,16 +347,16 @@ export default function EditProfileScreen() {
       if (error) throw error;
       
       Alert.alert(
-        '修改已提交', 
-        '我们已向您的新旧邮箱发送了确认邮件，请通过邮件链接验证以完成邮箱修改。',
-        [{ text: '确定', onPress: () => {
+        localized.emailChangeSubmitted, 
+        localized.emailChangeConfirm,
+        [{ text: t('confirm') || '确定', onPress: () => {
           setActiveModal(null);
           refreshProfile().catch(console.error);
         }}]
       );
     } catch (err: any) {
       console.error(err);
-      Alert.alert('更新失败', err.message || '更新邮箱时出错');
+      Alert.alert(localized.updateFail, err.message || localized.emailUpdateError);
     } finally {
       setSaving(false);
     }
@@ -149,7 +368,7 @@ export default function EditProfileScreen() {
       const { error } = await supabase.auth.reauthenticate();
       if (error) throw error;
       
-      Alert.alert("验证码已发送", "安全验证码已发送至您的邮箱，请注意查收。");
+      Alert.alert(localized.otpSent, localized.otpSentMsg);
       setCountdown(60);
       timerRef.current = setInterval(() => {
         setCountdown((prev) => {
@@ -162,7 +381,7 @@ export default function EditProfileScreen() {
       }, 1000);
     } catch (err: any) {
       console.error(err);
-      Alert.alert("发送失败", err.message || "无法发送验证码，请稍后再试。");
+      Alert.alert(localized.otpSendFail, err.message || localized.otpSendFailMsg);
     } finally {
       setSendingOtp(false);
     }
@@ -170,25 +389,24 @@ export default function EditProfileScreen() {
 
   const handleUpdatePassword = async () => {
     if (!modalPassword.trim() || !modalConfirmPassword.trim()) {
-      Alert.alert('提示', '新密码和确认密码不能为空');
+      Alert.alert(localized.tip, localized.emptyPass);
       return;
     }
     if (modalPassword.length < 6) {
-      Alert.alert('安全提示', '新密码长度不能少于 6 位');
+      Alert.alert(localized.securityTip, localized.passMinLength);
       return;
     }
     if (modalPassword !== modalConfirmPassword) {
-      Alert.alert('提示', '两次输入的新密码不一致');
+      Alert.alert(localized.tip, localized.passMismatch);
       return;
     }
     if (!modalOtp.trim() || modalOtp.length !== 6) {
-      Alert.alert('提示', '请输入 6 位验证码');
+      Alert.alert(localized.tip, localized.enterOtp);
       return;
     }
     
     setSaving(true);
     try {
-      // 1. Verify the OTP code
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email: user?.email || '',
         token: modalOtp.trim(),
@@ -196,18 +414,17 @@ export default function EditProfileScreen() {
       });
       
       if (verifyError) {
-        throw new Error(verifyError.message || '验证码错误，请重新输入');
+        throw new Error(verifyError.message || localized.otpCodeError);
       }
       
-      // 2. Verification succeeded! Now update the password
       const { error: updateError } = await supabase.auth.updateUser({
         password: modalPassword.trim()
       });
       if (updateError) throw updateError;
       
-      Alert.alert('保存成功', '您的账户密码已成功更新！', [
+      Alert.alert(localized.saveSuccess, localized.passUpdated, [
         {
-          text: '确定',
+          text: t('confirm') || '确定',
           onPress: () => {
             setActiveModal(null);
             refreshProfile().catch(console.error);
@@ -216,7 +433,7 @@ export default function EditProfileScreen() {
       ]);
     } catch (err: any) {
       console.error(err);
-      Alert.alert('更新失败', err.message || '修改密码时出错，请检查验证码或重试。');
+      Alert.alert(localized.updateFail, err.message || localized.passUpdateError);
     } finally {
       setSaving(false);
     }
@@ -229,7 +446,7 @@ export default function EditProfileScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.primaryLight} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>修改个人资料</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{localized.headerTitle}</Text>
         <View style={styles.headerPlaceholder} />
       </View>
 
@@ -252,19 +469,19 @@ export default function EditProfileScreen() {
               )}
             </View>
           </Pressable>
-          <Text style={[styles.avatarTip, { color: colors.textMuted }]}>点击更换头像</Text>
+          <Text style={[styles.avatarTip, { color: colors.textMuted }]}>{localized.changeAvatar}</Text>
         </View>
 
         {/* Basic Fields */}
         <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>基本资料</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{localized.basicInfo}</Text>
         </View>
         
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Nickname Display */}
           <View style={[styles.row, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>昵称</Text>
-            <Text style={[styles.valueText, { color: colors.textPrimary }]}>{profile?.name || '未设置'}</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{localized.nickname}</Text>
+            <Text style={[styles.valueText, { color: colors.textPrimary }]}>{profile?.name || localized.notSet}</Text>
             <Pressable 
               style={styles.editButton} 
               onPress={() => {
@@ -278,8 +495,8 @@ export default function EditProfileScreen() {
 
           {/* Email Display */}
           <View style={styles.row}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>邮箱</Text>
-            <Text style={[styles.valueText, { color: colors.textPrimary }]}>{user?.email || '未设置'}</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{localized.email}</Text>
+            <Text style={[styles.valueText, { color: colors.textPrimary }]}>{user?.email || localized.notSet}</Text>
             <Pressable 
               style={styles.editButton} 
               onPress={() => {
@@ -294,13 +511,13 @@ export default function EditProfileScreen() {
 
         {/* Security Fields */}
         <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>安全设置 (修改密码)</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{localized.securitySettings}</Text>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Change Password Row */}
           <View style={styles.row}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>登录密码</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{localized.loginPassword}</Text>
             <Text style={[styles.valueText, { color: colors.textMuted }]}>••••••••</Text>
             <Pressable 
               style={styles.editButton} 
@@ -323,7 +540,7 @@ export default function EditProfileScreen() {
             style={[styles.saveButton, { backgroundColor: colors.primary }]}
             onPress={() => router.back()}
           >
-            <Text style={styles.saveButtonText}>完成</Text>
+            <Text style={styles.saveButtonText}>{localized.done}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -341,12 +558,12 @@ export default function EditProfileScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             {activeModal === 'nickname' && (
               <>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>修改昵称</Text>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{localized.editNickname}</Text>
                 <TextInput
                   style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
                   value={modalNickname}
                   onChangeText={setModalNickname}
-                  placeholder="请输入新昵称"
+                  placeholder={localized.enterNewNickname}
                   placeholderTextColor={colors.textMuted}
                   autoFocus={true}
                 />
@@ -356,7 +573,7 @@ export default function EditProfileScreen() {
                     onPress={() => setActiveModal(null)}
                     disabled={saving}
                   >
-                    <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>取消</Text>
+                    <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t('cancel') || '取消'}</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.modalButton, { backgroundColor: colors.primary }]}
@@ -366,7 +583,7 @@ export default function EditProfileScreen() {
                     {saving ? (
                       <ActivityIndicator color="#FFF" size="small" />
                     ) : (
-                      <Text style={{ color: '#FFF', fontWeight: '600' }}>确认</Text>
+                      <Text style={{ color: '#FFF', fontWeight: '600' }}>{t('confirm') || '确认'}</Text>
                     )}
                   </Pressable>
                 </View>
@@ -375,15 +592,15 @@ export default function EditProfileScreen() {
 
             {activeModal === 'email' && (
               <>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>修改邮箱</Text>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{localized.editEmail}</Text>
                 <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
-                  我们将向新旧邮箱发送验证信，点击其中的链接方可完成修改。
+                  {localized.emailVerificationHint}
                 </Text>
                 <TextInput
                   style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
                   value={modalEmail}
                   onChangeText={setModalEmail}
-                  placeholder="请输入新邮箱"
+                  placeholder={localized.enterNewEmail}
                   placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -395,7 +612,7 @@ export default function EditProfileScreen() {
                     onPress={() => setActiveModal(null)}
                     disabled={saving}
                   >
-                    <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>取消</Text>
+                    <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t('cancel') || '取消'}</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.modalButton, { backgroundColor: colors.primary }]}
@@ -405,7 +622,7 @@ export default function EditProfileScreen() {
                     {saving ? (
                       <ActivityIndicator color="#FFF" size="small" />
                     ) : (
-                      <Text style={{ color: '#FFF', fontWeight: '600' }}>确认</Text>
+                      <Text style={{ color: '#FFF', fontWeight: '600' }}>{t('confirm') || '确认'}</Text>
                     )}
                   </Pressable>
                 </View>
@@ -414,12 +631,12 @@ export default function EditProfileScreen() {
 
             {activeModal === 'password' && (
               <>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>修改密码</Text>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{localized.editPassword}</Text>
                 <TextInput
                   style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
                   value={modalPassword}
                   onChangeText={setModalPassword}
-                  placeholder="新密码 (不少于6位)"
+                  placeholder={localized.newPasswordPlaceholder}
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry
                   autoFocus={true}
@@ -428,7 +645,7 @@ export default function EditProfileScreen() {
                   style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
                   value={modalConfirmPassword}
                   onChangeText={setModalConfirmPassword}
-                  placeholder="再次输入新密码"
+                  placeholder={localized.confirmPasswordPlaceholder}
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry
                 />
@@ -441,7 +658,7 @@ export default function EditProfileScreen() {
                     ]}
                     value={modalOtp}
                     onChangeText={setModalOtp}
-                    placeholder="请输入6位验证码"
+                    placeholder={localized.otpPlaceholder}
                     placeholderTextColor={colors.textMuted}
                     keyboardType="number-pad"
                     maxLength={6}
@@ -463,7 +680,7 @@ export default function EditProfileScreen() {
                         fontSize: 12, 
                         fontWeight: 'bold' 
                       }}>
-                        {countdown > 0 ? `${countdown}s` : (modalOtp ? "重新发送" : "获取验证码")}
+                        {countdown > 0 ? `${countdown}s` : (modalOtp ? localized.resend : localized.getOtp)}
                       </Text>
                     )}
                   </Pressable>
@@ -475,7 +692,7 @@ export default function EditProfileScreen() {
                     onPress={() => setActiveModal(null)}
                     disabled={saving}
                   >
-                    <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>取消</Text>
+                    <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t('cancel') || '取消'}</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.modalButton, { backgroundColor: colors.primary }]}
@@ -485,7 +702,7 @@ export default function EditProfileScreen() {
                     {saving ? (
                       <ActivityIndicator color="#FFF" size="small" />
                     ) : (
-                      <Text style={{ color: '#FFF', fontWeight: '600' }}>保存</Text>
+                      <Text style={{ color: '#FFF', fontWeight: '600' }}>{localized.done}</Text>
                     )}
                   </Pressable>
                 </View>
@@ -567,7 +784,6 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 13,
-    color: '#8A8A8F',
     fontWeight: 'bold',
     textTransform: 'uppercase',
   },

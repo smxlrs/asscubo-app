@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
 
 export default function VerifySuccessScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, t } = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -20,19 +20,18 @@ export default function VerifySuccessScreen() {
           <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={54} color="#4CAF50" />
         </View>
         
-        <Text style={[styles.title, { color: colors.textPrimary }]}>邮箱验证成功</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('verifySuccessTitle')}</Text>
         
         <Text style={[styles.description, { color: colors.textSecondary }]}>
-          您的账户已成功激活！{'\n'}
-          现在可以使用注册的账号和密码登录应用。
+          {t('verifySuccessDesc')}
         </Text>
         
         <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>欢迎加入博学</Text>
+          <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>{t('welcomeTitleBoxue')}</Text>
           <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-            • 开启您的学术与校园生活助手{'\n'}
-            • 随时查看最新动态、通知与微信文章{'\n'}
-            • 使用精心打磨的工具箱提升效率
+            {t('welcomeBullet1')}{'\n'}
+            {t('welcomeBullet2')}{'\n'}
+            {t('welcomeBullet3')}
           </Text>
         </View>
 
@@ -47,7 +46,7 @@ export default function VerifySuccessScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>前往登录</Text>
+            <Text style={styles.buttonText}>{t('goToLogin')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>

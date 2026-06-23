@@ -126,6 +126,8 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     studyFree: '空闲可自习',
     cancel: '取消',
     classroomUnit: ' 间',
+    searchPlaceholder: '搜索教室名称、教学楼、地址...',
+    refreshSuccess: '刷新成功',
   },
   'zh-Hant': {
     title: '博大空教室',
@@ -166,6 +168,8 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     studyFree: '空閑可自習',
     cancel: '取消',
     classroomUnit: ' 間',
+    searchPlaceholder: '搜索教室名稱、教學樓、地址...',
+    refreshSuccess: '刷新成功',
   },
   en: {
     title: 'Empty Classrooms',
@@ -206,6 +210,8 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     studyFree: 'Available for study',
     cancel: 'Cancel',
     classroomUnit: ' rooms',
+    searchPlaceholder: 'Search classroom, building, address...',
+    refreshSuccess: 'Refresh successful',
   },
   it: {
     title: 'Aule Libere',
@@ -246,6 +252,8 @@ const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
     studyFree: 'Libera per studio',
     cancel: 'Annulla',
     classroomUnit: ' aule',
+    searchPlaceholder: 'Cerca aula, edificio, indirizzo...',
+    refreshSuccess: 'Aggiornato con successo',
   }
 };
 
@@ -387,50 +395,102 @@ const matchCampus = (comuneStr: string, selected: string) => {
   return clean(comuneStr) === clean(selected);
 };
 
-const getBuildingHint = (desc: string): string => {
+const getBuildingHint = (desc: string, lang: string): string => {
   const lowercase = desc.toLowerCase();
   if (lowercase.includes('ingegneria') || lowercase.includes('risorgimento')) {
+    if (lang === 'it') return 'Dip. di Ingegneria';
+    if (lang === 'en') return 'Engineering Campus';
+    if (lang === 'zh-Hant') return '工程系 / 工程校區 (Ingegneria)';
     return '工程系 / 工程校区 (Ingegneria)';
   }
   if (lowercase.includes('porta s. donato, 2') || lowercase.includes('porta san donato 2')) {
+    if (lang === 'it') return 'Dip. di Matematica';
+    if (lang === 'en') return 'Math Department';
+    if (lang === 'zh-Hant') return '數學系 (Matematica)';
     return '数学系 (Matematica)';
   }
   if (lowercase.includes('porta s. donato, 1') || lowercase.includes('porta san donato 1')) {
+    if (lang === 'it') return 'Informatica / Fisica';
+    if (lang === 'en') return 'Computer Science / Physics';
+    if (lang === 'zh-Hant') return '計算機系 / 物理系 (Informatica / Fisica)';
     return '计算机系 / 物理系 (Informatica / Fisica)';
   }
   if (lowercase.includes('selmi 2') || lowercase.includes('selmi 3')) {
+    if (lang === 'it') return 'Chimica / Matematica';
+    if (lang === 'en') return 'Chemistry / Math';
+    if (lang === 'zh-Hant') return '化學系 / 數學系 (Chimica / Matematica)';
     return '化学系 / 数学系 (Chimica / Matematica)';
   }
   if (lowercase.includes('irnerio 46')) {
+    if (lang === 'it') return 'Geologia / Fisica';
+    if (lang === 'en') return 'Geology / Physics';
+    if (lang === 'zh-Hant') return '地質學 / 物理學 (Geologia / Fisica)';
     return '地质学 / 物理学 (Geologia / Fisica)';
   }
   if (lowercase.includes('irnerio 42') || lowercase.includes('irnerio 40')) {
+    if (lang === 'it') return 'Biologia / Scienze';
+    if (lang === 'en') return 'Biology / Science';
+    if (lang === 'zh-Hant') return '生物系 / 科學大樓 (Biologia / Scienze)';
     return '生物系 / 科学大楼 (Biologia / Scienze)';
   }
   if (lowercase.includes('ranzani') || lowercase.includes('filippo re') || lowercase.includes('filippo-re')) {
-    if (lowercase.includes('ranzani')) return '农学 / 林学 (Agraria)';
-    if (lowercase.includes('filippo re')) return '心理学 / 教育学 (Psicologia / Educazione)';
+    if (lowercase.includes('ranzani')) {
+      if (lang === 'it') return 'Agraria';
+      if (lang === 'en') return 'Agriculture';
+      if (lang === 'zh-Hant') return '農學 / 林學 (Agraria)';
+      return '农学 / 林学 (Agraria)';
+    }
+    if (lowercase.includes('filippo re')) {
+      if (lang === 'it') return 'Psicologia / Educazione';
+      if (lang === 'en') return 'Psychology / Education';
+      if (lang === 'zh-Hant') return '心理學 / 教育學 (Psicologia / Educazione)';
+      return '心理学 / 教育学 (Psicologia / Educazione)';
+    }
+    if (lang === 'it') return 'Agraria';
+    if (lang === 'en') return 'Agriculture';
+    if (lang === 'zh-Hant') return '農業與自然科學 (Agraria)';
     return '农业与自然科学 (Agraria)';
   }
   if (lowercase.includes('san giacomo')) {
+    if (lang === 'it') return 'Farmacia / Anatomia';
+    if (lang === 'en') return 'Pharmacy / Anatomy';
+    if (lang === 'zh-Hant') return '藥學 / 解剖學 (Farmacia / Anatomia)';
     return '药学 / 解剖学 (Farmacia / Anatomia)';
   }
   if (lowercase.includes('berti pichat')) {
+    if (lang === 'it') return 'Fisica / Astronomia';
+    if (lang === 'en') return 'Physics / Astronomy';
+    if (lang === 'zh-Hant') return '物理系 / 天文系 (Fisica / Astronomia)';
     return '物理系 / 天文系 (Fisica / Astronomia)';
   }
   if (lowercase.includes('hercolani')) {
+    if (lang === 'it') return 'Scienze Politiche';
+    if (lang === 'en') return 'Political Sciences';
+    if (lang === 'zh-Hant') return '政治學 / 社會學 (Scienze Politiche)';
     return '政治学 / 社会学 (Scienze Politiche)';
   }
   if (lowercase.includes('zamboni')) {
+    if (lang === 'it') return 'Lettere / Filosofia';
+    if (lang === 'en') return 'Literature / Philosophy';
+    if (lang === 'zh-Hant') return '文學系 / 哲學院 (Lettere / Filosofia)';
     return '文学系 / 哲学院 (Lettere / Filosofia)';
   }
   if (lowercase.includes('belmeloro') || lowercase.includes('andreatta')) {
+    if (lang === 'it') return 'Giurisprudenza / Belmeloro';
+    if (lang === 'en') return 'Law / Belmeloro';
+    if (lang === 'zh-Hant') return '法律系 / 政經大樓 (Giurisprudenza / Belmeloro)';
     return '法律系 / 政经大楼 (Giurisprudenza / Belmeloro)';
   }
   if (lowercase.includes('bodoniana') || lowercase.includes('san donato, 19/2')) {
+    if (lang === 'it') return 'Economia / CLA';
+    if (lang === 'en') return 'Economics / Language Center (CLA)';
+    if (lang === 'zh-Hant') return '經濟學 / 語言中心 (Economia / CLA)';
     return '经济学 / 语言中心 (Economia / CLA)';
   }
   if (lowercase.includes('beverara') || lowercase.includes('navile')) {
+    if (lang === 'it') return 'Plesso Navile (Chimica/Fisica)';
+    if (lang === 'en') return 'Navile Campus (Chemistry/Physics)';
+    if (lang === 'zh-Hant') return '納維萊新校區 - 化學與物理 (Plesso Navile)';
     return '纳维莱新校区 - 化学与物理 (Plesso Navile)';
   }
   return '';
@@ -722,7 +782,7 @@ export default function EmptyClassroomScreen() {
     setToastMsg(msg);
     toastFade.setValue(0);
 
-    const isSuccess = msg === '刷新成功';
+    const isSuccess = msg === getTxt('refreshSuccess');
     const fadeInDuration = isSuccess ? 150 : 300;
     const keepDuration = isSuccess ? 1000 : 1500;
     const fadeOutDuration = 300;
@@ -849,13 +909,13 @@ export default function EmptyClassroomScreen() {
       setClassrooms(auleData);
       setImpegni(impegniData);
       if (isRefresh) {
-        triggerToast('刷新成功');
+        triggerToast(getTxt('refreshSuccess'));
       }
     } catch (err: any) {
       console.error(err);
       setError(err.message || getTxt('errorMsg'));
       if (isRefresh) {
-        triggerToast(activeLang === 'en' ? `❌ Refresh failed: ${err.message || 'Network error'}` : activeLang === 'it' ? `❌ Aggiornamento fallito: ${err.message || 'Errore di rete'}` : `❌ 刷新失败: ${err.message || '网络错误'}`);
+        triggerToast(activeLang === 'en' ? `❌ Refresh failed: ${err.message || 'Network error'}` : activeLang === 'it' ? `❌ Aggiornamento fallito: ${err.message || 'Errore di rete'}` : activeLang === 'zh-Hant' ? `❌ 刷新失敗: ${err.message || '網絡錯誤'}` : `❌ 刷新失败: ${err.message || '网络错误'}`);
       }
     } finally {
       setLoading(false);
@@ -1035,8 +1095,8 @@ export default function EmptyClassroomScreen() {
             aula.edificio?.codice?.toLowerCase().includes(query);
           
           // Match Chinese translations / department hints (e.g. '化学系', '工程系')
-          const hint = getBuildingHint(aula.relazioneEdificio?.descrizione || aula.edificio?.codice || '');
-          const shortName = aula.relazioneEdificio ? getShortBuildingName(aula.relazioneEdificio, 'zh') : '';
+          const hint = getBuildingHint(aula.relazioneEdificio?.descrizione || aula.edificio?.codice || '', activeLang);
+          const shortName = aula.relazioneEdificio ? getShortBuildingName(aula.relazioneEdificio, activeLang) : '';
           const deptMatch = matchDepartmentSearch(
             aula.relazioneEdificio?.descrizione || aula.edificio?.codice || '',
             aula.edificio?.codice || '',
@@ -1172,7 +1232,7 @@ export default function EmptyClassroomScreen() {
                 borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#D0D5DD'
               }
             ]}
-            placeholder="搜索教室名称、教学楼、地址..."
+            placeholder={getTxt('searchPlaceholder')}
             placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#98A2B3'}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -1705,7 +1765,7 @@ export default function EmptyClassroomScreen() {
               .replace('Edificio in BO ', '')
               .replace('via ', '')
               .replace('Via ', '');
-            const deptHint = getBuildingHint(b.descrizione);
+            const deptHint = getBuildingHint(b.descrizione, activeLang);
             return (
               <Pressable
                 key={b.id}
@@ -1784,15 +1844,15 @@ export default function EmptyClassroomScreen() {
       {/* Toast Feedback */}
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? styles.checkmarkBubble : styles.toastContainer, 
+          toastMsg === getTxt('refreshSuccess') ? styles.checkmarkBubble : styles.toastContainer, 
           { 
             opacity: toastFade,
-            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
-            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
-            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+            backgroundColor: toastMsg === getTxt('refreshSuccess') ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === getTxt('refreshSuccess') ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === getTxt('refreshSuccess') ? 0 : 1,
           }
         ]}>
-          {toastMsg === '刷新成功' ? (
+          {toastMsg === getTxt('refreshSuccess') ? (
             <MaterialIcons name="check" size={24} color={colors.primary} />
           ) : (
             <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>

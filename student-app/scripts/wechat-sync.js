@@ -31,6 +31,26 @@ function decodeHtmlEntities(str) {
     .replace(/&nbsp;/g, ' ');
 }
 
+// WeChat URL normalization to strip dynamic tracking / temp signature parameters
+function normalizeWechatUrl(url) {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'mp.weixin.qq.com') {
+      const biz = parsed.searchParams.get('__biz');
+      const mid = parsed.searchParams.get('mid');
+      const idx = parsed.searchParams.get('idx');
+      const sn = parsed.searchParams.get('sn');
+      if (biz && mid && idx && sn) {
+        return `https://mp.weixin.qq.com/s?__biz=${biz}&mid=${mid}&idx=${idx}&sn=${sn}`;
+      }
+    }
+  } catch (e) {
+    // fallback to original if parsing fails
+  }
+  return url;
+}
+
 async function startSync() {
   console.log('Initializing Supabase client...');
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -52,7 +72,7 @@ async function startSync() {
   }
 
   let offset = 0;
-  const count = 20;
+  const count = 10;
   let totalCount = 0;
   let successCount = 0;
   let skippedCount = 0;
@@ -71,7 +91,7 @@ async function startSync() {
         body: JSON.stringify({
           offset: offset,
           count: count,
-          no_content: 1
+          no_content: 0 // 设置为 0 确保获取到 content.news_item 列表
         })
       });
       batchData = await batchRes.json();
@@ -106,12 +126,14 @@ async function startSync() {
         // Skip if url is empty
         if (!url) continue;
 
+        const normalizedUrl = normalizeWechatUrl(url);
+
         try {
-          // Check if article already exists by link
+          // Check if article already exists by link (兼容匹配原始和标准化链接)
           const { data: existing, error: checkError } = await supabase
             .from('articles')
             .select('id')
-            .eq('link', url)
+            .or(`link.eq.${url},link.eq.${normalizedUrl}`)
             .maybeSingle();
 
           if (checkError) {
@@ -125,7 +147,7 @@ async function startSync() {
             continue;
           }
 
-          // Insert into articles table
+          // Insert into articles table (保存标准化链接)
           const { data: insertedArticle, error: articleError } = await supabase
             .from('articles')
             .insert([{
@@ -134,7 +156,7 @@ async function startSync() {
               content: '微信外链文章',
               category: 'general',
               cover_image: coverImage,
-              link: url,
+              link: normalizedUrl,
               is_published: true,
               view_count: 0,
               created_at: new Date(updateTime * 1000).toISOString()

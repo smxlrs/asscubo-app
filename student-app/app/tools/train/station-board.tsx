@@ -48,7 +48,12 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     back: '返回',
     resolving: '正在解析车次...',
     noDetails: '无法获取该车次的详细运行信息。',
-    disclaimer: '本服务展示的列车时刻、延误及站台等数据均来自意大利铁路公开实时运营信息，仅供出行参考。实际运行请以车站大屏幕及官方购票App（Trenitalia / Italo）实时公告为准。'
+    disclaimer: '本服务展示的列车时刻、延误及站台等数据均来自意大利铁路公开实时运营信息，仅供出行参考。实际运行请以车站大屏幕及官方购票App（Trenitalia / Italo）实时公告为准。',
+    thisStation: '此站',
+    depSuffix: ' (出发)',
+    arrSuffix: ' (到达)',
+    originStation: '始发站',
+    refreshSuccess: '刷新成功'
   },
   'zh-Hant': {
     title: '車站大盤',
@@ -65,7 +70,12 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     back: '返回',
     resolving: '正在解析車次...',
     noDetails: '無法獲取該車次的詳細運行資訊。',
-    disclaimer: '本服務展示的列車時刻、延誤及月台等數據均來自義大利鐵路公開即時營運資訊，僅供出行參考。實際運行請以車站大屏幕及鐵路官方App（Trenitalia / Italo）即時公告為準。'
+    disclaimer: '本服務展示的列車時刻、延誤及月台等數據均來自義大利鐵路公開即時營運資訊，僅供出行參考。實際運行請以車站大屏幕及鐵路官方App（Trenitalia / Italo）即時公告為準。',
+    thisStation: '此站',
+    depSuffix: ' (出發)',
+    arrSuffix: ' (到達)',
+    originStation: '始發站',
+    refreshSuccess: '刷新成功'
   },
   en: {
     title: 'Station Board',
@@ -82,7 +92,12 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     back: 'Back',
     resolving: 'Resolving train...',
     noDetails: 'No details available for this train.',
-    disclaimer: 'The train schedules, delays, and platform info displayed here are retrieved from Italian rail public live data and are for reference only. Please refer to station screens and official apps for actual operations.'
+    disclaimer: 'The train schedules, delays, and platform info displayed here are retrieved from Italian rail public live data and are for reference only. Please refer to station screens and official apps for actual operations.',
+    thisStation: 'This station',
+    depSuffix: ' (Dep)',
+    arrSuffix: ' (Arr)',
+    originStation: 'Origin station',
+    refreshSuccess: 'Refresh successful'
   },
   it: {
     title: 'Tabellone Stazione',
@@ -99,7 +114,12 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     back: 'Indietro',
     resolving: 'Verifica treno...',
     noDetails: 'Dettagli non disponibili per questo treno.',
-    disclaimer: 'Gli orari, ritardi e binari dei treni mostrati sono tratti dai dati pubblici in tempo reale delle ferrovie italiane e hanno valore puramente informativo. Fare riferimento ai tabelloni di stazione e alle app ufficiali per l\'operatività reale.'
+    disclaimer: 'Gli orari, ritardi e binari dei treni mostrati sono tratti dai dati pubblici in tempo reale delle ferrovie italiane e hanno valore puramente informativo. Fare riferimento ai tabelloni di stazione e alle app ufficiali per l\'operatività reale.',
+    thisStation: 'Questa stazione',
+    depSuffix: ' (Part)',
+    arrSuffix: ' (Arr)',
+    originStation: 'Stazione di origine',
+    refreshSuccess: 'Aggiornato con successo'
   }
 };
 
@@ -203,7 +223,7 @@ export default function StationBoardScreen() {
     setToastMsg(msg);
     toastFade.setValue(0);
     
-    const isSuccess = msg === '刷新成功';
+    const isSuccess = msg === t('refreshSuccess');
     const fadeInDuration = isSuccess ? 150 : 250;
     const keepDuration = isSuccess ? 1000 : 2000;
     const fadeOutDuration = 250;
@@ -342,7 +362,7 @@ export default function StationBoardScreen() {
       }
       triggerBackgroundTimeLoading(filteredData);
       if (isRef) {
-        triggerToast('刷新成功');
+        triggerToast(t('refreshSuccess'));
       }
     } catch (e) {
       if (targetMode === 'departures') {
@@ -581,7 +601,7 @@ export default function StationBoardScreen() {
                       <View style={styles.timelineMiniStationContainer}>
                         <MarqueeText
                           style={[styles.timelineMiniStation, { color: colors.textSecondary }]}
-                          text={`${stationName || '此站'} (出发)`}
+                          text={`${stationName || t('thisStation')}${t('depSuffix')}`}
                         />
                       </View>
                     </View>
@@ -609,7 +629,7 @@ export default function StationBoardScreen() {
                       <View style={styles.timelineMiniStationContainer}>
                         <MarqueeText
                           style={[styles.timelineMiniStation, { color: colors.textSecondary }]}
-                          text={item.origin || '始发站'}
+                          text={item.origin || t('originStation')}
                         />
                       </View>
                     </View>
@@ -620,7 +640,7 @@ export default function StationBoardScreen() {
                       <View style={styles.timelineMiniStationContainer}>
                         <MarqueeText
                           style={[styles.timelineMiniStation, { color: colors.textSecondary }]}
-                          text={`${stationName || '此站'} (到达)`}
+                          text={`${stationName || t('thisStation')}${t('arrSuffix')}`}
                         />
                       </View>
                     </View>
@@ -894,15 +914,15 @@ export default function StationBoardScreen() {
       )}
       {toastMsg && (
         <Animated.View style={[
-          toastMsg === '刷新成功' ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? headerHeight + 50 : headerHeight + 84 }] : styles.toastContainer, 
+          toastMsg === t('refreshSuccess') ? [styles.checkmarkBubble, { top: Platform.OS === 'ios' ? headerHeight + 50 : headerHeight + 84 }] : styles.toastContainer, 
           { 
             opacity: toastFade,
-            backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface,
-            borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary,
-            borderWidth: toastMsg === '刷新成功' ? 0 : 1,
+            backgroundColor: toastMsg === t('refreshSuccess') ? '#FFFFFF' : colors.surface,
+            borderColor: toastMsg === t('refreshSuccess') ? 'transparent' : colors.primary,
+            borderWidth: toastMsg === t('refreshSuccess') ? 0 : 1,
           }
         ]}>
-          {toastMsg === '刷新成功' ? (
+          {toastMsg === t('refreshSuccess') ? (
             <MaterialIcons name="check" size={24} color={colors.primary} />
           ) : (
             <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>

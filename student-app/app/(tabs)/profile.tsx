@@ -6,11 +6,35 @@ import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+const LOCALIZED = {
+  zh: {
+    studentFallback: '同学',
+    profileBtn: '个人资料',
+    adminPanel: '管理后台',
+  },
+  'zh-Hant': {
+    studentFallback: '同學',
+    profileBtn: '個人資料',
+    adminPanel: '管理后台',
+  },
+  en: {
+    studentFallback: 'student',
+    profileBtn: 'Profile Details',
+    adminPanel: 'Admin Panel',
+  },
+  it: {
+    studentFallback: 'studente',
+    profileBtn: 'Dettagli Profilo',
+    adminPanel: 'Pannello Admin',
+  }
+};
+
 export default function ProfileScreen() {
   const userObj = useAuth();
   const user = userObj?.user;
   const profile = userObj?.profile;
-  const { colors, t, tabBarStyle, tabGestureOpacity, isDark } = useTheme();
+  const { colors, t, tabBarStyle, tabGestureOpacity, isDark, language } = useTheme();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
 
   const navigateToLogin = () => {
     router.push('/(auth)/login');
@@ -35,7 +59,7 @@ export default function ProfileScreen() {
                 </View>
                 <View style={styles.userDetails}>
                   <Text style={[styles.welcome, { color: colors.textPrimary }]}>
-                    {t('hello')}{profile?.name || '同学'}
+                    {t('hello')}{profile?.name || localized.studentFallback}
                   </Text>
                   <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
                 </View>
@@ -44,7 +68,7 @@ export default function ProfileScreen() {
                 style={[styles.profileButton, { backgroundColor: colors.primary }]} 
                 onPress={() => router.push('/settings/profile')}
               >
-                <Text style={[styles.profileButtonText, { color: '#FFFFFF' }]}>个人资料</Text>
+                <Text style={[styles.profileButtonText, { color: '#FFFFFF' }]}>{localized.profileBtn}</Text>
               </Pressable>
             </View>
           ) : (
@@ -68,7 +92,7 @@ export default function ProfileScreen() {
             {profile?.role === 'admin' && (
               <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/admin')}>
                 <MaterialCommunityIcons name="shield-key-outline" size={22} color={colors.primaryLight} style={styles.menuIcon} />
-                <Text style={[styles.menuLabel, { color: colors.textPrimary, fontWeight: 'bold' }]}>管理后台</Text>
+                <Text style={[styles.menuLabel, { color: colors.textPrimary, fontWeight: 'bold' }]}>{localized.adminPanel}</Text>
                 <Text style={[styles.arrow, { color: colors.primaryLight }]}>›</Text>
               </Pressable>
             )}

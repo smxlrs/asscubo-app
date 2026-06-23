@@ -849,9 +849,10 @@ export default function HandbookReaderScreen() {
     };
   }, [isSearchOpen, isDrawerOpen, isSettingsOpen]);
 
-  // Handle swipe back (iOS) / hardware back press (Android) fallback
+  // Handle swipe back (iOS) fallback
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (Platform.OS !== 'ios') return; // Only prevent default on iOS swipe-back
       if (isSearchOpen) {
         e.preventDefault();
         setIsSearchOpen(false);

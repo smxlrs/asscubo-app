@@ -33,12 +33,14 @@ export default function ManageArticlesScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'published' | 'deleted'>('published');
 
   const fetchArticles = async () => {
     try {
       const { data, error } = await supabase
         .from('articles')
         .select('id, title, category, link, created_at, is_pinned')
+        .eq('is_published', activeTab === 'published')
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(100);
@@ -57,8 +59,9 @@ export default function ManageArticlesScreen() {
   };
 
   useEffect(() => {
+    setLoading(true);
     fetchArticles();
-  }, []);
+  }, [activeTab]);
 
   const handleCategoryChange = async (articleId: string, newCategory: string | null) => {
     try {
@@ -117,10 +120,10 @@ export default function ManageArticlesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Delete from articles table
+              // Soft delete by setting is_published to false
               const { error: artError } = await supabase
                 .from('articles')
-                .delete()
+                .update({ is_published: false })
                 .eq('id', article.id);
 
               if (artError) throw artError;
@@ -130,6 +133,35 @@ export default function ManageArticlesScreen() {
             } catch (err: any) {
               console.error(err);
               Alert.alert('删除失败', err.message || '删除出错，请重试。');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleRestore = (article: Article) => {
+    Alert.alert(
+      '确认恢复',
+      `确定要恢复并重新发布文章《${article.title.slice(0, 20)}...》吗？`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确认恢复',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('articles')
+                .update({ is_published: true })
+                .eq('id', article.id);
+
+              if (error) throw error;
+
+              setArticles(prev => prev.filter(art => art.id !== article.id));
+              Alert.alert('恢复成功', '文章已重新发布。');
+            } catch (err: any) {
+              console.error(err);
+              Alert.alert('恢复失败', err.message || '恢复出错，请重试。');
             }
           }
         }
@@ -169,16 +201,24 @@ export default function ManageArticlesScreen() {
         </View>
         
         <View style={styles.actionButtons}>
-          <Pressable style={styles.pinButton} onPress={() => handleTogglePin(item)}>
-            <MaterialCommunityIcons 
-              name={item.is_pinned ? "pin" : "pin-outline"} 
-              size={22} 
-              color={item.is_pinned ? "#F59E0B" : colors.textMuted} 
-            />
-          </Pressable>
-          <Pressable style={styles.deleteButton} onPress={() => handleDelete(item)}>
-            <MaterialCommunityIcons name="trash-can-outline" size={22} color="#EF4444" />
-          </Pressable>
+          {activeTab === 'published' ? (
+            <>
+              <Pressable style={styles.pinButton} onPress={() => handleTogglePin(item)}>
+                <MaterialCommunityIcons 
+                  name={item.is_pinned ? "pin" : "pin-outline"} 
+                  size={22} 
+                  color={item.is_pinned ? "#F59E0B" : colors.textMuted} 
+                />
+              </Pressable>
+              <Pressable style={styles.deleteButton} onPress={() => handleDelete(item)}>
+                <MaterialCommunityIcons name="trash-can-outline" size={22} color="#EF4444" />
+              </Pressable>
+            </>
+          ) : (
+            <Pressable style={styles.restoreButton} onPress={() => handleRestore(item)}>
+              <MaterialCommunityIcons name="backup-restore" size={22} color="#10B981" />
+            </Pressable>
+          )}
         </View>
       </View>
     );
@@ -193,6 +233,26 @@ export default function ManageArticlesScreen() {
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>管理已有文章</Text>
         <View style={styles.headerPlaceholder} />
+      </View>
+
+      {/* Tabs */}
+      <View style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Pressable 
+          style={[styles.tabItem, activeTab === 'published' && { borderBottomColor: colors.primary }]}
+          onPress={() => setActiveTab('published')}
+        >
+          <Text style={[styles.tabText, activeTab === 'published' ? { color: colors.primary, fontWeight: 'bold' } : { color: colors.textSecondary }]}>
+            已发布文章
+          </Text>
+        </Pressable>
+        <Pressable 
+          style={[styles.tabItem, activeTab === 'deleted' && { borderBottomColor: colors.primary }]}
+          onPress={() => setActiveTab('deleted')}
+        >
+          <Text style={[styles.tabText, activeTab === 'deleted' ? { color: colors.primary, fontWeight: 'bold' } : { color: colors.textSecondary }]}>
+            已删除文章
+          </Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -470,5 +530,25 @@ const styles = StyleSheet.create({
   modalActionButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    height: 48,
+    borderBottomWidth: 1,
+  },
+  tabItem: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabText: {
+    fontSize: 14,
+  },
+  restoreButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

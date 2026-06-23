@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, ScrollView, Platform, Switch } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -50,8 +50,28 @@ async function clearCacheDir() {
   }
 }
 
+const LOCALIZED = {
+  zh: {
+    notificationsSetting: '通知设置',
+    manageSubscriptions: '管理订阅',
+  },
+  'zh-Hant': {
+    notificationsSetting: '通知設置',
+    manageSubscriptions: '管理訂閱',
+  },
+  en: {
+    notificationsSetting: 'Notifications',
+    manageSubscriptions: 'Manage Subscriptions',
+  },
+  it: {
+    notificationsSetting: 'Notifiche',
+    manageSubscriptions: 'Gestisci Iscrizioni',
+  }
+};
+
 export default function SettingsIndexScreen() {
-  const { colors, t, themeMode, languageMode } = useTheme();
+  const { colors, t, themeMode, languageMode, predictiveBack, setPredictiveBack, tabBarStyle, setTabBarStyle, language } = useTheme();
+  const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   const [cacheSize, setCacheSize] = useState('0.0 KB');
 
   useEffect(() => {
@@ -140,9 +160,39 @@ export default function SettingsIndexScreen() {
 
           {/* Notifications Settings Link */}
           <Pressable style={styles.rowPressable} onPress={() => router.push('/settings/notifications')}>
-            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>通知设置</Text>
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{localized.notificationsSetting}</Text>
             <View style={styles.rowRight}>
-              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>管理订阅</Text>
+              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{localized.manageSubscriptions}</Text>
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
+        </View>
+
+        {/* Experimental Features Section */}
+        <View style={styles.sectionHeaderContainer}>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{t('experimentalSetting')}</Text>
+        </View>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {/* Back Navigation Method Link (Android Only) */}
+          {Platform.OS === 'android' && (
+            <Pressable style={[styles.rowPressable, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/settings/back-navigation')}>
+              <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t('backNavigationSetting')}</Text>
+              <View style={styles.rowRight}>
+                <Text style={[styles.rowValue, { color: colors.textSecondary }]}>
+                  {predictiveBack ? t('backNavigationPredictive') : t('backNavigationTraditional')}
+                </Text>
+                <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+              </View>
+            </Pressable>
+          )}
+
+          {/* Tab Bar Style Link */}
+          <Pressable style={styles.rowPressable} onPress={() => router.push('/settings/tab-bar')}>
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t('tabBarSetting')}</Text>
+            <View style={styles.rowRight}>
+              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>
+                {tabBarStyle === 'glassmorphism' ? t('tabBarGlassmorphism') : t('tabBarTraditional')}
+              </Text>
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>
           </Pressable>
@@ -238,5 +288,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 30,
     marginBottom: 30,
+  },
+  rowContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rowLeft: {
+    flex: 1,
+    marginRight: 16,
+  },
+  rowSubLabel: {
+    fontSize: 12,
+    marginTop: 4,
   },
 });

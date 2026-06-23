@@ -56,9 +56,9 @@ export default function RegisterScreen() {
       });
       
       if (error) {
-        Alert.alert("发送失败", translateAuthError(error.message, language));
+        Alert.alert(t('resendErrorTitle'), translateAuthError(error.message, language));
       } else {
-        Alert.alert("邮件已重送", "验证邮件已重新发送至您的邮箱，请注意查收。");
+        Alert.alert(t('resendSuccessTitle'), t('resendSuccessMsg'));
         setResendCountdown(60);
         resendTimerRef.current = setInterval(() => {
           setResendCountdown((prev) => {
@@ -72,7 +72,7 @@ export default function RegisterScreen() {
       }
     } catch (err) {
       console.error("Resend signup email error:", err);
-      Alert.alert("发送失败", "网络发生错误，请稍后重试。");
+      Alert.alert(t('resendErrorTitle'), t('networkErrorRetry'));
     } finally {
       setResending(false);
     }
@@ -159,7 +159,7 @@ export default function RegisterScreen() {
         // Check for sensitive nickname on the frontend first
         const sensitiveMatch = await checkNicknameSensitive(name.trim());
         if (sensitiveMatch) {
-          setErrorMsg(`昵称包含敏感词汇 "${sensitiveMatch}"，请更换其它昵称。`);
+          setErrorMsg(t('sensitiveWordError').replace('{word}', sensitiveMatch));
           setLoading(false);
           return;
         }
@@ -193,9 +193,7 @@ export default function RegisterScreen() {
         <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t('successRegTitle')}</Text>
         
         <Text style={[styles.successText, { color: colors.textPrimary }]}>
-          {language === 'zh' || language === 'zh-Hant' ? '已向以下邮箱发送了验证邮件：' :
-           language === 'it' ? 'Abbiamo inviato un\'email di verifica a:' :
-           'A verification email has been sent to:'}
+          {t('sentEmailPrompt')}
         </Text>
 
         <View style={[styles.emailDisplayContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -205,9 +203,7 @@ export default function RegisterScreen() {
         </View>
 
         <Text style={[styles.successSubtext, { color: colors.textSecondary }]}>
-          {language === 'zh' || language === 'zh-Hant' ? '请打开邮件并点击其中的验证链接激活账户。验证成功后，即可登录。' :
-           language === 'it' ? 'Apri l\'email e clicca sul link di verifica per attivare il tuo account. Dopo la verifica potrai accedere.' :
-           'Please open the email and click the verification link to activate your account. Once verified, you can sign in.'}
+          {t('verifyEmailInstruction')}
         </Text>
 
         <Pressable 
@@ -219,7 +215,7 @@ export default function RegisterScreen() {
             <ActivityIndicator color="#FFF" size="small" />
           ) : (
             <Text style={[styles.resendButtonText, { color: '#FFF' }]}>
-              {resendCountdown > 0 ? `重新发送验证邮件 (${resendCountdown}s)` : "重新发送验证邮件"}
+              {resendCountdown > 0 ? `${t('resendVerifyEmail')} (${resendCountdown}s)` : t('resendVerifyEmail')}
             </Text>
           )}
         </Pressable>

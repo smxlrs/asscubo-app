@@ -2,7 +2,7 @@
   "expo": {
     "name": "博学",
     "slug": "union-student-app",
-    "version": "1.0.0.36",
+    "version": "1.0.0.39",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -63,6 +63,7 @@
       }
     },
     "android": {
+      "predictiveBackGestureEnabled": true,
       "adaptiveIcon": {
         "backgroundColor": "#B8362C",
         "foregroundImage": "./assets/android-icon-foreground.png"
