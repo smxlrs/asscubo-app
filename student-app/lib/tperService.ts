@@ -82,7 +82,8 @@ export async function fetchBusArrivals(stopCode: string, lineCode = ''): Promise
 
     return parseHelloBusString(resultText);
   } catch (error: any) {
-    console.error('HelloBus Query Error:', error);
+    // Log as info to avoid triggering React Native RedBox overlay in development
+    console.log('HelloBus Query Error:', error.message || error);
     throw error;
   }
 }

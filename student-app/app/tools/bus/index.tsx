@@ -843,7 +843,8 @@ export default function BusBoardScreen() {
         const promises = linesList.map(line =>
           fetchBusArrivals(code, line)
             .catch(err => {
-              console.warn(`Query failed for line ${line}:`, err);
+              // Log as info to avoid triggering React Native YellowBox warning in development
+              console.log(`Query failed for line ${line}:`, err.message || err);
               return [] as BusArrival[];
             })
         );
