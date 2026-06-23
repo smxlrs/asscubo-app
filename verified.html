@@ -222,15 +222,19 @@
     var search = window.location.search;
     var hash = window.location.hash;
     
-    // 拼接 App 的唤醒地址，并保留所有凭证
+    // 拼接 verified=true 到 query 参数中
+    if (search) {
+      if (search.indexOf('verified=') === -1) {
+        search += '&verified=true';
+      }
+    } else {
+      search = '?verified=true';
+    }
+    
+    // 拼接 App 的唤醒地址，并保留所有凭证与哈希
     var schemeUrl = "union-app://login-callback" + search;
     if (hash) {
       schemeUrl += hash;
-    }
-    
-    // 确保携带 verified=true 标识给 App 内部做提示
-    if (schemeUrl.indexOf('verified=') === -1) {
-      schemeUrl += (schemeUrl.indexOf('?') === -1 ? '?' : '&') + 'verified=true';
     }
     
     // 动态更新“返回博学”按钮的 href，以防用户不想等 3 秒直接手动点击

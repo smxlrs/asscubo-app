@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginCallback() {
   const { colors, isDark } = useTheme();
@@ -13,17 +14,39 @@ export default function LoginCallback() {
   const [errorOccurred, setErrorOccurred] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [verificationSuccess, setVerificationSuccess] = useState(false);
+  const [hasActiveSession, setHasActiveSession] = useState(false);
+
+  // Automatic navigation on success if active session exists
+  useEffect(() => {
+    if (verificationSuccess && hasActiveSession) {
+      const timer = setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 2000); // 2 seconds delay
+      return () => clearTimeout(timer);
+    }
+  }, [verificationSuccess, hasActiveSession]);
 
   useEffect(() => {
     let active = true;
-    let safetyTimer: NodeJS.Timeout | null = null;
+    let safetyTimer: any = null;
+    let subscription: { remove: () => void } | null = null;
+    let pollInterval: any = null;
 
-    function triggerSuccess() {
+    async function triggerSuccess() {
       if (active) {
         setVerificationSuccess(true);
         setStatusMessage('验证成功！');
         if (safetyTimer) {
           clearTimeout(safetyTimer);
+        }
+        if (pollInterval) {
+          clearInterval(pollInterval);
+        }
+        try {
+          await AsyncStorage.removeItem('temp_signup_email');
+          await AsyncStorage.removeItem('temp_signup_password');
+        } catch (e) {
+          console.warn('Failed to clear temp signup credentials:', e);
         }
       }
     }
@@ -34,6 +57,9 @@ export default function LoginCallback() {
         setErrorOccurred(true);
         if (safetyTimer) {
           clearTimeout(safetyTimer);
+        }
+        if (pollInterval) {
+          clearInterval(pollInterval);
         }
       }
     }
@@ -48,15 +74,59 @@ export default function LoginCallback() {
         console.error('Failed to get initial URL:', e);
       }
 
-      const subscription = Linking.addEventListener('url', async ({ url }) => {
+      subscription = Linking.addEventListener('url', async ({ url }) => {
         if (active) {
           await processUrl(url);
         }
       });
 
-      return () => {
-        subscription.remove();
-      };
+      // Start background polling check for verification status using saved credentials
+      await startBackgroundVerificationCheck();
+    }
+
+    async function startBackgroundVerificationCheck() {
+      try {
+        const email = await AsyncStorage.getItem('temp_signup_email');
+        const password = await AsyncStorage.getItem('temp_signup_password');
+        
+        if (!email || !password) {
+          console.log('No temporary signup credentials found for background polling.');
+          return;
+        }
+
+        console.log('Starting background verification check for:', email);
+        
+        pollInterval = setInterval(async () => {
+          if (!active || verificationSuccess || errorOccurred) {
+            if (pollInterval) clearInterval(pollInterval);
+            return;
+          }
+          
+          try {
+            console.log('Polling sign-in in background...');
+            const { data, error } = await supabase.auth.signInWithPassword({
+              email: email.trim(),
+              password: password,
+            });
+            
+            if (!error && data?.session) {
+              console.log('Background verification check succeeded! Logged in.');
+              if (pollInterval) clearInterval(pollInterval);
+              
+              if (active) {
+                setHasActiveSession(true);
+                await triggerSuccess();
+              }
+            } else if (error) {
+              console.log('Background verification check poll status:', error.message);
+            }
+          } catch (err) {
+            console.error('Error during background verification poll:', err);
+          }
+        }, 2000);
+      } catch (err) {
+        console.error('Error setting up background verification check:', err);
+      }
     }
 
     async function processUrl(url: string) {
@@ -67,7 +137,7 @@ export default function LoginCallback() {
       const { queryParams } = parsed;
 
       // 1. Check if we have the verified=true flag from verified.html
-      const isVerifiedFromWeb = queryParams && queryParams.verified === 'true';
+      const isVerifiedFromWeb = url.includes('verified=true');
 
       // 2. Check for errors passed in query params
       if (queryParams && queryParams.error) {
@@ -93,7 +163,11 @@ export default function LoginCallback() {
             }
           }
           
-          triggerSuccess();
+          if (active) {
+            const { data: { session } } = await supabase.auth.getSession();
+            setHasActiveSession(!!session);
+          }
+          await triggerSuccess();
           return;
         }
 
@@ -106,9 +180,19 @@ export default function LoginCallback() {
 
         if (hash) {
           const cleanHash = hash.startsWith('#') ? hash.substring(1) : hash;
-          const params = cleanHash.split('&').reduce((acc: Record<string, string>, part: string) => {
+          const qIndex = cleanHash.indexOf('?');
+          const hashOnly = qIndex !== -1 ? cleanHash.substring(0, qIndex) : cleanHash;
+
+          const params = hashOnly.split('&').reduce((acc: Record<string, string>, part: string) => {
             const [key, value] = part.split('=');
-            if (key && value) acc[key] = decodeURIComponent(value);
+            if (key && value) {
+              let val = decodeURIComponent(value);
+              const valQidx = val.indexOf('?');
+              if (valQidx !== -1) {
+                val = val.substring(0, valQidx);
+              }
+              acc[key] = val;
+            }
             return acc;
           }, {});
 
@@ -139,14 +223,21 @@ export default function LoginCallback() {
             }
           }
 
-          triggerSuccess();
+          if (active) {
+            const { data: { session } } = await supabase.auth.getSession();
+            setHasActiveSession(!!session);
+          }
+          await triggerSuccess();
           return;
         }
 
         // Case 3: Fallback check if we are already logged in or marked verified from web
         const { data: { session } } = await supabase.auth.getSession();
         if (session || isVerifiedFromWeb) {
-          triggerSuccess();
+          if (active) {
+            setHasActiveSession(!!session);
+          }
+          await triggerSuccess();
         } else {
           throw new Error('验证链接已失效或不完整。如果您已经激活过账户，请尝试直接登录。');
         }
@@ -167,11 +258,13 @@ export default function LoginCallback() {
       if (active && !verificationSuccess && !errorOccurred) {
         triggerFailure('验证请求响应超时，可能由于网络连接较差。请确保网络畅通后重试，或尝试直接登录。');
       }
-    }, 30000);
+    }, 15000);
 
     return () => {
       active = false;
       if (safetyTimer) clearTimeout(safetyTimer);
+      if (pollInterval) clearInterval(pollInterval);
+      if (subscription) subscription.remove();
     };
   }, []);
 
@@ -190,23 +283,46 @@ export default function LoginCallback() {
           
           <Text style={[styles.title, { color: colors.textPrimary }]}>认证成功！</Text>
           
-          <Text style={[styles.description, { color: colors.textSecondary }]}>
-            您的账户已成功激活！{'\n'}
-            现在可以使用注册的账号和密码登录应用。
-          </Text>
-          
-          <TouchableOpacity
-            style={styles.button}
-            onPress={async () => {
-              await supabase.auth.signOut();
-              router.replace('/(auth)/login');
-            }}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.buttonBg, { backgroundColor: colors.primary }]}>
-              <Text style={styles.buttonText}>前往登录</Text>
-            </View>
-          </TouchableOpacity>
+          {hasActiveSession ? (
+            <>
+              <Text style={[styles.description, { color: colors.textSecondary }]}>
+                您的账户已成功激活并自动登录！{'\n'}
+                正在为您跳转至首页...
+              </Text>
+              
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => {
+                  router.replace('/(tabs)');
+                }}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.buttonBg, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.buttonText}>进入应用</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.description, { color: colors.textSecondary }]}>
+                您的账户已成功激活！{'\n'}
+                现在可以使用注册的账号和密码登录应用。
+              </Text>
+              
+              <TouchableOpacity
+                style={styles.button}
+                onPress={async () => {
+                  await supabase.auth.signOut();
+                  router.replace('/(auth)/login');
+                }}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.buttonBg, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.buttonText}>前往登录</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     );

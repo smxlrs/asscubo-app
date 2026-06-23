@@ -123,7 +123,7 @@ export default function EditProfileScreen() {
     try {
       const { error } = await supabase.auth.updateUser(
         { email: cleanedEmail },
-        { options: { emailRedirectTo: 'https://asscubo.it/verified.html' } }
+        { emailRedirectTo: 'https://asscubo.it/verified.html' }
       );
       if (error) throw error;
       
