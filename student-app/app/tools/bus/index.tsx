@@ -1205,6 +1205,44 @@ export default function BusBoardScreen() {
               </View>
             )}
             <Text style={[styles.listHeaderTitle, { color: colors.textSecondary }]}>{localized.liveArrivals}</Text>
+            {/* WeBus style Route filter tabs */}
+            {activeStopLines.length > 0 && !queryError && (
+              <View style={[styles.routesFilterContainer, { borderTopWidth: 0, marginTop: 8, paddingTop: 0, marginBottom: 12 }]}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.routesFilterList}>
+                  <Pressable
+                    style={[
+                      styles.routeFilterBtn,
+                      { 
+                        backgroundColor: selectedRouteFilter === 'ALL' ? '#E30613' : (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7'),
+                        borderColor: selectedRouteFilter === 'ALL' ? '#E30613' : colors.border
+                      }
+                    ]}
+                    onPress={() => setSelectedRouteFilter('ALL')}
+                  >
+                    <Text style={[styles.routeFilterBtnText, { color: selectedRouteFilter === 'ALL' ? '#FFF' : colors.textPrimary }]}>
+                      {localized.allRoutes}
+                    </Text>
+                  </Pressable>
+                  {activeStopLines.map(line => (
+                    <Pressable
+                      key={line}
+                      style={[
+                        styles.routeFilterBtn,
+                        { 
+                          backgroundColor: selectedRouteFilter === line ? getLineColor(line) : (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7'),
+                          borderColor: selectedRouteFilter === line ? getLineColor(line) : colors.border
+                        }
+                      ]}
+                      onPress={() => setSelectedRouteFilter(line)}
+                    >
+                      <Text style={[styles.routeFilterBtnText, { color: selectedRouteFilter === line ? '#FFF' : colors.textPrimary }]}>
+                        {line}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
             {displayedArrivals.map((bus, idx) => {
               const dest = ROUTE_DESTINATIONS[bus.line] || 
                            ROUTE_DESTINATIONS[bus.line.replace(/[a-zA-Z]/g, '')] || 
@@ -1281,45 +1319,7 @@ export default function BusBoardScreen() {
           </View>
         )}
 
-        {/* WeBus style Route filter tabs */}
-        {activeStopLines.length > 0 && !queryError && (
-          <View style={[styles.routesFilterContainer, { borderTopColor: colors.border }]}>
-            <Text style={[styles.routesFilterTitle, { color: colors.textSecondary }]}>{localized.routeFilter}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.routesFilterList}>
-              <Pressable
-                style={[
-                  styles.routeFilterBtn,
-                  { 
-                    backgroundColor: selectedRouteFilter === 'ALL' ? '#E30613' : (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7'),
-                    borderColor: selectedRouteFilter === 'ALL' ? '#E30613' : colors.border
-                  }
-                ]}
-                onPress={() => setSelectedRouteFilter('ALL')}
-              >
-                <Text style={[styles.routeFilterBtnText, { color: selectedRouteFilter === 'ALL' ? '#FFF' : colors.textPrimary }]}>
-                  {localized.allRoutes}
-                </Text>
-              </Pressable>
-              {activeStopLines.map(line => (
-                <Pressable
-                  key={line}
-                  style={[
-                    styles.routeFilterBtn,
-                    { 
-                      backgroundColor: selectedRouteFilter === line ? getLineColor(line) : (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7'),
-                      borderColor: selectedRouteFilter === line ? getLineColor(line) : colors.border
-                    }
-                  ]}
-                  onPress={() => setSelectedRouteFilter(line)}
-                >
-                  <Text style={[styles.routeFilterBtnText, { color: selectedRouteFilter === line ? '#FFF' : colors.textPrimary }]}>
-                    {line}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        )}
+
       </View>
     );
   };
