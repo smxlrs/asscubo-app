@@ -893,12 +893,6 @@ export default function HomeScreen() {
                   ) : null}
                   <View style={styles.articleMeta}>
                     <Text style={[styles.articleDate, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
-                    {item.type === 'article' && (
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <MaterialCommunityIcons name="eye-outline" size={14} color={colors.textMuted} style={{ marginRight: 4 }} />
-                        <Text style={[styles.articleViews, { color: colors.textMuted }]}>{item.view_count}</Text>
-                      </View>
-                    )}
                   </View>
                 </View>
                 {item.cover_image ? (
