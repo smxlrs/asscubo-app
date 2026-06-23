@@ -220,8 +220,6 @@ export default function TabsLayout() {
 
         if (nearestTabConstrained !== stateRef.current.activeIndex) {
           setActiveIndex(nearestTabConstrained);
-          const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
-          router.replace(tabPaths[nearestTabConstrained]);
         }
       },
       onPanResponderRelease: () => {
@@ -229,6 +227,10 @@ export default function TabsLayout() {
         const { tabBarWidth: currentTabBarWidth, activeIndex: currentActiveIndex } = stateRef.current;
         const tabWidth = currentTabBarWidth / 4;
         const sliderW = tabWidth - 12;
+
+        // Perform the screen replacement ONLY when the drag finishes
+        const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
+        router.replace(tabPaths[currentActiveIndex]);
 
         const finalCenterX = (currentActiveIndex + 0.5) * tabWidth;
         const finalLeft = finalCenterX - (sliderW / 2);
@@ -249,6 +251,10 @@ export default function TabsLayout() {
         const { tabBarWidth: currentTabBarWidth, activeIndex: currentActiveIndex } = stateRef.current;
         const tabWidth = currentTabBarWidth / 4;
         const sliderW = tabWidth - 12;
+
+        // Perform the screen replacement on termination
+        const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
+        router.replace(tabPaths[currentActiveIndex]);
 
         const finalCenterX = (currentActiveIndex + 0.5) * tabWidth;
         const finalLeft = finalCenterX - (sliderW / 2);
