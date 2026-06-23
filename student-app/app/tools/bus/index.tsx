@@ -582,7 +582,26 @@ export default function BusBoardScreen() {
   const [activeStopName, setActiveStopName] = useState<string | null>(null);
   const [cardCollapsed, setCardCollapsed] = useState(false);
   const [activeStopLines, setActiveStopLines] = useState<string[]>([]);
-  const [selectedRouteFilter, setSelectedRouteFilter] = useState<string>('ALL');
+  const [selectedRouteFilters, setSelectedRouteFilters] = useState<string[]>(['ALL']);
+
+  const toggleRouteFilter = (line: string) => {
+    if (line === 'ALL') {
+      setSelectedRouteFilters(['ALL']);
+      return;
+    }
+    
+    setSelectedRouteFilters(prev => {
+      if (prev.includes('ALL')) {
+        return [line];
+      }
+      if (prev.includes(line)) {
+        const next = prev.filter(l => l !== line);
+        return next.length === 0 ? ['ALL'] : next;
+      } else {
+        return [...prev, line];
+      }
+    });
+  };
 
   // Arrivals data states
   const [arrivals, setArrivals] = useState<BusArrival[]>([]);
@@ -827,7 +846,7 @@ export default function BusBoardScreen() {
     // Parse list of lines, e.g. ["25", "356", "N2"]
     const linesList = stopLinesStr ? stopLinesStr.split(',').map(s => s.trim()).filter(Boolean) : [];
     setActiveStopLines(linesList);
-    setSelectedRouteFilter('ALL');
+    setSelectedRouteFilters(['ALL']);
 
     try {
       let finalArrivals: BusArrival[] = [];
@@ -898,13 +917,15 @@ export default function BusBoardScreen() {
 
   // Filter display list by selected route tab
   const getFilteredArrivals = () => {
-    if (selectedRouteFilter === 'ALL') {
+    if (selectedRouteFilters.includes('ALL')) {
       return arrivals;
     }
     // E.g., Filter "25" matches both "25", "25A" and "25B"
     return arrivals.filter(bus => 
-      bus.line.toUpperCase() === selectedRouteFilter.toUpperCase() ||
-      bus.line.toUpperCase().startsWith(selectedRouteFilter.toUpperCase())
+      selectedRouteFilters.some(filter => 
+        bus.line.toUpperCase() === filter.toUpperCase() ||
+        bus.line.toUpperCase().startsWith(filter.toUpperCase())
+      )
     );
   };
 
@@ -1178,7 +1199,7 @@ export default function BusBoardScreen() {
           </View>
         )}
 
-        {queryLoading && displayedArrivals.length === 0 ? (
+        {queryLoading && arrivals.length === 0 ? (
           <View style={[styles.emptyContainer, { paddingVertical: 40 }]}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 12 }]}>
@@ -1190,13 +1211,6 @@ export default function BusBoardScreen() {
             <MaterialCommunityIcons name="alert-circle-outline" size={32} color={colors.error} />
             <Text style={[styles.errorText, { color: colors.textPrimary }]}>{queryError}</Text>
           </View>
-        ) : displayedArrivals.length === 0 && !queryLoading ? (
-          <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="bus-alert" size={40} color={colors.textMuted} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              {localized.emptyArrivals}
-            </Text>
-          </View>
         ) : (
           <View style={styles.arrivalsList}>
             {queryLoading && (
@@ -1206,6 +1220,7 @@ export default function BusBoardScreen() {
               </View>
             )}
             <Text style={[styles.listHeaderTitle, { color: colors.textSecondary }]}>{localized.liveArrivals}</Text>
+            
             {/* WeBus style Route filter tabs */}
             {activeStopLines.length > 0 && !queryError && (
               <View style={[styles.routesFilterContainer, { borderTopWidth: 0, marginTop: 8, paddingTop: 0, marginBottom: 12 }]}>
@@ -1214,13 +1229,13 @@ export default function BusBoardScreen() {
                     style={[
                       styles.routeFilterBtn,
                       { 
-                        backgroundColor: selectedRouteFilter === 'ALL' ? '#E30613' : (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7'),
-                        borderColor: selectedRouteFilter === 'ALL' ? '#E30613' : colors.border
+                        backgroundColor: selectedRouteFilters.includes('ALL') ? '#E30613' : (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7'),
+                        borderColor: selectedRouteFilters.includes('ALL') ? '#E30613' : colors.border
                       }
                     ]}
-                    onPress={() => setSelectedRouteFilter('ALL')}
+                    onPress={() => setSelectedRouteFilters(['ALL'])}
                   >
-                    <Text style={[styles.routeFilterBtnText, { color: selectedRouteFilter === 'ALL' ? '#FFF' : colors.textPrimary }]}>
+                    <Text style={[styles.routeFilterBtnText, { color: selectedRouteFilters.includes('ALL') ? '#FFF' : colors.textPrimary }]}>
                       {localized.allRoutes}
                     </Text>
                   </Pressable>
@@ -1230,13 +1245,13 @@ export default function BusBoardScreen() {
                       style={[
                         styles.routeFilterBtn,
                         { 
-                          backgroundColor: selectedRouteFilter === line ? getLineColor(line) : (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7'),
-                          borderColor: selectedRouteFilter === line ? getLineColor(line) : colors.border
+                          backgroundColor: selectedRouteFilters.includes(line) ? getLineColor(line) : (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7'),
+                          borderColor: selectedRouteFilters.includes(line) ? getLineColor(line) : colors.border
                         }
                       ]}
-                      onPress={() => setSelectedRouteFilter(line)}
+                      onPress={() => toggleRouteFilter(line)}
                     >
-                      <Text style={[styles.routeFilterBtnText, { color: selectedRouteFilter === line ? '#FFF' : colors.textPrimary }]}>
+                      <Text style={[styles.routeFilterBtnText, { color: selectedRouteFilters.includes(line) ? '#FFF' : colors.textPrimary }]}>
                         {line}
                       </Text>
                     </Pressable>
@@ -1244,79 +1259,89 @@ export default function BusBoardScreen() {
                 </ScrollView>
               </View>
             )}
-            {displayedArrivals.map((bus, idx) => {
-              const dest = ROUTE_DESTINATIONS[bus.line] || 
-                           ROUTE_DESTINATIONS[bus.line.replace(/[a-zA-Z]/g, '')] || 
-                           'Bologna Rete Bus';
-              return (
-                <Pressable 
-                  key={idx} 
-                  style={({ pressed }) => [
-                    styles.arrivalItem, 
-                    { 
-                      borderBottomColor: colors.border,
-                      backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : 'transparent'
-                    }
-                  ]}
-                  onPress={() => setSelectedArrival(bus)}
-                >
-                  {/* WeBus dynamic colored line badge */}
-                  <View style={[styles.lineBadge, { backgroundColor: getLineColor(bus.line) }]}>
-                    <Text style={styles.lineText}>{bus.line}</Text>
-                  </View>
 
-                  {/* Line destination, time, status */}
-                  <View style={styles.arrivalMiddle}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={[styles.arrivalTime, { color: colors.textPrimary }]}>
-                        {bus.time}
-                      </Text>
-                      
-                      <View style={[
-                        styles.statusBadge,
-                        { backgroundColor: bus.type === 'satellite' ? '#10B98115' : '#6B728015' }
-                      ]}>
-                        <View style={[
-                          styles.statusDot, 
-                          { backgroundColor: bus.type === 'satellite' ? '#10B981' : '#6B7280' }
-                        ]} />
-                        <Text style={[
-                          styles.statusText, 
-                          { color: bus.type === 'satellite' ? '#10B981' : '#6B7280' }
-                        ]}>
-                          {bus.type === 'satellite' ? localized.realTime : localized.scheduled}
+            {displayedArrivals.length === 0 ? (
+              <View style={[styles.emptyContainer, { paddingVertical: 40 }]}>
+                <MaterialCommunityIcons name="bus-alert" size={40} color={colors.textMuted} />
+                <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 12 }]}>
+                  {localized.emptyArrivals}
+                </Text>
+              </View>
+            ) : (
+              displayedArrivals.map((bus, idx) => {
+                const dest = ROUTE_DESTINATIONS[bus.line] || 
+                             ROUTE_DESTINATIONS[bus.line.replace(/[a-zA-Z]/g, '')] || 
+                             'Bologna Rete Bus';
+                return (
+                  <Pressable 
+                    key={idx} 
+                    style={({ pressed }) => [
+                      styles.arrivalItem, 
+                      { 
+                        borderBottomColor: colors.border,
+                        backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : 'transparent'
+                      }
+                    ]}
+                    onPress={() => setSelectedArrival(bus)}
+                  >
+                    {/* WeBus dynamic colored line badge */}
+                    <View style={[styles.lineBadge, { backgroundColor: getLineColor(bus.line) }]}>
+                      <Text style={styles.lineText}>{bus.line}</Text>
+                    </View>
+
+                    {/* Line destination, time, status */}
+                    <View style={styles.arrivalMiddle}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={[styles.arrivalTime, { color: colors.textPrimary }]}>
+                          {bus.time}
                         </Text>
+                        
+                        <View style={[
+                          styles.statusBadge,
+                          { backgroundColor: bus.type === 'satellite' ? '#10B98115' : '#6B728015' }
+                        ]}>
+                          <View style={[
+                            styles.statusDot, 
+                            { backgroundColor: bus.type === 'satellite' ? '#10B981' : '#6B7280' }
+                          ]} />
+                          <Text style={[
+                            styles.statusText, 
+                            { color: bus.type === 'satellite' ? '#10B981' : '#6B7280' }
+                          ]}>
+                            {bus.type === 'satellite' ? localized.realTime : localized.scheduled}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={[styles.destinationText, { color: colors.textSecondary }]} numberOfLines={1}>
+                        ➔ {dest}
+                      </Text>
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                        {bus.hasRamp && (
+                          <View style={styles.rampBadge}>
+                            <FontIcon name="wheelchair" size={11} color={colors.primary} style={{ marginRight: 2 }} />
+                            <Text style={[styles.rampText, { color: colors.primary }]}>{localized.ramp}</Text>
+                          </View>
+                        )}
+                        {bus.busNumber && (
+                          <Text style={{ fontSize: 10, color: colors.textMuted, marginLeft: bus.hasRamp ? 8 : 0 }}>
+                            {localized.busNum}{bus.busNumber}
+                          </Text>
+                        )}
                       </View>
                     </View>
 
-                    <Text style={[styles.destinationText, { color: colors.textSecondary }]} numberOfLines={1}>
-                      ➔ {dest}
-                    </Text>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                      {bus.hasRamp && (
-                        <View style={styles.rampBadge}>
-                          <FontIcon name="wheelchair" size={11} color={colors.primary} style={{ marginRight: 2 }} />
-                          <Text style={[styles.rampText, { color: colors.primary }]}>{localized.ramp}</Text>
-                        </View>
-                      )}
-                      {bus.busNumber && (
-                        <Text style={{ fontSize: 10, color: colors.textMuted, marginLeft: bus.hasRamp ? 8 : 0 }}>
-                          {localized.busNum}{bus.busNumber}
-                        </Text>
-                      )}
+                    {/* Countdown */}
+                    <View style={styles.arrivalRight}>
+                      <Text style={[styles.countdownText, { color: colors.primary }]}>
+                        {getCountdownString(bus.time)}
+                      </Text>
                     </View>
-                  </View>
-
-                  {/* Countdown */}
-                  <View style={styles.arrivalRight}>
-                    <Text style={[styles.countdownText, { color: colors.primary }]}>
-                      {getCountdownString(bus.time)}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
+                  </Pressable>
+                );
+              })
+            )}
           </View>
         )}
 
