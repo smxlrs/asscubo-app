@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useRef, useEffect, useState } from 'react';
 import { BlurView, BlurTargetView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, interpolateColor } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -147,6 +148,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
 export default function TabsLayout() {
   const { colors, t, isDark, tabBarStyle, tabGestureOpacity, setTabGestureActive } = useTheme();
   const USE_GLASSMORPHISM = tabBarStyle === 'glassmorphism';
+  const USE_NATIVE_GLASS = Platform.OS === 'ios' && isGlassEffectAPIAvailable();
   const blurTargetRef = useRef(null);
   const ExpoTabs = Tabs as any;
 
@@ -420,100 +422,123 @@ export default function TabsLayout() {
                 }
               ]}
             >
-              {/* 1. Glass Plate Container (Gradient Border Outer Layer) */}
-              <LinearGradient
-                colors={isDark ? ['rgba(255, 255, 255, 0.28)', 'rgba(0, 0, 0, 0.15)'] : ['rgba(255, 255, 255, 0.85)', 'rgba(255, 255, 255, 0.15)'] }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={[
-                  StyleSheet.absoluteFill,
-                  styles.glassContainerBorder,
-                  {
-                    shadowOpacity: isDark ? 0.14 : 0.05,
-                    shadowRadius: 18,
-                    shadowOffset: { width: 0, height: 2 },
-                    elevation: 2,
-                  }
-                ]}
-              >
-                {/* Inner Content Layer (offset by 1.0px to reveal gradient edge) */}
-                <View 
+              {/* 1. Glass Plate Container */}
+              {USE_NATIVE_GLASS ? (
+                /* Native iOS Liquid Glass plate — uses system UIVisualEffectView */
+                <GlassView
+                  glassEffectStyle="regular"
+                  colorScheme={isDark ? 'dark' : 'light'}
                   style={[
-                    StyleSheet.absoluteFill, 
-                    styles.glassContainerInner, 
-                    { 
-                      backgroundColor: isDark ? 'rgba(15, 15, 15, 0.65)' : 'rgba(255, 255, 255, 0.52)'
+                    StyleSheet.absoluteFill,
+                    styles.glassContainerBorder,
+                  ]}
+                />
+              ) : (
+                /* Fallback: handcrafted BlurView + gradient stack (Android & old iOS) */
+                <LinearGradient
+                  colors={isDark ? ['rgba(255, 255, 255, 0.28)', 'rgba(0, 0, 0, 0.15)'] : ['rgba(255, 255, 255, 0.85)', 'rgba(255, 255, 255, 0.15)'] }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={[
+                    StyleSheet.absoluteFill,
+                    styles.glassContainerBorder,
+                    {
+                      shadowOpacity: isDark ? 0.14 : 0.05,
+                      shadowRadius: 18,
+                      shadowOffset: { width: 0, height: 2 },
+                      elevation: 2,
                     }
                   ]}
                 >
-                  {Platform.OS === 'ios' ? (
-                    <BlurView 
-                      tint={isDark ? 'dark' : 'extraLight'} 
-                      intensity={90} 
-                      style={StyleSheet.absoluteFill} 
-                    />
-                  ) : (
-                    <BlurView 
-                      tint={isDark ? 'dark' : 'light'}
-                      blurTarget={blurTargetRef}
-                      intensity={isDark ? 120 : 80} 
-                      style={StyleSheet.absoluteFill} 
-                    />
-                  )}
+                  {/* Inner Content Layer (offset by 1.0px to reveal gradient edge) */}
+                  <View 
+                    style={[
+                      StyleSheet.absoluteFill, 
+                      styles.glassContainerInner, 
+                      { 
+                        backgroundColor: isDark ? 'rgba(15, 15, 15, 0.65)' : 'rgba(255, 255, 255, 0.52)'
+                      }
+                    ]}
+                  >
+                    {Platform.OS === 'ios' ? (
+                      <BlurView 
+                        tint={isDark ? 'dark' : 'extraLight'} 
+                        intensity={90} 
+                        style={StyleSheet.absoluteFill} 
+                      />
+                    ) : (
+                      <BlurView 
+                        tint={isDark ? 'dark' : 'light'}
+                        blurTarget={blurTargetRef}
+                        intensity={isDark ? 120 : 80} 
+                        style={StyleSheet.absoluteFill} 
+                      />
+                    )}
 
-                  {/* 3D Diagonal Specular Shine Overlay */}
-                  <LinearGradient
-                    colors={
-                      isDark
-                        ? ['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.03)', 'transparent', 'rgba(0, 0, 0, 0.04)']
-                        : ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.05)', 'transparent', 'transparent']
-                    }
-                    start={{ x: 0.1, y: 0 }}
-                    end={{ x: 0.9, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                    pointerEvents="none"
-                  />
-                </View>
-              </LinearGradient>
+                    {/* 3D Diagonal Specular Shine Overlay */}
+                    <LinearGradient
+                      colors={
+                        isDark
+                          ? ['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.03)', 'transparent', 'rgba(0, 0, 0, 0.04)']
+                          : ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.05)', 'transparent', 'transparent']
+                      }
+                      start={{ x: 0.1, y: 0 }}
+                      end={{ x: 0.9, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                      pointerEvents="none"
+                    />
+                  </View>
+                </LinearGradient>
+              )}
 
-              {/* 2. Liquid Shared Slider (Glass Bubble Gradient Border Layer) */}
+              {/* 2. Liquid Shared Slider (Glass Bubble) */}
               <Reanimated.View 
                 style={[
                   styles.sliderPill,
                   {
                     backgroundColor: 'transparent',
                     shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 6,
-                    elevation: 3,
+                    shadowOpacity: USE_NATIVE_GLASS ? 0 : 0.3,
+                    shadowRadius: USE_NATIVE_GLASS ? 0 : 6,
+                    elevation: USE_NATIVE_GLASS ? 0 : 3,
                   },
                   sliderStyle
                 ]} 
               >
-                {/* Outer gradient border for the bubble */}
-                <LinearGradient
-                  colors={isDark ? ['rgba(255, 255, 255, 0.55)', 'rgba(0, 0, 0, 0.2)'] : ['rgba(255, 255, 255, 0.85)', 'rgba(255, 255, 255, 0.35)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={[StyleSheet.absoluteFill, { borderRadius: 28 }]}
-                >
-                  {/* Inner Content Layer (offset by 0.8px to reveal gradient edge) */}
-                  <Reanimated.View
-                    style={[
-                      styles.sliderPillInner,
-                      innerSliderStyle
-                    ]}
+                {USE_NATIVE_GLASS ? (
+                  /* Native iOS Liquid Glass bubble */
+                  <GlassView
+                    glassEffectStyle="regular"
+                    isInteractive
+                    colorScheme={isDark ? 'dark' : 'light'}
+                    style={[StyleSheet.absoluteFill, { borderRadius: 28 }]}
+                  />
+                ) : (
+                  /* Fallback: gradient border bubble (Android & old iOS) */
+                  <LinearGradient
+                    colors={isDark ? ['rgba(255, 255, 255, 0.55)', 'rgba(0, 0, 0, 0.2)'] : ['rgba(255, 255, 255, 0.85)', 'rgba(255, 255, 255, 0.35)']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={[StyleSheet.absoluteFill, { borderRadius: 28 }]}
                   >
-                    {/* 3D Specular Shine inside the bubble */}
-                    <LinearGradient
-                      colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.03)', 'transparent']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                      style={StyleSheet.absoluteFill}
-                      pointerEvents="none"
-                    />
-                  </Reanimated.View>
-                </LinearGradient>
+                    {/* Inner Content Layer (offset by 0.8px to reveal gradient edge) */}
+                    <Reanimated.View
+                      style={[
+                        styles.sliderPillInner,
+                        innerSliderStyle
+                      ]}
+                    >
+                      {/* 3D Specular Shine inside the bubble */}
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.03)', 'transparent']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                        pointerEvents="none"
+                      />
+                    </Reanimated.View>
+                  </LinearGradient>
+                )}
               </Reanimated.View>
             </View>
           ) : undefined,
