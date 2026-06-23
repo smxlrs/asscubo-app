@@ -623,7 +623,7 @@ export default function BusBoardScreen() {
   // PanResponder to handle Bottom Sheet dragging
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         return Math.abs(gestureState.dy) > 5;
       },
@@ -1622,6 +1622,7 @@ export default function BusBoardScreen() {
           {/* Draggable/Animated Bottom Sheet for Arrivals Board */}
           {activeStopCode && (
             <Animated.View 
+              {...panResponder.panHandlers}
               style={[
                 styles.bottomSheet, 
                 { 
@@ -1633,7 +1634,6 @@ export default function BusBoardScreen() {
             >
               {/* Draggable Handle and Header */}
               <View 
-                {...panResponder.panHandlers}
                 style={[styles.sheetHeader, { borderBottomColor: colors.border }]}
               >
                 <Pressable style={styles.sheetHandleContainer} onPress={toggleSheetState}>
