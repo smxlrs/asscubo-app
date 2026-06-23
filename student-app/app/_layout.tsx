@@ -116,12 +116,20 @@ function AppContent() {
       try {
         const token = await registerForPushNotificationsAsync();
         if (token) {
-          // Upsert push token in Supabase
+          // 1. Upsert push token in push_tokens table
           await supabase.from('push_tokens').upsert({
             user_id: user?.id || null, // null for guests
             token: token,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'token' });
+
+          // 2. Sync token to user profile if logged in
+          if (user?.id) {
+            await supabase
+              .from('profiles')
+              .update({ push_token: token })
+              .eq('id', user.id);
+          }
         }
       } catch (e) {
         console.log('Notification registration failed:', e);

@@ -117,6 +117,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() { 
+    if (user?.id) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ push_token: null })
+          .eq('id', user.id);
+      } catch (err) {
+        console.warn('Failed to clear push token during signOut:', err);
+      }
+    }
     await supabase.auth.signOut(); 
   }
 
