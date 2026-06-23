@@ -166,7 +166,7 @@ export default function AdminDashboardScreen() {
             <MaterialCommunityIcons 
               name="trash-can-outline" 
               size={20} 
-              color={clearing ? colors.textMuted : '#EF4444'} 
+              color={clearing ? colors.textMuted : colors.primaryLight} 
               style={styles.rowIcon} 
             />
             <Text style={[styles.rowLabel, { color: clearing ? colors.textMuted : colors.textPrimary }]}>
