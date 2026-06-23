@@ -184,23 +184,69 @@ export async function searchStopsByName(query: string): Promise<BusStop[]> {
       dbQuery = dbQuery.ilike('stop_name', `%${cleanQuery}%`);
     }
 
-    const { data, error } = await dbQuery
-      .order('stop_name', { ascending: true })
-      .limit(30);
+    // Fetch more results so we can sort them properly in memory
+    const { data, error } = await dbQuery.limit(100);
 
     if (error) {
       console.error('Supabase query error:', error);
       throw error;
     }
 
-    return (data || []).map(item => ({
-      id: Number(item.id),
-      stop_code: item.stop_code,
-      stop_name: item.stop_name,
-      latitude: item.latitude,
-      longitude: item.longitude,
-      city: item.city,
-      lines: item.lines,
+    if (!data) return [];
+
+    const q = cleanQuery.toLowerCase();
+
+    // Map each item to a relevance score (lower score = higher priority)
+    const scoredItems = data.map(item => {
+      const name = item.stop_name.toLowerCase();
+      const code = item.stop_code.toLowerCase();
+      
+      let score = 5; // Default score
+      
+      if (code === q) {
+        score = 0; // Exact match of stop code has highest priority
+      } else if (name === q) {
+        score = 1; // Exact match of stop name
+      } else if (name.startsWith(q)) {
+        score = 2; // Starts with query
+      } else {
+        const index = name.indexOf(q);
+        if (index > 0) {
+          const charBefore = name.charAt(index - 1);
+          // Word boundary match: character before index is non-alphanumeric (including space/accents check)
+          if (!/[a-zA-Z0-9\u00C0-\u017F]/.test(charBefore)) {
+            score = 3;
+          } else {
+            score = 4; // Substring match
+          }
+        }
+      }
+
+      return {
+        item,
+        score,
+      };
+    });
+
+    // Sort by:
+    // 1. Score (ascending)
+    // 2. Stop name (alphabetically)
+    scoredItems.sort((a, b) => {
+      if (a.score !== b.score) {
+        return a.score - b.score;
+      }
+      return a.item.stop_name.localeCompare(b.item.stop_name);
+    });
+
+    // Slice to top 30 and map back to BusStop type
+    return scoredItems.slice(0, 30).map(si => ({
+      id: Number(si.item.id),
+      stop_code: si.item.stop_code,
+      stop_name: si.item.stop_name,
+      latitude: si.item.latitude,
+      longitude: si.item.longitude,
+      city: si.item.city,
+      lines: si.item.lines,
     }));
   } catch (err) {
     console.error('Failed to search stops in database:', err);
