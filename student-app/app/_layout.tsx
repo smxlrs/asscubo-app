@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ExperimentalStack as Stack, router } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, BackHandler, ToastAndroid, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -205,13 +205,15 @@ function AppContent() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
         <Stack screenOptions={{ 
-          headerShown: false
+          headerShown: false, 
+          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }
         }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="login-callback" />
-          <Stack.Screen name="settings" />
-          <Stack.Screen name="about" />
+          <Stack.Screen name="settings" options={{ presentation: 'card' }} />
+          <Stack.Screen name="about" options={{ presentation: 'card' }} />
           <Stack.Screen name="+not-found" />
         </Stack>
       </View>

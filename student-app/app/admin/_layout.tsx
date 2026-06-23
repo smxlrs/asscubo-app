@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ExperimentalStack as Stack, router } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
@@ -32,7 +32,9 @@ export default function AdminLayout() {
 
   return (
     <Stack screenOptions={{ 
-      headerShown: false
+      headerShown: false, 
+      animation: 'slide_from_right',
+      contentStyle: { backgroundColor: colors.background }
     }} />
   );
 }
