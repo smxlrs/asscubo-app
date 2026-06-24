@@ -485,7 +485,7 @@ function DraggableCard({
 }
 
 export default function ToolsScreen() {
-  const { colors, t, tabBarStyle, tabGestureOpacity, isDark, language } = useTheme();
+  const { colors, t, tabBarStyle, tabOpacities, isDark, language } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   const [eurToCny, setEurToCny] = useState<number>(7.8256);
   const [toolOrder, setToolOrder] = useState<string[]>(['handbook', 'dictionary', 'rate', 'classroom', 'train', 'bus', 'studyroom', 'links']);
@@ -573,7 +573,7 @@ export default function ToolsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
-      <RNAnimated.View style={{ flex: 1, opacity: tabGestureOpacity }}>
+      <RNAnimated.View style={{ flex: 1, opacity: tabOpacities[2] }}>
         <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <Animated.ScrollView 

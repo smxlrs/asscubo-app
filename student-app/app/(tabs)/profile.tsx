@@ -33,7 +33,7 @@ export default function ProfileScreen() {
   const userObj = useAuth();
   const user = userObj?.user;
   const profile = userObj?.profile;
-  const { colors, t, tabBarStyle, tabGestureOpacity, isDark, language } = useTheme();
+  const { colors, t, tabBarStyle, tabOpacities, isDark, language } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
 
   const navigateToLogin = () => {
@@ -42,7 +42,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
-      <Animated.View style={{ flex: 1, opacity: tabGestureOpacity }}>
+      <Animated.View style={{ flex: 1, opacity: tabOpacities[3] }}>
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarStyle === 'glassmorphism' ? 110 : 20 }]}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t('profile')}</Text>

@@ -145,7 +145,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
 }
 
 export default function TabsLayout() {
-  const { colors, t, isDark, tabBarStyle, tabGestureOpacity, setTabGestureActive } = useTheme();
+  const { colors, t, isDark, tabBarStyle, tabOpacities, setTabGestureActive } = useTheme();
   const USE_GLASSMORPHISM = tabBarStyle === 'glassmorphism';
   const blurTargetRef = useRef(null);
   const ExpoTabs = Tabs as any;
@@ -153,6 +153,7 @@ export default function TabsLayout() {
   // Liquid glass animations state
   const [activeIndex, setActiveIndex] = useState(0);
   const [tabBarWidth, setTabBarWidth] = useState(INITIAL_TAB_BAR_WIDTH);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Math variables for concentric capsule alignment
   const tabWidthVal = INITIAL_TAB_BAR_WIDTH / 4;
@@ -174,7 +175,11 @@ export default function TabsLayout() {
   }, [activeIndex, tabBarWidth]);
 
   const isDraggingRef = useRef(false);
+  const isReleasingRef = useRef(false);
   const startTabRef = useRef(3);
+  const lastDraggedIndexRef = useRef(0);
+  // Tracks the intended tab route during a continuous gesture (updates immediately)
+  const navigatedTabRef = useRef(0);
 
   const createPanResponder = (k: number) => {
     return PanResponder.create({
@@ -184,7 +189,10 @@ export default function TabsLayout() {
       },
       onPanResponderGrant: () => {
         isDraggingRef.current = true;
+        setIsDragging(true);
         startTabRef.current = stateRef.current.activeIndex;
+        lastDraggedIndexRef.current = stateRef.current.activeIndex;
+        navigatedTabRef.current = stateRef.current.activeIndex;
         setTabGestureActive(true);
       },
       onPanResponderMove: (evt, gestureState) => {
@@ -201,65 +209,126 @@ export default function TabsLayout() {
         const sliderW = tabWidth - 12;
         const halfWidth = sliderW / 2;
 
-        leftPosition.value = dragCenterX - halfWidth;
-        rightPosition.value = dragCenterX + halfWidth;
+        // Wrap the real-time slider position in a tight spring.
+        // This acts as a shock absorber: if the JS thread drops a frame due to router.navigate,
+        // the UI thread will gracefully interpolate the position rather than freezing and jumping!
+        leftPosition.value = withSpring(dragCenterX - halfWidth, { damping: 28, stiffness: 260, mass: 0.8 });
+        rightPosition.value = withSpring(dragCenterX + halfWidth, { damping: 28, stiffness: 260, mass: 0.8 });
 
         // Smooth real-time background color transition as we drag!
-        glowColorProgress.value = dragCenterX / tabWidth - 0.5;
+        glowColorProgress.value = withSpring(dragCenterX / tabWidth - 0.5, { damping: 28, stiffness: 260, mass: 0.8 });
 
         const nearestTab = Math.round(dragCenterX / tabWidth - 0.5);
         const nearestTabConstrained = Math.min(3, Math.max(0, nearestTab));
 
-        const nearestCenter = (nearestTabConstrained + 0.5) * tabWidth;
-        const dist = Math.abs(dragCenterX - nearestCenter);
-        const opacityVal = Math.max(0, Math.min(1, 1.0 - dist / (0.5 * tabWidth)));
+        lastDraggedIndexRef.current = nearestTabConstrained;
 
-        tabGestureOpacity.setValue(opacityVal);
+        // If we cross a midpoint into a new tab zone, navigate to it immediately.
+        if (nearestTabConstrained !== navigatedTabRef.current) {
+          const targetPath = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'][nearestTabConstrained];
+          navigatedTabRef.current = nearestTabConstrained;
+          
+          // Defer the heavy React Navigation (unmount/mount) to the next JS tick.
+          setTimeout(() => {
+            router.navigate(targetPath);
+          }, 16); 
+        }
+
+        // Calculate and set the opacity for EVERY tab based on its physical distance from the slider!
+        // This is a revolutionary fix: because each tab has its own independent opacity value,
+        // the old tab naturally fades out while the new tab naturally fades in, completely independent of
+        // React Navigation's delayed render cycle. This prevents ANY possibility of flashing.
+        for (let i = 0; i < 4; i++) {
+          const tabCenter = (i + 0.5) * tabWidth;
+          const distFromActive = Math.abs(dragCenterX - tabCenter);
+          // By dividing by 0.55 * tabWidth, at exactly the midpoint (0.5W), the opacity doesn't drop
+          // completely to 0, ensuring a smoother visual handover between the old and new pages.
+          const normalizedDist = Math.min(1, distFromActive / (0.55 * tabWidth));
+          // Use quadratic curve for buttery smooth visual fading (1 - x^2)
+          const opacityVal = Math.max(0, 1.0 - Math.pow(normalizedDist, 2));
+          tabOpacities[i].setValue(opacityVal);
+        }
 
         if (nearestTabConstrained !== stateRef.current.activeIndex) {
           setActiveIndex(nearestTabConstrained);
-          const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
-          router.replace(tabPaths[nearestTabConstrained]);
         }
       },
       onPanResponderRelease: () => {
         isDraggingRef.current = false;
-        const { tabBarWidth: currentTabBarWidth, activeIndex: currentActiveIndex } = stateRef.current;
+        isReleasingRef.current = true;
+        setIsDragging(false);
+        const { tabBarWidth: currentTabBarWidth } = stateRef.current;
         const tabWidth = currentTabBarWidth / 4;
         const sliderW = tabWidth - 12;
 
-        const finalCenterX = (currentActiveIndex + 0.5) * tabWidth;
+        const targetIndex = lastDraggedIndexRef.current;
+        const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
+
+        // Failsafe: if we somehow released before triggering the final navigate
+        if (targetIndex !== navigatedTabRef.current) {
+          navigatedTabRef.current = targetIndex;
+          router.navigate(tabPaths[targetIndex]);
+        }
+
+        const finalCenterX = (targetIndex + 0.5) * tabWidth;
         const finalLeft = finalCenterX - (sliderW / 2);
         leftPosition.value = withSpring(finalLeft, { damping: 22, stiffness: 180 });
         rightPosition.value = withSpring(finalLeft + sliderW, { damping: 22, stiffness: 180 });
-        glowColorProgress.value = withSpring(currentActiveIndex, { damping: 24, stiffness: 160 });
+        glowColorProgress.value = withSpring(targetIndex, { damping: 24, stiffness: 160 });
 
-        Animated.timing(tabGestureOpacity, {
-          toValue: 1.0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start(() => {
+        // Fade all tabs to their resting states
+        const animations = [];
+        for (let i = 0; i < 4; i++) {
+          animations.push(
+            Animated.timing(tabOpacities[i], {
+              toValue: i === targetIndex ? 1.0 : 0.0,
+              duration: 220,
+              useNativeDriver: true,
+            })
+          );
+        }
+        
+        Animated.parallel(animations).start(() => {
           setTabGestureActive(false);
+          isReleasingRef.current = false;
         });
       },
       onPanResponderTerminate: () => {
         isDraggingRef.current = false;
-        const { tabBarWidth: currentTabBarWidth, activeIndex: currentActiveIndex } = stateRef.current;
+        isReleasingRef.current = true;
+        setIsDragging(false);
+        const { tabBarWidth: currentTabBarWidth } = stateRef.current;
         const tabWidth = currentTabBarWidth / 4;
         const sliderW = tabWidth - 12;
 
-        const finalCenterX = (currentActiveIndex + 0.5) * tabWidth;
+        const targetIndex = lastDraggedIndexRef.current;
+        const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
+
+        if (targetIndex !== navigatedTabRef.current) {
+          navigatedTabRef.current = targetIndex;
+          router.navigate(tabPaths[targetIndex]);
+        }
+
+        const finalCenterX = (targetIndex + 0.5) * tabWidth;
         const finalLeft = finalCenterX - (sliderW / 2);
         leftPosition.value = withSpring(finalLeft, { damping: 22, stiffness: 180 });
         rightPosition.value = withSpring(finalLeft + sliderW, { damping: 22, stiffness: 180 });
-        glowColorProgress.value = withSpring(currentActiveIndex, { damping: 24, stiffness: 160 });
+        glowColorProgress.value = withSpring(targetIndex, { damping: 24, stiffness: 160 });
 
-        Animated.timing(tabGestureOpacity, {
-          toValue: 1.0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start(() => {
+        const animations = [];
+        for (let i = 0; i < 4; i++) {
+          animations.push(
+            Animated.timing(tabOpacities[i], {
+              toValue: i === targetIndex ? 1.0 : 0.0,
+              duration: 220,
+              useNativeDriver: true,
+            })
+          );
+        }
+        
+        Animated.parallel(animations).start(() => {
           setTabGestureActive(false);
+          isReleasingRef.current = false;
         });
       }
     });
@@ -277,6 +346,14 @@ export default function TabsLayout() {
       prevIndexRef.current = activeIndex;
       return; // Skip auto spring animations during manual gesture drags
     }
+    
+    // Handle tap! When tapping, snap immediately without fading.
+    if (!isReleasingRef.current) {
+      for (let j = 0; j < 4; j++) {
+        tabOpacities[j].setValue(j === activeIndex ? 1.0 : 0.0);
+      }
+    }
+
     const tabWidth = tabBarWidth / 4;
     const i = activeIndex;
     const centerX = (i + 0.5) * tabWidth;
@@ -542,7 +619,7 @@ export default function TabsLayout() {
           }}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon label={t('home')} iconName="home" focused={focused} activeColor={homeColor} inactiveColor={inactiveTabColor} />
+              <TabIcon label={t('home')} iconName="home" focused={isDragging ? activeIndex === 0 : focused} activeColor={homeColor} inactiveColor={inactiveTabColor} />
             ),
             tabBarButton: (props: any) => {
               const { ref, style, ...rest } = props as any;
@@ -571,7 +648,7 @@ export default function TabsLayout() {
           }}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon label={t('notifications')} iconName="newspaper" focused={focused} activeColor={articlesColor} inactiveColor={inactiveTabColor} />
+              <TabIcon label={t('notifications')} iconName="newspaper" focused={isDragging ? activeIndex === 1 : focused} activeColor={articlesColor} inactiveColor={inactiveTabColor} />
             ),
             tabBarButton: (props: any) => {
               const { ref, style, ...rest } = props as any;
@@ -600,7 +677,7 @@ export default function TabsLayout() {
           }}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon label={t('tools')} iconName="view-grid" focused={focused} activeColor={toolsColor} inactiveColor={inactiveTabColor} />
+              <TabIcon label={t('tools')} iconName="view-grid" focused={isDragging ? activeIndex === 2 : focused} activeColor={toolsColor} inactiveColor={inactiveTabColor} />
             ),
             tabBarButton: (props: any) => {
               const { ref, style, ...rest } = props as any;
@@ -629,7 +706,7 @@ export default function TabsLayout() {
           }}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon label={t('profile')} iconName="account" focused={focused} activeColor={profileColor} inactiveColor={inactiveTabColor} />
+              <TabIcon label={t('profile')} iconName="account" focused={isDragging ? activeIndex === 3 : focused} activeColor={profileColor} inactiveColor={inactiveTabColor} />
             ),
             tabBarButton: (props: any) => {
               const { ref, style, ...rest } = props as any;

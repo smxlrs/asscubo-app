@@ -250,7 +250,7 @@ const CITIES = [
 
 export default function HomeScreen() {
   const { user, profile } = useAuth();
-  const { colors, isDark, tabBarStyle, tabGestureOpacity, tabGestureActive, t, language } = useTheme();
+  const { colors, isDark, tabBarStyle, tabOpacities, tabGestureActive, t, language } = useTheme();
   const insets = useSafeAreaInsets();
 
   const [selectedCity, setSelectedCity] = useState(CITIES[0]);
@@ -565,7 +565,7 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
-      <Animated.View style={{ flex: 1, opacity: tabGestureOpacity }}>
+      <Animated.View style={{ flex: 1, opacity: tabOpacities[0] }}>
         <LinearGradient
           colors={isDark ? ['#0A0A0A', '#0A0A0A'] : ['#FFFFFF', '#FFFFFF']}
           style={styles.container}

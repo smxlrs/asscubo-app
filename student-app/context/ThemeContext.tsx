@@ -40,7 +40,7 @@ type ThemeContextType = {
   isReady: boolean;
   tabBarStyle: 'traditional' | 'glassmorphism';
   setTabBarStyle: (style: 'traditional' | 'glassmorphism') => Promise<void>;
-  tabGestureOpacity: Animated.Value;
+  tabOpacities: Animated.Value[];
   tabGestureActive: boolean;
   setTabGestureActive: (active: boolean) => void;
   predictiveBack: boolean;
@@ -1048,7 +1048,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [predictiveBack, setPredictiveBackState] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [tick, setTick] = useState(0);
-  const tabGestureOpacity = React.useRef(new Animated.Value(1)).current;
+  const tabOpacities = React.useRef([
+    new Animated.Value(1),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0)
+  ]).current;
   const [tabGestureActive, setTabGestureActive] = useState(false);
 
   const systemScheme = useColorScheme();
@@ -1183,7 +1188,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       isReady,
       tabBarStyle,
       setTabBarStyle,
-      tabGestureOpacity,
+      tabOpacities,
       tabGestureActive,
       setTabGestureActive,
       predictiveBack,

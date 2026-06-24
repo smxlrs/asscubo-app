@@ -29,7 +29,7 @@ const CATEGORY_DETAILS = {
 };
 
 export default function NotificationsScreen() {
-  const { colors, isDark, t, tabBarStyle, tabGestureOpacity, tabGestureActive } = useTheme();
+  const { colors, isDark, t, tabBarStyle, tabOpacities, tabGestureActive } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -200,7 +200,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
-      <Animated.View style={{ flex: 1, opacity: tabGestureOpacity }}>
+      <Animated.View style={{ flex: 1, opacity: tabOpacities[1] }}>
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar style={isDark ? "light" : "dark"} />
       {/* Title Header */}
