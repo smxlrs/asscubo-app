@@ -8,6 +8,7 @@ export interface QuickActionConfig {
   subtitleKey: string;
   href: string;
   iosIcon: string;
+  androidIcon: string;
 }
 
 export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
@@ -17,6 +18,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_dictionary_desc',
     href: '/tools/dictionary',
     iosIcon: 'symbol:book.closed.fill',
+    androidIcon: 'ic_menu_search',
   },
   {
     id: 'bus',
@@ -24,6 +26,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_bus_desc',
     href: '/tools/bus',
     iosIcon: 'symbol:bus.fill',
+    androidIcon: 'ic_menu_mylocation',
   },
   {
     id: 'handbook',
@@ -31,6 +34,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_handbook_desc',
     href: '/tools/handbook',
     iosIcon: 'symbol:doc.text.fill',
+    androidIcon: 'ic_menu_info_details',
   },
   {
     id: 'train',
@@ -38,6 +42,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_train_desc',
     href: '/tools/train',
     iosIcon: 'symbol:tram.fill',
+    androidIcon: 'ic_menu_directions',
   },
   {
     id: 'classroom',
@@ -45,6 +50,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_classroom_desc',
     href: '/tools/classroom',
     iosIcon: 'symbol:square.grid.2x2.fill',
+    androidIcon: 'ic_menu_agenda',
   },
   {
     id: 'studyroom',
@@ -52,6 +58,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_studyroom_desc',
     href: '/tools/studyroom',
     iosIcon: 'symbol:calendar.fill',
+    androidIcon: 'ic_menu_sort_by_size',
   },
   {
     id: 'articles',
@@ -59,6 +66,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_articles_desc',
     href: '/(tabs)/notifications',
     iosIcon: 'symbol:newspaper.fill',
+    androidIcon: 'ic_menu_view_list_alt',
   },
   {
     id: 'announcements',
@@ -66,6 +74,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_announcements_desc',
     href: '/(tabs)/announcements',
     iosIcon: 'symbol:bell.fill',
+    androidIcon: 'ic_menu_notifications',
   },
   {
     id: 'settings',
@@ -73,6 +82,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_settings_desc',
     href: '/settings',
     iosIcon: 'symbol:gearshape.fill',
+    androidIcon: 'ic_menu_manage',
   },
 ];
 
@@ -123,7 +133,7 @@ export function registerQuickActions(ids: string[], t: (key: string) => string):
           id: config.id,
           title: t(config.titleKey),
           subtitle: t(config.subtitleKey),
-          icon: Platform.OS === 'ios' ? config.iosIcon : undefined,
+          icon: Platform.OS === 'ios' ? config.iosIcon : config.androidIcon,
           params: { href: config.href },
         };
       })
