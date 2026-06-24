@@ -187,7 +187,7 @@ jobs:
           echo "Building scheme: $SCHEME"
           echo "Workspace: $WORKSPACE"
 
-          # Use 'build' instead of 'archive' to avoid ExpoModulesJSI xcframework issue
+          # Build for real device — capture full log, show errors prominently
           set -o pipefail
           xcodebuild \
             -workspace "$WORKSPACE" \
@@ -201,13 +201,23 @@ jobs:
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
             ENABLE_BITCODE=NO \
             SWIFT_VERSION=5 \
-            2>&1 | tee /tmp/xcodebuild.log | grep -E "^(error:|warning: .*(error|fatal)|.*error:)" | head -60 || true
+            2>&1 | tee /tmp/xcodebuild.log; BUILD_EXIT=${PIPESTATUS[0]}
 
-          echo "--- xcodebuild last 60 lines ---"
-          tail -60 /tmp/xcodebuild.log
+          # Show actual errors/warnings
+          echo "=== Errors & Warnings ==="
+          grep -E "error:|warning:" /tmp/xcodebuild.log | grep -v "^note:" | head -80 || true
+          echo "=== Last 30 lines ==="
+          tail -30 /tmp/xcodebuild.log
+
+          # Fail properly if build failed
+          if [ "$BUILD_EXIT" -ne 0 ]; then
+            echo "BUILD FAILED (exit $BUILD_EXIT)"
+            exit "$BUILD_EXIT"
+          fi
 
           # Find the real-device .app (exclude simulator outputs)
           APP_PATH=$(find "$DERIVED_DATA/Build/Products" \
+            -maxdepth 3 \
             -name "*.app" \
             -not -path "*simulator*" \
             -not -path "*Simulator*" \
@@ -215,20 +225,34 @@ jobs:
 
           if [ -z "$APP_PATH" ]; then
             echo "ERROR: .app not found in DerivedData"
-            find "$DERIVED_DATA/Build/Products" -maxdepth 3 -type d | head -20
+            find "$DERIVED_DATA/Build/Products" -maxdepth 3 | head -30
             exit 1
           fi
           echo "Found .app: $APP_PATH"
+          echo "App size:   $(du -sh "$APP_PATH" | cut -f1)"
+          echo "Contents:   $(ls "$APP_PATH")"
 
-          # Package as .ipa  (Payload/<AppName>.app → zip)
+          # Verify the main executable exists and is non-empty
+          APP_BINARY="$APP_PATH/$(basename "$APP_PATH" .app)"
+          if [ ! -f "$APP_BINARY" ] || [ ! -s "$APP_BINARY" ]; then
+            echo "ERROR: Main binary missing or empty: $APP_BINARY"
+            echo "This usually means the build succeeded partially."
+            ls -la "$APP_PATH" || true
+            exit 1
+          fi
+          echo "Binary:     $APP_BINARY ($(du -sh "$APP_BINARY" | cut -f1))"
+
+          # Package as .ipa (Payload/<AppName>.app → zip)
           mkdir -p /tmp/ipa_payload/Payload
           cp -r "$APP_PATH" /tmp/ipa_payload/Payload/
           cd /tmp/ipa_payload
           zip -r "/tmp/$IPA_NAME" Payload/
 
+          IPA_SIZE=$(du -sh "/tmp/$IPA_NAME" | cut -f1)
           echo "ipa_path=/tmp/$IPA_NAME" >> $GITHUB_OUTPUT
           echo "ipa_name=$IPA_NAME"      >> $GITHUB_OUTPUT
-          echo "IPA ready: $IPA_NAME ($(du -sh /tmp/$IPA_NAME | cut -f1))"
+          echo "IPA ready: $IPA_NAME ($IPA_SIZE)"
+
 
 
       # ── Upload to GitHub Releases ─────────────────────────────────────────
