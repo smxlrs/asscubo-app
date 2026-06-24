@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PrivacyScreen() {
-  const { colors, t } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -30,13 +30,22 @@ export default function PrivacyScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.detailTitle, { color: colors.primaryLight }]}>隐私政策 / Privacy Policy / Informativa sulla Privacy</Text>
         
+        {/* Trilingual Notice */}
+        <View style={[styles.langNoticeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.langNoticeText, { color: colors.textSecondary }]}>
+            有关隐私政策的英语和意大利语版，您可在中文版的下方找到。{"\n"}
+            For the English and Italian versions of the Privacy Policy, please scroll down below the Chinese version.{"\n"}
+            Le versioni in inglese e italiano dell'Informativa sulla Privacy sono disponibili scorrendo sotto la versione cinese.
+          </Text>
+        </View>
+
         {/* Chinese Section */}
         <View style={styles.langSection}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>引言与特别提示</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
             本隐私政策已于 2026 年 6 月 24 日更新并生效。{"\n"}
             请花一些时间熟悉我们的隐私政策，如果您有任何问题，请联系我们。{"\n"}
-            本隐私政策适用于博洛尼亚大学中国学生学者联谊会（以下简称“学联”、“我们”或“本平台”）开发并运营的移动端应用“博学”（以下简称“本软件”或“博学”）。我们非常重视您的隐私。本隐私政策在制定时充分考虑到您的需求，您全面了解我们的个人信息收集和使用惯例，同时确保您最终能控制提供给我们的个人信息，这一点至关重要。本隐私政策规定我们如何收集、使用、披露、处理和存储您使用博学提供给我们的信息。本隐私政策下“个人信息”指以电子或者其他方式记录的与已识别或者可识别的自然人有关的各种信息，不包括匿名化处理后的信息。我们将严格遵守本隐私政策来使用这些信息。为了向您提供博学的各功能所对应的服务，我们会出于本隐私政策所述的以下目的，在您使用某些功能时，分别收集和使用您的以下各类信息。每项所对应的个人信息是否收集取决于您是否使用该项功能对应的服务，如果您不开启该项功能，则我们将不收集该项功能下对应的个人信息。但如果您不提供相关个人信息，我们可能无法向您提供该项个人信息对应功能的服务，也无法回应您遇到的问题。
+            本隐私政策适用于博洛尼亚大学中国学生学者联谊会（以下简称“学联”、“我们”或“本平台”）开发并运营的移动端应用“博学”（以下简称“本软件”或“博学”）。我们非常重视您的隐私。本隐私政策在制定时充分考虑到您的需求，您全面了解我们的个人信息收集 and 使用惯例，同时确保您最终能控制提供给我们的个人信息，这一点至关重要。本隐私政策规定我们如何收集、使用、披露、处理和存储您使用博学提供给我们的信息。本隐私政策下“个人信息”指以电子或者其他方式记录的与已识别或者可识别的自然人有关的各种信息，不包括匿名化处理后的信息。我们将严格遵守本隐私政策来使用这些信息。为了向您提供博学的各功能所对应的服务，我们会出于本隐私政策所述的以下目的，在您使用某些功能时，分别收集和使用您的以下各类信息。每项所对应的个人信息是否收集取决于您是否使用该项功能对应的服务，如果您不开启该项功能，则我们将不收集该项功能下对应的个人信息。但如果您不提供相关个人信息，我们可能无法向您提供该项个人信息对应功能的服务，也无法回应您遇到的问题。
           </Text>
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>一、 我们如何收集和使用您的个人信息与系统权限使用明示</Text>
@@ -54,7 +63,7 @@ export default function PrivacyScreen() {
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>二、 我们如何共享、转让、公开披露您的个人信息</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            我们非常重视个人信息的安全与保密，我们将遵循合法、正当、必要 and 诚信的原则使用您所授权的个人信息。我们在此向您保证：我们不会将您的个人数据出售、出租或以任何商业方式提供给任何第三方。除非在下列情形中，我们不会向任何第三方共享或转让您的个人信息：{"\n"}
+            我们非常重视个人信息的安全与保密，我们将遵循合法、正当、必要和诚信的原则使用您所授权的个人信息。我们在此向您保证：我们不会将您的个人数据出售、出租或以任何商业方式提供给任何第三方。除非在下列情形中，我们不会向任何第三方共享或转让您的个人信息：{"\n"}
             1. 获得您的明确同意或授权后；{"\n"}
             2. 根据法律法规规定、诉讼争议解决需要，或司法机关、行政机关等有权机关依法提出的强制性要求；{"\n"}
             3. 在法律要求或允许的范围内，为保护学联、学联成员及广大本平台的生命、财产安全或社会公共利益所必需；{"\n"}
@@ -108,39 +117,63 @@ export default function PrivacyScreen() {
         <View style={styles.langSection}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Introduction & Special Notices</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            This Privacy Policy was updated and became effective on June 24, 2026.{"\n"}
-            Please take some time to familiarize yourself with our privacy policy, and if you have any questions, please contact us. This Privacy Policy applies to the mobile application "Boxue" (hereinafter referred to as "the Software" or "Boxue") developed and operated by the Chinese Students and Scholars Association of the University of Bologna (hereinafter referred to as "ASSCUBO", "we", "us", or "our"). We value your privacy. It is crucial that you fully understand our collection and use of personal information, and ensure you retain control over the information you provide. This policy governs how we collect, use, process, disclose, and store your personal information when using our services. Under this framework, "Personal Information" refers to any data recorded electronically or otherwise that relates to an identified or identifiable natural person, specifically excluding anonymized datasets. We commit to utilizing all gathered materials strictly in compliance with the mandates laid out within this Agreement.
+            This Privacy Policy was last updated and became effective on June 24, 2026.{"\n"}
+            Please take a few moments to thoroughly familiarize yourself with our Privacy Policy. If you have any questions, concerns, or feedback, please contact us immediately.{"\n"}
+            This Privacy Policy applies to the mobile application "Boxue" (hereinafter referred to as "the Software" or "Boxue") developed, operated, and maintained by the Chinese Students and Scholars Association of the University of Bologna (hereinafter referred to as "ASSCUBO", "the Association", "we", "us", or "our"). We take your personal privacy extremely seriously. In drafting this Privacy Policy, we have fully considered your privacy preferences, expectations, and requirements. It is of paramount importance that you achieve a comprehensive and transparent understanding of our personal data collection, processing, and usage practices, while ensuring that you ultimately retain absolute, granular control over the personal information you choose to provide to us. This policy outlines how we collect, use, disclose, process, transmit, and store the information you submit when using Boxue. Under this policy, "Personal Information" refers to any information recorded electronically or through other means that relates to an identified or identifiable natural person, excluding anonymized data. We strictly adhere to this Privacy Policy in processing and utilizing such information. To deliver the various features and services of Boxue, we will collect and use your personal information for the specific purposes described herein. Whether specific categories of personal information are collected depends entirely on whether you utilize the corresponding feature or service. If you do not enable or use a specific functionality, we will not collect any corresponding personal information. However, please be advised that if you choose not to provide the requested personal information, we may not be able to offer you the corresponding services, nor will we be able to respond to or resolve any technical or service issues you encounter.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>1. Data We Collect & System Permissions Usage</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>1. How We Collect and Use Your Personal Information & System Permissions</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            1. Account Registration & Authentication: When you register, we collect and store your email address, password, nickname, and profile avatar securely on Supabase servers. Denial of this information will restrict access to authenticated services (like event sign-ups).{"\n"}
-            2. Push Notifications & Touchpoint Services: With your permission, we store your Expo Push Token to deliver official announcements and updates. It is used strictly for routing system alerts.{"\n"}
-            3. Anonymous Query Utility Services: Bus locations, train timetables, and empty classrooms query requests are processed locally or in memory. We do not build personal identifiers or track your query history on our servers.{"\n"}
-            4. User-Generated Content Uploads: To support multi-media posts or custom profile avatars, we request access to storage/camera to read and upload select images to Supabase Storage. You can delete your content at any time.{"\n"}
-            5. Geolocation Permission (GPS): The bus map centers on your position using GPS upon your explicit consent. Positioning processing takes place strictly inside the local sandbox on your device and is never uploaded, stored, or shared with cloud servers or third parties. Revocation of this permission can be done anytime via device system settings.{"\n"}
-            6. Photo Library Access: Album read/write permissions are requested solely when you trigger image uploads (e.g. feedback, avatar). We never scan or access other files in your library.{"\n"}
-            7. Camera Permission Declaration: Device config files include camera access declarations to satisfy app store submission criteria. The actual app logic does not activate or record camera video/audio in any scenario.{"\n"}
-            8. Notification Channel Settings: A notification channel named "常规通知" (General Notifications) is created on Android. You can control notifications via system settings.
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>(A) Circumstances under which you must authorize us to collect and use your personal information:</Text>{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Account Registration and Identity Authentication:</Text> When you choose to register and log in to your Boxue account, in order to complete account creation, verify your membership status, and maintain the basic operational status of your account, we require you to provide information including but not limited to your email address, a secure password, and optionally a self-defined nickname and custom profile photo/avatar. During this process, this data is transmitted to our secure cloud servers (hosted by Supabase) for persistent storage. If you refuse to provide an email address or set a password, you will not be able to complete the registration process or use privileges that require login credentials (such as the online registration system for association activities).{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Device Identification and Push Notifications:</Text> To deliver real-time, accurate, and vital announcements, notifications, or newsletters published by ASSCUBO, we will access your device's Expo Push Token via the Expo SDK interface after the app launches and you grant system-level notification permissions. This token is stored securely in our database and is used strictly for routing cloud message delivery requests. It will never be used for commercial marketing, advertising profiling, or shared with third-party tracking networks.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>3. Anonymous Search Query and Caching Mechanisms:</Text> When you use the convenient public transit locator, train status tracker, or empty classroom queries within Boxue, we process your search requests locally on your device. We solemnly declare that, except for the temporary in-memory cache required for local execution, we do not log, track, or compile your search histories or build any behavioral profiles linked to your identity. All queries are handled in a strictly de-identified manner.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>4. User-Generated Content & Multimedia Uploads:</Text> For authorized ASSCUBO administrators to upload descriptive images/media alongside notices, or for regular users uploading bug report screenshots or editing profile photos, the platform will request system permissions to access your camera and photo library. Selected media files are securely uploaded and hosted in Supabase Storage buckets for distribution and download. You retain the right to delete your content at any time, which permanently removes the associated media files from our storage.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>5. Geolocation Permission (GPS) Notice:</Text> When you tap the positioning icon in the transit module to center the map and find the nearest bus stops, the platform will request system-level GPS location access. We make the most solemn pledge: this geolocation processing is restricted entirely to your local device sandbox for real-time map rendering. We never upload, store, or share your coordinates with our cloud servers or any third parties, and we do not track your movements. You can revoke this permission anytime via your system settings without affecting other features.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>6. Photo Library Access:</Text> Photo library read and write access is requested solely to allow you to select a profile avatar or upload screenshots for feedback. We only access the specific image you explicitly choose to upload. The platform will never scan, index, analyze, or retrieve other photos or media in your device library in the background.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>7. Camera Permission Disclaimer:</Text> To comply with configurations and security requirements of major app stores (e.g., Apple App Store, Google Play Store), camera permission declarations may be included in our application metadata to prevent build deployment errors. However, we explicitly state that the actual app interface contains no active camera capturing logic. We do not, under any circumstance, activate your camera or record any real-time video/photo feeds.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>8. System Notifications Channel:</Text> When the app requests notification authorization, a custom notification channel named "常规通知" (General Notifications) is registered on Android. This channel operates under default system priorities. You have complete control to customize its priority, sound, lock-screen visibility, or disable it entirely via your phone's system settings.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Sharing, Transferring, and Disclosing Information</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. How We Share, Transfer, and Disclose Your Personal Information</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            We do not sell, rent, or commercialize your personal information with third parties. Sharing only occurs upon your explicit consent, to comply with applicable laws/regulations, or in cases of judicial enforcement.
+            We place the highest value on the confidentiality and security of your personal data. We strictly follow the principles of lawfulness, fairness, necessity, and integrity in utilizing the personal information you authorize. We hereby guarantee that we will never sell, lease, or commercially exploit your personal data in any way to third parties. We will not share, transfer, or disclose your personal information with any third party except under the following specific circumstances:{"\n"}
+            1. Upon obtaining your explicit prior consent or authorization;{"\n"}
+            2. In accordance with applicable laws, regulations, legal procedures, litigation requirements, or mandatory administrative or judicial enforcement requests;{"\n"}
+            3. To the extent required or permitted by law, to protect the vital interests, safety, property, or life of ASSCUBO, its members, users of the platform, or the general public;{"\n"}
+            4. In the event of an ASSCUBO leadership transition, committee restructuring, or association dissolution involving a change in the management and maintenance entity of the Software/Platform. If personal information transfer is required during such transitions, we will demand that the successor entity continue to be bound by this Privacy Policy, or otherwise require them to seek your explicit consent again.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. Data Security & Storage</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. How We Store and Protect Your Personal Information</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            We protect your data using industry-standard SSL encryption for transport and database level isolation. In the event of a security breach, users will be notified immediately according to standard administrative guidelines.
+            We employ industry-standard, reasonable, and feasible security protection measures to safeguard the personal information you provide, preventing unauthorized access, disclosure, use, alteration, damage, or loss of your data. All network communications are encrypted via HTTPS, and data is stored securely in encrypted databases hosted on Supabase servers. Access controls are strictly managed at both physical and logical levels.{"\n"}
+            Please understand that despite our rigorous efforts, no transmission of data over the internet or wireless networks can be guaranteed to be 100% secure. If a security breach occurs and our physical, technical, or administrative defenses are compromised, resulting in unauthorized access, disclosure, alteration, or destruction of data, we will promptly inform you in accordance with legal requirements. This notification will details the nature and possible impact of the event, the remediation steps we have taken or will take, suggestions on how you can mitigate risks, and available remedies. We will also report the incident to regulatory authorities within the legally prescribed timeframe.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. GDPR Rights & Deletion</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. How You Manage Your Personal Information and Exercise Your GDPR Rights</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Under the GDPR, you have the right to access, rectify, and erase your personal information. You can permanently delete your account in the Profile screen. Once deleted, your records are immediately purged from our servers and cannot be recovered.
+            Under the European Union's General Data Protection Regulation (GDPR) and other applicable data protection laws, you possess legal rights regarding your personal information, including the right of access, rectification, erasure, and restriction of processing.{"\n"}
+            We deeply recognize that every individual's concerns and expectations regarding privacy protection vary. Therefore, we provide multiple channels and configuration settings within the platform to allow you to flexibly control, restrict, and manage how we collect, use, and process your personal information. These rights are subject to applicable legal frameworks, and may be restricted by specific exclusions and exceptions defined under relevant regulations. Specifically:{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Right to be Informed:</Text> You have the right to receive clear, transparent, public, and easily understandable information and explanations regarding how we collect, use, store, process, and protect your personal information, and what statutory rights you possess. This is the primary objective of this Privacy Policy.{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Right of Access and Portability:</Text> Upon your written request, we will provide a copy and historical record of the personal data we have collected and processed concerning you, free of charge. If you make excessive, repetitive, or unreasonable requests, we reserve the right to charge a reasonable administrative fee based on actual technical service and labor costs, to the extent permitted by law.{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Right to Rectification:</Text> If you believe that any personal information we hold about you is inaccurate, incomplete, or outdated, you have the right to request that we correct, supplement, or update it immediately. You can also perform such corrections directly within the settings menu.{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Account Cancellation and Permanent Erasure:</Text> You have the right to request the deletion of your account at any time via the "Profile" settings page. Once you confirm the permanent cancellation of your account, we will completely purge all your credentials, registration email, nickname, profile images, and event registrations from the Supabase database. This operation is executed as a database "Hard Delete" and is completely irreversible.{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Right to Withdraw Consent:</Text> You can withdraw your consent at any time by disabling location services, photo library access, notifications, or camera declarations in your device settings. Once consent is withdrawn, we will cease providing the services linked to those permissions, but this will not affect the lawfulness of any processing carried out prior to the withdrawal.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>5. Contact Us</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>5. Protection of Minor's Information</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
+            Although the Software is primarily designed for higher education students and scholars, we are committed to protecting the privacy of minors. We do not knowingly collect, store, or process any personal data of minors. If you are under the age of 18, you must read this Privacy Policy in its entirety under the guidance and supervision of your parent or legal guardian before downloading, registering, or using the Software. You must obtain explicit consent from your guardian before submitting any personal data. If your guardian objects to this policy, you must immediately stop using and uninstall the Software. If you believe we have inadvertently collected information from a minor without guardian consent, please contact us immediately so we can verify and delete the data.
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>6. Amendments to the Privacy Policy</Text>
+          <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
+            We reserve the right to modify, amend, or supplement this Privacy Policy at any time without individual notice to adapt to changes in app features, database configurations, third-party APIs, or data protection laws (such as GDPR and Italian privacy regulations). Any revised policy will become effective immediately upon publication on the platform, superseding previous versions. We recommend that you check this page periodically to stay informed about our data handling practices. Your continued use of the Software after any updates indicates your complete and unconditional acceptance of the revised Privacy Policy.
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>7. Contact Us</Text>
+          <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
+            If you have any questions, feedback, suggestions, or wish to exercise your GDPR rights, please contact the ASSCUBO security group:{"\n"}
             Chinese Students and Scholars Association of the University of Bologna (ASSCUBO){"\n"}
             Email:{' '}
             <Text
@@ -158,39 +191,63 @@ export default function PrivacyScreen() {
         <View style={styles.langSection}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Introduzione e Avvisi Speciali</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Ti invitiamo a dedicare un po' di tempo a comprendere la nostra informativa e a contattarci in caso di domande. La presente Informativa si applica all'applicazione mobile "Boxue" (di seguito denominata "il Software" o "Boxue") sviluppata e gestita dall'Associazione degli Studenti e Studiosi Cinesi dell'Università di Bologna (di seguito denominata "ASSCUBO", "noi" o "nostro"). Rispettiamo la tua privacy ed è essenziale che tu mantenga il controllo sulle tue informazioni personali. Ai sensi di questo documento, per "Dati Personali" si intende qualsiasi informazione registrata elettronicamente o in altro modo relativa a una persona fisica identificata o identificabile, esclusi i dati resi anonimi.
+            La presente Informativa sulla Privacy è stata aggiornata ed è entrata in vigore il 24 giugno 2026. Si prega di dedicare il tempo necessario a familiarizzare con le nostre pratiche sulla privacy; in caso di domande, dubbi o feedback, non esitate a contattarci immediatamente.{"\n"}
+            La presente Informativa si applica all'applicazione mobile "Boxue" (di seguito denominata "il Software" o "Boxue") sviluppata, gestita e mantenuta dall'Associazione degli Studenti e Studiosi Cinesi dell'Università di Bologna (di seguito denominata "ASSCUBO", "l'Associazione", "noi", "ci" o "nostro"). Attribuiamo la massima importanza alla tutela della privacy dei nostri utenti. Questa informativa è stata redatta tenendo conto delle vostre esigenze ed aspettative; è essenziale che comprendiate appieno le modalità di raccolta, trattamento e utilizzo delle informazioni personali, garantendo al contempo il controllo finale sui dati forniti. Regola il modo in cui raccogliamo, utilizziamo, divulghiamo, elaboriamo, trasmettiamo e memorizziamo i dati forniti durante l'uso di Boxue. Ai fini della presente informativa, per "Informazioni Personali" si intende qualsiasi dato registrato elettronicamente o con altri mezzi che riguardi una persona fisica identificata o identificabile, esclusi i dati resi anonimi. Utilizzeremo tali dati esclusivamente in conformità con la presente Informativa. Al fine di fornire i servizi corrispondenti alle varie funzionalità di Boxue, raccoglieremo e utilizzeremo i vostri dati personali per le finalità descritte di seguito. La raccolta dipende dall'uso delle singole funzioni; se non utilizzate una determinata funzionalità, i relativi dati non verranno raccolti. Tuttavia, il mancato conferimento di tali dati potrebbe impedirci di fornire il relativo servizio o di rispondere alle vostre segnalazioni.
           </Text>
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>1. Dati Raccolti e Utilizzo dei Permessi</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            1. Registrazione e Autenticazione: Raccogliamo indirizzo e-mail, password, nickname e avatar memorizzandoli in sicurezza su Supabase. La negazione di questi dati impedisce l'iscrizione a determinati servizi (come gli eventi).{"\n"}
-            2. Notifiche Push: Memorizziamo il Token Expo Push previa autorizzazione per inviarti annunci ufficiali. Viene utilizzato esclusivamente per inoltrare messaggi di sistema.{"\n"}
-            3. Servizi di Query Anonimi: Le interrogazioni sugli autobus, sui treni o sulle aule libere vengono elaborate localmente. Non creiamo profili né tracciamo la cronologia delle tue ricerche.{"\n"}
-            4. Caricamento File dell'Utente: Richiediamo l'accesso all'album per consentirti di selezionare e caricare immagini per avatar o feedback a Supabase Storage. Puoi rimuovere i file caricati quando vuoi.{"\n"}
-            5. Posizione Geografica (GPS): La mappa dell'autobus centra la tua posizione tramite GPS solo previo tuo consenso. L'elaborazione avviene unicamente a livello locale e non viene mai caricata su server cloud o condivisa con terzi.{"\n"}
-            6. Libreria Foto: I permessi di lettura/scrittura vengono utilizzati solo quando selezioni un'immagine. Non eseguiamo scansioni di altri file multimediali.{"\n"}
-            7. Autorizzazione Fotocamera: Le impostazioni del pacchetto includono la dichiarazione per la fotocamera solo per conformità con le linee guida degli store. L'applicazione non attiva né registra immagini in nessuna circostanza.{"\n"}
-            8. Impostazioni Notifiche: Un canale denominato "常规通知" (Notifiche Generali) viene creato su Android. Puoi configurarlo liberamente nelle impostazioni del dispositivo.
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>(A) Circostanze in cui è necessario autorizzare la raccolta e l'utilizzo dei dati personali:</Text>{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Registrazione dell'Account e Autenticazione dell'Identità:</Text> Quando decidete di registrarvi e accedere al vostro account Boxue, al fine di completare la creazione dell'account, verificare il vostro stato di membro e mantenere lo stato operativo di base dell'account, richiediamo di fornire informazioni quali l'indirizzo e-mail, una password sicura e, facoltativamente, un nickname personalizzato e un'immagine del profilo/avatar. Questo processo comporta la trasmissione e la memorizzazione persistente di tali dati sui nostri server cloud sicuri gestiti tramite Supabase. In caso di rifiuto a fornire l'e-mail o la password, non sarà possibile completare la registrazione o accedere alle funzionalità riservate (come il sistema di iscrizione online alle attività dell'associazione).{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Identificazione del Dispositivo e Notifiche Push:</Text> Per inviare comunicazioni importanti, annunci ufficiali o articoli in tempo reale pubblicati da ASSCUBO, acquisiremo l'Expo Push Token del vostro dispositivo tramite l'interfaccia Expo SDK previo vostro consenso alle notifiche di sistema. Questo token viene memorizzato in modo sicuro nel nostro database ed è utilizzato esclusivamente per l'instradamento degli avvisi. Non sarà mai impiegato per scopi di marketing commerciale, profilazione pubblicitaria o condiviso con reti di tracciamento di terze parti.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>3. Query di Ricerca Anonime e Meccanismi di Caching:</Text> Quando utilizzate gli strumenti per il controllo dei trasporti pubblici locali, dello stato dei treni in tempo reale o delle aule libere all'interno di Boxue, le richieste vengono elaborate interamente sul vostro dispositivo locale. Dichiariamo solennemente che, ad eccezione della cache temporanea in memoria richiesta per l'esecuzione sul dispositivo, non registriamo, tracciamo o compiliamo la cronologia delle vostre ricerche e non costruiamo profili comportamentali. Tutte le query sono gestite in modo completamente anonimo.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>4. Caricamento di Contenuti Generati dall'Utente e File Multimediali:</Text> Per consentire agli amministratori ASSCUBO di allegare immagini descrittive agli annunci o agli utenti comuni di caricare screenshot di feedback e modificare l'avatar del profilo, la piattaforma richiederà l'accesso alla fotocamera e alla galleria fotografica. I file selezionati verranno caricati e ospitati in modo sicuro nei bucket di archiviazione Supabase per la distribuzione. L'utente ha il diritto di eliminare i propri contenuti in qualsiasi momento, rimuovendo definitivamente i file dai nostri server.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>5. Autorizzazione alla Geolocalizzazione (GPS):</Text> Quando toccate l'icona di posizionamento nella mappa dei trasporti, il Software utilizzerà l'accesso GPS di sistema previa vostra autorizzazione. Promettiamo solennemente che l'elaborazione dei dati geografici avviene esclusivamente nella sandbox locale del vostro dispositivo per il rendering in tempo reale sulla mappa. Non carichiamo, memorizziamo o condividiamo le vostre coordinate con i nostri server cloud o con terze parti, né tracciamo i vostri spostamenti. Potete revocare questa autorizzazione in qualsiasi momento dalle impostazioni del telefono senza compromettere l'uso di altre funzioni.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>6. Accesso alla Galleria Fotografica:</Text> L'autorizzazione di lettura/scrittura della galleria è richiesta solo quando selezionate esplicitamente un file da caricare (es. feedback, avatar). Non effettuiamo alcuna scansione, indicizzazione o recupero in background di altre immagini nella memoria del dispositivo.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>7. Dichiarazione sull'Uso della Fotocamera:</Text> Per soddisfare i requisiti di configurazione e sicurezza degli app store (es. Google Play Store, Apple App Store), i file di configurazione potrebbero includere la dichiarazione di accesso alla fotocamera per evitare errori di compilazione. Specifichiamo tuttavia che l'applicazione non contiene codice attivo per l'attivazione della fotocamera o la registrazione di video/foto in nessun modulo operativo. Non attiviamo in alcun caso la fotocamera del vostro dispositivo.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>8. Canali di Notifica di Sistema:</Text> Quando l'applicazione richiede l'autorizzazione alle notifiche, viene registrato su Android un canale personalizzato denominato "常规通知" (Notifiche Generali). Questo canale opera con le priorità di sistema standard. Potete personalizzarne la priorità, il suono, la visibilità sulla schermata di blocco o disattivarlo completamente tramite le impostazioni di sistema del dispositivo.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Condivisione e Divulgazione</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Condivisione, Trasferimento e Divulgazione delle Informazioni</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Non vendiamo né cediamo i tuoi dati a terzi. La condivisione dei dati personali avviene solo su esplicito consenso dell'interessato o per adempiere a requisiti di legge o ordine giudiziario.
+            Attribuiamo il massimo valore alla riservatezza e alla sicurezza dei vostri dati personali. Seguiamo rigorosamente i principi di liceità, correttezza, necessità e trasparenza nell'utilizzo delle informazioni personali da voi autorizzate. Garantiamo che non venderemo, affitteremo o sfrutteremo commercialmente in alcun modo i vostri dati personali a terzi. Non condivideremo, trasferiremo o divulgheremo i vostri dati personali a terzi tranne che nei seguenti casi specifici:{"\n"}
+            1. Previo vostro consenso o autorizzazione esplicita;{"\n"}
+            2. In conformità con le leggi, i regolamenti applicabili, le procedure legali o su richiesta obbligatoria delle autorità giudiziarie o amministrative competenti;{"\n"}
+            3. Nei limiti richiesti o consentiti dalla legge, per proteggere la sicurezza, i beni o la vita dell'ASSCUBO, dei suoi membri, degli utenti della piattaforma o del pubblico;{"\n"}
+            4. In caso di rinnovo delle cariche dell'ASSCUBO, riorganizzazione del comitato o scioglimento dell'associazione che comporti il trasferimento del Software/Piattaforma a un XML di terze parti. In tal caso, richiederemo che il successore continui a essere vincolato dalla presente Informativa, o altrimenti che richieda nuovamente il vostro consenso esplicito.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. Sicurezza e Conservazione dei Dati</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. Sicurezza e Conservazione dei Dati Personali</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Proteggiamo i tuoi dati utilizzando crittografia SSL avanzata. In caso di violazioni di sicurezza, l'Associazione si impegna a notificare tempestivamente gli interessati secondo le linee guida stabilite.
+            Adottiamo misure di sicurezza adeguate, ragionevoli e conformi agli standard del settore per proteggere le informazioni personali fornite, prevenendo l'accesso non autorizzato, la divulgazione, l'uso, la modifica, il danneggiamento o la perdita dei dati. Tutte le comunicazioni di rete sono crittografate tramite HTTPS e i dati vengono memorizzati in modo sicuro in database crittografati ospitati sui server Supabase. L'accesso è controllato rigorosamente a livello fisico e logico.{"\n"}
+            Si prega di comprendere che, nonostante i nostri sforzi, nessuna trasmissione di dati su Internet o reti wireless può essere garantita come sicura al 100%. In caso di violazione della sicurezza e compromissione delle nostre difese fisiche, tecniche o amministrative, vi informeremo tempestivamente in conformità con i requisiti di legge. Questa notifica includerà i dettagli dell'evento, le misure che abbiamo adottato o adotteremo per rimediare, i suggerimenti per ridurre al minimo i rischi e i rimedi disponibili. Segnaleremo inoltre l'incidente alle autorità di vigilanza entro i termini prescritti dalla legge.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. Diritti GDPR ed Eliminazione</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. Gestione delle Informazioni Personali e Diritti GDPR</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Ai sensi del GDPR, hai il diritto di accesso, rettifica e cancellazione dei tuoi dati. Puoi eliminare definitivamente il tuo account dalla schermata del profilo personale. I record verranno rimossi definitivamente senza possibilità di recupero.
+            Ai sensi del Regolamento Generale sulla Protezione dei Dati (GDPR) dell'Unione Europea e di altre leggi applicabili, l'utente gode dei diritti legali riguardanti i propri dati personali, inclusi i diritti di accesso, rettifica, cancellazione e limitazione del trattamento.{"\n"}
+            Riconosciamo che le preoccupazioni e le aspettative di ciascun individuo riguardo alla protezione della privacy variano. Pertanto, forniamo molteplici canali e impostazioni di configurazione all'interno della piattaforma per consentirvi di controllare e gestire in modo flessibile il modo in cui raccogliamo e trattiamo i vostri dati. Tali diritti sono soggetti alle normative applicabili e possono essere limitati da specifiche esclusioni. In particolare:{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Diritto all'Informazione:</Text> Avete il diritto di ricevere informazioni chiare, trasparenti e facilmente comprensibili sulle modalità di raccolta, utilizzo, conservazione e protezione dei vostri dati. Questo è l'obiettivo principale di questa informativa.{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Diritto di Accesso e Portabilità:</Text> Su vostra richiesta scritta, forniremo una copia e lo storico dei dati personali da noi raccolti, gratuitamente. In caso di richieste eccessive, ripetitive o infondate, ci riserviamo il diritto di addebitare un costo amministrativo ragionevole basato sulle spese effettive di elaborazione.{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Diritto di Rettifica:</Text> Se ritenete che i dati in nostro possesso siano imprecisi, incompleti o obsoleti, avete il diritto di richiederne la correzione o l'integrazione immediata. Potete effettuare tali modifiche anche direttamente dal menu delle impostazioni.{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Cancellazione dell'Account (Diritto all'Oblio):</Text> Avete il diritto di richiedere la cancellazione permanente del vostro account dalla pagina "Profilo". Una volta confermata la cancellazione, elimineremo definitivamente le credenziali, l'e-mail, il nickname, le immagini del profilo e le iscrizioni agli eventi dal database Supabase. Questa operazione viene eseguita come "Hard Delete" e non è reversibile.{"\n"}{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>• Revoca del Consenso:</Text> È possibile revocare il consenso in qualsiasi momento disattivando i servizi di localizzazione, l'accesso alla galleria, le notifiche o la fotocamera nelle impostazioni del dispositivo. La revoca non pregiudica la liceità del trattamento basata sul consenso prima della revoca.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>5. Contattaci</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>5. Tutela dei Dati dei Minori</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Associazione di Studenti e Studiosi Cinesi dell'Università di Bologna (ASSCUBO){"\n"}
+            Sebbene il Software sia destinato principalmente a studenti e studiosi universitari, ci impegniamo a proteggere la privacy dei minori. Non raccogliamo consapevolmente dati personali di minori. Se avete meno di 18 anni, dovete leggere la presente Informativa insieme ai vostri genitori o tutori legali prima di scaricare, registrarvi o utilizzare il Software. È necessario ottenere il consenso esplicito dei genitori prima di inviare dati personali. In caso contrario, l'uso deve essere interrotto immediatamente. Se ritenete che abbiamo raccolto involontariamente dati di un minore senza consenso, contattateci per la cancellazione immediata.
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>6. Modifiche e Revisioni dell'Informativa</Text>
+          <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
+            Ci riserviamo il diritto di modificare o integrare la presente Informativa in qualsiasi momento e senza preavviso individuale, per adeguarci a variazioni del Software, del database o delle normative vigenti (come GDPR e leggi italiane). Le modifiche saranno efficaci immediatamente dopo la pubblicazione sulla piattaforma. Si consiglia di verificare periodicamente questa pagina. L'uso continuato del Software dopo la pubblicazione delle modifiche costituisce accettazione implicita delle stesse.
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>7. Contact Us / Contatti</Text>
+          <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
+            Per domande, feedback o per esercitare i diritti previsti dal GDPR, contattare il team ASSCUBO:{"\n"}
+            Associazione degli Studenti e Studiosi Cinesi dell'Università di Bologna (ASSCUBO){"\n"}
             E-mail:{' '}
             <Text
               style={{ textDecorationLine: 'underline', color: colors.primary }}
@@ -237,6 +294,16 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 24,
+  },
+  langNoticeCard: {
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  langNoticeText: {
+    fontSize: 14,
+    lineHeight: 22,
   },
   langSection: {
     marginVertical: 12,

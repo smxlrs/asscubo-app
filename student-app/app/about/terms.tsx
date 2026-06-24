@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TermsScreen() {
-  const { colors, t } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -30,6 +30,15 @@ export default function TermsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.detailTitle, { color: colors.primaryLight }]}>用户协议 / Terms of Service / Condizioni d'Uso</Text>
         
+        {/* Trilingual Notice */}
+        <View style={[styles.langNoticeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.langNoticeText, { color: colors.textSecondary }]}>
+            有关用户协议的英语和意大利语版，您可在中文版的下方找到。{"\n"}
+            For the English and Italian versions of the User Agreement, please scroll down below the Chinese version.{"\n"}
+            Le versioni in inglese e italiano dell'Accordo per gli Utenti sono disponibili scorrendo sotto la versione cinese.
+          </Text>
+        </View>
+
         {/* Chinese Section */}
         <View style={styles.langSection}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>特别提示与引言</Text>
@@ -53,7 +62,7 @@ export default function TermsScreen() {
 
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>三、 版权、知识产权与内容合规</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. 原创知识产权归属：</Text>本软件的整体界面设计、页面布局、图标按钮、学联官方标志（LOGO）以及由学联组织人员整理编写的诸如“新生手册”、“办事指南”等原创图文内容的版权和全部知识产权，均独占性地归属于 <Text style={{ fontWeight: 'bold' }}>博洛尼亚大学中国学生学者联谊会</Text>。未经我们明确的、书面的前置授权许可，任何个人、团体或第三方机构不得擅自进行复制、传播、分发、镜像、反向工程、建立超链接或将其用于任何商业及盈利性目的。{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. 原创知识产权归属：</Text>本软件的整体界面设计、页面布局、图标按钮、学联官方标志（LOGO）以及由学联组织人员整理编写的诸如“新生手册”、“办事指南”等原创图文内容的版权和全部知识产权，均独占性地归属于 博洛尼亚大学中国学生学者联谊会。未经我们明确的、书面的前置授权许可，任何个人、团体或第三方机构不得擅自进行复制、传播、分发、镜像、反向工程、建立超链接或将其用于任何商业及盈利性目的。{"\n"}
             <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. 微信公众号文章同步：</Text>本软件中展示的部分关于文章与资讯内容系通过接口自动同步或手动转载自学联的微信官方公众号。该等文章中包含的图文知识产权归属于原作者或对应的学联官方号主体。本软件中该部分的展示仅限于学联内部非商业性的公益信息共享，任何第三方不得擅自抓取、倒卖或用作他途。
           </Text>
 
@@ -62,7 +71,7 @@ export default function TermsScreen() {
             您在使用本软件及本平台提供的各项服务时，必须严格遵守适用的中国法律法规、意大利共和国法律、适用的欧洲联盟法律法规（包括欧盟《数字服务法》、《通用数据保护条例》等）以及博洛尼亚大学的各项校园纪律与管理规定。您在此不可撤销地承诺：绝不利用本平台从事任何违反法律法规、危害计算机网络安全、损害学联公共声誉与形象、或侵犯任何第三方合法权益的活动。对于任何违反本规范的行为，本平台保留封禁账户、配合司法调查并追究法律责任的全部权利。具体禁止性活动与恶意行为包括但不限于：{"\n"}
             1. 上传、发布、传播、链接或通过其他方式向本平台输入任何具有诽谤性、欺诈性、侮辱性、暴力倾向、淫秽色情、种族或性别歧视、宗教偏激、侵害他人名誉权及隐私权、或损害学联及社会公共利益的内容；{"\n"}
             2. 恶意注册、租借、倒卖账户，或者利用本软件的系统设计缺陷、漏洞、外部插件、自动化脚本（如抢票机器人、爬虫程序）批量注册或自动获取学联活动报名资格，破坏其他同学平等、公正地参与学联活动与校园文化建设的权利；{"\n"}
-            3. 对本平台的客户端软件进行反编译、反汇编、反向工程、拆解、调试或试图实施任何形式的系统破解，或试图探测、分析、窃取 Supabase 后台数据库连接凭证、系统接口设计及云服务器安全屏障；{"\n"}
+            3. 对本平台的客户端软件进行反编译、反汇编、反向工程、拆解、调试或试图实施任何形式 of 系统破解，或试图探测、分析、窃取 Supabase 后台数据库连接凭证、系统接口设计及云服务器安全屏障；{"\n"}
             4. 利用本平台提供的意见反馈通道、多媒体发布通道发送任何未经许可的商业广告、促销链接、垃圾邮件、传销内容或包含计算机病毒、特洛伊木马、恶意监控程序的破坏性文件；{"\n"}
             5. 冒用学联管理员、学生干部、学校教务人员或其他成员的身份发布虚假公告、筹款或进行网络钓鱼、网络欺诈活动。
           </Text>
@@ -87,29 +96,50 @@ export default function TermsScreen() {
         <View style={styles.langSection}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Introduction & Essential Notices</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Welcome to the Boxue application and its associated services (hereinafter referred to as "the Software" or "the Platform"). This Terms of Service agreement (hereinafter "Agreement") is a legally binding contract between you (the "User") and the Chinese Students and Scholars Association of the University of Bologna (hereinafter "ASSCUBO" or "we"). By downloading, installing, registering, accessing, or using the Software, you acknowledge that you have read, understood, and agree to be bound by the entirety of this Agreement. If you do not agree to these terms, you must immediately cease all access, terminate usage, and permanently delete and uninstall the Software and all associated cached files from your mobile device. We reserve the right to modify these terms at any time without prior notification, and continued use of the platform constitutes binding acceptance of such updates.
+            Welcome to the Boxue application and its associated digital services (hereinafter referred to as "the Software" or "the Platform"). This Terms of Service agreement (hereinafter "Agreement") is a legally binding contract between you (the "User" or "you") and the Chinese Students and Scholars Association of the University of Bologna (hereinafter "ASSCUBO", "the Association", "we", "us", or "our") regarding your downloading, installing, registering, accessing, and utilizing the Software, as well as enjoying our digital information and public welfare services.{"\n"}
+            We hereby remind you that before downloading, launching, registering, or querying data through the Software, you must read and fully understand the terms and conditions outlined in this Agreement. By downloading, installing, registering, logging in, or otherwise accessing and using any tools, information, or services provided on this Platform, you are deemed to have read, understood, and voluntarily agreed to be bound by the entirety of this Agreement. If you do not agree to any of these terms, or if you have any objections to the content or cannot comply with it fully, please cease all operations immediately, uninstall the Software, delete all associated cached data, and do not access or use the services.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>1. Account Registration & Security</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>1. Account Registration, Login, and Security</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            1. Registration: Certain features require you to register using a valid email address and password. You agree to provide accurate, truthful, and updated information.{"\n"}
-            2. Confidentiality: You are entirely responsible for maintaining the confidentiality of your account credentials. ASSCUBO shall not be held liable for any loss or unauthorized use resulting from your failure to protect your login credentials.
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Registration Prerequisites and Credentials:</Text> Certain features of the Software (including online registration for ASSCUBO activities and personalized settings) require you to register an account using a valid email address and establish a secure password. You promise that all information provided during registration is accurate, truthful, and does not contain deceptive, misleading, or infringing elements. You are responsible for updating your registration details promptly via the "Profile" settings page if any changes occur.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Exclusive Account Rights and Confidentiality:</Text> Your registered account is for your personal, non-commercial, and public welfare use only. You may not lease, lend, pledge, gift, transfer, or share your account with any third party. You are solely responsible for maintaining the confidentiality of your account credentials (email and password). Any loss, data leak, invalid registration, or misuse of credentials resulting from your failure to protect your login details, voluntary sharing of passwords, or device compromises (malware, hacking) shall be borne entirely by you. To the maximum extent permitted by law, ASSCUBO assumes no liability or compensatory responsibility.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Disclaimers regarding Third-Party Data & Physical Verification</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Platform Services, Third-Party Data Disclaimers, and Usage Restrictions</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            1. Utility tools such as bus timetables, train statuses, and classroom tables retrieve real-time data from external public API feeds. ASSCUBO makes no warranties, express or implied, regarding the accuracy, completeness, or timeliness of such information.{"\n"}
-            2. In case of critical events (travel plans, exam schedules, course locations), you must verify timetables against the official platforms or physical monitors. We do not assume any liability for any disruptions, delays, or losses.
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Data Sources and Public Welfare Nature:</Text> The Platform integrates several utility tools designed to facilitate daily campus life, including "real-time train status and platform queries", "bus route searches and positioning", and "empty classroom occupancy checks". We explicitly inform you that the data displayed by these tools is retrieved dynamically and in real time from external public API feeds (such as Italian rail public datasets, Bologna local public transit networks, and official university scheduling systems). The Platform acts solely as a front-end aggregator for the convenience of our members, and we make no warranties, express or implied, regarding the completeness, absolute accuracy, timeliness, or availability of such third-party data.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Priority of Physical Verification:</Text> Due to network latency, API disruptions, server downtime, or other force majeure factors, the data displayed in the Software is for general informational convenience only. For critical decisions (e.g., travel arrangements, exams, course registrations, or academic meetings), you must verify timetables and locations against physical station boards, official university bulletin boards, or real-time university portal notifications. ASSCUBO assumes no liability for any direct or indirect losses (including missed trains, exam absences, or lateness) resulting from reliance on the data.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>3. Independence of External Links:</Text> ASSCUBO administrators may include links or media leading to external third-party websites when publishing announcements or articles. These links are provided solely for reference. We have no control over, and assume no responsibility for, the safety, content, privacy policies, or business practices of any third-party websites. You access external links entirely at your own risk.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. Copyright & Intellectual Property</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. Copyright, Intellectual Property, and Content Compliance</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            All original layouts, handbook texts, icons, and logo designs belong exclusively to ASSCUBO. Unauthorized reproduction, reverse-engineering, or commercial exploitation is strictly prohibited. Syncing of official WeChat articles is for non-commercial info sharing only.
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Original Intellectual Property Ownership:</Text> The graphic design, page layouts, icons, buttons, official ASSCUBO logos, and original written materials (such as the "New Student Handbook" or "Administrative Guide") prepared by the Association belong exclusively to the Chinese Students and Scholars Association of the University of Bologna. Without our prior written consent, no individual or organization may copy, distribute, mirror, reverse-engineer, hyperlink, or exploit these materials for commercial or profitable purposes.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. WeChat Official Account Syncing:</Text> Certain articles and newsletters displayed in the Software are synchronized or reproduced from ASSCUBO's official WeChat public account. The copyright of these articles belongs to the original authors or the respective ASSCUBO entities. The display of such content is strictly for non-commercial info sharing within the Association, and unauthorized harvesting or resale is prohibited.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. Governing Law & Dispute Resolution</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. User Behavior Codes and Prohibited Activities</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            This Agreement shall be governed by and construed in accordance with the laws of the Italian Republic and applicable European Union regulations. Any disputes arising from this Agreement shall be resolved through friendly consultation, or failing that, submitted to the competent courts of Bologna.
+            When using the Software and services, you must strictly comply with applicable Chinese laws, laws of the Italian Republic, European Union regulations (including the Digital Services Act and GDPR), and University of Bologna rules. You irrevocably promise not to use the Platform for activities that violate laws, compromise network security, damage ASSCUBO's reputation, or infringe on third-party rights. We reserve the right to freeze accounts, report to judicial authorities, and pursue legal liability for violations. Prohibited behaviors include but are not limited to:{"\n"}
+            1. Uploading, posting, or transmitting defamatory, fraudulent, offensive, violent, obscene, discriminatory, or privacy-infringing content;{"\n"}
+            2. Registering multiple accounts maliciously, renting or selling accounts, or using system bugs, exploits, external plug-ins, or automated scripts (such as registration bots or web scrapers) to manipulate event sign-ups;{"\n"}
+            3. Decompiling, disassembling, reverse-engineering, or hacking the client software, or attempting to extract Supabase database credentials and bypass server security walls;{"\n"}
+            4. Sending unauthorized commercial advertisements, promotions, spam, chain letters, or files containing computer viruses and malware through feedback channels or posting tools;{"\n"}
+            5. Impersonating ASSCUBO administrators, student representatives, university staff, or other members to publish false notices, solicit funds, or engage in phishing.
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>5. Disclaimer of Warranties and Termination of Services</Text>
+          <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Disclaimer of System Warranties:</Text> The Platform and its utilities are provided on an "as is" and "as available" basis. ASSCUBO explicitly disclaims all warranties, oral or written, express or implied, regarding the stability, error-free operation, compatibility, safety, or uninterrupted service of the Software. ASSCUBO assumes no liability for system downtime, data synchronization failures, lost registration records, or transmission delays caused by hardware failures, network fluctuations, service provider maintenance (e.g., Supabase), or force majeure.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Limitation of Consequential Damages:</Text> To the maximum extent permitted by law, ASSCUBO and its administrators or volunteer developers shall not be liable for any direct, indirect, incidental, special, or consequential damages (including loss of profits, business interruption, device damage, loss of data, travel ticket refund fees, or loss of goodwill) arising from the use or inability to use the Platform.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>3. Service Modification and Termination:</Text> As a public welfare project, we reserve the right to suspend, restrict, modify, upgrade, or permanently terminate any or all services without prior notice. If we suspect your account is involved in prohibited activities or violates this Agreement, we reserve the right to freeze or terminate your account and erase all associated data immediately without warning or liability.
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>6. Governing Law and Jurisdiction</Text>
+          <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Governing Law:</Text> This Agreement and any disputes arising from your use of the Platform shall be governed by and construed in accordance with the laws of the Italian Republic and applicable European Union regulations. If any provision is found to be invalid or unenforceable, it shall not affect the validity of the remaining clauses.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Dispute Resolution:</Text> Any disputes arising from this Agreement shall be resolved through friendly consultation. If a resolution is not reached within thirty (30) days, either party may submit the dispute to the competent courts of Bologna, Italy (Tribunale di Bologna). The losing party shall bear all reasonable legal fees and litigation costs.
           </Text>
         </View>
 
@@ -119,29 +149,50 @@ export default function TermsScreen() {
         <View style={styles.langSection}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Introduzione e Avviso Importante</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Benvenuti nell'applicazione mobile "Boxue" (di seguito "il Software"). Il presente Contratto costituisce un accordo vincolante tra l'utente (l' "Utente") e l'Associazione degli Studenti e Studiosi Cinesi dell'Università di Bologna (di seguito "ASSCUBO" o "noi"). Scaricando, installando, accedendo o utilizzando il Software, l'utente accetta di essere legalmente vincolato dalle presenti Condizioni d'Uso. Se non si accettano questi termini o eventuali modifiche, è necessario interrompere immediatamente l'uso del Software e procedere alla sua completa disinstallazione dal proprio dispositivo. Ci riserviamo il diritto di modificare le presenti condizioni in qualsiasi momento.
+            Benvenuti nell'applicazione Boxue e nei relativi servizi digitali (di seguito denominati "il Software" o "la Piattaforma"). Le presenti Condizioni d'Uso (di seguito "Contratto") costituiscono un accordo legalmente vincolante tra voi (l' "Utente" o "voi") e l'Associazione degli Studenti e Studiosi Cinesi dell'Università di Bologna (di seguito "ASSCUBO" o "noi") in merito allo scaricamento, installazione, registrazione, accesso e utilizzo del Software, nonché alla fruizione dei nostri servizi informativi e di pubblica utilità.{"\n"}
+            Vi ricordiamo che prima di scaricare, avviare, registrarvi o consultare dati tramite il Software, dovete leggere e comprendere appieno le condizioni stabilite in questo Contratto. Scaricando, installando, registrandovi, accedendo o utilizzando la Piattaforma, accettate integralmente e senza riserve di essere vincolati da questo Contratto. Se non concordate con uno qualsiasi dei termini, o se avete obiezioni, dovete interrompere immediatamente ogni operazione, disinstallare il Software dal vostro dispositivo ed eliminare tutti i dati memorizzati.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>1. Registrazione dell'Account e Sicurezza</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>1. Registrazione, Accesso e Sicurezza dell'Account</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            1. Registrazione: Per utilizzare determinati servizi è richiesta la registrazione con e-mail e password valide. L'utente si impegna a fornire informazioni veritiere e aggiornate.{"\n"}
-            2. Riservatezza: L'utente è l'unico responsabile della riservatezza delle proprie credenziali. ASSCUBO non sarà ritenuta responsabile per eventuali perdite derivanti dallo smarrimento o dalla divulgazione delle proprie credenziali di accesso.
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Requisiti di Registrazione e Credenziali:</Text> Alcune funzionalità del Software (tra cui l'iscrizione online alle attività ASSCUBO e le impostazioni personalizzate) richiedono la registrazione di un account tramite un indirizzo e-mail valido e la creazione di una password sicura. Vi impegnate a fornire informazioni accurate, veritiere e non ingannevoli. Siete tenuti ad aggiornare tempestivamente i vostri dati tramite la pagina "Profilo" in caso di variazioni.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Diritti Esclusivi sull'Account e Riservatezza:</Text> Il vostro account è strettamente personale e riservato a fini non commerciali e di pubblica utilità. È vietato cedere, prestare, donare, trasferire o condividere l'account con terzi. Siete gli unici responsabili della riservatezza delle credenziali di accesso. Qualsiasi perdita, fuga di dati o abuso derivante dal mancato controllo delle credenziali o dalla condivisione delle password sarà a vostro carico. Nei limiti di legge, ASSCUBO non assume alcuna responsabilità.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Limitazione di Responsabilità dei Dati di Terze Parti e Verifica Fisica</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Servizi della Piattaforma, Limitazione di Responsabilità dei Dati di Terze Parti e Restrizioni</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            1. Gli strumenti di utilità per orari dei trasporti, aule e treni recuperano dati da API pubbliche esterne. ASSCUBO non rilascia alcuna garanzia circa l'accuratezza, la completezza o la tempestività di tali dati.{"\n"}
-            2. Per decisioni di viaggio o orari accademici critici, l'utente è tenuto a verificare le informazioni tramite i canali fisici o i monitor ufficiali di ateneo/stazione. ASSCUBO non risponde di ritardi o disservizi.
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Fonti dei Dati e Natura No-Profit:</Text> La Piattaforma integra vari strumenti per facilitare la vita universitaria, come la ricerca dei treni, le linee dei bus e la disponibilità delle aule. Vi informiamo che tali dati sono recuperati in tempo reale da API pubbliche esterne (es. dataset ferroviari italiani, reti di trasporto locale di Bologna e sistemi universitari). La Piattaforma funge solo da aggregatore a scopo informativo no-profit e non rilascia alcuna garanzia circa l'accuratezza, completezza o tempestività dei dati.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Priorità della Verifica Fisica:</Text> A causa di latenze di rete, interruzioni delle API o problemi ai server, i dati mostrati nel Software sono solo indicativi. Per decisioni critiche (es. esami, lezioni, viaggi), l'utente è tenuto a verificare le informazioni tramite i monitor fisici o i canali ufficiali dell'ateneo o delle stazioni. ASSCUBO non risponde di eventuali danni o ritardi.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>3. Indipendenza dei Link Esterni:</Text> Gli amministratori possono inserire link a siti esterni nei loro annunci. Tali link sono forniti solo per comodità. Non abbiamo alcun controllo sulla sicurezza, il contenuto o le politiche sulla privacy dei siti esterni, il cui accesso è a vostro esclusivo rischio.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. Proprietà Intellettuale e Diritto d'Autore</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. Diritto d'Autore, Proprietà Intellettuale e Conformità dei Contenuti</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Tutti i layout grafici, testi dei manuali, icone e loghi originali sono di proprietà esclusiva di ASSCUBO. È vietata la riproduzione, decodifica o sfruttamento commerciale non autorizzato. La sincronizzazione degli articoli WeChat è solo a scopo informativo no-profit.
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Proprietà Intellettuale Originale:</Text> La grafica, i layout delle pagine, le icone, i loghi ufficiali ASSCUBO e i materiali scritti originali (es. la "Guida per i Nuovi Studenti") appartengono esclusivamente all'Associazione. Senza autorizzazione scritta, è vietato copiare, distribuire, decodificare o utilizzare tali materiali per fini commerciali o di lucro.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Sincronizzazione WeChat:</Text> Alcuni articoli e notizie nel Software sono sincronizzati dall'account ufficiale WeChat di ASSCUBO. La proprietà intellettuale appartiene ai rispettivi autori. L'uso di tali contenuti è limitato alla condivisione informativa interna e non commerciale.
           </Text>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. Legge Applicabile e Foro Competente</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>4. Norme di Comportamento dell'Utente e Attività Vietate</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
-            Il presente Contratto è regolato e interpretato in conformità alle leggi della Repubblica Italiana e alle normative dell'Unione Europea. Qualsiasi controversia sarà sottoposta al foro competente di Bologna.
+            Nell'uso del Software, dovete rispettare le leggi italiane, dell'Unione Europea (tra cui il Digital Services Act e il GDPR) e i regolamenti dell'Università di Bologna. Vi impegnate a non utilizzare la Piattaforma per attività illecite, violazioni di sicurezza o azioni che danneggino l'Associazione o terzi. Ci riserviamo il diritto di bloccare gli account e intraprendere azioni legali in caso di violazioni. Le attività vietate includono:{"\n"}
+            1. Caricare o trasmettere contenuti diffamatori, fraudolenti, offensivi, violenti o lesivi della privacy altrui;{"\n"}
+            2. Creare account falsi, vendere o noleggiare l'account, o utilizzare bot, script o exploit per manipolare le iscrizioni agli eventi;{"\n"}
+            3. Decodificare, disassemblare o hackerare il software client, o tentare di rubare le credenziali del database Supabase;{"\n"}
+            4. Inviare pubblicità commerciale non autorizzata, spam o file contenenti virus e malware;{"\n"}
+            5. Impersonare amministratori, rappresentanti degli studenti o personale universitario per diffondere avvisi falsi o compiere frodi.
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>5. Esclusione di Garanzia e Risoluzione dei Servizi</Text>
+          <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Esclusione di Garanzia sul Sistema:</Text> La Piattaforma e i suoi servizi sono forniti "così come sono". ASSCUBO esclude qualsiasi garanzia circa la stabilità, la compatibilità o l'assenza di interruzioni del Software. Non rispondiamo di perdite di dati o ritardi causati da guasti hardware, manutenzione dei provider (es. Supabase) o forza maggiore.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Limitazione dei Danni Indiretti:</Text> Nei limiti consentiti dalla legge, ASSCUBO, i suoi amministratori e gli sviluppatori volontari non saranno responsabili per danni diretti, indiretti o consequenziali (inclusi perdita di profitto, interruzione di attività, danni ai dispositivi o rimborso di biglietti di viaggio) derivanti dall'uso del Software.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>3. Modifica e Risoluzione del Servizio:</Text> Trattandosi di un progetto no-profit, ci riserviamo il diritto di modificare, sospendere o terminare i servizi in qualsiasi momento senza preavviso. In caso di violazioni di questo Contratto, possiamo bloccare l'account e rimuovere tutti i dati associati senza alcuna responsabilità.
+          </Text>
+
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>6. Legge Applicabile e Foro Competente</Text>
+          <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>1. Legge Applicabile:</Text> Questo Contratto e qualsiasi controversia derivante dall'uso della Piattaforma sono regolati dalle leggi della Repubblica Italiana e dalle normative dell'Unione Europea.{"\n"}
+            <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>2. Foro Competente:</Text> Qualsiasi controversia derivante da questo Contratto sarà risolta tramite consultazione amichevole. In caso di mancato accordo entro trenta (30) giorni, la controversia sarà sottoposta alla giurisdizione esclusiva del Tribunale di Bologna. La parte soccombente sosterrà le spese legali.
           </Text>
         </View>
 
@@ -181,6 +232,16 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 24,
+  },
+  langNoticeCard: {
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  langNoticeText: {
+    fontSize: 14,
+    lineHeight: 22,
   },
   langSection: {
     marginVertical: 12,
