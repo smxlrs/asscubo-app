@@ -187,12 +187,20 @@ export default function SettingsIndexScreen() {
           )}
 
           {/* Tab Bar Style Link */}
-          <Pressable style={styles.rowPressable} onPress={() => router.push('/settings/tab-bar')}>
+          <Pressable style={[styles.rowPressable, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/settings/tab-bar')}>
             <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t('tabBarSetting')}</Text>
             <View style={styles.rowRight}>
               <Text style={[styles.rowValue, { color: colors.textSecondary }]}>
                 {tabBarStyle === 'glassmorphism' ? t('tabBarGlassmorphism') : t('tabBarTraditional')}
               </Text>
+              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            </View>
+          </Pressable>
+
+          {/* Quick Actions Link */}
+          <Pressable style={styles.rowPressable} onPress={() => router.push('/settings/quick-actions')}>
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t('quickActionSetting')}</Text>
+            <View style={styles.rowRight}>
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>
           </Pressable>

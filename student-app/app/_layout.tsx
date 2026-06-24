@@ -22,6 +22,8 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { useQuickActionRouting } from 'expo-quick-actions/router';
+import { getSavedQuickActionIds, registerQuickActions } from '../lib/quickActions';
 
 // Configure how notifications are presented when the app is in the foreground
 if (Notifications) {
@@ -103,6 +105,18 @@ async function registerForPushNotificationsAsync() {
 function AppContent() {
   const { isDark, isReady, predictiveBack, t } = useTheme();
   const { user, loading } = useAuth();
+
+  // Enable automatic routing for expo-quick-actions
+  useQuickActionRouting();
+
+  useEffect(() => {
+    async function initActions() {
+      const savedIds = await getSavedQuickActionIds();
+      registerQuickActions(savedIds, t);
+    }
+    initActions();
+  }, [t]);
+
   useEffect(() => {
     if (isReady && !loading) {
       SplashScreen.hideAsync().catch((err) => {
