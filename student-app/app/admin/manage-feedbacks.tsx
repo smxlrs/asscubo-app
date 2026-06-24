@@ -125,7 +125,7 @@ export default function ManageFeedbacksScreen() {
   };
 
   const renderItem = ({ item }: { item: Feedback }) => {
-    const statusInfo = STATUS_DETAILS[item.status];
+    const statusInfo = STATUS_DETAILS[item.status] ?? STATUS_DETAILS['unread'];
     const isVideo = item.media_url?.toLowerCase().endsWith('.mp4');
 
     return (
