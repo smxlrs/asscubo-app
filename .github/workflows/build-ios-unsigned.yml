@@ -121,30 +121,32 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
-          name: "Boxue ${{ steps.vars.outputs.version }} - iOS Unsigned IPA (Sideloadly)"
+          name: "博学 ${{ steps.vars.outputs.version }} - iOS 自签包（Sideloadly）"
           body: |
-            ## Boxue iOS Unsigned IPA v${{ steps.vars.outputs.version }}
+            ## 博学 iOS 自签测试包 v${{ steps.vars.outputs.version }}
 
-            ${{ github.event.inputs.release_note != '' && github.event.inputs.release_note || 'Auto-built for Sideloadly self-signing. Real device build (arm64).' }}
-
-            ---
-            **Build Info**
-            - Version: `${{ steps.vars.outputs.version }}`
-            - Type: Real device IPA (iphoneos SDK, unsigned)
-            - Commit: `${{ github.sha }}`
+            ${{ github.event.inputs.release_note != '' && github.event.inputs.release_note || '由 GitHub Actions 自动构建，供 Sideloadly 自签名安装使用（真机 arm64）。' }}
 
             ---
-            ## How to install with Sideloadly
+            **构建信息**
+            - 版本：`${{ steps.vars.outputs.version }}`
+            - 类型：iOS 真机包（iphoneos SDK，未签名）
+            - 提交：`${{ github.sha }}`
 
-            1. Download the `.ipa` file below
-            2. Open [Sideloadly](https://sideloadly.io/) and connect your iPhone via USB
-            3. Drag the `.ipa` into Sideloadly
-            4. Enter your Apple ID (free account works)
-            5. Click **Start** to sign and install
-            6. On iPhone: **Settings > General > VPN & Device Management** → trust your developer certificate
-            7. Open Boxue
+            ---
+            ## 📱 Sideloadly 安装步骤
 
-            > Note: Free Apple ID signatures expire after **7 days**. Re-run Sideloadly to renew.
+            1. 下载下方的 `.ipa` 文件
+            2. 打开 [Sideloadly](https://sideloadly.io/)，用 USB 连接 iPhone
+            3. 将 `.ipa` 拖入 Sideloadly
+            4. 填入你的 Apple ID（免费账号即可）
+            5. 点击 **Start** 开始签名并安装
+            6. 进入 iPhone **设置 → 通用 → VPN与设备管理** → 信任你的开发者证书
+            7. 打开博学 App
+
+            > ⚠️ 免费 Apple ID 签名有效期 **7 天**，到期后重新用 Sideloadly 安装一次即可续期。
+
+
           draft: false
           prerelease: true
           files: |
