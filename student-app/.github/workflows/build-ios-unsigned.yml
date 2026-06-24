@@ -1,12 +1,12 @@
-name: iOS IPA（无证书，Sideloadly 自签用）
+name: "iOS IPA - Unsigned (Sideloadly)"
 
 on:
   workflow_dispatch:
     inputs:
       release_note:
-        description: '版本说明（留空则自动生成）'
+        description: "Version note (leave empty for auto)"
         required: false
-        default: ''
+        default: ""
 
 jobs:
   build-ios-ipa:
@@ -50,11 +50,10 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}-ios-sideload" >> $GITHUB_OUTPUT
 
-      # ── 第一步：EAS 云端编译（simulator:true，无需 Apple 证书）──────────
-      - name: Build iOS unsigned via EAS
+      - name: Build iOS unsigned via EAS (simulator build, no Apple cert needed)
         id: eas_build
         run: |
-          echo "🔨 EAS 云端编译中，约需 15-25 分钟..."
+          echo "Building iOS unsigned package, please wait (~15-25 min)..."
 
           BUILD_JSON=$(eas build \
             --platform ios \
@@ -73,72 +72,65 @@ jobs:
           " 2>/dev/null || echo "")
 
           if [ -z "$BUILD_URL" ]; then
-            echo "❌ 无法获取构建产物 URL"
+            echo "ERROR: Could not get build artifact URL"
             exit 1
           fi
 
-          echo "✅ 编译成功，下载产物中..."
+          echo "Build succeeded, downloading..."
           curl -L -o /tmp/build_output.tar.gz "$BUILD_URL"
           echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
 
-      # ── 第二步：解压 .app，重打包成标准 .ipa ────────────────────────────
-      # .ipa 本质 = zip，结构必须为 Payload/<AppName>.app
-      - name: Repackage .app into .ipa
+      - name: Repackage .app into .ipa for Sideloadly
         id: repack
         run: |
           mkdir -p /tmp/ipa_work/Payload
 
-          # 解压 EAS 产物（.tar.gz 内含 .app 目录）
           tar -xzf /tmp/build_output.tar.gz -C /tmp/ipa_work/Payload
 
-          # 找到 .app
           APP_PATH=$(find /tmp/ipa_work/Payload -maxdepth 1 -name "*.app" | head -1)
           if [ -z "$APP_PATH" ]; then
-            echo "❌ 解压后未找到 .app 文件，EAS 产物结构异常"
+            echo "ERROR: No .app found after extraction"
             ls -la /tmp/ipa_work/Payload/
             exit 1
           fi
 
-          echo "找到 .app: $APP_PATH"
+          echo "Found .app: $APP_PATH"
 
-          # 打包成 .ipa
           IPA_NAME="boxue-${{ steps.vars.outputs.version }}-unsigned.ipa"
           cd /tmp/ipa_work
           zip -r "/tmp/$IPA_NAME" Payload/
           echo "ipa_path=/tmp/$IPA_NAME" >> $GITHUB_OUTPUT
           echo "ipa_name=$IPA_NAME"      >> $GITHUB_OUTPUT
-          echo "✅ IPA 打包完成：$IPA_NAME ($(du -sh /tmp/$IPA_NAME | cut -f1))"
+          echo "IPA ready: $IPA_NAME ($(du -sh /tmp/$IPA_NAME | cut -f1))"
 
-      # ── 第三步：上传到 GitHub Releases ──────────────────────────────────
-      - name: Create GitHub Release
+      - name: Create GitHub Release with IPA
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
-          name: "博学 ${{ steps.vars.outputs.version }} - iOS 自签包（Sideloadly）"
+          name: "Boxue ${{ steps.vars.outputs.version }} - iOS Unsigned IPA (Sideloadly)"
           body: |
-            ## 博学 iOS 自签测试包 v${{ steps.vars.outputs.version }}
+            ## Boxue iOS Unsigned IPA v${{ steps.vars.outputs.version }}
 
-            ${{ github.event.inputs.release_note != '' && github.event.inputs.release_note || '本次发布由 GitHub Actions 自动构建，供 Sideloadly 自签名使用。' }}
-
-            ---
-            **构建信息**
-            - 版本: `${{ steps.vars.outputs.version }}`
-            - 构建类型: iOS 未签名包（Simulator Build → IPA）
-            - 提交: `${{ github.sha }}`
+            ${{ github.event.inputs.release_note != '' && github.event.inputs.release_note || 'Auto-built by GitHub Actions for Sideloadly self-signing.' }}
 
             ---
-            ## 📱 Sideloadly 安装步骤
+            **Build Info**
+            - Version: `${{ steps.vars.outputs.version }}`
+            - Type: iOS Unsigned IPA (Simulator Build)
+            - Commit: `${{ github.sha }}`
 
-            1. 下载下方的 `.ipa` 文件
-            2. 打开 [Sideloadly](https://sideloadly.io/)，连接 iPhone
-            3. 将 `.ipa` 文件拖入 Sideloadly
-            4. 填入你的 Apple ID（免费账号即可）
-            5. 点击 **Start** 开始签名并安装
-            6. 安装完成后，进入 iPhone **设置 → 通用 → VPN与设备管理** → 信任你的开发者证书
-            7. 打开博学 App 即可使用
+            ---
+            ## How to install with Sideloadly
 
-            > ⚠️ 免费 Apple ID 签名有效期 **7 天**，到期后需重新用 Sideloadly 安装一次。
-            > 如需更长有效期（1年），需购买 Apple 开发者账号（$99/年）。
+            1. Download the `.ipa` file below
+            2. Open [Sideloadly](https://sideloadly.io/) and connect your iPhone
+            3. Drag the `.ipa` into Sideloadly
+            4. Enter your Apple ID (free account works)
+            5. Click **Start** to sign and install
+            6. On iPhone: **Settings > General > VPN & Device Management** > trust your developer certificate
+            7. Open Boxue
+
+            > Note: Free Apple ID signatures expire after **7 days** and need to be re-signed.
           draft: false
           prerelease: true
           files: |
@@ -147,5 +139,4 @@ jobs:
 
       - name: Done
         run: |
-          echo "✅ 完成！"
-          echo "📦 Release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.vars.outputs.tag }}"
+          echo "Done! Release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.vars.outputs.tag }}"
