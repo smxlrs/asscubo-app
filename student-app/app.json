@@ -57,6 +57,7 @@
         "NSCameraUsageDescription": "允许访问相机以上传头像",
         "NSPhotoLibraryUsageDescription": "允许访问相册以上传头像",
         "NSLocationWhenInUseUsageDescription": "我们需要您的位置以在公交地图上显示您的当前位置并查找附近站点。",
+        "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": [
           "trenitalia",
           "italo",
