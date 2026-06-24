@@ -1,0 +1,142 @@
+name: "iOS IPA - Unsigned (Sideloadly)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_note:
+        description: "Version note (leave empty for auto)"
+        required: false
+        default: ""
+
+jobs:
+  build-ios-ipa:
+    name: Build iOS IPA (Unsigned)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: student-app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: student-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Create .env file
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" > .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Read version from app.json
+        id: vars
+        run: |
+          VERSION=$(node -e "const a=require('./app.json'); console.log(a.expo.version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}-ios-sideload" >> $GITHUB_OUTPUT
+
+      - name: Build iOS unsigned via EAS (simulator build, no Apple cert needed)
+        id: eas_build
+        run: |
+          echo "Building iOS unsigned package, please wait (~15-25 min)..."
+
+          BUILD_JSON=$(eas build \
+            --platform ios \
+            --profile ios-unsigned \
+            --non-interactive \
+            --json \
+            2>/dev/null)
+
+          BUILD_URL=$(echo "$BUILD_JSON" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          item = data[0] if isinstance(data, list) else data
+          arts = item.get('artifacts', {}) or {}
+          url = arts.get('buildUrl') or item.get('buildUrl', '')
+          print(url)
+          " 2>/dev/null || echo "")
+
+          if [ -z "$BUILD_URL" ]; then
+            echo "ERROR: Could not get build artifact URL"
+            exit 1
+          fi
+
+          echo "Build succeeded, downloading..."
+          curl -L -o /tmp/build_output.tar.gz "$BUILD_URL"
+          echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
+
+      - name: Repackage .app into .ipa for Sideloadly
+        id: repack
+        run: |
+          mkdir -p /tmp/ipa_work/Payload
+
+          tar -xzf /tmp/build_output.tar.gz -C /tmp/ipa_work/Payload
+
+          APP_PATH=$(find /tmp/ipa_work/Payload -maxdepth 1 -name "*.app" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app found after extraction"
+            ls -la /tmp/ipa_work/Payload/
+            exit 1
+          fi
+
+          echo "Found .app: $APP_PATH"
+
+          IPA_NAME="boxue-${{ steps.vars.outputs.version }}-unsigned.ipa"
+          cd /tmp/ipa_work
+          zip -r "/tmp/$IPA_NAME" Payload/
+          echo "ipa_path=/tmp/$IPA_NAME" >> $GITHUB_OUTPUT
+          echo "ipa_name=$IPA_NAME"      >> $GITHUB_OUTPUT
+          echo "IPA ready: $IPA_NAME ($(du -sh /tmp/$IPA_NAME | cut -f1))"
+
+      - name: Create GitHub Release with IPA
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: "Boxue ${{ steps.vars.outputs.version }} - iOS Unsigned IPA (Sideloadly)"
+          body: |
+            ## Boxue iOS Unsigned IPA v${{ steps.vars.outputs.version }}
+
+            ${{ github.event.inputs.release_note != '' && github.event.inputs.release_note || 'Auto-built by GitHub Actions for Sideloadly self-signing.' }}
+
+            ---
+            **Build Info**
+            - Version: `${{ steps.vars.outputs.version }}`
+            - Type: iOS Unsigned IPA (Simulator Build)
+            - Commit: `${{ github.sha }}`
+
+            ---
+            ## How to install with Sideloadly
+
+            1. Download the `.ipa` file below
+            2. Open [Sideloadly](https://sideloadly.io/) and connect your iPhone
+            3. Drag the `.ipa` into Sideloadly
+            4. Enter your Apple ID (free account works)
+            5. Click **Start** to sign and install
+            6. On iPhone: **Settings > General > VPN & Device Management** > trust your developer certificate
+            7. Open Boxue
+
+            > Note: Free Apple ID signatures expire after **7 days** and need to be re-signed.
+          draft: false
+          prerelease: true
+          files: |
+            ${{ steps.repack.outputs.ipa_path }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Done
+        run: |
+          echo "Done! Release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.vars.outputs.tag }}"
