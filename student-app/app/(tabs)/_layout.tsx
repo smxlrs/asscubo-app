@@ -3,7 +3,7 @@ import { View, Text, Animated, StyleSheet, Easing, Pressable, Platform, Dimensio
 import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useRef, useEffect, useState } from 'react';
-import { BlurView, BlurTargetView } from 'expo-blur';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, interpolateColor } from 'react-native-reanimated';
 
@@ -147,7 +147,6 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
 export default function TabsLayout() {
   const { colors, t, isDark, tabBarStyle, tabOpacities, setTabGestureActive } = useTheme();
   const USE_GLASSMORPHISM = tabBarStyle === 'glassmorphism';
-  const blurTargetRef = useRef(null);
   const ExpoTabs = Tabs as any;
 
   // Liquid glass animations state
@@ -183,9 +182,12 @@ export default function TabsLayout() {
 
   const createPanResponder = (k: number) => {
     return PanResponder.create({
-      onStartShouldSetPanResponder: () => stateRef.current.activeIndex === k,
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return stateRef.current.activeIndex === k && Math.abs(gestureState.dx) > 5;
+        // Only trigger if horizontal movement is dominant (prevents accidentally intercepting vertical scrolls)
+        return stateRef.current.activeIndex === k && 
+               Math.abs(gestureState.dx) > 5 && 
+               Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
       },
       onPanResponderGrant: () => {
         isDraggingRef.current = true;
@@ -283,7 +285,7 @@ export default function TabsLayout() {
             Animated.timing(tabOpacities[i], {
               toValue: i === targetIndex ? 1.0 : 0.0,
               duration: 220,
-              useNativeDriver: true,
+              useNativeDriver: false,
             })
           );
         }
@@ -321,7 +323,7 @@ export default function TabsLayout() {
             Animated.timing(tabOpacities[i], {
               toValue: i === targetIndex ? 1.0 : 0.0,
               duration: 220,
-              useNativeDriver: true,
+              useNativeDriver: false,
             })
           );
         }
@@ -474,10 +476,7 @@ export default function TabsLayout() {
   };
 
   return (
-    <BlurTargetView 
-      ref={blurTargetRef} 
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1 }}>
       <ExpoTabs
         safeAreaInsets={USE_GLASSMORPHISM ? { bottom: 0, top: 0, left: 0, right: 0 } : undefined}
         sceneContainerStyle={{ backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}
@@ -532,7 +531,6 @@ export default function TabsLayout() {
                   ) : (
                     <BlurView 
                       tint={isDark ? 'dark' : 'light'}
-                      blurTarget={blurTargetRef}
                       intensity={isDark ? 120 : 80} 
                       style={StyleSheet.absoluteFill} 
                     />
@@ -747,7 +745,7 @@ export default function TabsLayout() {
           }}
         />
       </ExpoTabs>
-    </BlurTargetView>
+    </View>
   );
 }
 
