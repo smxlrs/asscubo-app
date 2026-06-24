@@ -70,36 +70,42 @@ jobs:
         run: |
           SCHEME="${{ steps.scheme.outputs.scheme }}"
           WORKSPACE="ios/${SCHEME}.xcworkspace"
-          ARCHIVE_PATH="/tmp/Boxue.xcarchive"
+          DERIVED_DATA="/tmp/DerivedData"
           IPA_NAME="boxue-${{ steps.vars.outputs.version }}-unsigned.ipa"
 
           echo "Building scheme: $SCHEME"
           echo "Workspace: $WORKSPACE"
 
-          # Build & archive for real device, code signing disabled
+          # Use 'build' instead of 'archive' to avoid ExpoModulesJSI xcframework issue
+          set -o pipefail
           xcodebuild \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
             -configuration Release \
             -sdk iphoneos \
-            -archivePath "$ARCHIVE_PATH" \
-            archive \
+            -derivedDataPath "$DERIVED_DATA" \
+            build \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
             ENABLE_BITCODE=NO \
-            2>&1 | tail -50
+            2>&1 | tail -80
 
-          # Find the .app inside the archive
-          APP_PATH=$(find "$ARCHIVE_PATH/Products/Applications" -name "*.app" | head -1)
+          # Find the real-device .app (exclude simulator outputs)
+          APP_PATH=$(find "$DERIVED_DATA/Build/Products" \
+            -name "*.app" \
+            -not -path "*simulator*" \
+            -not -path "*Simulator*" \
+            | head -1)
+
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: .app not found in archive"
-            find "$ARCHIVE_PATH" -type d | head -20
+            echo "ERROR: .app not found in DerivedData"
+            find "$DERIVED_DATA/Build/Products" -maxdepth 3 -type d | head -20
             exit 1
           fi
           echo "Found .app: $APP_PATH"
 
-          # Repackage as .ipa (Payload/<AppName>.app → zip)
+          # Package as .ipa  (Payload/<AppName>.app → zip)
           mkdir -p /tmp/ipa_payload/Payload
           cp -r "$APP_PATH" /tmp/ipa_payload/Payload/
           cd /tmp/ipa_payload
@@ -108,6 +114,7 @@ jobs:
           echo "ipa_path=/tmp/$IPA_NAME" >> $GITHUB_OUTPUT
           echo "ipa_name=$IPA_NAME"      >> $GITHUB_OUTPUT
           echo "IPA ready: $IPA_NAME ($(du -sh /tmp/$IPA_NAME | cut -f1))"
+
 
       # ── Upload to GitHub Releases ─────────────────────────────────────────
       - name: Create GitHub Release
