@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { initLogger } from '../lib/logger';
+initLogger();
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, BackHandler, ToastAndroid, View } from 'react-native';
@@ -22,7 +24,6 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
-import { useQuickActionRouting } from 'expo-quick-actions/router';
 import { getSavedQuickActionIds, registerQuickActions } from '../lib/quickActions';
 
 // Configure how notifications are presented when the app is in the foreground
@@ -71,7 +72,7 @@ async function registerForPushNotificationsAsync() {
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
+      name: '常规通知',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#A316217C',
@@ -105,9 +106,6 @@ async function registerForPushNotificationsAsync() {
 function AppContent() {
   const { isDark, isReady, predictiveBack, t } = useTheme();
   const { user, loading } = useAuth();
-
-  // Enable automatic routing for expo-quick-actions
-  useQuickActionRouting();
 
   useEffect(() => {
     async function initActions() {

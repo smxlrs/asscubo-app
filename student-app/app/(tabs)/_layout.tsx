@@ -3,6 +3,7 @@ import { View, Text, Animated, StyleSheet, Easing, Pressable, Platform, Dimensio
 import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useRef, useEffect, useState } from 'react';
+import { useQuickActionRouting } from 'expo-quick-actions/router';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, interpolateColor } from 'react-native-reanimated';
@@ -146,6 +147,10 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
 
 export default function TabsLayout() {
   const { colors, t, isDark, tabBarStyle, tabOpacities, setTabGestureActive } = useTheme();
+
+  // Handle quick actions routing safely after tabs layout has mounted
+  useQuickActionRouting();
+
   const USE_GLASSMORPHISM = tabBarStyle === 'glassmorphism';
   const ExpoTabs = Tabs as any;
 

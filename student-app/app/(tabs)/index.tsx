@@ -640,7 +640,7 @@ export default function HomeScreen() {
                 style={styles.avatarButton}
                 onPress={() => {
                   if (user) {
-                    router.push('/(tabs)/profile');
+                    router.push('/settings/profile');
                   } else {
                     router.push('/(auth)/login');
                   }

@@ -36,6 +36,8 @@ const LOCALIZED = {
     modalTitle: '安全身份验证',
     modalSub: '我们已向您的邮箱 {email} 发送了一个 6 位验证码，请在下方输入以确认注销账户。',
     confirmDeleteBtn: '确认注销',
+    cssaCardBtn: '查看我的学联卡',
+    cssaCardMsg: '该功能正在开发中，敬请期待！',
   },
   'zh-Hant': {
     headerTitle: '個人資料',
@@ -65,6 +67,8 @@ const LOCALIZED = {
     modalTitle: '安全身份驗證',
     modalSub: '我們已向您的郵箱 {email} 發送了一個 6 位驗證碼，請在下方輸入以確認注銷帳戶。',
     confirmDeleteBtn: '確認注銷',
+    cssaCardBtn: '查看我的學聯卡',
+    cssaCardMsg: '該功能正在開發中，敬請期待！',
   },
   en: {
     headerTitle: 'Profile Details',
@@ -94,6 +98,8 @@ const LOCALIZED = {
     modalTitle: 'Security Reauthentication',
     modalSub: 'We have sent a 6-digit verification code to your email {email}. Please enter it below to confirm account deletion.',
     confirmDeleteBtn: 'Confirm Deletion',
+    cssaCardBtn: 'View My CSSA Card',
+    cssaCardMsg: 'This feature is under development.',
   },
   it: {
     headerTitle: 'Dettagli Profilo',
@@ -123,6 +129,8 @@ const LOCALIZED = {
     modalTitle: 'Verifica di Sicurezza',
     modalSub: 'Abbiamo inviato un codice di verifica a 6 cifre alla tua email {email}. Inseriscilo qui sotto per confermare l\'eliminazione dell\'account.',
     confirmDeleteBtn: 'Conferma Eliminazione',
+    cssaCardBtn: 'Vedi Tessera ASSCUBO',
+    cssaCardMsg: 'Servizio in fase di sviluppo.',
   }
 };
 
@@ -226,6 +234,10 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleCssaCardTap = () => {
+    Alert.alert(t('tip') || '提示', localized.cssaCardMsg);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {/* Header */}
@@ -270,13 +282,13 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Edit Button */}
+        {/* CSSA Card Button */}
         <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
           <Pressable
             style={[styles.editButton, { backgroundColor: colors.primary }]}
-            onPress={() => router.push('/settings/edit-profile')}
+            onPress={handleCssaCardTap}
           >
-            <Text style={styles.editButtonText}>{localized.editProfileBtn}</Text>
+            <Text style={styles.editButtonText}>{localized.cssaCardBtn}</Text>
           </Pressable>
         </View>
 
@@ -286,6 +298,16 @@ export default function ProfileScreen() {
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 40 }]}>
+          {/* Edit Profile */}
+          <Pressable
+            style={[styles.rowPressable, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
+            onPress={() => router.push('/settings/edit-profile')}
+          >
+            <MaterialCommunityIcons name="account-edit-outline" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{localized.editProfileBtn}</Text>
+            <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+          </Pressable>
+
           {/* Logout */}
           <Pressable
             style={[styles.rowPressable, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
