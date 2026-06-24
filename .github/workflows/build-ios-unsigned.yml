@@ -200,7 +200,11 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
             ENABLE_BITCODE=NO \
-            2>&1 | tail -80
+            SWIFT_VERSION=5 \
+            2>&1 | tee /tmp/xcodebuild.log | grep -E "^(error:|warning: .*(error|fatal)|.*error:)" | head -60 || true
+
+          echo "--- xcodebuild last 60 lines ---"
+          tail -60 /tmp/xcodebuild.log
 
           # Find the real-device .app (exclude simulator outputs)
           APP_PATH=$(find "$DERIVED_DATA/Build/Products" \
