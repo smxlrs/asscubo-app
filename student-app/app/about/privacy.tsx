@@ -33,7 +33,6 @@ export default function PrivacyScreen() {
         {/* Trilingual Notice */}
         <View style={[styles.langNoticeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.langNoticeText, { color: colors.textSecondary }]}>
-            有关隐私政策的英语和意大利语版，您可在中文版的下方找到。{"\n"}
             For the English and Italian versions of the Privacy Policy, please scroll down below the Chinese version.{"\n"}
             Le versioni in inglese e italiano dell'Informativa sulla Privacy sono disponibili scorrendo sotto la versione cinese.
           </Text>
