@@ -48,6 +48,21 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}-ios-sideload" >> $GITHUB_OUTPUT
 
+      # ── Disable expo-updates to prevent startup crash on self-signed IPA ──
+      # When Sideloadly re-signs the app, the bundle ID changes.
+      # expo-updates then fails to contact EAS and crashes the app on launch.
+      - name: Disable expo-updates in app.json
+        working-directory: student-app
+        run: |
+          node -e "
+          const fs = require('fs');
+          const cfg = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          cfg.expo.updates = { enabled: false };
+          delete cfg.expo.runtimeVersion;
+          fs.writeFileSync('app.json', JSON.stringify(cfg, null, 2));
+          console.log('expo-updates disabled for unsigned build');
+          "
+
       # ── Generate native iOS project (no Apple account needed) ────────────
       - name: Expo Prebuild (generate native iOS project)
         working-directory: student-app
