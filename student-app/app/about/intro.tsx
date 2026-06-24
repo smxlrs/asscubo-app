@@ -33,7 +33,7 @@ const LOCALIZED = {
     sec3Body: '本平台使用现代混合开发框架进行构建，界面设计遵循极致简约与高质感美学。支持轻量化与深色模式（Dark Mode）的智能无缝适配。工具箱卡片支持流畅的拖拽手势重排排序，让您可以根据个人高频使用习惯个性化定制首屏工具布局。所有敏感权限（如 GPS 定位、相册读写等）均严格限制于设备沙盒本地处理，符合欧洲通用数据保护条例（GDPR）的严苛合规要求，并提供一键注销并永久抹除账户的高安全隐私机制。',
     
     sec4Title: '四、 关于学联 (ASSCUBO)',
-    sec4Body: '博洛尼亚大学中国学生学者联谊会（Associazione degli Studenti e Studiosi Cinesi dell\'Università di Bologna）是在博洛尼亚大学正式注册的非盈利性中国学生学者组织，也是我驻意使领馆指导下的爱国学生团体。学联自成立以来，始终秉承“服务同学、促进交流、传播文化”的宗旨，致力于维护中国学生学者的正当权益，增进中意两国青年学生之间的友谊。博学平台是我们践行数字化便利服务的重要载体，欢迎每一位在博学子向我们反馈宝贵的使用意见。'
+    sec4Body: '博洛尼亚大学中国学生学者联谊会（Associazione di Studenti e Studiosi Cinesi dell\'Università di Bologna）是在博洛尼亚大学正式注册的非营利性中国学生学者组织，也是接受中国驻意大利大使馆科教处指导的学生团体。学联自成立以来，始终秉承“服务同学、促进交流、传播文化”的宗旨，致力于维护中国学生学者的正当权益，增进中意两国青年学生之间的友谊。博学平台是我们践行数字化便利服务的重要载体，欢迎每一位在博学子向我们反馈宝贵的使用意见。'
   },
   'zh-Hant': {
     title: '平台簡介',
@@ -63,7 +63,7 @@ const LOCALIZED = {
     sec3Body: '本平台使用現代混合開發框架進行建構，界面設計遵循極致簡約與高質感美學。支持輕量化與深色模式（Dark Mode）的智能無縫適配。工具箱卡片支持流暢的拖拽手勢重排排序，讓您可以根據個人高頻使用習慣個性化定制首屏工具布局。所有敏感權限（如 GPS 定位、相冊讀寫等）均嚴格限制於設備沙盒本地處理，符合歐洲通用數據保護條例（GDPR）的嚴苛合規要求，並提供一鍵註銷並永久抹除帳戶的高安全隱私機制。',
     
     sec4Title: '四、 關於學聯 (ASSCUBO)',
-    sec4Body: '博洛尼亞大學中国学生学者联谊会（Associazione degli Studenti e Studi Cinesi dell\'Università di Bologna）是在博洛尼亞大學正式註冊的非盈利性中國學生學者組織，也是我駐意使領館指導下的愛國學生團體。學聯自成立以來，始終秉承“服務同學、促進交流、傳播文化”的宗旨，致力於維護中國學生學者的正當權益，增進中意兩國青年學生之間的友誼。博學平台是我們踐行數位化便利服務重要載體，歡迎每一位在博學子向我們反饋寶貴的使用意見。'
+    sec4Body: '博洛尼亞大學中国学生学者联谊会（Associazione di Studenti e Studiosi Cinesi dell\'Università di Bologna）是在博洛尼亞大學正式註冊的非營利性中國學生學者組織，也是接受中國駐意大利大使館科教處指導的學生團體。學聯自成立以來，始終秉承“服務同學、促進交流、傳播文化”的宗旨，致力於維護中國學生學者的正當權益，增進中意兩國青年學生之間的友誼。博學平台是我們踐行數位化便利服務重要載體，歡迎每一位在博學子向我們反饋寶貴的使用意見。'
   },
   en: {
     title: 'Platform Intro',
@@ -93,14 +93,14 @@ const LOCALIZED = {
     sec3Body: 'Built on a modern cross-platform hybrid architecture, Boxue features visual assets structured on premium minimalist layouts. Supports seamless automated adaptivity for Light/Dark modes. The tools menu includes custom reordering gestures, enabling users to re-layout their dashboard. High-security sandboxing ensures all sensitive inputs (e.g. location, photos) process locally under strict GDPR requirements.',
     
     sec4Title: '4. About ASSCUBO',
-    sec4Body: 'The Chinese Students and Scholars Association of the University of Bologna (Associazione degli Studenti e Studi Cinesi dell\'Università di Bologna) is an officially registered non-profit student association. Since inception, we strive to safeguard the rights of Chinese scholars and students, promote intercultural exchanges, and consolidate relationships between Chinese and Italian youth. Boxue Platform is our key digital milestone, and we welcome all feedbacks and inquiries.'
+    sec4Body: 'The Chinese Students and Scholars Association of the University of Bologna (Associazione di Studenti e Studiosi Cinesi dell\'Università di Bologna) is an officially registered non-profit student association. Since inception, we strive to safeguard the rights of Chinese scholars and students, promote intercultural exchanges, and consolidate relationships between Chinese and Italian youth. Boxue Platform is our key digital milestone, and we welcome all feedbacks and inquiries.'
   },
   it: {
     title: 'Informazioni sulla Piattaforma',
     subtitle: 'Piattaforma One-Stop per la Vita Accademica e Quotidiana',
     
     sec1Title: '1. Vision e Posizionamento',
-    sec1Body: '"Boxue" (ASSCUBO App) è una piattaforma mobile one-stop per l\'assistenza accademica e i servizi di vita quotidiana a Bologna, sviluppata e gestita dall\'Associazione degli Studenti e Studiosi Cinesi dell\'Università di Bologna (ASSCUBO). Trattandosi di un progetto no-profit e orientato esclusivamente alla pubblica utilità, mira a superare il "divario informativo" per studenti, ricercatori e cittadini cinesi a Bologna e dintorni. Integrando annunci del campus, strumenti utili, orari dei trasporti pubblici e risorse dell\'associazione, puntiamo a stabilire un assistente quotidiano completo.',
+    sec1Body: '"Boxue" (ASSCUBO App) è una piattaforma mobile one-stop per l\'assistenza accademica e i servizi di vita quotidiana a Bologna, sviluppata e gestita dall\'Associazione di Studenti e Studiosi Cinesi dell\'Università di Bologna (ASSCUBO). Trattandosi di un progetto no-profit e orientato esclusivamente alla pubblica utilità, mira a superare il "divario informativo" per studenti, ricercatori e cittadini cinesi a Bologna e dintorni. Integrando annunci del campus, strumenti utili, orari dei trasporti pubblici e risorse dell\'associazione, puntiamo a stabilire un assistente quotidiano completo.',
     
     sec2Title: '2. Panoramica delle Funzionalità Chiave',
     
@@ -123,7 +123,7 @@ const LOCALIZED = {
     sec3Body: 'Costruito su architettura ibrida cross-platform, Boxue presenta un design minimalista e moderno con supporto nativo al Dark Mode. Consente di riordinare le icone dei tool tramite trascinamento (drag and drop) per una schermata personalizzata. Nel rispetto del GDPR, tutti i permessi critici (come posizione e foto) vengono gestiti localmente e in sicurezza.',
     
     sec4Title: '4. Informazioni su ASSCUBO',
-    sec4Body: 'L\'Associazione degli Studenti e Studiosi Cinesi dell\'Università di Bologna è un\'associazione studentesca senza scopo di lucro ufficialmente registrata presso l\'Ateneo. Dalla sua fondazione, l\'associazione si impegna a tutelare i diritti di studenti e studiosi, promuovere scambi interculturali e consolidare le relazioni di amicizia tra giovani cinesi e italiani. La Piattaforma Boxue rappresenta una pietra miliare digitale per l\'erogazione di servizi utili, e accogliamo con favore suggerimenti e feedback.'
+    sec4Body: 'L\'Associazione di Studenti e Studiosi Cinesi dell\'Università di Bologna è un\'associazione studentesca senza scopo di lucro ufficialmente registrata presso l\'Ateneo. Dalla sua fondazione, l\'associazione si impegna a tutelare i diritti di studenti e studiosi, promuovere scambi interculturali e consolidare le relazioni di amicizia tra giovani cinesi e italiani. La Piattaforma Boxue rappresenta una pietra miliare digitale per l\'erogazione di servizi utili, e accogliamo con favore suggerimenti e feedback.'
   }
 };
 
