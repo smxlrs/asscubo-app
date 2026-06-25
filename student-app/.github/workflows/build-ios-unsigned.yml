@@ -50,6 +50,16 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}-ios-sideload" >> $GITHUB_OUTPUT
 
+      - name: Patch app.json — disable expo-updates for sideload build
+        run: |
+          node -e "
+            const fs = require('fs');
+            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            app.expo.updates = { ...app.expo.updates, enabled: false };
+            fs.writeFileSync('app.json', JSON.stringify(app, null, 2));
+            console.log('expo-updates disabled for sideload build.');
+          "
+
       - name: Build iOS unsigned via EAS (simulator build, no Apple cert needed)
         id: eas_build
         run: |
