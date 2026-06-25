@@ -1,33 +1,4 @@
 import React, { useEffect, useState } from 'react';
-
-// --- 遗言发送器：开始 ---
-const WEBHOOK_URL = 'https://webhook.site/4e33e610-cc65-4846-943c-3f97cd061bf6';
-
-if (global.ErrorUtils) {
-  const originalHandler = global.ErrorUtils.getGlobalHandler();
-  
-  global.ErrorUtils.setGlobalHandler((error, isFatal) => {
-    // 临死前发送网络请求把错误抛到公网
-    fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        errorName: error.name,
-        errorMessage: error.message,
-        errorStack: error.stack,
-        isFatal: isFatal,
-        time: new Date().toISOString()
-      })
-    }).catch(() => {}); // 忽略网络错误
-    
-    // 发送完遗言后，让系统按原计划闪退
-    if (originalHandler) {
-      originalHandler(error, isFatal);
-    }
-  });
-}
-// --- 遗言发送器：结束 ---
-
 import { initLogger } from '../lib/logger';
 initLogger();
 import { Stack, router } from 'expo-router';
