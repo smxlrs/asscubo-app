@@ -81,24 +81,23 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}-ios-sideload" >> $GITHUB_OUTPUT
 
-      # ── Disable expo-updates to prevent startup crash on self-signed IPA ──
-      # Root cause: expo-updates plugin registers the native EXUpdates module and
-      # writes initialization config during prebuild. On iOS 27 beta + Sideloadly,
-      # the native module tries to initialize with invalid state and crashes.
-      # Fix: Remove the plugin entirely + disable updates + strip EAS config.
-      - name: Disable expo-updates in app.json (remove plugin + disable updates)
+      # ── Patch app.json before prebuild: disable expo-updates + switch to JSC ─
+      # expo-updates: remove plugin + disable to prevent native module crash.
+      # JSC: Hermes GC crashes deterministically on iOS 27 beta with a null-pointer
+      #   write in youngGenEvacuateImpl (far=0x0). This is a Hermes/iOS 27 beta
+      #   incompatibility. JavaScriptCore is Apple's native engine, always compatible.
+      - name: Patch app.json (disable expo-updates, switch iOS to JSC)
         working-directory: student-app
         run: |
           node -e "
           const fs = require('fs');
           const cfg = JSON.parse(fs.readFileSync('app.json', 'utf8'));
 
-          // 1. Mark updates as disabled with safe defaults
+          // 1. Disable expo-updates entirely
           cfg.expo.updates = { enabled: false, fallbackToCacheTimeout: 0 };
           delete cfg.expo.runtimeVersion;
 
-          // 2. Remove expo-updates from plugins so native module is NOT configured
-          //    during prebuild (prevents EXUpdates from registering with the runtime)
+          // 2. Remove expo-updates plugin (prevents EXUpdates native init)
           if (cfg.expo.plugins) {
             cfg.expo.plugins = cfg.expo.plugins.filter(p => {
               const name = Array.isArray(p) ? p[0] : p;
@@ -106,13 +105,19 @@ jobs:
             });
           }
 
-          // 3. Remove any EAS update channel or project ID that expo-updates reads
+          // 3. Strip EAS project ID
           if (cfg.expo.extra && cfg.expo.extra.eas) {
             delete cfg.expo.extra.eas.projectId;
           }
 
+          // 4. Switch JavaScript engine to JSC (JavaScriptCore) for iOS.
+          //    Hermes GC crashes on iOS 27 beta: youngGenEvacuateImpl writes
+          //    to null (far=0x0). JSC is Apple-maintained and always compatible.
+          cfg.expo.ios = cfg.expo.ios || {};
+          cfg.expo.ios.jsEngine = 'jsc';
+
           fs.writeFileSync('app.json', JSON.stringify(cfg, null, 2));
-          console.log('expo-updates plugin removed and updates fully disabled');
+          console.log('Done: expo-updates removed, jsEngine=jsc for iOS');
           "
 
       # ── Patch ExpoModulesJSI podspec BEFORE prebuild ──────────────────────
