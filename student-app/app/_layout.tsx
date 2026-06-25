@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { initLogger } from '../lib/logger';
 initLogger();
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, BackHandler, ToastAndroid, View } from 'react-native';
+import { Platform, BackHandler, ToastAndroid, View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
@@ -105,7 +105,27 @@ async function registerForPushNotificationsAsync() {
 
 function AppContent() {
   const { isDark, isReady, predictiveBack, t } = useTheme();
-  const { user, loading } = useAuth();
+  const { user, loading, networkError, retryInit } = useAuth();
+  const splashHiddenRef = useRef(false);
+
+  const hideSplash = () => {
+    if (splashHiddenRef.current) return;
+    splashHiddenRef.current = true;
+    SplashScreen.hideAsync().catch((err) => {
+      console.warn('Error hiding native splash screen:', err);
+    });
+  };
+
+  // 正常放行
+  useEffect(() => {
+    if (isReady && !loading) hideSplash();
+  }, [isReady, loading]);
+
+  // 兜底：8 秒内无论如何强制放行，防止极端情况卡死
+  useEffect(() => {
+    const timer = setTimeout(hideSplash, 8000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     async function initActions() {
@@ -114,14 +134,6 @@ function AppContent() {
     }
     initActions();
   }, [t]);
-
-  useEffect(() => {
-    if (isReady && !loading) {
-      SplashScreen.hideAsync().catch((err) => {
-        console.warn('Error hiding native splash screen:', err);
-      });
-    }
-  }, [isReady, loading]);
 
   useEffect(() => {
     async function setupNotifications() {
@@ -212,6 +224,30 @@ function AppContent() {
     },
   };
 
+  // 离线 / 网络错误全屏提示
+  if (networkError && !loading) {
+    return (
+      <View style={[offlineStyles.container, { backgroundColor: isDark ? '#0A0A0A' : '#F5F7FA' }]}>
+        <Text style={offlineStyles.icon}>📡</Text>
+        <Text style={[offlineStyles.title, { color: isDark ? '#F5F5F5' : '#1D2939' }]}>
+          {t('networkErrorTitle') || '网络似乎出了点问题'}
+        </Text>
+        <Text style={[offlineStyles.sub, { color: isDark ? '#A0A0A0' : '#6B7280' }]}>
+          {t('networkErrorSub') || '请检查网络连接后重试'}
+        </Text>
+        <Pressable
+          style={({ pressed }) => [offlineStyles.btn, { opacity: pressed ? 0.75 : 1 }]}
+          onPress={retryInit}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={offlineStyles.btnText}>{t('retry') || '重试'}</Text>
+          }
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <NavigationProvider value={navTheme}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -242,3 +278,42 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+const offlineStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    gap: 12,
+  },
+  icon: {
+    fontSize: 52,
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  sub: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  btn: {
+    marginTop: 12,
+    backgroundColor: '#A31621',
+    paddingHorizontal: 36,
+    paddingVertical: 13,
+    borderRadius: 12,
+    minWidth: 140,
+    alignItems: 'center',
+  },
+  btnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+});
