@@ -50,14 +50,51 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}-ios-sideload" >> $GITHUB_OUTPUT
 
-      - name: Patch app.json — disable expo-updates for sideload build
+      # ── Patch app.json before prebuild: disable expo-updates + switch to JSC + Add UIScene ─
+      - name: Patch app.json (disable expo-updates, switch iOS to JSC, add UIScene)
         run: |
           node -e "
-            const fs = require('fs');
-            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-            app.expo.updates = { ...app.expo.updates, enabled: false };
-            fs.writeFileSync('app.json', JSON.stringify(app, null, 2));
-            console.log('expo-updates disabled for sideload build.');
+          const fs = require('fs');
+          const cfg = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+
+          // 1. Disable expo-updates entirely
+          cfg.expo.updates = { enabled: false, fallbackToCacheTimeout: 0 };
+          delete cfg.expo.runtimeVersion;
+
+          // 2. Remove expo-updates plugin
+          if (cfg.expo.plugins) {
+            cfg.expo.plugins = cfg.expo.plugins.filter(p => {
+              const name = Array.isArray(p) ? p[0] : p;
+              return name !== 'expo-updates';
+            });
+          }
+
+          // 3. Strip EAS project ID
+          if (cfg.expo.extra && cfg.expo.extra.eas) {
+            delete cfg.expo.extra.eas.projectId;
+          }
+
+          // 4. Switch JavaScript engine to JSC
+          cfg.expo.jsEngine = 'jsc';
+          cfg.expo.ios = cfg.expo.ios || {};
+          cfg.expo.ios.jsEngine = 'jsc';
+
+          // 5. Inject UIScene lifecycle to prevent crash on latest SDKs
+          cfg.expo.ios.infoPlist = cfg.expo.ios.infoPlist || {};
+          cfg.expo.ios.infoPlist.UIApplicationSceneManifest = {
+            UIApplicationSupportsMultipleScenes: false,
+            UISceneConfigurations: {
+              UIWindowSceneSessionRoleApplication: [
+                {
+                  UISceneConfigurationName: 'Default Configuration',
+                  UISceneDelegateClassName: '\$(PRODUCT_MODULE_NAME).SceneDelegate'
+                }
+              ]
+            }
+          };
+
+          fs.writeFileSync('app.json', JSON.stringify(cfg, null, 2));
+          console.log('Done: All patches applied including UIScene lifecycle adoption.');
           "
 
       - name: Build iOS unsigned via EAS (simulator build, no Apple cert needed)
