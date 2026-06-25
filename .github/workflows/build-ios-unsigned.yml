@@ -84,8 +84,8 @@ jobs:
       # ── Patch app.json before prebuild: disable expo-updates + switch to JSC ─
       # expo-updates: remove plugin + disable to prevent native module crash.
       # JSC: Hermes GC crashes deterministically on iOS 27 beta with a null-pointer
-      #   write in youngGenEvacuateImpl (far=0x0). This is a Hermes/iOS 27 beta
-      #   incompatibility. JavaScriptCore is Apple's native engine, always compatible.
+      #    write in youngGenEvacuateImpl (far=0x0). This is a Hermes/iOS 27 beta
+      #    incompatibility. JavaScriptCore is Apple's native engine, always compatible.
       - name: Patch app.json (disable expo-updates, switch iOS to JSC)
         working-directory: student-app
         run: |
@@ -110,14 +110,15 @@ jobs:
             delete cfg.expo.extra.eas.projectId;
           }
 
-          // 4. Switch JavaScript engine to JSC (JavaScriptCore) for iOS.
-          //    Hermes GC crashes on iOS 27 beta: youngGenEvacuateImpl writes
-          //    to null (far=0x0). JSC is Apple-maintained and always compatible.
+          // 4. Switch JavaScript engine to JSC (JavaScriptCore) globally and for iOS.
+          // Hermes GC crashes on iOS 27 beta: youngGenEvacuateImpl writes
+          // to null (far=0x0). JSC is Apple-maintained and always compatible.
+          cfg.expo.jsEngine = 'jsc';
           cfg.expo.ios = cfg.expo.ios || {};
           cfg.expo.ios.jsEngine = 'jsc';
 
           fs.writeFileSync('app.json', JSON.stringify(cfg, null, 2));
-          console.log('Done: expo-updates removed, jsEngine=jsc for iOS');
+          console.log('Done: expo-updates removed, global & ios jsEngine forced to jsc');
           "
 
       # ── Patch ExpoModulesJSI podspec BEFORE prebuild ──────────────────────
@@ -270,8 +271,6 @@ jobs:
           echo "ipa_name=$IPA_NAME"      >> $GITHUB_OUTPUT
           echo "IPA ready: $IPA_NAME ($IPA_SIZE)"
 
-
-
       # ── Upload to GitHub Releases ─────────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -301,7 +300,6 @@ jobs:
             7. 打开博学 App
 
             > ⚠️ 免费 Apple ID 签名有效期 **7 天**，到期后重新用 Sideloadly 安装一次即可续期。
-
 
           draft: false
           prerelease: true
