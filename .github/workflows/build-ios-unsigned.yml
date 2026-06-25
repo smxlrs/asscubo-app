@@ -82,18 +82,37 @@ jobs:
           echo "tag=v${VERSION}-ios-sideload" >> $GITHUB_OUTPUT
 
       # ── Disable expo-updates to prevent startup crash on self-signed IPA ──
-      # When Sideloadly re-signs the app, the bundle ID changes.
-      # expo-updates then fails to contact EAS and crashes the app on launch.
-      - name: Disable expo-updates in app.json
+      # Root cause: expo-updates plugin registers the native EXUpdates module and
+      # writes initialization config during prebuild. On iOS 27 beta + Sideloadly,
+      # the native module tries to initialize with invalid state and crashes.
+      # Fix: Remove the plugin entirely + disable updates + strip EAS config.
+      - name: Disable expo-updates in app.json (remove plugin + disable updates)
         working-directory: student-app
         run: |
           node -e "
           const fs = require('fs');
           const cfg = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-          cfg.expo.updates = { enabled: false };
+
+          // 1. Mark updates as disabled with safe defaults
+          cfg.expo.updates = { enabled: false, fallbackToCacheTimeout: 0 };
           delete cfg.expo.runtimeVersion;
+
+          // 2. Remove expo-updates from plugins so native module is NOT configured
+          //    during prebuild (prevents EXUpdates from registering with the runtime)
+          if (cfg.expo.plugins) {
+            cfg.expo.plugins = cfg.expo.plugins.filter(p => {
+              const name = Array.isArray(p) ? p[0] : p;
+              return name !== 'expo-updates';
+            });
+          }
+
+          // 3. Remove any EAS update channel or project ID that expo-updates reads
+          if (cfg.expo.extra && cfg.expo.extra.eas) {
+            delete cfg.expo.extra.eas.projectId;
+          }
+
           fs.writeFileSync('app.json', JSON.stringify(cfg, null, 2));
-          console.log('expo-updates disabled for unsigned build');
+          console.log('expo-updates plugin removed and updates fully disabled');
           "
 
       # ── Patch ExpoModulesJSI podspec BEFORE prebuild ──────────────────────
