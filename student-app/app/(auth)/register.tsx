@@ -21,6 +21,7 @@ import { supabase, translateAuthError } from '../../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -169,8 +170,8 @@ export default function RegisterScreen() {
           setErrorMsg(translateAuthError(error.message, language));
         } else {
           try {
-            await AsyncStorage.setItem('temp_signup_email', email.trim());
-            await AsyncStorage.setItem('temp_signup_password', password);
+            await SecureStore.setItemAsync('temp_signup_email', email.trim());
+            await SecureStore.setItemAsync('temp_signup_password', password);
           } catch (e) {
             console.warn('Failed to save temp signup credentials:', e);
           }

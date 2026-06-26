@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 export default function LoginCallback() {
   const { colors, isDark, t } = useTheme();
@@ -43,8 +44,8 @@ export default function LoginCallback() {
           clearInterval(pollInterval);
         }
         try {
-          await AsyncStorage.removeItem('temp_signup_email');
-          await AsyncStorage.removeItem('temp_signup_password');
+          await SecureStore.deleteItemAsync('temp_signup_email');
+          await SecureStore.deleteItemAsync('temp_signup_password');
         } catch (e) {
           console.warn('Failed to clear temp signup credentials:', e);
         }
@@ -86,8 +87,8 @@ export default function LoginCallback() {
 
     async function startBackgroundVerificationCheck() {
       try {
-        const email = await AsyncStorage.getItem('temp_signup_email');
-        const password = await AsyncStorage.getItem('temp_signup_password');
+        const email = await SecureStore.getItemAsync('temp_signup_email');
+        const password = await SecureStore.getItemAsync('temp_signup_password');
         
         if (!email || !password) {
           console.log('No temporary signup credentials found for background polling.');
