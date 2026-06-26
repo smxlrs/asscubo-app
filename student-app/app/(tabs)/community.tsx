@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -34,20 +35,29 @@ export default function CommunityScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [selectedType, setSelectedType] = useState('general');
 
   async function fetchPosts() {
-    const { data } = await supabase
-      .from('community_posts')
-      .select('id, title, content, group_type, group_value, reply_count, created_at, author:author_id(name, faculty)')
-      .eq('group_type', selectedType)
-      .order('is_pinned', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(30);
+    try {
+      setHasError(false);
+      const { data, error } = await supabase
+        .from('community_posts')
+        .select('id, title, content, group_type, group_value, reply_count, created_at, author:author_id(name, faculty)')
+        .eq('group_type', selectedType)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(30);
 
-    if (data) setPosts(data as any);
-    setLoading(false);
-    setRefreshing(false);
+      if (error) throw error;
+      if (data) setPosts(data as any);
+    } catch (e) {
+      console.warn('Failed to fetch community posts:', e);
+      setHasError(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }
 
   useEffect(() => { fetchPosts(); }, [selectedType]);
@@ -103,6 +113,25 @@ export default function CommunityScreen() {
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+      ) : hasError ? (
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="wifi-off" size={48} color="#A31621" style={{ marginBottom: 12 }} />
+          <Text style={[styles.errorText, { color: colors.textPrimary }]}>
+            {t('networkErrorTitle') || '网络似乎出了点问题'}
+          </Text>
+          <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
+            {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              setLoading(true);
+              fetchPosts();
+            }}
+          >
+            <Text style={styles.retryBtnText}>{t('retry') || '重新连接'}</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={posts}
@@ -223,4 +252,28 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: SPACING.base },
   emptyText: { fontSize: SIZES.base, fontFamily: FONTS.regular },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  retryBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });

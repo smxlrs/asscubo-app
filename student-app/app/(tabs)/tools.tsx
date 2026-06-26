@@ -99,20 +99,20 @@ const LOCALIZED = {
   },
   en: {
     handbookTitle: 'Handbook',
-    handbookDesc: 'ASSCUBO handbook for new students to live more comfortably and happily in Bologna.',
+    handbookDesc: 'ASSCUBO guide for new students to live and study in Bologna.',
     handbookBadge: 'Rec',
     dictTitle: 'Dictionary',
-    dictDesc: 'Italian-Chinese, Chinese-Italian dictionary, verb conjugations, and collocations.',
+    dictDesc: 'Italian-Chinese dictionary, verb conjugations, and vocabulary.',
     rateTitle: 'Exchange Rate',
     rateDescPrefix: 'Today\'s Rate: ',
     classroomTitle: 'Empty Classrooms',
-    classroomDesc: 'Real-time query of empty classrooms at UniBo, a great place for self-study.',
+    classroomDesc: 'Real-time search for vacant classrooms at UniBo for study.',
     busTitle: 'Bologna Bus',
-    busDesc: 'Real-time countdown of bus arrivals in Bologna, supports map selection.',
+    busDesc: 'Real-time bus arrival countdown and route query in Bologna.',
     studyroomTitle: 'Studyrooms & Libs',
-    studyroomDesc: 'Real-time view of seats, opening hours in UniBo studyrooms, supports one-click booking.',
+    studyroomDesc: 'Seat availability, hours, and booking for UniBo studyrooms.',
     linksTitle: 'Useful Links',
-    linksDesc: 'Quick access to UniBo portals, administrative websites, and daily life services.',
+    linksDesc: 'Quick access to UniBo systems and useful administrative links.',
     tip: 'Notice',
     developing: 'This tool is under development and will be available in future updates!',
     comingSoon: 'Soon',
@@ -121,20 +121,20 @@ const LOCALIZED = {
   },
   it: {
     handbookTitle: 'Guida Matricole',
-    handbookDesc: 'Guida ASSCUBO per le nuove matricole per vivere più comodamente e felicemente a Bologna.',
+    handbookDesc: 'Guida ASSCUBO per le nuove matricole per vivere a Bologna.',
     handbookBadge: 'Cons.',
     dictTitle: 'Dizionario',
-    dictDesc: 'Dizionario italiano-cinese, cinese-italiano, coniugazioni verbali e collocazioni.',
+    dictDesc: 'Dizionario italiano-cinese, coniugazioni e vocaboli.',
     rateTitle: 'Cambio Valuta',
     rateDescPrefix: 'Tasso di oggi: ',
     classroomTitle: 'Aule Libere',
-    classroomDesc: 'Consultazione in tempo reale delle aule libere all\'UniBo, ideale per studiare.',
+    classroomDesc: 'Ricerca in tempo reale di aule libere all\'UniBo per lo studio.',
     busTitle: 'Bus Bologna',
-    busDesc: 'Arrivi bus in tempo reale a Bologna, supporta la selezione sulla mappa.',
+    busDesc: 'Orari bus in tempo reale a Bologna con supporto mappa.',
     studyroomTitle: 'Aule Studio & Bib',
-    studyroomDesc: 'Posti liberi, orari di aule studio UniBo e prenotazione con un clic.',
+    studyroomDesc: 'Posti liberi, orari e prenotazioni per aule studio UniBo.',
     linksTitle: 'Link Utili',
-    linksDesc: 'Accesso rapido ai portali UniBo, siti amministrativi e servizi quotidiani.',
+    linksDesc: 'Accesso rapido ai portali UniBo e siti utili per la vita.',
     tip: 'Avviso',
     developing: 'Questo strumento è in fase di sviluppo e sarà disponibile nei prossimi aggiornamenti!',
     comingSoon: 'Presto',
@@ -465,11 +465,11 @@ function DraggableCard({
 
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{tool.title}</Text>
             {tool.id === 'rate' ? (
-              <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
+              <Text numberOfLines={4} style={[styles.cardDescription, { color: colors.textSecondary }]}>
                 {localized.rateDescPrefix}{"\n"}1 EUR = <Text style={{ color: colors.success, fontWeight: 'bold' }}>{eurToCny.toFixed(4)}</Text> CNY
               </Text>
             ) : (
-              <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>{tool.description}</Text>
+              <Text numberOfLines={4} style={[styles.cardDescription, { color: colors.textSecondary }]}>{tool.description}</Text>
             )}
           </View>
 

@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { router, useNavigation } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
@@ -553,7 +553,7 @@ const findChapterByTarget = (target: string, allChapters: Chapter[]): Chapter | 
 };
 
 export default function HandbookReaderScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, t } = useTheme();
   const navigation = useNavigation();
 
   // Settings states
@@ -575,6 +575,7 @@ export default function HandbookReaderScreen() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Lifecycle reset for isFirstLoad
   useEffect(() => {
@@ -806,7 +807,7 @@ export default function HandbookReaderScreen() {
         
         setCurrentChapter(defaultChapter);
       } catch (err) {
-        console.warn('Using local fallback handbook data:', err);
+        console.log('Using local fallback handbook data:', err);
         setChapters([]);
         setCurrentChapter(null);
       } finally {
@@ -814,7 +815,7 @@ export default function HandbookReaderScreen() {
       }
     }
     fetchHandbook();
-  }, []);
+  }, [retryKey]);
 
   // Disable native iOS swipe-back when modals are open
   useEffect(() => {
@@ -1220,6 +1221,29 @@ export default function HandbookReaderScreen() {
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#A31621" />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>正在调阅新生手册电子排版...</Text>
+      </View>
+    );
+  }
+
+  if (chapters.length === 0) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <MaterialCommunityIcons name="wifi-off" size={48} color="#A31621" style={{ marginBottom: 12 }} />
+        <Text style={[styles.loadingText, { color: colors.textPrimary, fontWeight: 'bold' }]}>
+          {t('networkErrorTitle') || '网络似乎出了点问题'}
+        </Text>
+        <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginHorizontal: 40, marginTop: 4, marginBottom: 16 }}>
+          {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+        </Text>
+        <Pressable
+          style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 }}
+          onPress={() => {
+            setLoading(true);
+            setRetryKey(k => k + 1);
+          }}
+        >
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{t('retry') || '重新连接'}</Text>
+        </Pressable>
       </View>
     );
   }

@@ -913,9 +913,17 @@ export default function EmptyClassroomScreen() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || getTxt('errorMsg'));
+      const errMsg = err.message || '';
+      const isNetworkError = !errMsg || 
+                            errMsg.includes('fetch failed') || 
+                            errMsg.includes('Network request failed') || 
+                            errMsg.includes('UnknownHostException') || 
+                            errMsg.includes('Unable to resolve') ||
+                            errMsg.includes('Failed to fetch');
+      const displayError = isNetworkError ? getTxt('errorMsg') : errMsg;
+      setError(displayError);
       if (isRefresh) {
-        triggerToast(activeLang === 'en' ? `❌ Refresh failed: ${err.message || 'Network error'}` : activeLang === 'it' ? `❌ Aggiornamento fallito: ${err.message || 'Errore di rete'}` : activeLang === 'zh-Hant' ? `❌ 刷新失敗: ${err.message || '網絡錯誤'}` : `❌ 刷新失败: ${err.message || '网络错误'}`);
+        triggerToast(`❌ ${displayError}`);
       }
     } finally {
       setLoading(false);

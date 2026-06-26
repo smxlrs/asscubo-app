@@ -8,6 +8,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { ThemeProvider as NavigationProvider, DefaultTheme, DarkTheme } from 'expo-router/react-navigation';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch((err) => {
@@ -224,30 +226,6 @@ function AppContent() {
     },
   };
 
-  // 离线 / 网络错误全屏提示
-  if (networkError && !loading) {
-    return (
-      <View style={[offlineStyles.container, { backgroundColor: isDark ? '#0A0A0A' : '#F5F7FA' }]}>
-        <Text style={offlineStyles.icon}>📡</Text>
-        <Text style={[offlineStyles.title, { color: isDark ? '#F5F5F5' : '#1D2939' }]}>
-          {t('networkErrorTitle') || '网络似乎出了点问题'}
-        </Text>
-        <Text style={[offlineStyles.sub, { color: isDark ? '#A0A0A0' : '#6B7280' }]}>
-          {t('networkErrorSub') || '请检查网络连接后重试'}
-        </Text>
-        <Pressable
-          style={({ pressed }) => [offlineStyles.btn, { opacity: pressed ? 0.75 : 1 }]}
-          onPress={retryInit}
-        >
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={offlineStyles.btnText}>{t('retry') || '重试'}</Text>
-          }
-        </Pressable>
-      </View>
-    );
-  }
-
   return (
     <NavigationProvider value={navTheme}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -287,10 +265,6 @@ const offlineStyles = StyleSheet.create({
     padding: 40,
     gap: 12,
   },
-  icon: {
-    fontSize: 52,
-    marginBottom: 8,
-  },
   title: {
     fontSize: 20,
     fontWeight: '700',
@@ -300,20 +274,67 @@ const offlineStyles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 8,
+    marginBottom: 16,
   },
   btn: {
-    marginTop: 12,
+    marginTop: 8,
     backgroundColor: '#A31621',
     paddingHorizontal: 36,
     paddingVertical: 13,
-    borderRadius: 12,
-    minWidth: 140,
+    borderRadius: 24,
+    minWidth: 180,
     alignItems: 'center',
   },
   btnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  secondaryBtn: {
+    marginTop: 8,
+    borderWidth: 1,
+    paddingHorizontal: 36,
+    paddingVertical: 12,
+    borderRadius: 24,
+    minWidth: 180,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  secondaryBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  banner: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 9999,
+  },
+  bannerText: {
+    fontSize: 12,
+    fontWeight: '500',
+    flex: 1,
+  },
+  bannerBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  bannerBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
     fontWeight: '700',
   },
 });

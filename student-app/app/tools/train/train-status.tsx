@@ -486,7 +486,7 @@ export default function TrainStatusScreen() {
         setErrorMsg(t('error'));
       }
     } catch (e) {
-      console.error(e);
+      console.log(e);
       setErrorMsg(t('error'));
     } finally {
       setLoading(false);

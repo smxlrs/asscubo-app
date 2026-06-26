@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -103,33 +104,43 @@ export default function EventsScreen() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [registering, setRegistering] = useState<string | null>(null);
 
   async function fetchEvents() {
-    const { data: eventsData } = await supabase
-      .from('events')
-      .select('*')
-      .eq('is_published', true)
-      .order('start_time', { ascending: true });
+    try {
+      setHasError(false);
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('is_published', true)
+        .order('start_time', { ascending: true });
 
-    if (!eventsData) { setLoading(false); return; }
+      if (eventsError) throw eventsError;
+      if (!eventsData) { setLoading(false); return; }
 
-    let myEventIds = new Set<string>();
-    if (user) {
-      const { data: myRegs } = await supabase
-        .from('event_registrations')
-        .select('event_id')
-        .eq('user_id', user.id)
-        .eq('status', 'confirmed');
-      myEventIds = new Set(myRegs?.map(r => r.event_id) || []);
+      let myEventIds = new Set<string>();
+      if (user) {
+        const { data: myRegs, error: regsError } = await supabase
+          .from('event_registrations')
+          .select('event_id')
+          .eq('user_id', user.id)
+          .eq('status', 'confirmed');
+        if (regsError) throw regsError;
+        myEventIds = new Set(myRegs?.map(r => r.event_id) || []);
+      }
+
+      setEvents(eventsData.map(e => ({
+        ...e,
+        _user_registered: myEventIds.has(e.id),
+      })));
+    } catch (e) {
+      console.warn('Failed to fetch events:', e);
+      setHasError(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-
-    setEvents(eventsData.map(e => ({
-      ...e,
-      _user_registered: myEventIds.has(e.id),
-    })));
-    setLoading(false);
-    setRefreshing(false);
   }
 
   useEffect(() => { fetchEvents(); }, [user]);
@@ -200,6 +211,25 @@ export default function EventsScreen() {
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+      ) : hasError ? (
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="wifi-off" size={48} color="#A31621" style={{ marginBottom: 12 }} />
+          <Text style={[styles.errorText, { color: colors.textPrimary }]}>
+            {t('networkErrorTitle') || '网络似乎出了点问题'}
+          </Text>
+          <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
+            {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              setLoading(true);
+              fetchEvents();
+            }}
+          >
+            <Text style={styles.retryBtnText}>{t('retry') || '重新连接'}</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={events}
@@ -331,4 +361,28 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: SPACING.base },
   emptyText: { fontSize: SIZES.base, fontFamily: FONTS.regular },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  retryBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });

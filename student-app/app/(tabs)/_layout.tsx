@@ -132,13 +132,20 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
           />
         </Animated.View>
       </View>
-      <Text style={[
-        styles.tabLabel, 
-        { 
-          color: iconColor,
-          fontWeight: focused ? '600' : 'normal' 
-        }
-      ]}>
+      <Text 
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={[
+          styles.tabLabel, 
+          { 
+            color: iconColor,
+            fontWeight: focused ? '600' : 'normal',
+            fontSize: label.length > 4 ? 9 : 10,
+            paddingHorizontal: 2,
+          }
+        ]}
+      >
         {label}
       </Text>
     </View>

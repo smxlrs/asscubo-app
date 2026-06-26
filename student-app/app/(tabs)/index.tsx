@@ -186,6 +186,133 @@ function getWeatherInfo(code: number, isDay: number) {
   }
 }
 
+function getLocalizedCity(city: typeof CITIES[0], lang: string) {
+  const isZh = lang === 'zh' || lang === 'zh-Hant';
+  
+  // Safe extraction to handle legacy items in AsyncStorage
+  const rawEnglishName = city?.englishName || '';
+  const rawCountry = city?.country || '意大利';
+  const rawName = city?.name || '';
+  
+  // 1. Determine Country
+  let country = rawCountry;
+  if (rawCountry === '意大利') {
+    if (lang === 'zh-Hant') country = '義大利';
+    else if (lang === 'en') country = 'Italy';
+    else if (lang === 'it') country = 'Italia';
+  } else if (rawCountry === '中国') {
+    if (lang === 'zh-Hant') country = '中國';
+    else if (lang === 'en') country = 'China';
+    else if (lang === 'it') country = 'Cina';
+  }
+
+  // 2. Parse englishName and detail
+  let parsedEnglishName = rawEnglishName;
+  let detail = '';
+
+  if (rawEnglishName) {
+    const parenMatch = rawEnglishName.match(/^(.*?)\s*\((.*?)\)$/);
+    if (parenMatch) {
+      parsedEnglishName = parenMatch[1].trim();
+      const rawDetail = parenMatch[2].trim();
+      if (rawDetail === '主校区') {
+        if (lang === 'zh') detail = '主校区';
+        else if (lang === 'zh-Hant') detail = '主校區';
+        else if (lang === 'en') detail = 'Main Campus';
+        else if (lang === 'it') detail = 'Sede Centrale';
+      } else if (rawDetail === '博大校区') {
+        if (lang === 'zh') detail = '博大校区';
+        else if (lang === 'zh-Hant') detail = '博大校區';
+        else if (lang === 'en') detail = 'UniBo Campus';
+        else if (lang === 'it') detail = 'Campus UniBo';
+      }
+    }
+  }
+
+  // 3. Handle city name slash translation
+  let name = rawName;
+  if (!isZh && parsedEnglishName) {
+    const slashMatch = parsedEnglishName.split('/');
+    if (slashMatch.length > 1) {
+      name = lang === 'it' ? slashMatch[0].trim() : slashMatch[1].trim();
+    } else {
+      name = parsedEnglishName;
+    }
+  } else if (lang === 'zh-Hant') {
+    if (rawName === '博洛尼亚') name = '博洛尼亞';
+    else if (rawName === '切塞纳') name = '切塞納';
+    else if (rawName === '罗马') name = '羅馬';
+    else if (rawName === '米兰') name = '米蘭';
+    else if (rawName === '佛罗伦萨') name = '佛羅倫薩';
+    else if (rawName === '都灵') name = '都靈';
+    else if (rawName === '比萨') name = '比薩';
+    else if (rawName === '热那亚') name = '熱那亞';
+    else if (rawName === '的里雅斯特') name = '的里雅斯特';
+    else if (rawName === '北京') name = '北京';
+    else if (rawName === '上海') name = '上海';
+    else if (rawName === '广州') name = '廣州';
+    else if (rawName === '深圳') name = '深圳';
+    else if (rawName === '成都') name = '成都';
+    else if (rawName === '杭州') name = '杭州';
+    else if (rawName === '武汉') name = '武漢';
+    else if (rawName === '西安') name = '西安';
+    else if (rawName === '南京') name = '南京';
+    else if (rawName === '重庆') name = '重慶';
+    else if (rawName === '天津') name = '天津';
+    else if (rawName === '苏州') name = '蘇州';
+    else if (rawName === '长沙') name = '長沙';
+    else if (rawName === '青岛') name = '青島';
+    else if (rawName === '大连') name = '大連';
+    else if (rawName === '厦门') name = '廈門';
+    else if (rawName === '福州') name = '福州';
+    else if (rawName === '沈阳') name = '瀋陽';
+    else if (rawName === '哈尔滨') name = '哈爾濱';
+    else if (rawName === '合肥') name = '合肥';
+    else if (rawName === '昆明') name = '昆明';
+    else if (rawName === '济南') name = '濟南';
+    else if (rawName === '郑州') name = '鄭州';
+    else if (rawName === '无锡') name = '無錫';
+    else if (rawName === '南宁') name = '南寧';
+    else if (rawName === '乌鲁木齐') name = '烏魯木齊';
+    else if (rawName === '兰州') name = '蘭州';
+  }
+
+  let subName = '';
+  if (isZh && parsedEnglishName) {
+    const slashMatch = parsedEnglishName.split('/');
+    subName = slashMatch[0].trim();
+    if (rawName === '北京') subName = 'Beijing';
+    else if (rawName === '上海') subName = 'Shanghai';
+    else if (rawName === '广州') subName = 'Guangzhou';
+    else if (rawName === '深圳') subName = 'Shenzhen';
+    else if (rawName === '成都') subName = 'Chengdu';
+    else if (rawName === '杭州') subName = 'Hangzhou';
+    else if (rawName === '武汉') subName = 'Wuhan';
+    else if (rawName === '西安') subName = "Xi'an";
+    else if (rawName === '南京') subName = 'Nanjing';
+    else if (rawName === '重庆') subName = 'Chongqing';
+    else if (rawName === '天津') subName = 'Tianjin';
+    else if (rawName === '苏州') subName = 'Suzhou';
+    else if (rawName === '长沙') subName = 'Changsha';
+    else if (rawName === '青岛') subName = 'Qingdao';
+    else if (rawName === '大连') subName = 'Dalian';
+    else if (rawName === '厦门') subName = 'Xiamen';
+    else if (rawName === '福州') subName = 'Fuzhou';
+    else if (rawName === '沈阳') subName = 'Shenyang';
+    else if (rawName === '哈尔滨') subName = 'Harbin';
+    else if (rawName === '合肥') subName = 'Hefei';
+    else if (rawName === '昆明') subName = 'Kunming';
+    else if (rawName === '济南') subName = 'Jinan';
+    else if (rawName === '郑州') subName = 'Zhengzhou';
+    else if (rawName === '无锡') subName = 'Wuxi';
+    else if (rawName === '南宁') subName = 'Nanning';
+    else if (rawName === '乌鲁木齐') subName = 'Urumqi';
+    else if (rawName === '兰州') subName = 'Lanzhou';
+  }
+
+  return { name, detail, country, subName };
+}
+
 const CITIES = [
   // 博洛尼亚大学各校区 (University of Bologna Campuses) - 放在最前
   { name: '博洛尼亚', englishName: 'Bologna (主校区)', lat: 44.4949, lon: 11.3426, country: '意大利' },
@@ -279,6 +406,7 @@ export default function HomeScreen() {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Toast State for Refresh feedback
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -387,18 +515,7 @@ export default function HomeScreen() {
       }
     } catch (e) {
       console.warn('Failed to fetch weather:', e);
-      // Fallback data
-      setWeather({
-        temp: 22,
-        apparentTemp: 21.5,
-        humidity: 60,
-        windSpeed: 8.5,
-        code: 0,
-        isDay: 1,
-        label: 'weatherClear',
-        icon: 'sunny-outline',
-        color: '#FFB300'
-      });
+      setWeather(null);
     } finally {
       if (isRefresh) {
         const elapsedTime = Date.now() - startTime;
@@ -431,80 +548,91 @@ export default function HomeScreen() {
   }
 
   async function fetchData(isRefresh = false) {
-    const [notificationsRes, articlesRes, eventsRes] = await Promise.all([
-      supabase
-        .from('notifications')
-        .select('id, title, content, category, cover_image, created_at, link, is_pinned')
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('articles')
-        .select('id, title, summary, category, cover_image, created_at, link, is_pinned, view_count')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('events')
-        .select('id, title, location, start_time, cover_image')
-        .eq('is_published', true)
-        .gte('start_time', new Date().toISOString())
-        .order('start_time', { ascending: true })
-        .limit(3),
-    ]);
+    try {
+      setHasError(false);
+      const [notificationsRes, articlesRes, eventsRes] = await Promise.all([
+        supabase
+          .from('notifications')
+          .select('id, title, content, category, cover_image, created_at, link, is_pinned')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('articles')
+          .select('id, title, summary, category, cover_image, created_at, link, is_pinned, view_count')
+          .eq('is_published', true)
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('events')
+          .select('id, title, location, start_time, cover_image')
+          .eq('is_published', true)
+          .gte('start_time', new Date().toISOString())
+          .order('start_time', { ascending: true })
+          .limit(3),
+      ]);
 
-    const combined: Article[] = [];
+      if (notificationsRes.error) throw notificationsRes.error;
+      if (articlesRes.error) throw articlesRes.error;
+      if (eventsRes.error) throw eventsRes.error;
 
-    if (notificationsRes.data) {
-      notificationsRes.data.forEach((item: any) => {
-        combined.push({
-          id: item.id,
-          title: item.title,
-          summary: item.content || null,
-          category: item.category || 'general',
-          cover_image: item.cover_image || null,
-          created_at: item.created_at,
-          view_count: 0,
-          link: item.link || null,
-          type: 'notification',
-          is_pinned: item.is_pinned
+      const combined: Article[] = [];
+
+      if (notificationsRes.data) {
+        notificationsRes.data.forEach((item: any) => {
+          combined.push({
+            id: item.id,
+            title: item.title,
+            summary: item.content || null,
+            category: item.category || 'general',
+            cover_image: item.cover_image || null,
+            created_at: item.created_at,
+            view_count: 0,
+            link: item.link || null,
+            type: 'notification',
+            is_pinned: item.is_pinned
+          });
         });
-      });
-    }
+      }
 
-    if (articlesRes.data) {
-      articlesRes.data.forEach((item: any) => {
-        combined.push({
-          id: item.id,
-          title: item.title,
-          summary: item.summary || null,
-          category: item.category || 'general',
-          cover_image: item.cover_image || null,
-          created_at: item.created_at,
-          view_count: item.view_count || 0,
-          link: item.link || null,
-          type: 'article',
-          is_pinned: item.is_pinned
+      if (articlesRes.data) {
+        articlesRes.data.forEach((item: any) => {
+          combined.push({
+            id: item.id,
+            title: item.title,
+            summary: item.summary || null,
+            category: item.category || 'general',
+            cover_image: item.cover_image || null,
+            created_at: item.created_at,
+            view_count: item.view_count || 0,
+            link: item.link || null,
+            type: 'article',
+            is_pinned: item.is_pinned
+          });
         });
+      }
+
+      // Sort by is_pinned DESC, then created_at DESC
+      combined.sort((a, b) => {
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-    }
 
-    // Sort by is_pinned DESC, then created_at DESC
-    combined.sort((a, b) => {
-      if (a.is_pinned && !b.is_pinned) return -1;
-      if (!a.is_pinned && b.is_pinned) return 1;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+      setArticles(combined);
+      setNotifications([]); // Clear independent notifications state
 
-    setArticles(combined);
-    setNotifications([]); // Clear independent notifications state
-
-    if (eventsRes.data) setUpcomingEvents(eventsRes.data);
-    setLoading(false);
-    setRefreshing(false);
-    if (isRefresh) {
-      setTimeout(() => {
-        triggerToast('refresh_success');
-      }, 150);
+      if (eventsRes.data) setUpcomingEvents(eventsRes.data);
+      if (isRefresh) {
+        setTimeout(() => {
+          triggerToast('refresh_success');
+        }, 150);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch home index data:', e);
+      setHasError(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   }
 
@@ -524,8 +652,9 @@ export default function HomeScreen() {
         const savedCityJson = await AsyncStorage.getItem('user_weather_city');
         if (savedCityJson) {
           const savedCity = JSON.parse(savedCityJson);
-          setSelectedCity(savedCity);
-          fetchWeather(false, savedCity);
+          const matchingCity = CITIES.find(c => c.name === savedCity.name) || CITIES[0];
+          setSelectedCity(matchingCity);
+          fetchWeather(false, matchingCity);
         } else {
           fetchWeather(false, CITIES[0]);
         }
@@ -672,7 +801,7 @@ export default function HomeScreen() {
               >
                 <MaterialCommunityIcons name="map-marker-outline" size={14} color={isDark ? 'rgba(255,255,255,0.6)' : '#7A1018'} style={{ marginRight: 2 }} />
                 <Text style={[styles.weatherLocationText, { color: isDark ? 'rgba(255,255,255,0.8)' : '#7A1018' }]}>
-                  {language === 'zh' || language === 'zh-Hant' ? selectedCity.name : (selectedCity.englishName ? selectedCity.englishName.split(' ')[0] : selectedCity.name)}
+                  {getLocalizedCity(selectedCity, language).name}
                 </Text>
                 <Text style={[styles.weatherSourceText, { color: isDark ? 'rgba(255,255,255,0.4)' : '#98A2B3', marginLeft: 4 }]}>
                   {t('weatherDataSource')}
@@ -812,7 +941,31 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {articles.length === 0 ? (
+          {hasError ? (
+            <View style={styles.errorState}>
+              <MaterialCommunityIcons 
+                name="wifi-off" 
+                size={40} 
+                color={isDark ? '#EF4444' : '#A31621'} 
+                style={{ marginBottom: 6 }}
+              />
+              <Text style={[styles.errorText, { color: colors.textPrimary }]}>
+                {t('networkErrorTitle') || '网络似乎出了点问题'}
+              </Text>
+              <Text style={[styles.errorSubText, { color: colors.textSecondary }]}>
+                {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+              </Text>
+              <TouchableOpacity
+                style={[styles.errorBtn, { backgroundColor: colors.primary }]}
+                onPress={() => {
+                  setLoading(true);
+                  fetchData(true);
+                }}
+              >
+                <Text style={styles.errorBtnText}>{t('retry') || '重新连接'}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : articles.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>📭</Text>
               <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t('noContent')}</Text>
@@ -970,18 +1123,28 @@ export default function HomeScreen() {
                     setSearchQuery('');
                   }}
                 >
-                  <View>
-                    <Text style={[
-                      styles.cityItemText,
-                      { color: isDark ? '#FFFFFF' : '#344054' },
-                      selectedCity.name === city.name && { color: colors.primary, fontWeight: '600' }
-                    ]}>
-                      {city.name}
-                    </Text>
-                    <Text style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.4)' : '#667085', marginTop: 2 }}>
-                      {city.englishName} ({city.country})
-                    </Text>
-                  </View>
+                  {(() => {
+                    const loc = getLocalizedCity(city, language);
+                    const isZh = language === 'zh' || language === 'zh-Hant';
+                    const mainText = loc.name;
+                    const subText = isZh 
+                      ? `${loc.subName}${loc.detail ? ` (${loc.detail})` : ''} (${loc.country})`
+                      : `${loc.name}${loc.detail ? ` (${loc.detail})` : ''} (${loc.country})`;
+                    return (
+                      <View>
+                        <Text style={[
+                          styles.cityItemText,
+                          { color: isDark ? '#FFFFFF' : '#344054' },
+                          selectedCity.name === city.name && { color: colors.primary, fontWeight: '600' }
+                        ]}>
+                          {mainText}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.4)' : '#667085', marginTop: 2 }}>
+                          {subText}
+                        </Text>
+                      </View>
+                    );
+                  })()}
                   {selectedCity.name === city.name && (
                     <Ionicons name="checkmark" size={18} color={colors.primary} />
                   )}
@@ -1411,5 +1574,34 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 4,
     zIndex: 99999,
+  },
+  errorState: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  errorSubText: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 24,
+  },
+  errorBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

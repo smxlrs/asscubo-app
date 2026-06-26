@@ -329,6 +329,10 @@ const translations: Record<Language, Record<string, string>> = {
     quickAction_announcements_desc: '查看最新校园公告与通知',
     quickAction_settings: '系统设置',
     quickAction_settings_desc: '个性化您的应用设置',
+    networkErrorTitle: '网络似乎出了点问题',
+    networkErrorSub: '目前无法连接到服务器，请检查您的网络设置',
+    retry: '重新连接',
+    offlineMode: '离线使用',
   },
   en: {
     home: 'Home',
@@ -420,7 +424,7 @@ const translations: Record<Language, Record<string, string>> = {
     feedbackError: 'Please fill out all fields',
     acssDescription: 'The Chinese Students and Scholars Association of the University of Bologna (ASSCUBO) is an independent, non-political, and non-profit association. Its full Italian name is "ASSOCIAZIONE DI STUDENTI E STUDIOSI CINESI DELL’UNIVERSITA’ DI BOLOGNA". ASSCUBO is dedicated to promoting communication between Chinese international students and local students, protecting the rights of international students in Italy, providing necessary assistance and services to students at the University of Bologna, and creating a supportive learning environment.',
     trainToolTitle: 'Italian Train Info',
-    trainToolDesc: 'Real-time departures, arrivals, platforms, and delay tracking for Italian trains.',
+    trainToolDesc: 'Real-time board and delay tracking for Italian trains.',
     usefulLinks: 'Useful Links',
     officialPlatforms: 'Official Platforms',
     loginSubtitle: 'Official mobile app of ASSCUBO',
@@ -582,6 +586,10 @@ const translations: Record<Language, Record<string, string>> = {
     quickAction_announcements_desc: 'Check latest news & alerts',
     quickAction_settings: 'Settings',
     quickAction_settings_desc: 'Personalize your preferences',
+    networkErrorTitle: 'It seems there\'s a problem with the network',
+    networkErrorSub: 'Unable to connect to the server. Please check your network settings.',
+    retry: 'Retry Connection',
+    offlineMode: 'Offline Mode',
   },
   it: {
     home: 'Home',
@@ -673,7 +681,7 @@ const translations: Record<Language, Record<string, string>> = {
     feedbackError: 'Si prega di compilare tutti i campi',
     acssDescription: "L’Associazione di Studenti e Studiosi Cinesi dell’Università di Bologna (ASSCUBO) è un’associazione indipendente, apolitica e senza scopo di lucro. La denominazione ufficiale in italiano è \"ASSOCIAZIONE DI STUDENTI E STUDIOSI CINESI DELL’UNIVERSITA’ DI BOLOGNA\", abbreviato in \"ASSCUBO\". L’Associazione si impegna a promuovere lo scambio tra studenti cinesi e locali, tutelare i diritti degli studenti in Italia, fornire assistenza e servizi necessari per chi studia all’Università di Bologna e creare un ambiente di studio accogliente.",
     trainToolTitle: 'Orario e Stato Treni',
-    trainToolDesc: 'Tabellone partenze/arrivi in tempo reale, binari e tracciamento ritardi dei treni.',
+    trainToolDesc: 'Tabellone in tempo reale e tracciamento ritardi per treni italiani.',
     usefulLinks: 'Link Utili',
     officialPlatforms: 'Canali Ufficiali',
     loginSubtitle: 'App mobile ufficiale di ASSCUBO',
@@ -835,6 +843,10 @@ const translations: Record<Language, Record<string, string>> = {
     quickAction_announcements_desc: 'Vedi le ultime notizie',
     quickAction_settings: 'Impostazioni',
     quickAction_settings_desc: 'Personalizza l\'applicazione',
+    networkErrorTitle: 'Sembra che ci sia un problema con la rete',
+    networkErrorSub: 'Impossibile connettersi al server. Verifica le tue impostazioni di rete.',
+    retry: 'Riprova',
+    offlineMode: 'Modalità Offline',
   },
   'zh-Hant': {
     home: '首頁',
@@ -1086,6 +1098,10 @@ const translations: Record<Language, Record<string, string>> = {
     quickAction_announcements_desc: '查看最新校園公告與通知',
     quickAction_settings: '系統設置',
     quickAction_settings_desc: '個性化您的應用設置',
+    networkErrorTitle: '網路似乎出了點問題',
+    networkErrorSub: '目前無法連接到伺服器，請檢查您的網路設置',
+    retry: '重新連接',
+    offlineMode: '離線使用',
   }
 };
 

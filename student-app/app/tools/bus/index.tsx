@@ -564,7 +564,7 @@ const getMapHtml = (isDark: boolean, localized: any) => `
 `;
 
 export default function BusBoardScreen() {
-  const { colors, isDark, language } = useTheme();
+  const { colors, isDark, language, t } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   const webViewRef = useRef<WebView>(null);
 
@@ -1208,8 +1208,24 @@ export default function BusBoardScreen() {
           </View>
         ) : queryError ? (
           <View style={styles.errorContainer}>
-            <MaterialCommunityIcons name="alert-circle-outline" size={32} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.textPrimary }]}>{queryError}</Text>
+            <MaterialCommunityIcons name="alert-circle-outline" size={32} color={colors.error} style={{ marginBottom: 8 }} />
+            <Text style={[styles.errorText, { color: colors.textPrimary, marginBottom: 12 }]}>{queryError}</Text>
+            <Pressable
+              onPress={() => executeQuery(activeStopCode!, activeStopName!)}
+              style={({ pressed }) => [
+                {
+                  backgroundColor: colors.primary,
+                  paddingVertical: 8,
+                  paddingHorizontal: 20,
+                  borderRadius: 16,
+                  opacity: pressed ? 0.75 : 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }
+              ]}
+            >
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{t('retry') || '重试'}</Text>
+            </Pressable>
           </View>
         ) : (
           <View style={styles.arrivalsList}>

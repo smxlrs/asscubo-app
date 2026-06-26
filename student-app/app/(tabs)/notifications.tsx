@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, TextInput, BackHandler, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, TextInput, BackHandler, Animated, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,6 +33,7 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const [hasMore, setHasMore] = useState(true);
@@ -87,6 +88,7 @@ export default function NotificationsScreen() {
   async function fetchNotifications(isRefresh = false, filter = selectedFilter, showToast = false) {
     if (!isRefresh && loadingMoreRef.current) return;
     try {
+      setHasError(false);
       if (isRefresh) {
         setRefreshing(true);
       } else {
@@ -137,6 +139,7 @@ export default function NotificationsScreen() {
       }
     } catch (e) {
       console.log('Failed to fetch from articles table:', e);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -256,6 +259,25 @@ export default function NotificationsScreen() {
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : hasError ? (
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="wifi-off" size={48} color="#A31621" style={{ marginBottom: 12 }} />
+          <Text style={[styles.errorText, { color: colors.textPrimary }]}>
+            {t('networkErrorTitle') || '网络似乎出了点问题'}
+          </Text>
+          <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
+            {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              setLoading(true);
+              fetchNotifications(true);
+            }}
+          >
+            <Text style={styles.retryBtnText}>{t('retry') || '重新连接'}</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -547,5 +569,22 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 4,
     zIndex: 99999,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  retryBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

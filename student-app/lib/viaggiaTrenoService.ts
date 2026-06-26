@@ -688,7 +688,7 @@ export async function searchStations(query: string): Promise<VtStation[]> {
       
     return parsed;
   } catch (error) {
-    console.error('Error fetching stations from ViaggiaTreno API:', error);
+    console.log('Error fetching stations from ViaggiaTreno API:', error);
     return [];
   }
 }
@@ -723,7 +723,7 @@ export async function searchTrain(trainNumber: string | number): Promise<VtTrain
           };
         });
     } catch (error) {
-      console.error('Error searching train number via ViaggiaTreno:', error);
+      console.log('Error searching train number via ViaggiaTreno:', error);
       return [];
     }
   })();
@@ -754,7 +754,7 @@ export async function searchTrain(trainNumber: string | number): Promise<VtTrain
         }];
       }
     } catch (error) {
-      console.error('Error searching Italo train:', error);
+      console.log('Error searching Italo train:', error);
     }
     return [];
   })();
@@ -763,7 +763,7 @@ export async function searchTrain(trainNumber: string | number): Promise<VtTrain
     const [vtMatches, italoMatches] = await Promise.all([vtPromise, italoPromise]);
     return [...italoMatches, ...vtMatches];
   } catch (error) {
-    console.error('Error in parallel searchTrain:', error);
+    console.log('Error in parallel searchTrain:', error);
     return [];
   }
 }
@@ -789,7 +789,7 @@ export async function getTrainStatus(
       const data = await response.json();
       return parseItaloTrainStatus(data);
     } catch (error) {
-      console.error('Error fetching Italo train status:', error);
+      console.log('Error fetching Italo train status:', error);
       return null;
     }
   }
@@ -863,7 +863,7 @@ export async function getTrainStatus(
       codiceCliente: data.codiceCliente
     });
   } catch (error) {
-    console.error('Error fetching train status details:', error);
+    console.log('Error fetching train status details:', error);
     return null;
   }
 }
@@ -878,6 +878,8 @@ export async function getStationBoard(
 ): Promise<VtBoardEntry[]> {
   const cleanId = stationID.trim();
   if (!cleanId) return [];
+
+  let fetchError: any = null;
 
   const vtPromise = (async (): Promise<VtBoardEntry[]> => {
     try {
@@ -924,7 +926,8 @@ export async function getStationBoard(
         });
       });
     } catch (error) {
-      console.error(`Error fetching station ${mode} board from ViaggiaTreno:`, error);
+      console.log(`Error fetching station ${mode} board from ViaggiaTreno:`, error);
+      fetchError = error;
       return [];
     }
   })();
@@ -977,20 +980,21 @@ export async function getStationBoard(
         });
       });
     } catch (error) {
-      console.error(`Error fetching Italo station board for ${cleanId}:`, error);
+      console.log(`Error fetching Italo station board for ${cleanId}:`, error);
+      fetchError = error;
       return [];
     }
   })();
 
-  try {
-    const [vtEntries, italoEntries] = await Promise.all([vtPromise, italoPromise]);
-    const merged = [...italoEntries, ...vtEntries];
-    merged.sort((a, b) => a.scheduledTime - b.scheduledTime);
-    return merged;
-  } catch (error) {
-    console.error('Error in parallel getStationBoard:', error);
-    return [];
+  const [vtEntries, italoEntries] = await Promise.all([vtPromise, italoPromise]);
+
+  if (vtEntries.length === 0 && italoEntries.length === 0 && fetchError) {
+    throw fetchError;
   }
+
+  const merged = [...italoEntries, ...vtEntries];
+  merged.sort((a, b) => a.scheduledTime - b.scheduledTime);
+  return merged;
 }
 
 export interface VtAlert {
@@ -1050,7 +1054,7 @@ export async function getTrainAlerts(
         timestamp: item.data || 0
       }));
   } catch (error) {
-    console.error('Error fetching train alerts:', error);
+    console.log('Error fetching train alerts:', error);
     return [];
   }
 }

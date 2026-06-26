@@ -56,6 +56,7 @@ export default function AnnouncementsScreen() {
   const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
 
@@ -68,6 +69,7 @@ export default function AnnouncementsScreen() {
 
   async function fetchInitialData() {
     try {
+      setHasError(false);
       setLoading(true);
       
       const [notificationsRes, articlesRes] = await Promise.all([
@@ -125,6 +127,7 @@ export default function AnnouncementsScreen() {
       setDisplayLimit(40);
     } catch (e) {
       console.error('Failed to fetch initial announcements data:', e);
+      setHasError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -252,6 +255,25 @@ export default function AnnouncementsScreen() {
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40, backgroundColor: bgColor }} color={colors.primary} />
+      ) : hasError ? (
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="wifi-off" size={48} color="#A31621" style={{ marginBottom: 12 }} />
+          <Text style={[styles.errorText, { color: colors.textPrimary }]}>
+            {t('networkErrorTitle') || '网络似乎出了点问题'}
+          </Text>
+          <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
+            {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              setLoading(true);
+              fetchInitialData();
+            }}
+          >
+            <Text style={styles.retryBtnText}>{t('retry') || '重新连接'}</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={displayItems}
@@ -437,4 +459,27 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: SPACING.base },
   emptyText: { fontSize: SIZES.base, fontFamily: FONTS.regular, color: COLORS.textMuted },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  retryBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });
