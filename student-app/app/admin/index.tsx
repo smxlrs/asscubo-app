@@ -242,20 +242,11 @@ export default function AdminDashboardScreen() {
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {/* User check placeholder */}
-          <View style={[styles.rowView, { borderBottomColor: colors.border }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialCommunityIcons name="account-check-outline" size={20} color={colors.textMuted} style={styles.rowIcon} />
-              <Text style={[styles.rowLabel, { color: colors.textMuted }]}>用户注册审核</Text>
-            </View>
-            <Text style={[styles.statusText, { color: colors.textMuted }]}>建设中</Text>
-          </View>
-
-          {/* Studyroom config placeholder */}
+          {/* ASSCUBO Card management placeholder */}
           <View style={styles.rowView}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialCommunityIcons name="cog-outline" size={20} color={colors.textMuted} style={styles.rowIcon} />
-              <Text style={[styles.rowLabel, { color: colors.textMuted }]}>自习室数据配置</Text>
+              <MaterialCommunityIcons name="card-account-details-outline" size={20} color={colors.textMuted} style={styles.rowIcon} />
+              <Text style={[styles.rowLabel, { color: colors.textMuted }]}>学联卡管理</Text>
             </View>
             <Text style={[styles.statusText, { color: colors.textMuted }]}>建设中</Text>
           </View>
