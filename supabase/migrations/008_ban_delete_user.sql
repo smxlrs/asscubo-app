@@ -58,3 +58,28 @@ BEGIN
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 4. Create trigger to sync is_banned column with auth.users.banned_until
+CREATE OR REPLACE FUNCTION public.sync_profile_ban_to_auth()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_banned = true THEN
+    -- Ban the user in auth.users by setting banned_until to a far-future date (year 3000)
+    UPDATE auth.users 
+    SET banned_until = '3000-01-01 00:00:00+00'::TIMESTAMPTZ
+    WHERE id = NEW.id;
+  ELSE
+    -- Unban the user in auth.users by clearing banned_until
+    UPDATE auth.users 
+    SET banned_until = NULL
+    WHERE id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_profile_ban_changed ON public.profiles;
+CREATE TRIGGER on_profile_ban_changed
+  AFTER UPDATE OF is_banned ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.sync_profile_ban_to_auth();
