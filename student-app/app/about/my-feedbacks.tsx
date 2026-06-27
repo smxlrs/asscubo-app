@@ -22,7 +22,7 @@ type UserFeedback = {
 const LOCALIZED = {
   zh: {
     title: '我的反馈信箱',
-    loginPrompt: '请先登录以查看您的反馈和学联的回复。',
+    loginPrompt: '请先登录以查看您的反馈',
     loginBtn: '登录账户',
     loading: '正在加载反馈记录...',
     noFeedbacks: '您的信箱空空如也',
@@ -37,7 +37,7 @@ const LOCALIZED = {
   },
   'zh-Hant': {
     title: '我的反饋信箱',
-    loginPrompt: '請先登錄以查看您的反饋和學聯的回覆。',
+    loginPrompt: '請先登錄以查看您的反饋',
     loginBtn: '登錄帳戶',
     loading: '正在加載反饋記錄...',
     noFeedbacks: '您的信箱空空如也',
@@ -52,7 +52,7 @@ const LOCALIZED = {
   },
   en: {
     title: 'My Feedback Inbox',
-    loginPrompt: 'Please log in to view your feedback and replies.',
+    loginPrompt: 'Please log in to view your feedback',
     loginBtn: 'Login',
     loading: 'Loading feedback records...',
     noFeedbacks: 'Your inbox is empty',
@@ -67,7 +67,7 @@ const LOCALIZED = {
   },
   it: {
     title: 'La Mia Casella di Feedback',
-    loginPrompt: 'Accedi per visualizzare i tuoi feedback e le risposte.',
+    loginPrompt: 'Accedi per visualizzare i tuoi feedback',
     loginBtn: 'Accedi',
     loading: 'Caricamento dei feedback...',
     noFeedbacks: 'La tua casella è vuota',
