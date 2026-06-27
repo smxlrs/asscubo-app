@@ -142,21 +142,38 @@ export default function AboutIndexScreen() {
       const newCount = tapCount + 1;
       setTapCount(newCount);
 
+      const isIt = language === 'it';
+      
       if (showLogs) {
-        showToast('您已处于调试模式');
+        if (language === 'zh-Hant') showToast('您已處於調試模式');
+        else if (isIt) showToast('Sei già in modalità debug');
+        else if (language === 'en') showToast('You are already in debug mode');
+        else showToast('您已处于调试模式');
         return;
       }
 
-      if (newCount === 2) {
-        showToast('再按三下进入调试模式');
-      } else if (newCount === 3) {
-        showToast('再按两下进入调试模式');
-      } else if (newCount === 4) {
-        showToast('再按一下进入调试模式');
-      } else if (newCount >= 5) {
+      if (newCount === 5) {
+        if (language === 'zh-Hant') showToast('再按三下進入調試模式');
+        else if (isIt) showToast('Tocca altre 3 volte per entrare in modalità debug');
+        else if (language === 'en') showToast('Tap 3 more times to enter debug mode');
+        else showToast('再按三下进入调试模式');
+      } else if (newCount === 6) {
+        if (language === 'zh-Hant') showToast('再按兩下進入調試模式');
+        else if (isIt) showToast('Tocca altre 2 volte per entrare in modalità debug');
+        else if (language === 'en') showToast('Tap 2 more times to enter debug mode');
+        else showToast('再按两下进入调试模式');
+      } else if (newCount === 7) {
+        if (language === 'zh-Hant') showToast('再按一下進入調試模式');
+        else if (isIt) showToast("Tocca un'altra volta per entrare in modalità debug");
+        else if (language === 'en') showToast('Tap 1 more time to enter debug mode');
+        else showToast('再按一下进入调试模式');
+      } else if (newCount >= 8) {
         setShowLogs(true);
         AsyncStorage.setItem('@ag_debug_mode', 'true');
-        showToast('您已进入调试模式');
+        if (language === 'zh-Hant') showToast('您已進入調試模式');
+        else if (isIt) showToast('Sei entrato in modalità debug');
+        else if (language === 'en') showToast('You have entered debug mode');
+        else showToast('您已进入调试模式');
         setTapCount(0);
       }
     } else {
