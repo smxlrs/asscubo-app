@@ -30,10 +30,7 @@ const LOCALIZED = {
     feat5Body: '实时换算今日最新欧元对人民币汇率，方便财务规划。精选博大教务系统（AlmaEsami）、居留预约平台（CupSubito）、学联官方网站及常用日常办事入口，一键直达，告别繁琐搜索。',
     
     sec3Title: '三、 技术亮点与用户体验',
-    sec3Body: '本平台使用现代混合开发框架进行构建，界面设计遵循极致简约与高质感美学。支持轻量化与深色模式（Dark Mode）的智能无缝适配。工具箱卡片支持流畅的拖拽手势重排排序，让您可以根据个人高频使用习惯个性化定制首屏工具布局。所有敏感权限（如 GPS 定位、相册读写等）均严格限制于设备沙盒本地处理，符合欧洲通用数据保护条例（GDPR）的严苛合规要求，并提供一键注销并永久抹除账户的高安全隐私机制。',
-    
-    sec4Title: '四、 关于学联 (ASSCUBO)',
-    sec4Body: '博洛尼亚大学中国学生学者联谊会（Associazione di Studenti e Studiosi Cinesi dell\'Università di Bologna）是在意大利内政部正式注册的非营利性中国学生学者组织，也是接受中国驻意大利大使馆科教处指导的学生团体。学联自成立以来，始终秉承致力于促进中国留学生同当地学生之间的交流并维护在意留学生的权益；为就读于博洛尼亚大学的留学生提供必要的帮助与服务；为广大留学生营造良好的学习环境的宗旨。博学平台是我们践行数字化便利服务的重要载体，欢迎每一位在博学子向我们反馈宝贵的使用意见。'
+    sec3Body: '本平台使用现代混合开发框架进行构建，界面设计遵循极致简约与高质感美学。支持轻量化与深色模式（Dark Mode）的智能无缝适配。工具箱卡片支持流畅的拖拽手势重排排序，让您可以根据个人高频使用习惯个性化定制首屏工具布局。所有敏感权限（如 GPS 定位、相册读写等）均严格限制于设备沙盒本地处理，符合欧洲通用数据保护条例（GDPR）的严苛合规要求，并提供一键注销并永久抹除账户的高安全隐私机制。'
   },
   'zh-Hant': {
     title: '平台簡介',
@@ -60,10 +57,7 @@ const LOCALIZED = {
     feat5Body: '實時換算今日最新歐元對人民幣匯率，方便財務規劃。精選博大教務系統（AlmaEsami）、居留預約平台（CupSubito）、學聯官方網站及常用日常辦事入口，一鍵直達，告別繁瑣搜尋。',
     
     sec3Title: '三、 技術亮點與用戶體驗',
-    sec3Body: '本平台使用現代混合開發框架進行建構，界面設計遵循極致簡約與高質感美學。支持輕量化與深色模式（Dark Mode）的智能無縫適配。工具箱卡片支持流暢的拖拽手勢重排排序，讓您可以根據個人高頻使用習慣個性化定制首屏工具布局。所有敏感權限（如 GPS 定位、相冊讀寫等）均嚴格限制於設備沙盒本地處理，符合歐洲通用數據保護條例（GDPR）的嚴苛合規要求，並提供一鍵註銷並永久抹除帳戶的高安全隱私機制。',
-    
-    sec4Title: '四、 關於學聯 (ASSCUBO)',
-    sec4Body: '博洛尼亞大學中国学生学者联谊会（Associazione di Studenti e Studiosi Cinesi dell\'Università di Bologna）是在意大利內政部正式註冊的非營利性中國學生學者組織，也是接受中國駐意大利大使館科教處指導的學生團體。學聯自成立以來，始終秉承致力於促進中國留學生同當地學生之間的交流並維護在意留學生的權益；為就讀於博洛尼亞大學的留學生提供必要的幫助與服務；為廣大留學生營造良好的學習環境的宗旨。博學平台是我們踐行數位化便利服務重要載體，歡迎每一位在博學子向我們反饋寶貴的使用意見。'
+    sec3Body: '本平台使用現代混合開發框架進行建構，界面設計遵循極致簡約與高質感美學。支持輕量化與深色模式（Dark Mode）的智能無縫適配。工具箱卡片支持流暢的拖拽手勢重排排序，讓您可以根據個人高頻使用習慣個性化定制首屏工具布局。所有敏感權限（如 GPS 定位、相冊讀寫等）均嚴格限制於設備沙盒本地處理，符合歐洲通用數據保護條例（GDPR）的嚴苛合規要求，並提供一鍵註銷並永久抹除帳戶的高安全隱私機制。'
   },
   en: {
     title: 'Platform Intro',
@@ -90,10 +84,7 @@ const LOCALIZED = {
     feat5Body: 'Provides live EUR/CNY exchange rate updates for financial planning. Curates essential administrative bookmarks (such as AlmaEsami, CupSubito, and official CSSA portals) for swift, one-tap navigation.',
     
     sec3Title: '3. Technical Notes & UX Highlights',
-    sec3Body: 'Built on a modern cross-platform hybrid architecture, Boxue features visual assets structured on premium minimalist layouts. Supports seamless automated adaptivity for Light/Dark modes. The tools menu includes custom reordering gestures, enabling users to re-layout their dashboard. High-security sandboxing ensures all sensitive inputs (e.g. location, photos) process locally under strict GDPR requirements.',
-    
-    sec4Title: '4. About ASSCUBO',
-    sec4Body: 'The Chinese Students and Scholars Association of the University of Bologna (Associazione di Studenti e Studiosi Cinesi dell\'Università di Bologna) is an officially registered non-profit student association. Since inception, we strive to safeguard the rights of Chinese scholars and students, promote intercultural exchanges, and consolidate relationships between Chinese and Italian youth. Boxue Platform is our key digital milestone, and we welcome all feedbacks and inquiries.'
+    sec3Body: 'Built on a modern cross-platform hybrid architecture, Boxue features visual assets structured on premium minimalist layouts. Supports seamless automated adaptivity for Light/Dark modes. The tools menu includes custom reordering gestures, enabling users to re-layout their dashboard. High-security sandboxing ensures all sensitive inputs (e.g. location, photos) process locally under strict GDPR requirements.'
   },
   it: {
     title: 'Informazioni sulla Piattaforma',
@@ -120,10 +111,7 @@ const LOCALIZED = {
     feat5Body: 'Fornisce aggiornamenti in tempo reale sul tasso di cambio EUR/CNY per la pianificazione finanziaria. Raccoglie collegamenti essenziali per svariate esigenze (come AlmaEsami, CupSubito e portale ASSCUBO) per un accesso con un singolo tocco.',
     
     sec3Title: '3. Note Tecniche e UX',
-    sec3Body: 'Costruito su architettura ibrida cross-platform, Boxue presenta un design minimalista e moderno con supporto nativo al Dark Mode. Consente di riordinare le icone dei tool tramite trascinamento (drag and drop) per una schermata personalizzata. Nel rispetto del GDPR, tutti i permessi critici (come posizione e foto) vengono gestiti localmente e in sicurezza.',
-    
-    sec4Title: '4. Informazioni su ASSCUBO',
-    sec4Body: 'L\'Associazione di Studenti e Studiosi Cinesi dell\'Università di Bologna è un\'associazione studentesca senza scopo di lucro ufficialmente registrata presso l\'Ateneo. Dalla sua fondazione, l\'associazione si impegna a tutelare i diritti di studenti e studiosi, promuovere scambi interculturali e consolidare le relazioni di amicizia tra giovani cinesi e italiani. La Piattaforma Boxue rappresenta una pietra miliare digitale per l\'erogazione di servizi utili, e accogliamo con favore suggerimenti e feedback.'
+    sec3Body: 'Costruito su architettura ibrida cross-platform, Boxue presenta un design minimalista e moderno con supporto nativo al Dark Mode. Consente di riordinare le icone dei tool tramite trascinamento (drag and drop) per una schermata personalizzata. Nel rispetto del GDPR, tutti i permessi critici (come posizione e foto) vengono gestiti localmente e in sicurezza.'
   }
 };
 
@@ -197,12 +185,6 @@ export default function PlatformIntroScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{localized.sec3Title}</Text>
           <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>{localized.sec3Body}</Text>
-        </View>
-
-        {/* Section 4: About ASSCUBO */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{localized.sec4Title}</Text>
-          <Text style={[styles.detailParagraph, { color: colors.textSecondary }]}>{localized.sec4Body}</Text>
         </View>
 
         <View style={{ height: 40 }} />
