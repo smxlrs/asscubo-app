@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Image, TextInput, BackHandler } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +25,25 @@ export default function ManageUsersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleCancelSearch = () => {
+    setIsSearching(false);
+    setSearchQuery('');
+  };
+
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (isSearching) {
+        handleCancelSearch();
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleHardwareBack);
+    return () => subscription.remove();
+  }, [isSearching]);
 
   const filteredUsers = users.filter(user => {
     const query = searchQuery.trim().toLowerCase();
@@ -452,36 +471,47 @@ export default function ManageUsersScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <View style={[styles.backArrow, { borderColor: colors.primaryLight }]} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>已注册用户管理</Text>
-        <View style={styles.headerPlaceholder} />
-      </View>
-
-      {/* Search Bar */}
-      {!loading && (
-        <View style={[styles.searchBarContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <View style={[styles.searchInner, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-            <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
-            <TextInput
-              style={[styles.searchInput, { color: colors.textPrimary }]}
-              placeholder="搜索昵称或邮箱..."
-              placeholderTextColor={colors.textMuted}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-              clearButtonMode="while-editing"
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                <MaterialCommunityIcons name="close-circle" size={18} color={colors.textMuted} />
-              </Pressable>
-            )}
+        {isSearching ? (
+          <View style={styles.searchHeaderContainer}>
+            <Pressable style={styles.backButton} onPress={handleCancelSearch}>
+              <View style={[styles.backArrow, { borderColor: colors.primaryLight }]} />
+            </Pressable>
+            <View style={[styles.searchInnerHeader, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
+              <TextInput
+                style={[styles.searchInput, { color: colors.textPrimary }]}
+                placeholder="搜索昵称或邮箱..."
+                placeholderTextColor={colors.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus={true}
+                clearButtonMode="while-editing"
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                  <MaterialCommunityIcons name="close-circle" size={18} color={colors.textMuted} />
+                </Pressable>
+              )}
+            </View>
           </View>
-        </View>
-      )}
+        ) : (
+          <>
+            <Pressable style={styles.backButton} onPress={() => router.back()}>
+              <View style={[styles.backArrow, { borderColor: colors.primaryLight }]} />
+            </Pressable>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>已注册用户管理</Text>
+            {!loading ? (
+              <Pressable style={styles.searchButtonHeader} onPress={() => setIsSearching(true)}>
+                <MaterialCommunityIcons name="magnify" size={24} color={colors.primaryLight} />
+              </Pressable>
+            ) : (
+              <View style={styles.searchButtonPlaceholder} />
+            )}
+          </>
+        )}
+      </View>
 
       {loading ? (
         <View style={styles.center}>
@@ -662,18 +692,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  searchBarContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
+  searchHeaderContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  searchInner: {
+  searchInnerHeader: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 10,
-    height: 40,
+    height: 38,
+    marginLeft: 4,
+    marginRight: 8,
+  },
+  searchButtonHeader: {
+    paddingVertical: 8,
+    paddingLeft: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchButtonPlaceholder: {
+    width: 40,
   },
   searchInput: {
     flex: 1,
