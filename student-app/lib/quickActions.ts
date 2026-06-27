@@ -18,7 +18,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_dictionary_desc',
     href: '/tools/dictionary',
     iosIcon: 'symbol:book.closed.fill',
-    androidIcon: 'ic_menu_search',
+    androidIcon: 'shortcut_dictionary',
   },
   {
     id: 'bus',
@@ -26,7 +26,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_bus_desc',
     href: '/tools/bus',
     iosIcon: 'symbol:bus.fill',
-    androidIcon: 'ic_menu_mylocation',
+    androidIcon: 'shortcut_bus',
   },
   {
     id: 'handbook',
@@ -34,7 +34,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_handbook_desc',
     href: '/tools/handbook',
     iosIcon: 'symbol:doc.text.fill',
-    androidIcon: 'ic_menu_info_details',
+    androidIcon: 'shortcut_handbook',
   },
   {
     id: 'train',
@@ -42,7 +42,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_train_desc',
     href: '/tools/train',
     iosIcon: 'symbol:tram.fill',
-    androidIcon: 'ic_menu_directions',
+    androidIcon: 'shortcut_train',
   },
   {
     id: 'classroom',
@@ -50,7 +50,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_classroom_desc',
     href: '/tools/classroom',
     iosIcon: 'symbol:square.grid.2x2.fill',
-    androidIcon: 'ic_menu_agenda',
+    androidIcon: 'shortcut_classroom',
   },
   {
     id: 'studyroom',
@@ -58,7 +58,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_studyroom_desc',
     href: '/tools/studyroom',
     iosIcon: 'symbol:calendar.fill',
-    androidIcon: 'ic_menu_sort_by_size',
+    androidIcon: 'shortcut_studyroom',
   },
   {
     id: 'articles',
@@ -66,7 +66,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_articles_desc',
     href: '/(tabs)/notifications',
     iosIcon: 'symbol:newspaper.fill',
-    androidIcon: 'ic_menu_view_list_alt',
+    androidIcon: 'shortcut_articles',
   },
   {
     id: 'announcements',
@@ -74,7 +74,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_announcements_desc',
     href: '/(tabs)/announcements',
     iosIcon: 'symbol:bell.fill',
-    androidIcon: 'ic_menu_notifications',
+    androidIcon: 'shortcut_announcements',
   },
   {
     id: 'settings',
@@ -82,7 +82,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     subtitleKey: 'quickAction_settings_desc',
     href: '/settings',
     iosIcon: 'symbol:gearshape.fill',
-    androidIcon: 'ic_menu_manage',
+    androidIcon: 'shortcut_settings',
   },
 ];
 

@@ -20,7 +20,22 @@
     },
     "plugins": [
       "expo-router",
-      "expo-quick-actions",
+      [
+        "expo-quick-actions",
+        {
+          "androidIcons": {
+            "shortcut_dictionary": "./assets/shortcuts/shortcut_dictionary.png",
+            "shortcut_bus": "./assets/shortcuts/shortcut_bus.png",
+            "shortcut_handbook": "./assets/shortcuts/shortcut_handbook.png",
+            "shortcut_train": "./assets/shortcuts/shortcut_train.png",
+            "shortcut_classroom": "./assets/shortcuts/shortcut_classroom.png",
+            "shortcut_studyroom": "./assets/shortcuts/shortcut_studyroom.png",
+            "shortcut_articles": "./assets/shortcuts/shortcut_articles.png",
+            "shortcut_announcements": "./assets/shortcuts/shortcut_announcements.png",
+            "shortcut_settings": "./assets/shortcuts/shortcut_settings.png"
+          }
+        }
+      ],
       "expo-secure-store",
       [
         "expo-notifications",
@@ -47,8 +62,7 @@
             "usesCleartextTraffic": true
           }
         }
-      ],
-      "expo-quick-actions"
+      ]
     ],
     "ios": {
       "supportsTablet": true,
