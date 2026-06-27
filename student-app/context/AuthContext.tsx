@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import * as Linking from 'expo-linking';
+import { AppState } from 'react-native';
 
 const AUTH_TIMEOUT_MS = 5000;
 
@@ -179,6 +180,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function refreshProfile() {
     if (user) await fetchProfile(user.id, user);
   }
+
+  useEffect(() => {
+    if (!user) return;
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        refreshProfile();
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ session, user, profile, loading, networkError, signIn, signUp, signOut, refreshProfile, retryInit }}>
