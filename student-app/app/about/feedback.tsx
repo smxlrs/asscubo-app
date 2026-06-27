@@ -6,6 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Helper to decode base64 string to ArrayBuffer for Supabase Storage uploads
 const decodeBase64 = (base64: string): ArrayBuffer => {
@@ -50,8 +52,9 @@ const decodeBase64 = (base64: string): ArrayBuffer => {
 
 export default function FeedbackScreen() {
   const { colors, t, language } = useTheme();
+  const { user } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(user?.email || '');
   const [wechat, setWechat] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -189,6 +192,7 @@ export default function FeedbackScreen() {
       const { error: dbError } = await supabase
         .from('feedbacks')
         .insert([{
+          user_id: user?.id || null,
           email: email.trim(),
           wechat: wechat.trim() || null,
           content: feedbackText.trim(),
@@ -231,7 +235,9 @@ export default function FeedbackScreen() {
           }} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('feedback')}</Text>
-        <View style={styles.headerPlaceholder} />
+        <Pressable style={styles.mailboxButton} onPress={() => router.push('/about/my-feedbacks')}>
+          <MaterialCommunityIcons name="mailbox-outline" size={22} color={colors.primaryLight} />
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
@@ -358,6 +364,12 @@ const styles = StyleSheet.create({
   },
   headerPlaceholder: {
     width: 50,
+  },
+  mailboxButton: {
+    paddingVertical: 8,
+    paddingLeft: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   formContent: {
     padding: 24,

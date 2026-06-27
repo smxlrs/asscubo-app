@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Image, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Image, Modal, ScrollView, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 type Feedback = {
   id: string;
@@ -14,6 +15,9 @@ type Feedback = {
   media_url: string | null;
   status: 'unread' | 'read' | 'resolved';
   created_at: string;
+  reply: string | null;
+  replied_at: string | null;
+  replied_by_name: string | null;
 };
 
 const STATUS_DETAILS = {
@@ -24,6 +28,7 @@ const STATUS_DETAILS = {
 
 export default function ManageFeedbacksScreen() {
   const { colors, isDark } = useTheme();
+  const { profile, user } = useAuth();
   
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +38,8 @@ export default function ManageFeedbacksScreen() {
   // Modal for detail view and status selection
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
   
   // Image Viewer Modal
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
@@ -79,6 +86,54 @@ export default function ManageFeedbacksScreen() {
     } catch (err: any) {
       console.error(err);
       Alert.alert('状态修改失败', err.message || '更新失败，请稍后重试。');
+    }
+  };
+
+  const handleSendReply = async () => {
+    if (!selectedFeedback) return;
+    if (!replyText.trim()) {
+      Alert.alert('提示', '请填写回复内容。');
+      return;
+    }
+
+    setIsSendingReply(true);
+    try {
+      const now = new Date().toISOString();
+      const adminName = profile?.name || user?.email || '管理员';
+      const { error } = await supabase
+        .from('feedbacks')
+        .update({
+          reply: replyText.trim(),
+          replied_at: now,
+          replied_by_name: adminName,
+          status: 'resolved'
+        })
+        .eq('id', selectedFeedback.id);
+
+      if (error) throw error;
+
+      setFeedbacks(prev => prev.map(f => f.id === selectedFeedback.id ? { 
+        ...f, 
+        reply: replyText.trim(), 
+        replied_at: now, 
+        replied_by_name: adminName,
+        status: 'resolved' 
+      } : f));
+
+      setSelectedFeedback(prev => prev ? { 
+        ...prev, 
+        reply: replyText.trim(), 
+        replied_at: now, 
+        replied_by_name: adminName,
+        status: 'resolved' 
+      } : null);
+
+      Alert.alert('回复成功', '已发送回复，反馈状态已更新为“已解决”。');
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert('发送失败', err.message || '网络错误，请重试。');
+    } finally {
+      setIsSendingReply(false);
     }
   };
 
@@ -133,6 +188,7 @@ export default function ManageFeedbacksScreen() {
         style={[styles.itemCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={() => {
           setSelectedFeedback(item);
+          setReplyText(item.reply || '');
           setShowDetailModal(true);
           // If status is unread, automatically mark as read upon clicking
           if (item.status === 'unread') {
@@ -148,9 +204,8 @@ export default function ManageFeedbacksScreen() {
             </Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '18', borderColor: statusInfo.color + '30' }]}>
-            <MaterialCommunityIcons name={statusInfo.icon as any} size={12} color={statusInfo.color} style={{ marginRight: 4 }} />
             <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>
-              {statusInfo.label}
+              {item.status === 'resolved' && item.replied_by_name ? `已解决 (${item.replied_by_name})` : statusInfo.label}
             </Text>
           </View>
         </View>
@@ -347,6 +402,64 @@ export default function ManageFeedbacksScreen() {
                       );
                     })}
                   </View>
+                </View>
+
+                {/* Reply section */}
+                <View style={[styles.replyContainer, { borderTopColor: colors.border }]}>
+                  <Text style={[styles.detailBodyTitle, { color: colors.textPrimary, marginBottom: 8 }]}>回复用户反馈：</Text>
+                  
+                  {selectedFeedback.reply ? (
+                    <View style={[styles.existingReplyBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                      <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
+                        {selectedFeedback.reply}
+                      </Text>
+                      {selectedFeedback.replied_at && (
+                        <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 6, alignSelf: 'flex-end' }}>
+                          回复人: {selectedFeedback.replied_by_name || '管理员'} | 回复时间: {formatDateTime(selectedFeedback.replied_at)}
+                        </Text>
+                      )}
+                    </View>
+                  ) : null}
+
+                  <TextInput
+                    style={[
+                      styles.replyInput, 
+                      { 
+                        backgroundColor: colors.surface, 
+                        borderColor: colors.border, 
+                        color: colors.textPrimary 
+                      }
+                    ]}
+                    placeholder={selectedFeedback.reply ? "修改回复内容..." : "填写回复内容..."}
+                    placeholderTextColor={colors.textMuted}
+                    value={replyText}
+                    onChangeText={setReplyText}
+                    multiline={true}
+                    numberOfLines={4}
+                  />
+
+                  <Pressable 
+                    style={[
+                      styles.replySubmitBtn, 
+                      { 
+                        backgroundColor: colors.primary, 
+                        opacity: isSendingReply ? 0.6 : 1 
+                      }
+                    ]}
+                    onPress={handleSendReply}
+                    disabled={isSendingReply}
+                  >
+                    {isSendingReply ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="send" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 }}>
+                          {selectedFeedback.reply ? "更新回复" : "发送回复"}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
                 </View>
 
                 {/* Delete button */}
@@ -651,5 +764,33 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  replyContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+  },
+  existingReplyBox: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 12,
+  },
+  replyInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 80,
+    fontSize: 14,
+    textAlignVertical: 'top',
+    marginBottom: 12,
+  },
+  replySubmitBtn: {
+    height: 40,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
 });
