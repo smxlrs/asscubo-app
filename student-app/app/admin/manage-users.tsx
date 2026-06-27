@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Image, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +24,17 @@ export default function ManageUsersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredUsers = users.filter(user => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    
+    const nameMatch = user.name ? user.name.toLowerCase().includes(query) : false;
+    const emailMatch = user.email ? user.email.toLowerCase().includes(query) : false;
+    
+    return nameMatch || emailMatch;
+  });
 
   const fetchUsers = async () => {
     try {
@@ -448,13 +459,37 @@ export default function ManageUsersScreen() {
         <View style={styles.headerPlaceholder} />
       </View>
 
+      {/* Search Bar */}
+      {!loading && (
+        <View style={[styles.searchBarContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <View style={[styles.searchInner, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+            <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.textPrimary }]}
+              placeholder="搜索昵称或邮箱..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <MaterialCommunityIcons name="close-circle" size={18} color={colors.textMuted} />
+              </Pressable>
+            )}
+          </View>
+        </View>
+      )}
+
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
-          data={users}
+          data={filteredUsers}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -465,8 +500,14 @@ export default function ManageUsersScreen() {
           }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons name="account-multiple-outline" size={48} color={colors.textMuted} />
-              <Text style={{ color: colors.textSecondary, marginTop: 8 }}>暂无已注册用户</Text>
+              <MaterialCommunityIcons 
+                name={searchQuery ? "account-search-outline" : "account-multiple-outline"} 
+                size={48} 
+                color={colors.textMuted} 
+              />
+              <Text style={{ color: colors.textSecondary, marginTop: 8 }}>
+                {searchQuery ? '未找到匹配的用户' : '暂无已注册用户'}
+              </Text>
             </View>
           }
         />
@@ -620,5 +661,26 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  searchBarContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  searchInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 0,
+  },
+  clearButton: {
+    padding: 4,
   },
 });
