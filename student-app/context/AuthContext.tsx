@@ -22,6 +22,7 @@ type Profile = {
   campus: string | null;
   role: 'student' | 'admin' | 'super_admin';
   avatar_url: string | null;
+  is_banned: boolean;
 };
 
 type AuthContextType = {

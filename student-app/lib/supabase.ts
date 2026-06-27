@@ -134,6 +134,7 @@ export type Database = {
           enrollment_year: number | null;
           role: 'student' | 'admin' | 'super_admin';
           avatar_url: string | null;
+          is_banned: boolean;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'created_at'>;

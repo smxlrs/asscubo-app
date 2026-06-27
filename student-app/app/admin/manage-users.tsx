@@ -13,6 +13,7 @@ type UserProfile = {
   email: string;
   role: string;
   push_token: string | null;
+  is_banned: boolean;
   created_at: string;
 };
 
@@ -178,6 +179,143 @@ export default function ManageUsersScreen() {
     );
   };
 
+  const handleBanUser = (user: UserProfile) => {
+    Alert.alert(
+      '确认封禁',
+      `您确定要封禁用户《${user.name || '未设置昵称'}》吗？`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '下一步',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              '再次确认',
+              `封禁后，该用户（${user.email}）将无法登录和使用 App 的任何功能，确认要执行此操作吗？`,
+              [
+                { text: '取消', style: 'cancel' },
+                {
+                  text: '确认封禁',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setProcessingId(user.id);
+                    try {
+                      const { error } = await supabase
+                        .from('profiles')
+                        .update({ is_banned: true })
+                        .eq('id', user.id);
+
+                      if (error) throw error;
+
+                      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_banned: true } : u));
+                      Alert.alert('处理成功', '该用户已被封禁。');
+                    } catch (err: any) {
+                      console.error(err);
+                      Alert.alert('操作失败', err.message || '封禁用户时出错。');
+                    } finally {
+                      setProcessingId(null);
+                    }
+                  }
+                }
+              ]
+            );
+          }
+        }
+      ]
+    );
+  };
+
+  const handleUnbanUser = (user: UserProfile) => {
+    Alert.alert(
+      '确认解封',
+      `您确定要解封用户《${user.name || '未设置昵称'}》吗？解封后用户将恢复正常使用权限。`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确认解封',
+          style: 'default',
+          onPress: async () => {
+            setProcessingId(user.id);
+            try {
+              const { error } = await supabase
+                .from('profiles')
+                .update({ is_banned: false })
+                .eq('id', user.id);
+
+              if (error) throw error;
+
+              setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_banned: false } : u));
+              Alert.alert('处理成功', '该用户已成功解封。');
+            } catch (err: any) {
+              console.error(err);
+              Alert.alert('操作失败', err.message || '解封用户时出错。');
+            } finally {
+              setProcessingId(null);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteUser = (user: UserProfile) => {
+    Alert.alert(
+      '警告：删除账号',
+      `您确定要彻底删除用户《${user.name || '未设置昵称'}》的账号吗？此操作极其危险！`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '下一步',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              '再次确认',
+              `删除账号将永久清除该用户（${user.email}）的个人资料、自习室预约、Token 等所有关联数据，且无法恢复。您真的确定吗？`,
+              [
+                { text: '取消', style: 'cancel' },
+                {
+                  text: '继续',
+                  style: 'destructive',
+                  onPress: () => {
+                    Alert.alert(
+                      '最后确认',
+                      '请注意，该删除操作是100%不可逆的！点击“确认永久删除”后将立即执行。',
+                      [
+                        { text: '取消', style: 'cancel' },
+                        {
+                          text: '确认永久删除',
+                          style: 'destructive',
+                          onPress: async () => {
+                            setProcessingId(user.id);
+                            try {
+                              const { error } = await supabase.rpc('admin_delete_user', {
+                                target_user_id: user.id
+                              });
+
+                              if (error) throw error;
+
+                              setUsers(prev => prev.filter(u => u.id !== user.id));
+                              Alert.alert('处理成功', '该用户账号及所有数据已永久删除。');
+                            } catch (err: any) {
+                              console.error(err);
+                              Alert.alert('操作失败', err.message || '删除用户时出错。');
+                            } finally {
+                              setProcessingId(null);
+                            }
+                          }
+                        }
+                      ]
+                    );
+                  }
+                }
+              ]
+            );
+          }
+        }
+      ]
+    );
+  };
+
   const renderItem = ({ item }: { item: UserProfile }) => {
     const formattedDate = new Date(item.created_at).toLocaleDateString('zh-CN', {
       year: 'numeric',
@@ -211,6 +349,11 @@ export default function ManageUsersScreen() {
               {item.role === 'student' ? '学生' : item.role === 'admin' ? '管理员' : '主管理员'}
             </Text>
           </View>
+          {item.is_banned && (
+            <View style={[styles.bannedBadge, { backgroundColor: '#EF4444' + '20', marginLeft: 8 }]}>
+              <Text style={[styles.bannedBadgeText, { color: '#EF4444' }]}>已封禁</Text>
+            </View>
+          )}
         </View>
 
         {/* User Meta Row */}
@@ -225,32 +368,69 @@ export default function ManageUsersScreen() {
 
         {/* Action Buttons */}
         {item.role === 'student' && (
-          <View style={[styles.actionRow, { borderTopColor: colors.border }]}>
-            <Pressable 
-              style={({ pressed }) => [
-                styles.actionBtn, 
-                { opacity: pressed || isProcessing ? 0.6 : 1 }
-              ]} 
-              disabled={isProcessing}
-              onPress={() => handleAvatarViolation(item)}
-            >
-              <MaterialCommunityIcons name="image-off-outline" size={16} color="#EF4444" style={{ marginRight: 6 }} />
-              <Text style={styles.avatarViolationText}>头像违规</Text>
-            </Pressable>
+          <View style={{ gap: 8 }}>
+            <View style={[styles.actionRow, { borderTopColor: colors.border }]}>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.actionBtn, 
+                  { opacity: pressed || isProcessing ? 0.6 : 1 }
+                ]} 
+                disabled={isProcessing}
+                onPress={() => handleAvatarViolation(item)}
+              >
+                <MaterialCommunityIcons name="image-off-outline" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+                <Text style={styles.avatarViolationText}>头像违规</Text>
+              </Pressable>
 
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-            <Pressable 
-              style={({ pressed }) => [
-                styles.actionBtn, 
-                { opacity: pressed || isProcessing ? 0.6 : 1 }
-              ]}
-              disabled={isProcessing}
-              onPress={() => handleNicknameViolation(item)}
-            >
-              <MaterialCommunityIcons name="account-cancel-outline" size={16} color="#EF4444" style={{ marginRight: 6 }} />
-              <Text style={styles.nicknameViolationText}>昵称违规</Text>
-            </Pressable>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.actionBtn, 
+                  { opacity: pressed || isProcessing ? 0.6 : 1 }
+                ]}
+                disabled={isProcessing}
+                onPress={() => handleNicknameViolation(item)}
+              >
+                <MaterialCommunityIcons name="account-cancel-outline" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+                <Text style={styles.nicknameViolationText}>昵称违规</Text>
+              </Pressable>
+            </View>
+
+            <View style={[styles.actionRow, { borderTopColor: colors.border, marginTop: 0 }]}>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.actionBtn, 
+                  { opacity: pressed || isProcessing ? 0.6 : 1 }
+                ]} 
+                disabled={isProcessing}
+                onPress={() => item.is_banned ? handleUnbanUser(item) : handleBanUser(item)}
+              >
+                <MaterialCommunityIcons 
+                  name={item.is_banned ? "lock-open-outline" : "lock-outline"} 
+                  size={16} 
+                  color={item.is_banned ? "#10B981" : "#F59E0B"} 
+                  style={{ marginRight: 6 }} 
+                />
+                <Text style={[styles.actionBtnText, { color: item.is_banned ? "#10B981" : "#F59E0B" }]}>
+                  {item.is_banned ? '解封用户' : '封禁用户'}
+                </Text>
+              </Pressable>
+
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.actionBtn, 
+                  { opacity: pressed || isProcessing ? 0.6 : 1 }
+                ]}
+                disabled={isProcessing}
+                onPress={() => handleDeleteUser(item)}
+              >
+                <MaterialCommunityIcons name="delete-outline" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+                <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>删除账号</Text>
+              </Pressable>
+            </View>
           </View>
         )}
       </View>
@@ -425,5 +605,20 @@ const styles = StyleSheet.create({
     padding: 40,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  bannedBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannedBadgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  actionBtnText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

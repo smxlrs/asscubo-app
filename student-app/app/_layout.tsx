@@ -106,8 +106,8 @@ async function registerForPushNotificationsAsync() {
 }
 
 function AppContent() {
-  const { isDark, isReady, predictiveBack, t } = useTheme();
-  const { user, loading, networkError, retryInit } = useAuth();
+  const { colors, isDark, isReady, predictiveBack, t } = useTheme();
+  const { user, profile, loading, networkError, retryInit } = useAuth();
   const splashHiddenRef = useRef(false);
 
   const hideSplash = () => {
@@ -225,6 +225,29 @@ function AppContent() {
       background: isDark ? '#0A0A0A' : '#FFFFFF',
     },
   };
+
+  if (user && profile?.is_banned) {
+    return (
+      <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <MaterialCommunityIcons name="account-cancel" size={80} color="#EF4444" style={{ marginBottom: 16 }} />
+        <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>
+          {t('bannedTitle') || '账号已被封禁'}
+        </Text>
+        <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
+          {t('bannedSubtitle') || '很抱歉，您的账号已被管理员封禁。如有疑问，请联系学联管理员进行处理。'}
+        </Text>
+        <Pressable
+          style={{ paddingVertical: 12, paddingHorizontal: 32, borderRadius: 24, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}
+          onPress={async () => {
+            await supabase.auth.signOut();
+          }}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: 'bold' }}>{t('logout') || '退出登录'}</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <NavigationProvider value={navTheme}>
