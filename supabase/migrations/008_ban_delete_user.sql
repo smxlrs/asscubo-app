@@ -2,6 +2,8 @@
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT false;
 
 -- 2. Update public.admin_get_users function to return is_banned column
+DROP FUNCTION IF EXISTS public.admin_get_users();
+
 CREATE OR REPLACE FUNCTION public.admin_get_users()
 RETURNS TABLE (
   id UUID,
