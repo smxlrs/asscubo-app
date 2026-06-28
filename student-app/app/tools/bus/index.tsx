@@ -1749,6 +1749,7 @@ export default function BusBoardScreen() {
         transparent={true}
         animationType="fade"
         onRequestClose={() => setFavModalVisible(false)}
+        statusBarTranslucent={true}
       >
         <View style={styles.modalOverlay}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setFavModalVisible(false)} />
@@ -1797,6 +1798,7 @@ export default function BusBoardScreen() {
           transparent={true}
           animationType="fade"
           onRequestClose={() => setSelectedArrival(null)}
+          statusBarTranslucent={true}
         >
           <View style={styles.modalOverlay}>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedArrival(null)} />
