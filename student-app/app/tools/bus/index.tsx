@@ -1751,6 +1751,7 @@ export default function BusBoardScreen() {
         onRequestClose={() => setFavModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setFavModalVisible(false)} />
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF', borderColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{localized.favModalTitle}</Text>
             <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8, fontWeight: '500' }}>
@@ -1798,6 +1799,7 @@ export default function BusBoardScreen() {
           onRequestClose={() => setSelectedArrival(null)}
         >
           <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedArrival(null)} />
             <View style={[styles.modalContent, { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF', borderColor: colors.border }]}>
               {/* Modal Header */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
