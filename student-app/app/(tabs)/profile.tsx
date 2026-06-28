@@ -33,6 +33,7 @@ export default function ProfileScreen() {
   const userObj = useAuth();
   const user = userObj?.user;
   const profile = userObj?.profile;
+  const hasUnreadFeedbackReply = userObj?.hasUnreadFeedbackReply;
   const { colors, t, tabBarStyle, tabOpacities, isDark, language } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
 
@@ -112,7 +113,12 @@ export default function ProfileScreen() {
 
             <Pressable style={styles.menuRow} onPress={() => router.push('/about')}>
               <MaterialCommunityIcons name="information-outline" size={22} color={colors.textSecondary} style={styles.menuIcon} />
-              <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('about')}</Text>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 15, color: colors.textPrimary }}>{t('about')}</Text>
+                {hasUnreadFeedbackReply && (
+                  <View style={styles.redDot} />
+                )}
+              </View>
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </Pressable>
           </View>
@@ -222,5 +228,12 @@ const styles = StyleSheet.create({
   },
   arrow: {
     fontSize: 18,
+  },
+  redDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    marginLeft: 6,
   },
 });

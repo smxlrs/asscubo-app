@@ -17,6 +17,7 @@ type UserFeedback = {
   created_at: string;
   reply: string | null;
   replied_at: string | null;
+  user_viewed_reply: boolean;
 };
 
 const LOCALIZED = {
@@ -90,12 +91,28 @@ const STATUS_COLORS = {
 
 export default function MyFeedbacksScreen() {
   const { colors, language } = useTheme();
-  const { user } = useAuth();
+  const { user, refreshUnreadFeedbackReplies } = useAuth();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
 
   const [feedbacks, setFeedbacks] = useState<UserFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const markRepliesAsRead = async (ids: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('feedbacks')
+        .update({ user_viewed_reply: true })
+        .in('id', ids);
+
+      if (error) throw error;
+      
+      // Update global context red dot state!
+      await refreshUnreadFeedbackReplies();
+    } catch (e) {
+      console.warn('Failed to mark replies as read:', e);
+    }
+  };
 
   const fetchUserFeedbacks = async () => {
     if (!user) {
@@ -115,6 +132,15 @@ export default function MyFeedbacksScreen() {
       if (error) throw error;
       if (data) {
         setFeedbacks(data as UserFeedback[]);
+        
+        // Find unread replies
+        const unreadIds = (data as UserFeedback[])
+          .filter(f => f.reply !== null && !f.user_viewed_reply)
+          .map(f => f.id);
+        
+        if (unreadIds.length > 0) {
+          markRepliesAsRead(unreadIds);
+        }
       }
     } catch (e: any) {
       console.error('Failed to fetch user feedbacks:', e);

@@ -52,7 +52,7 @@ const decodeBase64 = (base64: string): ArrayBuffer => {
 
 export default function FeedbackScreen() {
   const { colors, t, language } = useTheme();
-  const { user } = useAuth();
+  const { user, hasUnreadFeedbackReply } = useAuth();
 
   const [email, setEmail] = useState(user?.email || '');
   const [wechat, setWechat] = useState('');
@@ -236,7 +236,12 @@ export default function FeedbackScreen() {
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('feedback')}</Text>
         <Pressable style={styles.mailboxButton} onPress={() => router.push('/about/my-feedbacks')}>
-          <MaterialCommunityIcons name="mailbox-outline" size={22} color={colors.primaryLight} />
+          <View style={{ position: 'relative' }}>
+            <MaterialCommunityIcons name="mailbox-outline" size={22} color={colors.primaryLight} />
+            {hasUnreadFeedbackReply && (
+              <View style={[styles.headerRedDot, { borderColor: colors.surface }]} />
+            )}
+          </View>
         </Pressable>
       </View>
 
@@ -370,6 +375,16 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerRedDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
   },
   formContent: {
     padding: 24,

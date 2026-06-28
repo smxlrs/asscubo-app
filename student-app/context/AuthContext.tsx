@@ -37,6 +37,8 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   retryInit: () => void;
+  hasUnreadFeedbackReply: boolean;
+  refreshUnreadFeedbackReplies: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -177,15 +179,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }
 
+  const [hasUnreadFeedbackReply, setHasUnreadFeedbackReply] = useState(false);
+
+  async function refreshUnreadFeedbackReplies() {
+    if (!user) {
+      setHasUnreadFeedbackReply(false);
+      return;
+    }
+    try {
+      const { count, error } = await supabase
+        .from('feedbacks')
+        .select('id', { count: 'exact', head: true })
+        .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+        .not('reply', 'is', null)
+        .eq('user_viewed_reply', false);
+
+      if (error) throw error;
+      setHasUnreadFeedbackReply(count ? count > 0 : false);
+    } catch (err) {
+      console.warn('Failed to check unread feedback replies:', err);
+    }
+  }
+
   async function refreshProfile() {
     if (user) await fetchProfile(user.id, user);
   }
+
+  useEffect(() => {
+    if (user) {
+      refreshUnreadFeedbackReplies();
+    } else {
+      setHasUnreadFeedbackReply(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         refreshProfile();
+        refreshUnreadFeedbackReplies();
       }
     });
     return () => {
@@ -194,7 +227,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, networkError, signIn, signUp, signOut, refreshProfile, retryInit }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      profile, 
+      loading, 
+      networkError, 
+      signIn, 
+      signUp, 
+      signOut, 
+      refreshProfile, 
+      retryInit,
+      hasUnreadFeedbackReply,
+      refreshUnreadFeedbackReplies
+    }}>
       {children}
     </AuthContext.Provider>
   );

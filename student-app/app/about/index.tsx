@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../../context/AuthContext';
 
 const GITHUB_REPO = 'smxlrs/asscubo-app';
 const RELEASES_PAGE = `https://github.com/${GITHUB_REPO}/releases`;
@@ -92,6 +93,7 @@ const UPDATE_TEXTS: Record<string, {
 
 export default function AboutIndexScreen() {
   const { colors, t, language } = useTheme();
+  const { hasUnreadFeedbackReply } = useAuth();
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [tapCount, setTapCount] = useState(0);
   const [lastTap, setLastTap] = useState(0);
@@ -288,7 +290,12 @@ export default function AboutIndexScreen() {
           </Pressable>
 
           <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/feedback')}>
-            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t('feedback')}</Text>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 15, color: colors.textPrimary }}>{t('feedback')}</Text>
+              {hasUnreadFeedbackReply && (
+                <View style={styles.redDot} />
+              )}
+            </View>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
@@ -410,5 +417,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '500',
+  },
+  redDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    marginLeft: 6,
   },
 });
