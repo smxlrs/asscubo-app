@@ -21,7 +21,7 @@ CREATE POLICY "Users can view own feedbacks" ON public.feedbacks
   FOR SELECT TO authenticated
   USING (
     user_id = auth.uid() 
-    OR email = (SELECT email::text FROM auth.users WHERE id = auth.uid())
+    OR email = (auth.jwt() ->> 'email')
   );
 
 -- Policy C: Admins and super_admins can manage all feedbacks
