@@ -4,12 +4,13 @@ import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useRef, useEffect, useState } from 'react';
 import { useQuickActionRouting } from 'expo-quick-actions/router';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, interpolateColor } from 'react-native-reanimated';
+import { GlassBackground } from '../../components/GlassBackground';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const INITIAL_TAB_BAR_WIDTH = SCREEN_WIDTH - 40;
+const TAB_BAR_HORIZONTAL_INSET = 25;
+const SLIDER_TAB_INSET = 7;
+const INITIAL_TAB_BAR_WIDTH = SCREEN_WIDTH - TAB_BAR_HORIZONTAL_INSET * 2;
 
 function interpolateColorJS(value: number, color1: string, color2: string): string {
   const hex = (c: string) => {
@@ -153,7 +154,7 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
 }
 
 export default function TabsLayout() {
-  const { colors, t, isDark, tabBarStyle, tabOpacities, setTabGestureActive } = useTheme();
+  const { colors, t, isDark, tabBarStyle, glassOpacityLevel, tabOpacities, setTabGestureActive } = useTheme();
 
   // Handle quick actions routing safely after tabs layout has mounted
   useQuickActionRouting();
@@ -168,7 +169,7 @@ export default function TabsLayout() {
 
   // Math variables for concentric capsule alignment
   const tabWidthVal = INITIAL_TAB_BAR_WIDTH / 4;
-  const initialSliderWidth = tabWidthVal - 12;
+  const initialSliderWidth = tabWidthVal - SLIDER_TAB_INSET;
   const initialHalfWidth = initialSliderWidth / 2;
 
   // Reanimated shared values
@@ -220,7 +221,7 @@ export default function TabsLayout() {
         const maxCenterX = 3.5 * tabWidth;
         dragCenterX = Math.max(minCenterX, Math.min(maxCenterX, dragCenterX));
 
-        const sliderW = tabWidth - 12;
+        const sliderW = tabWidth - SLIDER_TAB_INSET;
         const halfWidth = sliderW / 2;
 
         // Wrap the real-time slider position in a tight spring.
@@ -273,7 +274,7 @@ export default function TabsLayout() {
         setIsDragging(false);
         const { tabBarWidth: currentTabBarWidth } = stateRef.current;
         const tabWidth = currentTabBarWidth / 4;
-        const sliderW = tabWidth - 12;
+        const sliderW = tabWidth - SLIDER_TAB_INSET;
 
         const targetIndex = lastDraggedIndexRef.current;
         const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
@@ -313,7 +314,7 @@ export default function TabsLayout() {
         setIsDragging(false);
         const { tabBarWidth: currentTabBarWidth } = stateRef.current;
         const tabWidth = currentTabBarWidth / 4;
-        const sliderW = tabWidth - 12;
+        const sliderW = tabWidth - SLIDER_TAB_INSET;
 
         const targetIndex = lastDraggedIndexRef.current;
         const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
@@ -371,7 +372,7 @@ export default function TabsLayout() {
     const tabWidth = tabBarWidth / 4;
     const i = activeIndex;
     const centerX = (i + 0.5) * tabWidth;
-    const sliderW = tabWidth - 12;
+    const sliderW = tabWidth - SLIDER_TAB_INSET;
     const halfWidth = sliderW / 2;
 
     const targetLeft = centerX - halfWidth;
@@ -398,11 +399,11 @@ export default function TabsLayout() {
   }, [activeIndex, tabBarWidth]);
 
   // Tab colors mapping
-  const homeColor = isDark ? '#E5E5EA' : colors.primary; // Softer Off-White / Crimson Red
+  const homeColor = '#000000';
   const articlesColor = homeColor;
   const toolsColor = homeColor;
   const profileColor = homeColor;
-  const inactiveTabColor = isDark ? '#8E8E93' : colors.textMuted; // Gray-white in dark mode, textMuted in light mode
+  const inactiveTabColor = '#6E6E73';
 
   // Animated styles for sliding highlight and inner bubble content
   const sliderStyle = useAnimatedStyle(() => {
@@ -420,10 +421,10 @@ export default function TabsLayout() {
         'rgba(255, 255, 255, 0.08)',
         'rgba(255, 255, 255, 0.08)'
       ] : [
-        'rgba(163, 22, 33, 0.3)',
-        'rgba(163, 22, 33, 0.3)',
-        'rgba(163, 22, 33, 0.3)',
-        'rgba(163, 22, 33, 0.3)'
+        'rgba(120, 120, 128, 0.20)',
+        'rgba(120, 120, 128, 0.20)',
+        'rgba(120, 120, 128, 0.20)',
+        'rgba(120, 120, 128, 0.20)'
       ]
     );
 
@@ -450,10 +451,10 @@ export default function TabsLayout() {
         'rgba(255, 255, 255, 0.15)',  // Tools Dark
         'rgba(255, 255, 255, 0.15)'   // Profile Dark
       ] : [
-        'rgba(163, 22, 33, 0.20)',  // Home Red (Brighter on white bg)
-        'rgba(163, 22, 33, 0.20)',  // Articles Red
-        'rgba(163, 22, 33, 0.20)',  // Tools Red
-        'rgba(163, 22, 33, 0.20)'   // Profile Red
+        'rgba(174, 174, 178, 0.18)',
+        'rgba(174, 174, 178, 0.18)',
+        'rgba(174, 174, 178, 0.18)',
+        'rgba(174, 174, 178, 0.18)'
       ]
     );
 
@@ -465,8 +466,8 @@ export default function TabsLayout() {
   const tabStyle = USE_GLASSMORPHISM ? {
     position: 'absolute' as const,
     bottom: Platform.OS === 'ios' ? 24 : 16,
-    left: 20,
-    right: 20,
+    left: TAB_BAR_HORIZONTAL_INSET,
+    right: TAB_BAR_HORIZONTAL_INSET,
     borderRadius: 34, // Capsule ends (height 68 / 2)
     height: 68,
     backgroundColor: 'transparent',
@@ -490,6 +491,7 @@ export default function TabsLayout() {
   return (
     <View style={{ flex: 1 }}>
       <ExpoTabs
+        key={tabBarStyle}
         safeAreaInsets={USE_GLASSMORPHISM ? { bottom: 0, top: 0, left: 0, right: 0 } : undefined}
         sceneContainerStyle={{ backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}
         screenOptions={{
@@ -508,11 +510,8 @@ export default function TabsLayout() {
                 }
               ]}
             >
-              {/* 1. Glass Plate Container (Gradient Border Outer Layer) */}
-              <LinearGradient
-                colors={isDark ? ['rgba(255, 255, 255, 0.28)', 'rgba(0, 0, 0, 0.15)'] : ['rgba(255, 255, 255, 0.85)', 'rgba(255, 255, 255, 0.15)'] }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
+              {/* 1. Liquid Glass Dock — native backdrop refraction shader */}
+              <View
                 style={[
                   StyleSheet.absoluteFill,
                   styles.glassContainerBorder,
@@ -521,49 +520,14 @@ export default function TabsLayout() {
                     shadowRadius: 18,
                     shadowOffset: { width: 0, height: 2 },
                     elevation: 2,
+                    overflow: 'hidden',
                   }
                 ]}
               >
-                {/* Inner Content Layer (offset by 1.0px to reveal gradient edge) */}
-                <View 
-                  style={[
-                    StyleSheet.absoluteFill, 
-                    styles.glassContainerInner, 
-                    { 
-                      backgroundColor: isDark ? 'rgba(15, 15, 15, 0.65)' : 'rgba(255, 255, 255, 0.52)'
-                    }
-                  ]}
-                >
-                  {Platform.OS === 'ios' ? (
-                    <BlurView 
-                      tint={isDark ? 'dark' : 'extraLight'} 
-                      intensity={90} 
-                      style={StyleSheet.absoluteFill} 
-                    />
-                  ) : (
-                    <BlurView 
-                      tint={isDark ? 'dark' : 'light'}
-                      intensity={isDark ? 120 : 80} 
-                      style={StyleSheet.absoluteFill} 
-                    />
-                  )}
+                <GlassBackground borderRadius={34} isDark={isDark} blurStep={glassOpacityLevel} />
+              </View>
 
-                  {/* 3D Diagonal Specular Shine Overlay */}
-                  <LinearGradient
-                    colors={
-                      isDark
-                        ? ['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.03)', 'transparent', 'rgba(0, 0, 0, 0.04)']
-                        : ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.05)', 'transparent', 'transparent']
-                    }
-                    start={{ x: 0.1, y: 0 }}
-                    end={{ x: 0.9, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                    pointerEvents="none"
-                  />
-                </View>
-              </LinearGradient>
-
-              {/* 2. Liquid Shared Slider (Glass Bubble Gradient Border Layer) */}
+              {/* 2. Liquid Shared Slider (with edge refraction) */}
               <Reanimated.View 
                 style={[
                   styles.sliderPill,
@@ -573,34 +537,13 @@ export default function TabsLayout() {
                     shadowOpacity: 0.3,
                     shadowRadius: 6,
                     elevation: 3,
+                    overflow: 'hidden',
                   },
                   sliderStyle
                 ]} 
               >
-                {/* Outer gradient border for the bubble */}
-                <LinearGradient
-                  colors={isDark ? ['rgba(255, 255, 255, 0.55)', 'rgba(0, 0, 0, 0.2)'] : ['rgba(255, 255, 255, 0.85)', 'rgba(255, 255, 255, 0.35)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={[StyleSheet.absoluteFill, { borderRadius: 28 }]}
-                >
-                  {/* Inner Content Layer (offset by 0.8px to reveal gradient edge) */}
-                  <Reanimated.View
-                    style={[
-                      styles.sliderPillInner,
-                      innerSliderStyle
-                    ]}
-                  >
-                    {/* 3D Specular Shine inside the bubble */}
-                    <LinearGradient
-                      colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.03)', 'transparent']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                      style={StyleSheet.absoluteFill}
-                      pointerEvents="none"
-                    />
-                  </Reanimated.View>
-                </LinearGradient>
+                <GlassBackground borderRadius={30} isDark={isDark} blurStep={Math.min(5, glassOpacityLevel + 1)} />
+                <Reanimated.View style={[StyleSheet.absoluteFill, innerSliderStyle]} />
               </Reanimated.View>
             </View>
           ) : undefined,
@@ -803,9 +746,9 @@ const styles = StyleSheet.create({
   },
   sliderPill: {
     position: 'absolute',
-    top: 6,
-    height: 56,
-    borderRadius: 28,
+    top: 4,
+    height: 60,
+    borderRadius: 30,
   },
   sliderPillInner: {
     position: 'absolute',
@@ -813,7 +756,7 @@ const styles = StyleSheet.create({
     left: 0.8,
     right: 0.8,
     bottom: 0.8,
-    borderRadius: 27.2,
+    borderRadius: 29.2,
     overflow: 'hidden',
   },
 });

@@ -40,6 +40,8 @@ type ThemeContextType = {
   isReady: boolean;
   tabBarStyle: 'traditional' | 'glassmorphism';
   setTabBarStyle: (style: 'traditional' | 'glassmorphism') => Promise<void>;
+  glassOpacityLevel: number;
+  setGlassOpacityLevel: (level: number) => Promise<void>;
   tabOpacities: Animated.Value[];
   tabGestureActive: boolean;
   setTabGestureActive: (active: boolean) => void;
@@ -1160,6 +1162,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [customEnd, setCustomEndState] = useState('07:00');
   const [languageMode, setLanguageModeState] = useState<LanguageMode>('system');
   const [tabBarStyle, setTabBarStyleState] = useState<'traditional' | 'glassmorphism'>('traditional');
+  const [glassOpacityLevel, setGlassOpacityLevelState] = useState(2);
   const [predictiveBack, setPredictiveBackState] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [tick, setTick] = useState(0);
@@ -1182,12 +1185,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const savedLang = await safeStorage.getItem('language'); // Legacy
         const savedLangMode = await safeStorage.getItem('language_mode');
         const savedTabBarStyle = await safeStorage.getItem('tab_bar_style');
+        const savedGlassOpacityLevel = await safeStorage.getItem('glass_opacity_level');
         const savedPredictiveBack = await safeStorage.getItem('predictive_back');
 
         if (savedMode) setThemeModeState(savedMode as ThemeMode);
         if (savedStart) setCustomStartState(savedStart);
         if (savedEnd) setCustomEndState(savedEnd);
         if (savedTabBarStyle) setTabBarStyleState(savedTabBarStyle as 'traditional' | 'glassmorphism');
+        if (savedGlassOpacityLevel) {
+          const nextLevel = Number(savedGlassOpacityLevel);
+          if (Number.isFinite(nextLevel)) {
+            setGlassOpacityLevelState(Math.min(4, Math.max(1, Math.round(nextLevel))));
+          }
+        }
         if (savedPredictiveBack !== null) setPredictiveBackState(savedPredictiveBack === 'true');
 
         let initialMode: LanguageMode = 'system';
@@ -1277,6 +1287,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await safeStorage.setItem('tab_bar_style', style);
   };
 
+  const setGlassOpacityLevel = async (level: number) => {
+    const nextLevel = Math.min(4, Math.max(1, Math.round(level)));
+    setGlassOpacityLevelState(nextLevel);
+    await safeStorage.setItem('glass_opacity_level', String(nextLevel));
+  };
+
   const setPredictiveBack = async (enabled: boolean) => {
     setPredictiveBackState(enabled);
     await safeStorage.setItem('predictive_back', enabled ? 'true' : 'false');
@@ -1303,6 +1319,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       isReady,
       tabBarStyle,
       setTabBarStyle,
+      glassOpacityLevel,
+      setGlassOpacityLevel,
       tabOpacities,
       tabGestureActive,
       setTabGestureActive,
