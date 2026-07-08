@@ -40,6 +40,20 @@ class LiquidGlassView(context: Context) : View(context) {
             invalidate()
         }
 
+    var chromaticBoost: Boolean = false
+        set(value) {
+            field = value
+            applyRenderEffect()
+            invalidate()
+        }
+
+    var refractionEnabled: Boolean = true
+        set(value) {
+            field = value
+            applyRenderEffect()
+            invalidate()
+        }
+
     private val mFrameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
             invalidate()
@@ -58,6 +72,7 @@ class LiquidGlassView(context: Context) : View(context) {
             uniform float refraction;
             uniform float rim;
             uniform float isDark;
+            uniform float chromatic;
 
             float sdRoundRect(vec2 p, vec2 hs, float r) {
                 vec2 q = abs(p) - hs + r;
@@ -80,6 +95,18 @@ class LiquidGlassView(context: Context) : View(context) {
 
                 vec2 sampleAt = coord - n * bend * refraction;
                 half4 col = content.eval(sampleAt);
+
+                vec2 tangent = vec2(-n.y, n.x);
+                float chroma = chromatic * bend * bend;
+                if (chroma > 0.01) {
+                    half4 redSample = content.eval(sampleAt + tangent * chroma + n * chroma * 0.18);
+                    half4 greenSample = content.eval(sampleAt - n * chroma * 0.12);
+                    half4 blueSample = content.eval(sampleAt - tangent * chroma - n * chroma * 0.18);
+                    float spectralMix = clamp(bend * 0.94, 0.0, 0.88);
+                    col.r = mix(col.r, redSample.r, spectralMix);
+                    col.g = mix(col.g, greenSample.g, spectralMix * 0.58);
+                    col.b = mix(col.b, blueSample.b, spectralMix);
+                }
 
                 vec2 L = normalize(vec2(-0.55, -0.83));
                 float spec = clamp(dot(n, L), 0.0, 1.0);
@@ -112,10 +139,20 @@ class LiquidGlassView(context: Context) : View(context) {
 
                 shader.setFloatUniform("size", w, h)
                 shader.setFloatUniform("radius", r)
-                shader.setFloatUniform("band", 15.0f * density)
-                shader.setFloatUniform("refraction", 14.0f * density)
+                val refractionPx = if (!refractionEnabled) {
+                    0.0f
+                } else if (chromaticBoost) {
+                    22.0f * density
+                } else {
+                    14.0f * density
+                }
+                val chromaticPx = if (refractionEnabled && chromaticBoost) 13.0f * density else 0.0f
+
+                shader.setFloatUniform("band", (if (chromaticBoost) 16.0f else 15.0f) * density)
+                shader.setFloatUniform("refraction", refractionPx)
                 shader.setFloatUniform("rim", 0.45f)
                 shader.setFloatUniform("isDark", if (isDark) 1.0f else 0.0f)
+                shader.setFloatUniform("chromatic", chromaticPx)
 
                 val blurEffect = RenderEffect.createBlurEffect(blurPx, blurPx, Shader.TileMode.CLAMP)
                 val shaderEffect = RenderEffect.createRuntimeShaderEffect(shader, "content")

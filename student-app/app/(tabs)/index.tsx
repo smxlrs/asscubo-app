@@ -15,6 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS, SHADOWS } from '../../constants/theme';
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
 
 type Article = {
   id: string;
@@ -72,32 +73,66 @@ const CATEGORY_COLORS: Record<string, string> = {
   reprint: '#6B7280',
 };
 
-function getWeatherInfo(code: number, isDay: number) {
+const WEATHER_BOOTSTRAP_ICONS = {
+  sun: ['M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708'],
+  moon: ['M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286'],
+  cloudSun: ['M7 8a3.5 3.5 0 0 1 3.5 3.555.5.5 0 0 0 .624.492A1.503 1.503 0 0 1 13 13.5a1.5 1.5 0 0 1-1.5 1.5H3a2 2 0 1 1 .1-3.998.5.5 0 0 0 .51-.375A3.5 3.5 0 0 1 7 8m4.473 3a4.5 4.5 0 0 0-8.72-.99A3 3 0 0 0 3 16h8.5a2.5 2.5 0 0 0 0-5z', 'M10.5 1.5a.5.5 0 0 0-1 0v1a.5.5 0 0 0 1 0zm3.743 1.964a.5.5 0 1 0-.707-.707l-.708.707a.5.5 0 0 0 .708.708zm-7.779-.707a.5.5 0 0 0-.707.707l.707.708a.5.5 0 1 0 .708-.708zm1.734 3.374a2 2 0 1 1 3.296 2.198q.3.423.516.898a3 3 0 1 0-4.84-3.225q.529.017 1.028.129m4.484 4.074c.6.215 1.125.59 1.522 1.072a.5.5 0 0 0 .039-.742l-.707-.707a.5.5 0 0 0-.854.377M14.5 6.5a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1z'],
+  cloudMoon: ['M7 8a3.5 3.5 0 0 1 3.5 3.555.5.5 0 0 0 .625.492A1.503 1.503 0 0 1 13 13.5a1.5 1.5 0 0 1-1.5 1.5H3a2 2 0 1 1 .1-3.998.5.5 0 0 0 .509-.375A3.5 3.5 0 0 1 7 8m4.473 3a4.5 4.5 0 0 0-8.72-.99A3 3 0 0 0 3 16h8.5a2.5 2.5 0 0 0 0-5z', 'M11.286 1.778a.5.5 0 0 0-.565-.755 4.595 4.595 0 0 0-3.18 5.003 5.5 5.5 0 0 1 1.055.209A3.6 3.6 0 0 1 9.83 2.617a4.593 4.593 0 0 0 4.31 5.744 3.58 3.58 0 0 1-2.241.634q.244.477.394 1a4.59 4.59 0 0 0 3.624-2.04.5.5 0 0 0-.565-.755 3.593 3.593 0 0 1-4.065-5.422z'],
+  cloud: ['M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383m.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z'],
+  fog: ['M3 13.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m10.405-9.473a5.001 5.001 0 0 0-9.499-1.004A3.5 3.5 0 1 0 3.5 12H13a3 3 0 0 0 .405-5.973M8.5 3a4 4 0 0 1 3.976 3.555.5.5 0 0 0 .5.445H13a2 2 0 0 1 0 4H3.5a2.5 2.5 0 1 1 .605-4.926.5.5 0 0 0 .596-.329A4 4 0 0 1 8.5 3'],
+  drizzle: ['M4.158 12.025a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317m6 0a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317m-3.5 1.5a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317m6 0a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 1 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317m.747-8.498a5.001 5.001 0 0 0-9.499-1.004A3.5 3.5 0 1 0 3.5 11H13a3 3 0 0 0 .405-5.973M8.5 2a4 4 0 0 1 3.976 3.555.5.5 0 0 0 .5.445H13a2 2 0 0 1 0 4H3.5a2.5 2.5 0 1 1 .605-4.926.5.5 0 0 0 .596-.329A4 4 0 0 1 8.5 2'],
+  rain: ['M4.158 12.025a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317m3 0a.5.5 0 0 1 .316.633l-1 3a.5.5 0 0 1-.948-.316l1-3a.5.5 0 0 1 .632-.317m3 0a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317m3 0a.5.5 0 0 1 .316.633l-1 3a.5.5 0 1 1-.948-.316l1-3a.5.5 0 0 1 .632-.317m.247-6.998a5.001 5.001 0 0 0-9.499-1.004A3.5 3.5 0 1 0 3.5 11H13a3 3 0 0 0 .405-5.973M8.5 2a4 4 0 0 1 3.976 3.555.5.5 0 0 0 .5.445H13a2 2 0 0 1 0 4H3.5a2.5 2.5 0 1 1 .605-4.926.5.5 0 0 0 .596-.329A4 4 0 0 1 8.5 2'],
+  heavyRain: ['M4.176 11.032a.5.5 0 0 1 .292.643l-1.5 4a.5.5 0 1 1-.936-.35l1.5-4a.5.5 0 0 1 .644-.293m3 0a.5.5 0 0 1 .292.643l-1.5 4a.5.5 0 1 1-.936-.35l1.5-4a.5.5 0 0 1 .644-.293m3 0a.5.5 0 0 1 .292.643l-1.5 4a.5.5 0 1 1-.936-.35l1.5-4a.5.5 0 0 1 .644-.293m3 0a.5.5 0 0 1 .292.643l-1.5 4a.5.5 0 0 1-.936-.35l1.5-4a.5.5 0 0 1 .644-.293m.229-7.005a5.001 5.001 0 0 0-9.499-1.004A3.5 3.5 0 1 0 3.5 10H13a3 3 0 0 0 .405-5.973M8.5 1a4 4 0 0 1 3.976 3.555.5.5 0 0 0 .5.445H13a2 2 0 0 1 0 4H3.5a2.5 2.5 0 1 1 .605-4.926.5.5 0 0 0 .596-.329A4 4 0 0 1 8.5 1'],
+  snow: ['M13.405 4.277a5.001 5.001 0 0 0-9.499-1.004A3.5 3.5 0 1 0 3.5 10.25H13a3 3 0 0 0 .405-5.973M8.5 1.25a4 4 0 0 1 3.976 3.555.5.5 0 0 0 .5.445H13a2 2 0 0 1-.001 4H3.5a2.5 2.5 0 1 1 .605-4.926.5.5 0 0 0 .596-.329A4 4 0 0 1 8.5 1.25M2.625 11.5a.25.25 0 0 1 .25.25v.57l.501-.287a.25.25 0 0 1 .248.434l-.495.283.495.283a.25.25 0 0 1-.248.434l-.501-.286v.569a.25.25 0 1 1-.5 0v-.57l-.501.287a.25.25 0 0 1-.248-.434l.495-.283-.495-.283a.25.25 0 0 1 .248-.434l.501.286v-.569a.25.25 0 0 1 .25-.25m2.75 2a.25.25 0 0 1 .25.25v.57l.501-.287a.25.25 0 0 1 .248.434l-.495.283.495.283a.25.25 0 0 1-.248.434l-.501-.286v.569a.25.25 0 1 1-.5 0v-.57l-.501.287a.25.25 0 0 1-.248-.434l.495-.283-.495-.283a.25.25 0 0 1 .248-.434l.501.286v-.569a.25.25 0 0 1 .25-.25m5.5 0a.25.25 0 0 1 .25.25v.57l.501-.287a.25.25 0 0 1 .248.434l-.495.283.495.283a.25.25 0 0 1-.248.434l-.501-.286v.569a.25.25 0 1 1-.5 0v-.57l-.501.287a.25.25 0 0 1-.248-.434l.495-.283-.495-.283a.25.25 0 0 1 .248-.434l.501.286v-.569a.25.25 0 0 1 .25-.25m-2.75-2a.25.25 0 0 1 .25.25v.57l.501-.287a.25.25 0 0 1 .248.434l-.495.283.495.283a.25.25 0 0 1-.248.434l-.501-.286v.569a.25.25 0 1 1-.5 0v-.57l-.501.287a.25.25 0 0 1-.248-.434l.495-.283-.495-.283a.25.25 0 0 1 .248-.434l.501.286v-.569a.25.25 0 0 1 .25-.25m5.5 0a.25.25 0 0 1 .25.25v.57l.501-.287a.25.25 0 0 1 .248.434l-.495.283.495.283a.25.25 0 0 1-.248.434l-.501-.286v.569a.25.25 0 1 1-.5 0v-.57l-.501.287a.25.25 0 0 1-.248-.434l.495-.283-.495-.283a.25.25 0 0 1 .248-.434l.501.286v-.569a.25.25 0 0 1 .25-.25'],
+  thunderstorm: ['M2.658 11.026a.5.5 0 0 1 .316.632l-.5 1.5a.5.5 0 1 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.316m9.5 0a.5.5 0 0 1 .316.632l-.5 1.5a.5.5 0 1 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.316m-7.5 1.5a.5.5 0 0 1 .316.632l-.5 1.5a.5.5 0 1 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.316m9.5 0a.5.5 0 0 1 .316.632l-.5 1.5a.5.5 0 1 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.316m-.753-8.499a5.001 5.001 0 0 0-9.499-1.004A3.5 3.5 0 1 0 3.5 10H13a3 3 0 0 0 .405-5.973M8.5 1a4 4 0 0 1 3.976 3.555.5.5 0 0 0 .5.445H13a2 2 0 0 1 0 4H3.5a2.5 2.5 0 1 1 .605-4.926.5.5 0 0 0 .596-.329A4 4 0 0 1 8.5 1M7.053 11.276A.5.5 0 0 1 7.5 11h1a.5.5 0 0 1 .474.658l-.28.842H9.5a.5.5 0 0 1 .39.812l-2 2.5a.5.5 0 0 1-.875-.433L7.36 14H6.5a.5.5 0 0 1-.447-.724z'],
+} as const;
+
+type WeatherIconName = keyof typeof WEATHER_BOOTSTRAP_ICONS;
+
+type WeatherInfo = {
+  label: string;
+  icon: WeatherIconName;
+  color: string;
+};
+
+function WeatherBootstrapIcon({ name, color, size = 28 }: { name: WeatherIconName; color: string; size?: number }) {
+  const paths = WEATHER_BOOTSTRAP_ICONS[name] ?? WEATHER_BOOTSTRAP_ICONS.cloud;
+
+  return (
+    <Svg width={size} height={size} viewBox="0 0 16 16">
+      {paths.map((d, index) => (
+        <Path key={`${name}-${index}`} d={d} fill={color} />
+      ))}
+    </Svg>
+  );
+}
+
+function getWeatherInfo(code: number, isDay: number): WeatherInfo {
   switch (code) {
     case 0:
       return {
         label: 'weatherClear',
-        icon: isDay ? 'sunny-outline' : 'moon-outline',
+        icon: isDay ? 'sun' : 'moon',
         color: isDay ? '#FFA726' : '#9575CD'
       };
     case 1:
     case 2:
       return {
         label: 'weatherCloudy',
-        icon: isDay ? 'partly-sunny-outline' : 'cloudy-night-outline',
+        icon: isDay ? 'cloudSun' : 'cloudMoon',
         color: isDay ? '#FFB74D' : '#90A4AE'
       };
     case 3:
       return {
         label: 'weatherOvercast',
-        icon: 'cloudy-outline',
+        icon: 'cloud',
         color: '#90A4AE'
       };
     case 45:
     case 48:
       return {
         label: 'weatherFoggy',
-        icon: 'cloud-outline',
+        icon: 'fog',
         color: '#B0BEC5'
       };
     case 51:
@@ -105,34 +140,34 @@ function getWeatherInfo(code: number, isDay: number) {
     case 55:
       return {
         label: 'weatherDrizzle',
-        icon: 'rainy-outline',
+        icon: 'drizzle',
         color: '#4FC3F7'
       };
     case 56:
     case 57:
       return {
         label: 'weatherFreezingRain',
-        icon: 'snow-outline',
+        icon: 'snow',
         color: '#81D4FA'
       };
     case 61:
     case 63:
       return {
         label: 'weatherLightRain',
-        icon: 'rainy-outline',
+        icon: 'rain',
         color: '#64B5F6'
       };
     case 65:
       return {
         label: 'weatherHeavyRain',
-        icon: 'rainy-outline',
+        icon: 'heavyRain',
         color: '#2196F3'
       };
     case 66:
     case 67:
       return {
         label: 'weatherHeavyFreezingRain',
-        icon: 'snow-outline',
+        icon: 'snow',
         color: '#81D4FA'
       };
     case 71:
@@ -140,13 +175,13 @@ function getWeatherInfo(code: number, isDay: number) {
     case 75:
       return {
         label: 'weatherSnow',
-        icon: 'snow-outline',
+        icon: 'snow',
         color: '#E0E0E0'
       };
     case 77:
       return {
         label: 'weatherSnowGrains',
-        icon: 'snow-outline',
+        icon: 'snow',
         color: '#E0E0E0'
       };
     case 80:
@@ -154,33 +189,33 @@ function getWeatherInfo(code: number, isDay: number) {
     case 82:
       return {
         label: 'weatherShowers',
-        icon: 'rainy-outline',
+        icon: 'rain',
         color: '#64B5F6'
       };
     case 85:
     case 86:
       return {
         label: 'weatherSnowShowers',
-        icon: 'snow-outline',
+        icon: 'snow',
         color: '#E0E0E0'
       };
     case 95:
       return {
         label: 'weatherThunderstorm',
-        icon: 'thunderstorm-outline',
+        icon: 'thunderstorm',
         color: '#FFD54F'
       };
     case 96:
     case 99:
       return {
         label: 'weatherThunderstormHail',
-        icon: 'thunderstorm-outline',
+        icon: 'thunderstorm',
         color: '#FFD54F'
       };
     default:
       return {
         label: 'weatherCloudy',
-        icon: 'cloudy-outline',
+        icon: 'cloud',
         color: '#90A4AE'
       };
   }
@@ -459,7 +494,7 @@ export default function HomeScreen() {
     code: number;
     isDay: number;
     label: string;
-    icon: string;
+    icon: WeatherIconName;
     color: string;
   } | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
@@ -830,10 +865,10 @@ export default function HomeScreen() {
               <Animated.View style={{ opacity: fadeAnim, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                 <View style={styles.weatherCol}>
                   <View style={styles.weatherRowTop}>
-                    <Ionicons 
-                      name={weather?.icon as any || 'sunny-outline'} 
-                      size={28} 
-                      color={weather?.color || '#FFB300'} 
+                    <WeatherBootstrapIcon
+                      name={weather?.icon || 'sun'}
+                      size={28}
+                      color={weather?.color || '#FFB300'}
                     />
                   </View>
                   <View style={styles.weatherRowBottom}>
@@ -929,7 +964,6 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialCommunityIcons name="bullhorn-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('latestUpdates')}</Text>
             </View>
             <TouchableOpacity 

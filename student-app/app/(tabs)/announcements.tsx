@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  RefreshControl, ActivityIndicator, TextInput, Image, ScrollView,
+  RefreshControl, ActivityIndicator, TextInput, Image, ScrollView, BackHandler,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -63,6 +63,8 @@ export default function AnnouncementsScreen() {
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [search, setSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const searchInputRef = useRef<TextInput>(null);
 
   // Combined, filtered, and sliced items currently shown in FlatList
   const [displayItems, setDisplayItems] = useState<NotificationItem[]>([]);
@@ -195,6 +197,32 @@ export default function AnnouncementsScreen() {
     }
   };
 
+  const closeSearch = () => {
+    setIsSearching(false);
+    setSearch('');
+  };
+
+  const handleBackPress = () => {
+    if (isSearching) {
+      closeSearch();
+      return true;
+    }
+
+    router.back();
+    return true;
+  };
+
+  useEffect(() => {
+    if (isSearching) {
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+    }
+  }, [isSearching]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+    return () => subscription.remove();
+  }, [isSearching]);
+
   function formatDate(dateStr: string) {
     const d = new Date(dateStr);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -208,50 +236,89 @@ export default function AnnouncementsScreen() {
       
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.sm }}>
-          <MaterialCommunityIcons name="bullhorn-outline" size={24} color={colors.primary} style={{ marginRight: 8 }} />
-          <Text style={[styles.title, { color: colors.textPrimary, marginBottom: 0 }]}>{t('latestUpdates')}</Text>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            activeOpacity={0.7}
+            onPress={handleBackPress}
+          >
+            <MaterialCommunityIcons name="chevron-left" size={24} color={colors.primary} />
+          </TouchableOpacity>
+
+          {isSearching ? (
+            <TextInput
+              ref={searchInputRef}
+              style={[
+                styles.headerSearchInput,
+                {
+                  backgroundColor: colors.surface,
+                  color: colors.textPrimary,
+                  borderColor: colors.border,
+                },
+              ]}
+              placeholder={t('searchAnnouncementsPlaceholder')}
+              placeholderTextColor={colors.textMuted}
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+            />
+          ) : (
+            <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>
+              {t('latestUpdates')}
+            </Text>
+          )}
+
+          {isSearching ? (
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              activeOpacity={0.7}
+              onPress={closeSearch}
+            >
+              <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              activeOpacity={0.7}
+              onPress={() => setIsSearching(true)}
+            >
+              <MaterialCommunityIcons name="magnify" size={24} color={colors.textPrimary} />
+            </TouchableOpacity>
+          )}
         </View>
-        <TextInput
-          style={[styles.searchInput, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-          placeholder={t('searchAnnouncementsPlaceholder')}
-          placeholderTextColor={colors.textMuted}
-          value={search}
-          onChangeText={setSearch}
-        />
       </View>
 
       {/* Category Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-        style={styles.filterScrollView}
-      >
-        {CATEGORIES.map((cat) => (
-          <TouchableOpacity
-            key={cat.key}
-            style={[
-              styles.filterChip, 
-              { 
-                backgroundColor: selectedCategory === cat.key ? colors.primary : colors.surface, 
-                borderColor: selectedCategory === cat.key ? colors.primary : colors.border 
-              }
-            ]}
-            onPress={() => {
-              setSelectedCategory(cat.key);
-              setDisplayLimit(15); // reset limit on category change
-            }}
-          >
-            <Text style={[
-              styles.filterText, 
-              { color: selectedCategory === cat.key ? '#FFFFFF' : colors.textSecondary }
-            ]}>
-              {t('category_' + cat.key)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat.key}
+              style={[
+                styles.filterChip,
+                selectedCategory === cat.key && {
+                  backgroundColor: cat.key === 'all' ? colors.primarySoft : getCategoryColor(cat.key) + '15',
+                }
+              ]}
+              onPress={() => {
+                setSelectedCategory(cat.key);
+                setDisplayLimit(15); // reset limit on category change
+              }}
+            >
+              <Text style={[
+                styles.filterText,
+                {
+                  color: selectedCategory === cat.key
+                    ? cat.key === 'all' ? colors.primaryLight : getCategoryColor(cat.key)
+                    : colors.textSecondary,
+                }
+              ]}>
+                {t('category_' + cat.key)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40, backgroundColor: bgColor }} color={colors.primary} />
@@ -388,38 +455,53 @@ export default function AnnouncementsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.base, paddingBottom: SPACING.sm },
-  title: { fontSize: SIZES.xl, fontFamily: FONTS.bold, color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  searchInput: {
+  header: { paddingLeft: 4, paddingRight: SPACING.lg, paddingTop: 4, paddingBottom: SPACING.sm },
+  headerRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    flex: 1,
+    fontSize: SIZES.xl,
+    fontFamily: FONTS.bold,
+    color: COLORS.textPrimary,
+  },
+  headerSearchInput: {
+    flex: 1,
+    height: 44,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.base,
-    paddingVertical: SPACING.sm,
     fontSize: SIZES.md,
     fontFamily: FONTS.regular,
     color: COLORS.textPrimary,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  filterScrollView: {
-    flexGrow: 0,
+  filterContainer: {
+    paddingVertical: 12,
   },
-  filterRow: {
-    flexDirection: 'row',
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.base,
-    gap: SPACING.sm,
+  filterScroll: {
+    paddingHorizontal: 20,
+    gap: 8,
   },
   filterChip: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.03)',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'transparent',
   },
   filterChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  filterText: { fontSize: SIZES.sm, fontFamily: FONTS.medium, color: COLORS.textSecondary },
+  filterText: { fontSize: 13, fontWeight: 'bold', color: COLORS.textSecondary },
   filterTextActive: { color: '#FFFFFF' },
   list: { paddingHorizontal: SPACING.lg, paddingBottom: 20 },
   card: {

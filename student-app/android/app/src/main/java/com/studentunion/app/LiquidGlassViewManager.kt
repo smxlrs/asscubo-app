@@ -30,4 +30,16 @@ class LiquidGlassViewManager : SimpleViewManager<LiquidGlassView>() {
         view.blurStep = blurStep
         view.invalidate()
     }
+
+    @ReactProp(name = "chromaticBoost")
+    fun setChromaticBoost(view: LiquidGlassView, chromaticBoost: Boolean) {
+        view.chromaticBoost = chromaticBoost
+        view.invalidate()
+    }
+
+    @ReactProp(name = "refractionEnabled")
+    fun setRefractionEnabled(view: LiquidGlassView, refractionEnabled: Boolean) {
+        view.refractionEnabled = refractionEnabled
+        view.invalidate()
+    }
 }

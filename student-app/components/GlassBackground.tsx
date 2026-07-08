@@ -8,12 +8,16 @@ interface GlassBackgroundProps {
   borderRadius?: number;
   isDark?: boolean;
   blurStep?: number;
+  chromaticBoost?: boolean;
+  refractionEnabled?: boolean;
 }
 
 export const GlassBackground: React.FC<GlassBackgroundProps> = ({
   borderRadius = 34,
   isDark = false,
   blurStep = 1,
+  chromaticBoost = false,
+  refractionEnabled = true,
 }) => {
   const [reduceTransparency, setReduceTransparency] = React.useState(false);
 
@@ -29,7 +33,7 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
           StyleSheet.absoluteFill,
           {
             borderRadius,
-            backgroundColor: isDark ? 'rgba(24, 24, 27, 0.92)' : 'rgba(255, 255, 255, 0.92)',
+            backgroundColor: isDark ? 'rgba(20, 20, 22, 0.76)' : 'rgba(255, 255, 255, 0.92)',
           },
         ]}
       />
@@ -46,6 +50,8 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
         borderRadius={borderRadius}
         isDark={isDark}
         blurStep={blurStep}
+        chromaticBoost={chromaticBoost}
+        refractionEnabled={refractionEnabled}
         style={StyleSheet.absoluteFill}
       />
     );
@@ -64,7 +70,7 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
       <LinearGradient
         colors={
           isDark
-            ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.04)']
+            ? ['rgba(255,255,255,0.08)', 'rgba(0,0,0,0.20)']
             : ['rgba(255,255,255,0.42)', 'rgba(255,255,255,0.18)']
         }
         start={{ x: 0, y: 0 }}
@@ -77,7 +83,7 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
           {
             borderRadius,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.68)',
+            borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.68)',
           },
         ]}
       />

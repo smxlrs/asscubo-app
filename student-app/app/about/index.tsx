@@ -47,7 +47,7 @@ const UPDATE_TEXTS: Record<string, {
     latest: '最新版本',
     goUpdate: '前往下载',
     later: '稍后再说',
-    upToDate: '当前已是最新版本 🎉',
+    upToDate: '当前已是最新版本',
     networkErr: '网络连接失败，请稍后重试。',
     openGitHub: '打开 GitHub Releases',
     cancel: '取消',
@@ -59,7 +59,7 @@ const UPDATE_TEXTS: Record<string, {
     latest: '最新版本',
     goUpdate: '前往下載',
     later: '稍後再說',
-    upToDate: '目前已是最新版本 🎉',
+    upToDate: '目前已是最新版本',
     networkErr: '網路連線失敗，請稍後重試。',
     openGitHub: '開啟 GitHub Releases',
     cancel: '取消',
@@ -71,7 +71,7 @@ const UPDATE_TEXTS: Record<string, {
     latest: 'Latest',
     goUpdate: 'Download Now',
     later: 'Later',
-    upToDate: "You're on the latest version 🎉",
+    upToDate: "You're on the latest version",
     networkErr: 'Network error. Please try again later.',
     openGitHub: 'Open GitHub Releases',
     cancel: 'Cancel',
@@ -83,7 +83,7 @@ const UPDATE_TEXTS: Record<string, {
     latest: 'Ultima versione',
     goUpdate: 'Scarica ora',
     later: 'Dopo',
-    upToDate: "Hai l'ultima versione 🎉",
+    upToDate: "Hai l'ultima versione",
     networkErr: 'Errore di rete. Riprova più tardi.',
     openGitHub: 'Apri GitHub Releases',
     cancel: 'Annulla',
@@ -299,13 +299,13 @@ export default function AboutIndexScreen() {
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
-          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/privacy')}>
-            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>隐私政策</Text>
+          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/terms')}>
+            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>用户协议</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
-          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/terms')}>
-            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>用户协议</Text>
+          <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/about/privacy')}>
+            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>隐私政策</Text>
             <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
           </Pressable>
 
