@@ -9,7 +9,6 @@ import {
   Dimensions, 
   ActivityIndicator, 
   StatusBar,
-  BackHandler,
   Image,
   Linking,
   Alert,
@@ -25,6 +24,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
+import { useAndroidBackHandler } from '../../../hooks/useAndroidBackHandler';
 
 import { supabase } from '../../../lib/supabase';
 
@@ -824,30 +824,22 @@ export default function HandbookReaderScreen() {
     });
   }, [navigation, isSearchOpen, isDrawerOpen, isSettingsOpen]);
 
-  // Android Back Handler for physical back button or Android back gesture
-  useEffect(() => {
-    const handleBackPress = () => {
-      if (isSearchOpen) {
-        setIsSearchOpen(false);
-        setSearchQuery('');
-        setSearchResults([]);
-        return true; // prevent default
-      }
-      if (isDrawerOpen) {
-        closeDrawer();
-        return true;
-      }
-      if (isSettingsOpen) {
-        closeSettings();
-        return true;
-      }
-      return false; // run default back
-    };
-
-    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
-    return () => {
-      subscription.remove();
-    };
+  useAndroidBackHandler(() => {
+    if (isSearchOpen) {
+      setIsSearchOpen(false);
+      setSearchQuery('');
+      setSearchResults([]);
+      return true;
+    }
+    if (isDrawerOpen) {
+      closeDrawer();
+      return true;
+    }
+    if (isSettingsOpen) {
+      closeSettings();
+      return true;
+    }
+    return false;
   }, [isSearchOpen, isDrawerOpen, isSettingsOpen]);
 
   // Handle swipe back (iOS) fallback

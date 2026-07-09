@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Linking, FlatList, RefreshControl, Animated, TextInput, Modal, BackHandler, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Linking, FlatList, RefreshControl, Animated, TextInput, Modal, Platform } from 'react-native';
 import { router, useNavigation } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { STUDY_ROOMS, fetchStudyRoomStatus, StudyRoom, StudyRoomStatus } from '../../../lib/studyroom';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAndroidBackHandler } from '../../../hooks/useAndroidBackHandler';
 
 type RoomWithStatus = StudyRoom & {
   status: StudyRoomStatus;
@@ -194,18 +195,16 @@ export default function StudyRoomsScreen() {
     return campus;
   };
 
+  useAndroidBackHandler(() => {
+    if (showSearch) {
+      setShowSearch(false);
+      setSearchQuery('');
+      return true;
+    }
+    return false;
+  }, [showSearch]);
+
   useEffect(() => {
-    const onBackPress = () => {
-      if (showSearch) {
-        setShowSearch(false);
-        setSearchQuery('');
-        return true;
-      }
-      return false;
-    };
-
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       if (showSearch && Platform.OS === 'ios') {
         e.preventDefault();
@@ -215,7 +214,6 @@ export default function StudyRoomsScreen() {
     });
 
     return () => {
-      subscription.remove();
       unsubscribe();
     };
   }, [showSearch, navigation]);

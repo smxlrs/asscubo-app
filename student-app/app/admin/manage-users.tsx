@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Image, TextInput, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Image, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { useAndroidBackHandler } from '../../hooks/useAndroidBackHandler';
 
 type UserProfile = {
   id: string;
@@ -32,17 +33,12 @@ export default function ManageUsersScreen() {
     setSearchQuery('');
   };
 
-  useEffect(() => {
-    const handleHardwareBack = () => {
-      if (isSearching) {
-        handleCancelSearch();
-        return true;
-      }
-      return false;
-    };
-
-    const subscription = BackHandler.addEventListener('hardwareBackPress', handleHardwareBack);
-    return () => subscription.remove();
+  useAndroidBackHandler(() => {
+    if (isSearching) {
+      handleCancelSearch();
+      return true;
+    }
+    return false;
   }, [isSearching]);
 
   const filteredUsers = users.filter(user => {

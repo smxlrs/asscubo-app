@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Alert, BackHandler, Animated as RNAnimated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Alert, Animated as RNAnimated } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +22,7 @@ import Animated, {
   scrollTo,
   useFrameCallback
 } from 'react-native-reanimated';
+import { useAndroidBackHandler } from '../../hooks/useAndroidBackHandler';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2;
@@ -512,16 +513,11 @@ export default function ToolsScreen() {
     orderShared.value = toolOrder;
   }, [toolOrder]);
 
-  useEffect(() => {
-    if (!isEditing) return;
+  useAndroidBackHandler(() => {
+    if (!isEditing) return false;
 
-    const handleBackPress = () => {
-      setIsEditing(false);
-      return true; // prevent default back navigation
-    };
-
-    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
-    return () => subscription.remove();
+    setIsEditing(false);
+    return true;
   }, [isEditing]);
 
   useEffect(() => {

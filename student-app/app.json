@@ -62,7 +62,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "./plugins/withPredictiveBack"
     ],
     "ios": {
       "supportsTablet": true,

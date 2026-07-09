@@ -255,7 +255,7 @@ function AppContent() {
       <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
         <Stack screenOptions={{ 
           headerShown: false, 
-          animation: 'slide_from_right',
+          animation: predictiveBack && Platform.OS === 'android' ? 'default' : 'slide_from_right',
           contentStyle: { backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }
         }}>
           <Stack.Screen name="(tabs)" />

@@ -14,13 +14,13 @@ import {
   Linking,
   RefreshControl,
   Modal,
-  TextInput,
-  BackHandler
+  TextInput
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme, Language } from '../../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAndroidBackHandler } from '../../../hooks/useAndroidBackHandler';
 
 const { width } = Dimensions.get('window');
 
@@ -935,22 +935,13 @@ export default function EmptyClassroomScreen() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const backAction = () => {
-      if (isSearching) {
-        setIsSearching(false);
-        setSearchQuery('');
-        return true;
-      }
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction
-    );
-
-    return () => backHandler.remove();
+  useAndroidBackHandler(() => {
+    if (isSearching) {
+      setIsSearching(false);
+      setSearchQuery('');
+      return true;
+    }
+    return false;
   }, [isSearching]);
 
   useEffect(() => {

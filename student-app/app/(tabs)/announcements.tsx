@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  RefreshControl, ActivityIndicator, TextInput, Image, ScrollView, BackHandler,
+  RefreshControl, ActivityIndicator, TextInput, Image, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS } from '../../constants/theme';
+import { useAndroidBackHandler } from '../../hooks/useAndroidBackHandler';
 
 type NotificationItem = {
   id: string;
@@ -218,10 +219,7 @@ export default function AnnouncementsScreen() {
     }
   }, [isSearching]);
 
-  useEffect(() => {
-    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
-    return () => subscription.remove();
-  }, [isSearching]);
+  useAndroidBackHandler(handleBackPress, [isSearching]);
 
   function formatDate(dateStr: string) {
     const d = new Date(dateStr);

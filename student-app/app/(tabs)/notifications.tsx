@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, TextInput, BackHandler, Animated, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, TextInput, Animated, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { ScrollView } from 'react-native';
+import { useAndroidBackHandler } from '../../hooks/useAndroidBackHandler';
 
 type Notification = {
   id: string;
@@ -160,22 +161,13 @@ export default function NotificationsScreen() {
     fetchNotifications(true, selectedFilter, false);
   }, [selectedFilter]);
 
-  useEffect(() => {
-    const backAction = () => {
-      if (isSearching) {
-        setIsSearching(false);
-        setSearchQuery('');
-        return true;
-      }
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction
-    );
-
-    return () => backHandler.remove();
+  useAndroidBackHandler(() => {
+    if (isSearching) {
+      setIsSearching(false);
+      setSearchQuery('');
+      return true;
+    }
+    return false;
   }, [isSearching]);
 
   const onRefresh = () => {
