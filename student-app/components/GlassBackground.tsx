@@ -1,6 +1,7 @@
 import React from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, UIManager, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
+import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LiquidGlassAndroidView } from './LiquidGlassAndroidView';
 
@@ -40,8 +41,7 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
     );
   }
 
-  const nativeAvailable =
-    Platform.OS === 'android' && UIManager.getViewManagerConfig('LiquidGlassView') != null;
+  const nativeAvailable = Platform.OS === 'android' && Constants.appOwnership !== 'expo';
 
   if (nativeAvailable) {
     return (
