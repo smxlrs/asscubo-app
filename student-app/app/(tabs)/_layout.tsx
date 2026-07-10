@@ -4,6 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import React, { useRef, useEffect, useState } from 'react';
 import { useQuickActionRouting } from 'expo-quick-actions/router';
 import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, interpolateColor } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassBackground } from '../../components/GlassBackground';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -322,6 +323,7 @@ function DockTabSlot({
 
 export default function TabsLayout() {
   const { colors, t, isDark, tabBarStyle, glassOpacityLevel, tabOpacities, setTabGestureActive } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Handle quick actions routing safely after tabs layout has mounted
   useQuickActionRouting();
@@ -686,7 +688,7 @@ export default function TabsLayout() {
 
   const tabStyle = USE_GLASSMORPHISM ? {
     position: 'absolute' as const,
-    bottom: Platform.OS === 'ios' ? 24 : 16,
+    bottom: Platform.OS === 'ios' ? 24 : 16 + insets.bottom,
     left: TAB_BAR_HORIZONTAL_INSET,
     right: TAB_BAR_HORIZONTAL_INSET,
     borderRadius: TAB_BAR_RADIUS,
