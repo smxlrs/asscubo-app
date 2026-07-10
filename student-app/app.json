@@ -63,7 +63,8 @@
           }
         }
       ],
-      "./plugins/withPredictiveBack"
+      "./plugins/withPredictiveBack",
+      "./plugins/withLiquidGlassAndroid"
     ],
     "ios": {
       "supportsTablet": true,
