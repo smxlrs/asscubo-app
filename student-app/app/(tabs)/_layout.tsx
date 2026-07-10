@@ -688,7 +688,7 @@ export default function TabsLayout() {
 
   const tabStyle = USE_GLASSMORPHISM ? {
     position: 'absolute' as const,
-    bottom: Platform.OS === 'ios' ? 24 : 16 + insets.bottom,
+    bottom: Platform.OS === 'ios' ? 24 : Math.max(8, insets.bottom),
     left: TAB_BAR_HORIZONTAL_INSET,
     right: TAB_BAR_HORIZONTAL_INSET,
     borderRadius: TAB_BAR_RADIUS,
