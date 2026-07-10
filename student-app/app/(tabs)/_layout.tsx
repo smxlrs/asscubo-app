@@ -24,36 +24,6 @@ const DOCK_VISUAL_SIDE_INSET = DOCK_CONTENT_HORIZONTAL_PADDING;
 const INITIAL_TAB_BAR_WIDTH = SCREEN_WIDTH - TAB_BAR_HORIZONTAL_INSET * 2;
 const INITIAL_DOCK_CONTENT_WIDTH = INITIAL_TAB_BAR_WIDTH - DOCK_CONTENT_HORIZONTAL_PADDING * 2;
 
-function interpolateColorJS(value: number, color1: string, color2: string): string {
-  const hex = (c: string) => {
-    const raw = c.replace('#', '');
-    if (raw.length === 3) {
-      return raw.split('').map(x => x + x).join('');
-    }
-    return raw;
-  };
-  
-  const h1 = hex(color1);
-  const h2 = hex(color2);
-  
-  const r1 = parseInt(h1.substring(0, 2), 16);
-  const g1 = parseInt(h1.substring(2, 4), 16);
-  const b1 = parseInt(h1.substring(4, 6), 16);
-  
-  const r2 = parseInt(h2.substring(0, 2), 16);
-  const g2 = parseInt(h2.substring(2, 4), 16);
-  const b2 = parseInt(h2.substring(4, 6), 16);
-  
-  const r = Math.round(r1 + (r2 - r1) * value);
-  const g = Math.round(g1 + (g2 - g1) * value);
-  const b = Math.round(b1 + (b2 - b1) * value);
-  
-  const clamp = (val: number) => Math.max(0, Math.min(255, val));
-  const toHex = (val: number) => clamp(val).toString(16).padStart(2, '0');
-  
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
 const BOOTSTRAP_TAB_ICONS = {
   home: {
     outline: [
@@ -142,7 +112,7 @@ function GlassRimHighlight({
           StyleSheet.absoluteFill,
           {
             borderRadius,
-            borderWidth: compact ? StyleSheet.hairlineWidth : 1.25,
+            borderWidth: compact ? StyleSheet.hairlineWidth : isDark ? 1.25 : 0.75,
             borderColor: rimColor,
           },
         ]}
@@ -218,9 +188,6 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
   const widthAnim = useRef(new Animated.Value(focused ? 50 : 26)).current;
   const opacityAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
   const iconScaleAnim = useRef(new Animated.Value(focused ? 1.05 : 1.0)).current;
-  const colorAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
-
-  // Local state to hold the interpolated color to avoid setNativeProps crashes
   const [iconColor, setIconColor] = useState(tabColor);
 
   useEffect(() => {
@@ -249,24 +216,8 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
         easing: Easing.out(Easing.ease),
         useNativeDriver: false,
       }),
-      Animated.timing(colorAnim, {
-        toValue: 1,
-        duration: 180,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      }),
     ]).start();
   }, [focused]);
-
-  useEffect(() => {
-    const listenerId = colorAnim.addListener(({ value }) => {
-      const color = interpolateColorJS(value, tabColor, tabColor);
-      setIconColor(color);
-    });
-    return () => {
-      colorAnim.removeListener(listenerId);
-    };
-  }, [inactiveColor, activeColor]);
 
   return (
     <View style={[
