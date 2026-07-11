@@ -703,7 +703,7 @@ export default function TabsLayout() {
     borderTopWidth: 0,
     elevation: 0,
     shadowOpacity: 0,
-    height: 76,
+    height: 76 + insets.bottom,
     paddingBottom: 0,
   };
 
