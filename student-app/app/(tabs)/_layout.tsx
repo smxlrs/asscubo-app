@@ -686,6 +686,9 @@ export default function TabsLayout() {
     };
   });
 
+  const standardTabBarHeight =
+    76 + (Platform.OS === 'android' && insets.bottom >= 40 ? insets.bottom : 0);
+
   const tabStyle = USE_GLASSMORPHISM ? {
     position: 'absolute' as const,
     bottom: Platform.OS === 'ios' ? 24 : Math.max(8, insets.bottom),
@@ -703,7 +706,7 @@ export default function TabsLayout() {
     borderTopWidth: 0,
     elevation: 0,
     shadowOpacity: 0,
-    height: 76 + insets.bottom,
+    height: standardTabBarHeight,
     paddingBottom: 0,
   };
 
