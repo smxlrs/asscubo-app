@@ -25,6 +25,18 @@ on:
         required: false
         default: ''
 
+  workflow_call:
+    inputs:
+      platform:
+        required: true
+        type: string
+      profile:
+        required: true
+        type: string
+      version:
+        required: false
+        type: string
+
   push:
     tags:
       - 'v*.*.*'
@@ -98,9 +110,9 @@ jobs:
               fs.writeFileSync('student-app/app.json', JSON.stringify(appJson, null, 2) + '\n');
             "
           else
-            echo "platform=${{ github.event.inputs.platform }}" >> $GITHUB_OUTPUT
-            echo "profile=${{ github.event.inputs.profile }}"   >> $GITHUB_OUTPUT
-            VER="${{ github.event.inputs.version }}"
+            echo "platform=${{ inputs.platform }}" >> $GITHUB_OUTPUT
+            echo "profile=${{ inputs.profile }}"   >> $GITHUB_OUTPUT
+            VER="${{ inputs.version }}"
             if [ -z "$VER" ]; then
               # Auto-generate version from app.json base + run_number
               BASE_VER=$(node -p "
@@ -139,7 +151,7 @@ jobs:
 
       # ── Android ──────────────────────────────────────────────
       - name: 🤖 Build Android on EAS
-        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        if: (steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all') && github.event_name != 'workflow_call'
         working-directory: student-app
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -172,6 +184,37 @@ jobs:
 
           curl --fail --location --retry 3 --output "$ARTIFACT_NAME" "$BUILD_URL"
           echo "Android artifact downloaded from EAS: $ARTIFACT_NAME"
+
+      - name: 🤖 Build Android on GitHub runner
+        if: steps.vars.outputs.platform == 'android' && github.event_name == 'workflow_call'
+        working-directory: student-app
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_LOCAL_BUILD_ARTIFACTS_DIR: build-artifacts
+        run: |
+          # Keep this branch identical to the original GitHub Runner build.
+          eas build \
+            --platform android \
+            --profile ${{ steps.vars.outputs.profile }} \
+            --local \
+            --non-interactive
+
+          echo "=== Local Build Artifacts ==="
+          ls -la build-artifacts/
+
+          APK_FILE=$(find build-artifacts -name "*.apk" | head -n 1)
+          AAB_FILE=$(find build-artifacts -name "*.aab" | head -n 1)
+
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" boxue.apk
+            echo "Android APK created: boxue.apk"
+          elif [ -n "$AAB_FILE" ]; then
+            cp "$AAB_FILE" boxue.aab
+            echo "Android AAB created: boxue.aab"
+          else
+            echo "No build artifact (.apk or .aab) found!"
+            exit 1
+          fi
 
       - name: 📤 Upload APK/AAB Artifact
         if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
