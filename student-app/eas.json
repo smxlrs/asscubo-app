@@ -1,64 +1,32 @@
 {
   "cli": {
-    "version": ">= 13.0.0",
-    "appVersionSource": "local"
+    "version": ">= 18.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "preview": {
-      "channel": "preview",
       "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://avxzgaozbfeqttmhmlld.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_ROyJRMFd8_hDw3YwRBUmHA_E61yNqqa"
-      },
       "android": {
-        "buildType": "apk"
-      },
-      "ios": {
-        "simulator": false
+        "buildType": "apk",
+        "image": "latest"
       }
     },
-
-    "sideload": {
-      "channel": "preview",
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://avxzgaozbfeqttmhmlld.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_ROyJRMFd8_hDw3YwRBUmHA_E61yNqqa",
-        "EXPO_NO_UPDATES": "1"
-      },
-      "ios": {
-        "simulator": false,
-        "enterpriseProvisioning": "adhoc"
-      }
-    },
-    "ios-unsigned": {
-      "channel": "preview",
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://avxzgaozbfeqttmhmlld.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_ROyJRMFd8_hDw3YwRBUmHA_E61yNqqa",
-        "EXPO_NO_UPDATES": "1"
-      },
-      "ios": {
-        "simulator": true
-      }
-    },
-
     "production": {
-      "channel": "production",
-      "distribution": "store",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://avxzgaozbfeqttmhmlld.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_ROyJRMFd8_hDw3YwRBUmHA_E61yNqqa"
-      },
+      "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "image": "latest"
       },
-      "ios": {}
+      "ios": {
+        "image": "latest"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal"
+      }
+    }
   }
 }

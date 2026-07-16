@@ -86,7 +86,7 @@
         "backgroundColor": "#B8362C",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
-      "package": "com.asscuboxue",
+      "package": "com.asscuboxue.app",
       "permissions": [
         "NOTIFICATIONS",
         "VIBRATE",
