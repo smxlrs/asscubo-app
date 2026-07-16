@@ -24,6 +24,7 @@ const DOCK_CONTENT_HORIZONTAL_PADDING = 8;
 const DOCK_VISUAL_SIDE_INSET = DOCK_CONTENT_HORIZONTAL_PADDING;
 const INITIAL_TAB_BAR_WIDTH = SCREEN_WIDTH - TAB_BAR_HORIZONTAL_INSET * 2;
 const INITIAL_DOCK_CONTENT_WIDTH = INITIAL_TAB_BAR_WIDTH - DOCK_CONTENT_HORIZONTAL_PADDING * 2;
+const TAB_HIT_SLOP = { top: 12, bottom: 12, left: 0, right: 0 };
 
 const BOOTSTRAP_TAB_ICONS = {
   home: {
@@ -856,6 +857,7 @@ export default function TabsLayout() {
                 {...rest} 
                 ref={ref as any}
                 android_ripple={null} 
+                hitSlop={TAB_HIT_SLOP}
                 style={[
                   cleanStyle,
                   { opacity: 1 }
@@ -887,6 +889,7 @@ export default function TabsLayout() {
                     {...rest} 
                     ref={ref as any}
                     android_ripple={null} 
+                    hitSlop={TAB_HIT_SLOP}
                     style={{ flex: 1, opacity: 1 }} 
                   />
                 </View>
@@ -916,6 +919,7 @@ export default function TabsLayout() {
                     {...rest} 
                     ref={ref as any}
                     android_ripple={null} 
+                    hitSlop={TAB_HIT_SLOP}
                     style={{ flex: 1, opacity: 1 }} 
                   />
                 </View>
@@ -945,6 +949,7 @@ export default function TabsLayout() {
                     {...rest} 
                     ref={ref as any}
                     android_ripple={null} 
+                    hitSlop={TAB_HIT_SLOP}
                     style={{ flex: 1, opacity: 1 }} 
                   />
                 </View>
@@ -974,6 +979,7 @@ export default function TabsLayout() {
                     {...rest} 
                     ref={ref as any}
                     android_ripple={null} 
+                    hitSlop={TAB_HIT_SLOP}
                     style={{ flex: 1, opacity: 1 }} 
                   />
                 </View>
