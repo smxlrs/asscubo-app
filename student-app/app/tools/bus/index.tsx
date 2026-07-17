@@ -29,6 +29,7 @@ import {
   BusStop,
 } from '../../../lib/tperService';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS, SHADOWS } from '../../../constants/theme';
+import { MarqueeText } from '../../../components/MarqueeText';
 
 const { width } = Dimensions.get('window');
 
@@ -1070,9 +1071,7 @@ export default function BusBoardScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 4 }]}>
           <View style={[styles.resultHeader, { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 }]}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.activeStopName, { color: colors.textPrimary }]} numberOfLines={1}>
-                {activeStopName}
-              </Text>
+              <MarqueeText style={[styles.activeStopName, { color: colors.textPrimary }]} text={activeStopName || ''} />
               <Text style={[styles.activeStopCode, { color: colors.textSecondary }]}>
                 {localized.stopCodeLabel}{activeStopCode}
               </Text>
@@ -1138,9 +1137,7 @@ export default function BusBoardScreen() {
         {!hideHeader && (
           <View style={styles.resultHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.activeStopName, { color: colors.textPrimary }]} numberOfLines={1}>
-                {activeStopName}
-              </Text>
+              <MarqueeText style={[styles.activeStopName, { color: colors.textPrimary }]} text={activeStopName || ''} />
               <Text style={[styles.activeStopCode, { color: colors.textSecondary }]}>
                 {localized.stopCodeLabel}{activeStopCode}
               </Text>
@@ -1350,7 +1347,7 @@ export default function BusBoardScreen() {
 
                     {/* Countdown */}
                     <View style={styles.arrivalRight}>
-                      <Text style={[styles.countdownText, { color: colors.primary }]}>
+                      <Text numberOfLines={1} style={[styles.countdownText, { color: colors.primary }]}>
                         {getCountdownString(bus.time)}
                       </Text>
                     </View>
@@ -1684,9 +1681,7 @@ export default function BusBoardScreen() {
                 
                 <View style={styles.sheetHeaderContent}>
                   <View style={{ flex: 1, marginRight: 12 }}>
-                    <Text style={[styles.activeStopName, { color: colors.textPrimary }]} numberOfLines={1}>
-                      {activeStopName}
-                    </Text>
+                    <MarqueeText style={[styles.activeStopName, { color: colors.textPrimary }]} text={activeStopName || ''} />
                     <Text style={[styles.activeStopCode, { color: colors.textSecondary }]}>
                       {localized.stopCodeLabel}{activeStopCode}
                     </Text>
@@ -2113,7 +2108,9 @@ const styles = StyleSheet.create({
   },
   arrivalMiddle: {
     flex: 1,
+    minWidth: 0,
     marginLeft: 12,
+    marginRight: 8,
     justifyContent: 'center',
   },
   arrivalTime: {
@@ -2158,11 +2155,13 @@ const styles = StyleSheet.create({
   arrivalRight: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    minWidth: 70,
+    width: 88,
+    flexShrink: 0,
   },
   countdownText: {
     fontSize: 15,
     fontWeight: 'bold',
+    paddingRight: 2,
   },
   routesFilterContainer: {
     marginTop: 16,
