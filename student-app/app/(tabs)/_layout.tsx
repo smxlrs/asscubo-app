@@ -890,7 +890,7 @@ export default function TabsLayout() {
                     ref={ref as any}
                     android_ripple={null} 
                     hitSlop={TAB_HIT_SLOP}
-                    style={{ flex: 1, opacity: 1 }} 
+                    style={[styles.tabPressable, !USE_GLASSMORPHISM && styles.standardTabTouchPressable]}
                   />
                 </View>
               );
@@ -920,7 +920,7 @@ export default function TabsLayout() {
                     ref={ref as any}
                     android_ripple={null} 
                     hitSlop={TAB_HIT_SLOP}
-                    style={{ flex: 1, opacity: 1 }} 
+                    style={[styles.tabPressable, !USE_GLASSMORPHISM && styles.standardTabTouchPressable]}
                   />
                 </View>
               );
@@ -950,7 +950,7 @@ export default function TabsLayout() {
                     ref={ref as any}
                     android_ripple={null} 
                     hitSlop={TAB_HIT_SLOP}
-                    style={{ flex: 1, opacity: 1 }} 
+                    style={[styles.tabPressable, !USE_GLASSMORPHISM && styles.standardTabTouchPressable]}
                   />
                 </View>
               );
@@ -980,7 +980,7 @@ export default function TabsLayout() {
                     ref={ref as any}
                     android_ripple={null} 
                     hitSlop={TAB_HIT_SLOP}
-                    style={{ flex: 1, opacity: 1 }} 
+                    style={[styles.tabPressable, !USE_GLASSMORPHISM && styles.standardTabTouchPressable]}
                   />
                 </View>
               );
@@ -1117,6 +1117,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 4,
     textAlign: 'center',
+  },
+  tabPressable: {
+    flex: 1,
+    opacity: 1,
+  },
+  standardTabTouchPressable: {
+    width: '100%',
+    height: '100%',
+    alignSelf: 'stretch',
+    alignItems: 'center',
   },
   glassContainerBorder: {
     borderRadius: TAB_BAR_RADIUS,
