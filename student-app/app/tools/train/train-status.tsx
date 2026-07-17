@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Modal,
   Dimensions,
   Animated,
   Platform
@@ -104,7 +105,19 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     notStarted: '尚未开行',
     expiredError: '该车次已实际到达终点站超过4小时，无法再查询运行状态。',
     disclaimer: '本服务展示的列车时刻、延误及站台等数据均来自意大利铁路公开实时运营信息，仅供出行参考。实际运行请以车站大屏幕及官方购票App（Trenitalia / Italo）实时公告为准。',
-    refreshSuccess: '刷新成功'
+    refreshSuccess: '刷新成功',
+    alertNotice: '注意！该车次有变动信息，点击查看',
+    alertDetails: '运行变动信息',
+    translate: '翻译',
+    showOriginal: '查看原文',
+    close: '关闭',
+    source: '信息来源',
+    alertReference: '公告信息仅供参考，请以车站公告和铁路运营方通知为准。',
+    alertPublished: '公告发布时间',
+    alertOlderWarning: '这不是当日公告，请务必向运营方确认其是否仍然有效。',
+    translationReference: '机器翻译仅供理解参考。',
+    translationFailed: '暂时无法翻译，请稍后再试。',
+    alertUnavailable: '运营变动信息暂时无法获取，请以官方公告为准。'
   },
   'zh-Hant': {
     title: '車次追踪',
@@ -160,7 +173,19 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     notStarted: 'Not started yet',
     expiredError: 'This train actually arrived at the destination more than 4 hours ago and is no longer available.',
     disclaimer: 'The train schedules, delays, and platform info displayed here are retrieved from Italian rail public live data and are for reference only. Please refer to station screens and official apps for actual operations.',
-    refreshSuccess: 'Refresh successful'
+    refreshSuccess: 'Refresh successful',
+    alertNotice: 'Notice: this train has an operational update. Tap to view.',
+    alertDetails: 'Operational update',
+    translate: 'Translate',
+    showOriginal: 'Show original',
+    close: 'Close',
+    source: 'Source',
+    alertReference: 'This notice is for reference only. Follow station displays and railway operator notices.',
+    alertPublished: 'Published',
+    alertOlderWarning: 'This is not a same-day notice. Please confirm that it is still valid with the operator.',
+    translationReference: 'Machine translation is provided for reference only.',
+    translationFailed: 'Translation is temporarily unavailable. Please try again later.',
+    alertUnavailable: 'Operational update notices are temporarily unavailable. Please refer to official announcements.'
   },
   it: {
     title: 'Stato Treno',
@@ -263,6 +288,51 @@ export default function TrainStatusScreen() {
   }, []);
 
   const [alerts, setAlerts] = useState<VtAlert[]>([]);
+  const [alertServiceAvailable, setAlertServiceAvailable] = useState<boolean | null>(null);
+  const [selectedAlert, setSelectedAlert] = useState<VtAlert | null>(null);
+  const [translatedAlertText, setTranslatedAlertText] = useState<string | null>(null);
+  const [showTranslatedAlert, setShowTranslatedAlert] = useState(false);
+  const [isTranslatingAlert, setIsTranslatingAlert] = useState(false);
+
+  const selectedAlertIsOlderThanToday = Boolean(
+    selectedAlert?.timestamp && new Date(selectedAlert.timestamp).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)
+  );
+
+  const closeAlertDetails = () => {
+    setSelectedAlert(null);
+    setTranslatedAlertText(null);
+    setShowTranslatedAlert(false);
+  };
+
+  const toggleAlertTranslation = async () => {
+    if (!selectedAlert) return;
+    if (showTranslatedAlert) {
+      setShowTranslatedAlert(false);
+      return;
+    }
+    if (translatedAlertText) {
+      setShowTranslatedAlert(true);
+      return;
+    }
+
+    setIsTranslatingAlert(true);
+    try {
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(selectedAlert.text)}&langpair=it|zh-CN`
+      );
+      const payload = await response.json();
+      const translatedText = payload?.responseData?.translatedText;
+      if (!response.ok || typeof translatedText !== 'string' || !translatedText.trim()) {
+        throw new Error('Translation unavailable');
+      }
+      setTranslatedAlertText(translatedText);
+      setShowTranslatedAlert(true);
+    } catch (error) {
+      triggerToast(t('translationFailed'));
+    } finally {
+      setIsTranslatingAlert(false);
+    }
+  };
 
   // Date selector local states
   const [activeTimestamp, setActiveTimestamp] = useState<string>(timestamp || '');
@@ -367,6 +437,7 @@ export default function TrainStatusScreen() {
     if (!isRef) setLoading(true);
     setErrorMsg('');
     setAlerts([]); // Reset alerts
+    setAlertServiceAvailable(null);
     try {
       let resolvedStationID = activeStationID;
       let resolvedTimestamp = activeTimestamp;
@@ -473,12 +544,9 @@ export default function TrainStatusScreen() {
         setStatus(data);
         await updateRecentTrainInHistory(data, resolvedStationID, resolvedTimestamp);
 
-        try {
-          const activeAlerts = await getTrainAlerts(data.number, data.origin, data.destination);
-          setAlerts(activeAlerts);
-        } catch (alertErr) {
-          console.warn('Failed to load alerts:', alertErr);
-        }
+        const alertResult = await getTrainAlerts(data.number, data.origin, data.destination);
+        setAlerts(alertResult.alerts);
+        setAlertServiceAvailable(alertResult.available);
         if (isRef) {
           triggerToast(t('refreshSuccess'));
         }
@@ -769,31 +837,29 @@ export default function TrainStatusScreen() {
             )}
           </View>
 
-          {/* Active News/Strike Alerts Card */}
+          {/* Active News/Strike Alerts */}
           {alerts.length > 0 && (
             <View style={[styles.alertsContainer, { marginBottom: 16 }]}>
               {alerts.map((alert) => (
-                <View key={alert.id} style={[styles.alertCard, { backgroundColor: colors.surface, borderColor: '#F59E0B' }]}>
-                  <View style={styles.alertHeader}>
-                    <MaterialIcons name="warning" size={18} color="#F59E0B" style={{ marginRight: 6 }} />
-                    <Text style={[styles.alertTitle, { color: '#F59E0B' }]}>{alert.title}</Text>
-                  </View>
-                  <Text style={[styles.alertText, { color: colors.textPrimary }]}>{alert.text}</Text>
-                  {alert.timestamp > 0 && (
-                    <Text style={[styles.alertDate, { color: colors.textMuted }]}>
-                      {new Date(alert.timestamp).toLocaleDateString(
-                        language === 'zh' || language === 'zh-Hant' ? 'zh-CN' : (language === 'it' ? 'it-IT' : 'en-US'),
-                        {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }
-                      )}
-                    </Text>
-                  )}
-                </View>
+                <Pressable
+                  key={alert.id}
+                  onPress={() => setSelectedAlert(alert)}
+                  style={({ pressed }) => [
+                    styles.alertSummary,
+                    { backgroundColor: colors.surface, borderColor: '#F59E0B', opacity: pressed ? 0.72 : 1 },
+                  ]}
+                >
+                  <MaterialIcons name="warning" size={18} color="#F59E0B" />
+                  <Text numberOfLines={1} style={[styles.alertSummaryText, { color: '#C97900' }]}>{t('alertNotice')}</Text>
+                  <MaterialIcons name="chevron-right" size={20} color="#F59E0B" />
+                </Pressable>
               ))}
+            </View>
+          )}
+          {alertServiceAvailable === false && (
+            <View style={[styles.alertUnavailable, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <MaterialIcons name="info-outline" size={16} color={colors.textMuted} />
+              <Text style={[styles.alertUnavailableText, { color: colors.textMuted }]}>{t('alertUnavailable')}</Text>
             </View>
           )}
 
@@ -1054,6 +1120,54 @@ export default function TrainStatusScreen() {
           )}
         </Animated.View>
       )}
+      <Modal visible={selectedAlert !== null} transparent animationType="fade" onRequestClose={closeAlertDetails}>
+        <Pressable style={styles.alertModalBackdrop} onPress={closeAlertDetails}>
+          <Pressable style={[styles.alertModal, { backgroundColor: colors.surface }]} onPress={() => undefined}>
+            <View style={styles.alertModalHeader}>
+              <View style={styles.alertModalTitleRow}>
+                <MaterialIcons name="warning" size={20} color="#F59E0B" />
+                <Text style={[styles.alertModalTitle, { color: colors.textPrimary }]}>{selectedAlert?.title || t('alertDetails')}</Text>
+              </View>
+            </View>
+            <ScrollView contentContainerStyle={styles.alertModalContent}>
+              <Text style={[styles.alertModalText, { color: colors.textPrimary }]}>
+                {showTranslatedAlert ? translatedAlertText : selectedAlert?.text}
+              </Text>
+              {selectedAlert?.timestamp ? (
+                <View style={[styles.alertDateNotice, { backgroundColor: selectedAlertIsOlderThanToday ? '#FEF2F2' : '#FFFBEB' }]}>
+                  <MaterialIcons name={selectedAlertIsOlderThanToday ? 'priority-high' : 'schedule'} size={18} color={selectedAlertIsOlderThanToday ? '#DC2626' : '#D97706'} />
+                  <View style={styles.alertDateCopy}>
+                    <Text style={[styles.alertModalDate, { color: selectedAlertIsOlderThanToday ? '#B91C1C' : '#92400E' }]}>
+                      {t('alertPublished')}: {new Date(selectedAlert.timestamp).toLocaleString(
+                        language === 'it' ? 'it-IT' : language === 'en' ? 'en-US' : 'zh-CN',
+                        { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+                      )}
+                    </Text>
+                    {selectedAlertIsOlderThanToday ? (
+                      <Text style={styles.alertOlderWarning}>{t('alertOlderWarning')}</Text>
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
+              <Text style={[styles.alertSource, { color: colors.textSecondary }]}>{t('source')}: ViaggiaTreno / Trenitalia</Text>
+              <Text style={[styles.alertReference, { color: colors.textMuted }]}>{t('alertReference')}</Text>
+              {showTranslatedAlert ? <Text style={[styles.alertReference, { color: colors.textMuted }]}>{t('translationReference')}</Text> : null}
+            </ScrollView>
+            <View style={styles.alertModalActions}>
+              <Pressable
+                onPress={toggleAlertTranslation}
+                disabled={isTranslatingAlert}
+                style={({ pressed }) => [styles.alertActionButton, { borderColor: colors.primary, opacity: pressed || isTranslatingAlert ? 0.65 : 1 }]}
+              >
+                {isTranslatingAlert ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={[styles.alertActionText, { color: colors.primary }]}>{showTranslatedAlert ? t('showOriginal') : t('translate')}</Text>}
+              </Pressable>
+              <Pressable onPress={closeAlertDetails} style={[styles.alertActionButton, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                <Text style={[styles.alertActionText, { color: '#FFFFFF' }]}>{t('close')}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1366,6 +1480,128 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 6,
     textAlign: 'right',
+  },
+  alertSummary: {
+    minHeight: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderLeftWidth: 5,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  alertSummaryText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  alertUnavailable: {
+    minHeight: 38,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  alertUnavailableText: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  alertModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.44)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  alertModal: {
+    maxHeight: '78%',
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  alertModalHeader: {
+    minHeight: 56,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(128, 128, 128, 0.25)',
+  },
+  alertModalTitleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  alertModalTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  alertCloseButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alertModalContent: {
+    padding: 18,
+    gap: 10,
+  },
+  alertModalText: {
+    fontSize: 15,
+    lineHeight: 23,
+  },
+  alertModalDate: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  alertDateNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderRadius: 8,
+    padding: 10,
+  },
+  alertDateCopy: {
+    flex: 1,
+  },
+  alertOlderWarning: {
+    marginTop: 4,
+    color: '#B91C1C',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  alertSource: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  alertReference: {
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  alertModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 18,
+    paddingTop: 0,
+  },
+  alertActionButton: {
+    minHeight: 44,
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alertActionText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   verticalLineContainer: {
     width: 3,

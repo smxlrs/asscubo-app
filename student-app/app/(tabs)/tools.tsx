@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Alert, Animated as RNAnimated } from 'react-native';
-import { router } from 'expo-router';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Alert, Animated as RNAnimated, BackHandler } from 'react-native';
+import { router, useNavigation } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
+  cancelAnimation,
   runOnJS,
   Easing,
   SharedValue,
@@ -22,7 +23,6 @@ import Animated, {
   scrollTo,
   useFrameCallback
 } from 'react-native-reanimated';
-import { useAndroidBackHandler } from '../../hooks/useAndroidBackHandler';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2;
@@ -233,6 +233,7 @@ interface DraggableCardProps {
   t: (key: string) => string;
   colors: any;
   isEditing: boolean;
+  isEditingShared: SharedValue<boolean>;
   orderShared: SharedValue<string[]>;
   activeIdShared: SharedValue<string | null>;
   onDragStart: () => void;
@@ -252,6 +253,7 @@ function DraggableCard({
   t,
   colors,
   isEditing,
+  isEditingShared,
   orderShared,
   activeIdShared,
   onDragStart,
@@ -298,6 +300,7 @@ function DraggableCard({
         true
       );
     } else {
+      cancelAnimation(wiggleVal);
       wiggleVal.value = 0;
     }
   }, [isEditing]);
@@ -310,8 +313,10 @@ function DraggableCard({
     const zIndex = isDragging ? 999 : 1;
 
     const pos = getPosition(cardIndex.value);
-    const tx = isDragging ? dragX.value : (isMounted.value ? withSpring(pos.x, { damping: 15, stiffness: 120 }) : pos.x);
-    const ty = isDragging ? dragY.value : (isMounted.value ? withSpring(pos.y, { damping: 15, stiffness: 120 }) : pos.y);
+    // Reordering can stay lively while editing, but must settle immediately when editing ends.
+    const animatePosition = isEditingShared.value && isMounted.value;
+    const tx = isDragging ? dragX.value : (animatePosition ? withSpring(pos.x, { damping: 22, stiffness: 220 }) : pos.x);
+    const ty = isDragging ? dragY.value : (animatePosition ? withSpring(pos.y, { damping: 22, stiffness: 220 }) : pos.y);
 
     return {
       transform: [
@@ -493,9 +498,11 @@ export default function ToolsScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
+  const navigation = useNavigation();
 
   const orderShared = useSharedValue(toolOrder);
   const activeIdShared = useSharedValue<string | null>(null);
+  const isEditingShared = useSharedValue(false);
 
   // References and layout metrics for auto-scrolling
   const scrollViewRef = useAnimatedRef<any>();
@@ -513,12 +520,38 @@ export default function ToolsScreen() {
     orderShared.value = toolOrder;
   }, [toolOrder]);
 
-  useAndroidBackHandler(() => {
-    if (!isEditing) return false;
+  useEffect(() => {
+    isEditingShared.value = isEditing;
+  }, [isEditing, isEditingShared]);
 
+  const exitEditing = useCallback(() => {
+    activeIdShared.value = null;
+    isEditingShared.value = false;
+    setScrollEnabled(true);
     setIsEditing(false);
-    return true;
-  }, [isEditing]);
+  }, [activeIdShared, isEditingShared]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!isEditing) return false;
+
+      exitEditing();
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [isEditing, exitEditing]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (event: any) => {
+      if (!isEditing) return;
+
+      event.preventDefault();
+      exitEditing();
+    });
+
+    return unsubscribe;
+  }, [navigation, isEditing, exitEditing]);
 
   useEffect(() => {
     const fetchRate = async () => {
@@ -587,7 +620,7 @@ export default function ToolsScreen() {
             style={{ flex: 1, minHeight: '100%' }}
             onPress={() => {
               if (isEditing) {
-                setIsEditing(false);
+                exitEditing();
               }
             }}
           >
@@ -620,6 +653,7 @@ export default function ToolsScreen() {
                     t={t}
                     colors={colors}
                     isEditing={isEditing}
+                    isEditingShared={isEditingShared}
                     orderShared={orderShared}
                     activeIdShared={activeIdShared}
                     scrollViewRef={scrollViewRef}
@@ -636,6 +670,7 @@ export default function ToolsScreen() {
                       saveOrder(deduplicated);
                     }}
                     onStartEditing={() => {
+                      isEditingShared.value = true;
                       setIsEditing(true);
                     }}
                   />

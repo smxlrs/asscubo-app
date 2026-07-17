@@ -1004,6 +1004,125 @@ export interface VtAlert {
   timestamp: number;
 }
 
+export interface VtAlertResult {
+  alerts: VtAlert[];
+  available: boolean;
+}
+
+export interface VtTransportStrike {
+  id: string;
+  startDate: string;
+  endDate: string;
+  sector: string;
+  relevance: string;
+  region: string;
+  province: string;
+  modalities: string;
+  unions: string;
+  category: string;
+  declarationDate: string;
+  receivedDate: string;
+}
+
+export interface VtTransportStrikeResult {
+  strikes: VtTransportStrike[];
+  available: boolean;
+}
+
+const MIT_STRIKES_RSS_URL = 'https://scioperi.mit.gov.it/mit2/public/scioperi/rss';
+
+const decodeXmlText = (value: string): string => {
+  return value
+    .replace(/^<!\[CDATA\[([\s\S]*)\]\]>$/, '$1')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\r/g, '')
+    .trim();
+};
+
+const getXmlTagValue = (xml: string, tag: string): string => {
+  const match = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+  return match ? decodeXmlText(match[1]) : '';
+};
+
+const getStrikeField = (description: string, label: string): string => {
+  const match = description.match(new RegExp(`(?:^|\\n)${label}:\\s*([^\\n]+)`, 'i'));
+  return match ? match[1].trim() : '';
+};
+
+const getTitleField = (title: string, label: string): string => {
+  const match = title.match(new RegExp(`${label}:\\s*([^\\-]+?)(?=\\s*-\\s*[^-]+:|$)`, 'i'));
+  return match ? match[1].trim() : '';
+};
+
+const parseItalianDate = (date: string): number => {
+  const match = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return 0;
+  return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1])).getTime();
+};
+
+/** Fetch the official Italian Ministry of Transport feed of upcoming transport strikes. */
+export async function getTransportStrikes(): Promise<VtTransportStrikeResult> {
+  try {
+    const response = await fetchWithTimeout(
+      MIT_STRIKES_RSS_URL,
+      { headers: { Accept: 'application/rss+xml, application/xml, text/xml, */*' } },
+      8000
+    );
+    if (!response.ok) return { strikes: [], available: false };
+
+    const xml = await response.text();
+    const items = xml.match(/<item>[\s\S]*?<\/item>/gi) || [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const strikes = items
+      .map((item): VtTransportStrike | null => {
+        const title = getXmlTagValue(item, 'title');
+        const description = getXmlTagValue(item, 'description');
+        const startDate = getTitleField(title, 'Data inizio');
+        const endDate = getStrikeField(description, 'Data fine') || startDate;
+        const endTimestamp = parseItalianDate(endDate);
+        if (!startDate || !endTimestamp || endTimestamp < today.getTime()) return null;
+
+        return {
+          id: getXmlTagValue(item, 'guid') || `${startDate}-${title}`,
+          startDate,
+          endDate,
+          sector: getStrikeField(description, 'Settore') || getTitleField(title, 'Settore'),
+          relevance: getStrikeField(description, 'Rilevanza') || getTitleField(title, 'Rilevanza'),
+          region: getStrikeField(description, 'Regione') || getTitleField(title, 'Regione'),
+          province: getStrikeField(description, 'Provincia') || getTitleField(title, 'Provincia'),
+          modalities: getStrikeField(description, 'modalit(?:à|a)'),
+          unions: getStrikeField(description, 'Sindacati'),
+          category: getStrikeField(description, 'Categoria interessata'),
+          declarationDate: getStrikeField(description, 'Data proclamazione'),
+          receivedDate: getStrikeField(description, 'Data ricezione')
+        };
+      })
+      .filter((strike): strike is VtTransportStrike => strike !== null)
+      .sort((a, b) => parseItalianDate(a.startDate) - parseItalianDate(b.startDate));
+
+    return { strikes, available: true };
+  } catch (error) {
+    console.warn('Error fetching official transport strike feed:', error);
+    return { strikes: [], available: false };
+  }
+}
+
+const TRAIN_ALERT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+
+function normalizeAlertTimestamp(value: unknown): number {
+  const timestamp = Number(value);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return 0;
+  return timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
+}
+
 /**
  * Fetch and filter active network news for alerts matching the train number or route
  */
@@ -1011,16 +1130,17 @@ export async function getTrainAlerts(
   trainNumber: string,
   origin: string,
   destination: string
-): Promise<VtAlert[]> {
+): Promise<VtAlertResult> {
   try {
     const response = await fetch(`${BASE_URL}/news/0/it`);
-    if (!response.ok) return [];
+    if (!response.ok) return { alerts: [], available: false };
     const data = await response.json();
-    if (!Array.isArray(data)) return [];
+    if (!Array.isArray(data)) return { alerts: [], available: false };
 
     const num = String(trainNumber).trim();
     const orig = String(origin || '').trim().toUpperCase();
     const dest = String(destination || '').trim().toUpperCase();
+    const earliestAlertTimestamp = Date.now() - TRAIN_ALERT_MAX_AGE_MS;
 
     const cleanCityName = (stationName: string) => {
       return stationName
@@ -1032,8 +1152,11 @@ export async function getTrainAlerts(
     const origCity = cleanCityName(orig);
     const destCity = cleanCityName(dest);
 
-    return data
+    const alerts = data
       .filter((item: any) => {
+        const timestamp = normalizeAlertTimestamp(item.data);
+        if (timestamp < earliestAlertTimestamp) return false;
+
         const text = String(item.testo || '').toUpperCase();
         const title = String(item.titolo || '').toUpperCase();
         
@@ -1051,11 +1174,13 @@ export async function getTrainAlerts(
         id: item.id || String(Math.random()),
         title: item.titolo || 'Trenitalia Informa',
         text: item.testo || '',
-        timestamp: item.data || 0
+        timestamp: normalizeAlertTimestamp(item.data)
       }));
+
+    return { alerts, available: true };
   } catch (error) {
     console.log('Error fetching train alerts:', error);
-    return [];
+    return { alerts: [], available: false };
   }
 }
 
@@ -1542,6 +1667,3 @@ export function adjustInternationalBoardEntry(entry: VtBoardEntry): VtBoardEntry
   }
   return entry;
 }
-
-
-

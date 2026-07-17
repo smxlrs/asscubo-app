@@ -644,7 +644,15 @@ export default function TrainToolIndex() {
           <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{t('title')}</Text>
-        <View style={{ width: 40 }} />
+        <Pressable
+          onPress={() => router.push('/tools/train/strikes')}
+          style={styles.strikesButton}
+          accessibilityRole="button"
+          accessibilityLabel="Transport strikes"
+          hitSlop={8}
+        >
+          <MaterialIcons name="campaign" size={23} color={colors.textPrimary} />
+        </Pressable>
       </View>
 
       {/* Tabs */}
@@ -988,6 +996,12 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+  },
+  strikesButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontSize: 19,
