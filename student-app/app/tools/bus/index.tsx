@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -28,6 +28,7 @@ import {
   BusArrival,
   BusStop,
 } from '../../../lib/tperService';
+import { getTperServiceAlerts, TperServiceAlert } from '../../../lib/tperAlertsService';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS, SHADOWS } from '../../../constants/theme';
 import { MarqueeText } from '../../../components/MarqueeText';
 
@@ -35,6 +36,12 @@ const { width } = Dimensions.get('window');
 
 const FAVORITES_KEY = '@ag_bus_favorites';
 const RECENTS_KEY = '@ag_bus_recents';
+const SERVICE_ALERT_BANNER_TEXT = {
+  zh: '注意：该线路有变动信息，点击查看',
+  'zh-Hant': '注意：該路線有變動資訊，點擊查看',
+  en: 'Notice: this line has a service change. Tap to view.',
+  it: 'Attenzione: questa linea ha una modifica. Tocca per vedere.',
+};
 
 const LOCALIZED = {
   zh: {
@@ -609,6 +616,7 @@ export default function BusBoardScreen() {
   const [allArrivals, setAllArrivals] = useState<BusArrival[]>([]);
   const [queryLoading, setQueryLoading] = useState(false);
   const [queryError, setQueryError] = useState<string | null>(null);
+  const [serviceAlerts, setServiceAlerts] = useState<TperServiceAlert[]>([]);
 
   // Favorites & Recents states
   const [favorites, setFavorites] = useState<FavoriteStop[]>([]);
@@ -752,6 +760,10 @@ export default function BusBoardScreen() {
   useEffect(() => {
     loadFavorites();
     loadRecents();
+  }, []);
+
+  useEffect(() => {
+    getTperServiceAlerts().then((result) => setServiceAlerts(result.alerts));
   }, []);
 
   const loadFavorites = async () => {
@@ -931,6 +943,12 @@ export default function BusBoardScreen() {
   };
 
   const displayedArrivals = getFilteredArrivals();
+
+  const relevantServiceAlerts = useMemo(() => {
+    const queriedLines = new Set([...activeStopLines, ...allArrivals.map((arrival) => arrival.line)]
+      .map((value) => value.trim().toUpperCase().replace(/\s+/g, '')));
+    return serviceAlerts.filter((alert) => alert.affected_lines.some((line) => queriedLines.has(line.trim().toUpperCase().replace(/\s+/g, ''))));
+  }, [activeStopLines, allArrivals, serviceAlerts]);
 
   const handleLocateUser = async () => {
     try {
@@ -1233,6 +1251,19 @@ export default function BusBoardScreen() {
               </View>
             )}
             <Text style={[styles.listHeaderTitle, { color: colors.textSecondary }]}>{localized.liveArrivals}</Text>
+
+            {relevantServiceAlerts.length > 0 && (
+              <Pressable
+                onPress={() => router.push({ pathname: '/tools/bus/alerts', params: { line: relevantServiceAlerts[0].affected_lines[0] } })}
+                style={[styles.serviceAlertBanner, { backgroundColor: isDark ? 'rgba(229,161,0,0.13)' : '#FFF8E6', borderColor: '#E5A100' }]}
+                accessibilityRole="button"
+                accessibilityLabel="Service change notice"
+              >
+                <MaterialIcons name="campaign" size={18} color="#D18A00" />
+                <Text numberOfLines={1} style={[styles.serviceAlertText, { color: colors.textPrimary }]}>{SERVICE_ALERT_BANNER_TEXT[language as keyof typeof SERVICE_ALERT_BANNER_TEXT] || SERVICE_ALERT_BANNER_TEXT.en}</Text>
+                <MaterialIcons name="chevron-right" size={19} color="#D18A00" />
+              </Pressable>
+            )}
             
             {/* WeBus style Route filter tabs */}
             {activeStopLines.length > 0 && !queryError && (
@@ -1371,17 +1402,28 @@ export default function BusBoardScreen() {
           <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{localized.title}</Text>
-        <Pressable
-          style={styles.refreshBtn}
-          onPress={() => activeStopCode && executeQuery(activeStopCode, activeStopName || undefined)}
-          disabled={queryLoading || !activeStopCode}
-        >
-          {queryLoading ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <MaterialIcons name="refresh" size={24} color={activeStopCode ? colors.primary : colors.textMuted} />
-          )}
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push('/tools/bus/alerts')}
+            style={styles.alertsButton}
+            accessibilityRole="button"
+            accessibilityLabel="Bus service changes"
+            hitSlop={8}
+          >
+            <MaterialIcons name="campaign" size={23} color={colors.textPrimary} />
+          </Pressable>
+          <Pressable
+            style={styles.refreshBtn}
+            onPress={() => activeStopCode && executeQuery(activeStopCode, activeStopName || undefined)}
+            disabled={queryLoading || !activeStopCode}
+          >
+            {queryLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <MaterialIcons name="refresh" size={24} color={activeStopCode ? colors.primary : colors.textMuted} />
+            )}
+          </Pressable>
+        </View>
       </View>
 
       {/* Tabs Selector */}
@@ -1918,9 +1960,20 @@ const styles = StyleSheet.create({
   },
   refreshBtn: {
     paddingVertical: 6,
-    paddingLeft: 12,
-    minWidth: 44,
-    alignItems: 'flex-end',
+    minWidth: 36,
+    alignItems: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    minWidth: 80,
+  },
+  alertsButton: {
+    width: 36,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
@@ -2087,6 +2140,22 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  serviceAlertBanner: {
+    minHeight: 38,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginTop: 10,
+    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  serviceAlertText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
   },
   arrivalItem: {
     flexDirection: 'row',

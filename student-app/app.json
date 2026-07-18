@@ -67,7 +67,7 @@
       "./plugins/withLiquidGlassAndroid"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.studentunion.app",
       "infoPlist": {
         "NSCameraUsageDescription": "允许访问相机以上传头像",

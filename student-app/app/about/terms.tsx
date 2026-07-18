@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
 const TERMS_URL = 'https://asscubo.it/terms.html';
+const DELETE_ACCOUNT_URL = 'https://asscubo.it/delete-account';
 
 export default function TermsScreen() {
   const { colors } = useTheme();
@@ -40,6 +41,13 @@ export default function TermsScreen() {
           source={{ uri: url }}
           style={styles.webview}
           cacheEnabled={false}
+          onShouldStartLoadWithRequest={(request) => {
+            if (request.url.startsWith(DELETE_ACCOUNT_URL)) {
+              router.push('/about/delete-account');
+              return false;
+            }
+            return true;
+          }}
           onLoadStart={() => { setLoading(true); setError(false); }}
           onLoadEnd={() => setLoading(false)}
           onError={() => { setLoading(false); setError(true); }}

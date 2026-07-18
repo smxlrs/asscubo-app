@@ -16,6 +16,7 @@ export default function AboutLayout() {
       <Stack.Screen name="feedback" />
       <Stack.Screen name="privacy" />
       <Stack.Screen name="terms" />
+      <Stack.Screen name="delete-account" />
       <Stack.Screen name="links" />
       <Stack.Screen name="platforms" />
     </Stack>
