@@ -253,6 +253,7 @@ function AppContent() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="login-callback" />
+          <Stack.Screen name="reset-password" />
           <Stack.Screen name="settings" options={{ presentation: 'card' }} />
           <Stack.Screen name="about" options={{ presentation: 'card' }} />
           <Stack.Screen name="+not-found" />

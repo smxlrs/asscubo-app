@@ -33,7 +33,7 @@ type AuthContextType = {
   loading: boolean;
   networkError: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: any; alreadyExists: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   retryInit: () => void;
@@ -156,7 +156,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailRedirectTo: 'https://asscubo.it/verified.html'
       }
     });
-    if (error) return { error };
+    if (error) return { error, alreadyExists: false };
+
+    // With email confirmation enabled, Supabase intentionally returns a successful
+    // response for an existing address. An empty identities list is its signal that
+    // no new account was created, so never upsert that user's profile.
+    if (data.user?.identities?.length === 0) {
+      return { error: null, alreadyExists: true };
+    }
+
     if (data.user) {
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
@@ -165,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (profileError) console.error('Error writing profile:', profileError);
     }
-    return { error: null };
+    return { error: null, alreadyExists: false };
   }
 
   async function signOut() {

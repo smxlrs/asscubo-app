@@ -165,8 +165,10 @@ export default function RegisterScreen() {
           return;
         }
 
-        const { error } = await signUp(email.trim(), password, name.trim());
-        if (error) {
+        const { error, alreadyExists } = await signUp(email.trim(), password, name.trim());
+        if (alreadyExists) {
+          setErrorMsg(t('emailAlreadyRegistered'));
+        } else if (error) {
           setErrorMsg(translateAuthError(error.message, language));
         } else {
           try {
