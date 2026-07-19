@@ -15,7 +15,6 @@ export default function SettingsLayout() {
       <Stack.Screen name="language" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="tab-bar" />
-      <Stack.Screen name="back-navigation" />
     </Stack>
   );
 }

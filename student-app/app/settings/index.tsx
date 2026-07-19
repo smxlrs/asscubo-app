@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ScrollView, Platform, Switch } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, ScrollView, Switch } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -70,7 +70,7 @@ const LOCALIZED = {
 };
 
 export default function SettingsIndexScreen() {
-  const { colors, t, themeMode, languageMode, predictiveBack, setPredictiveBack, tabBarStyle, setTabBarStyle, language } = useTheme();
+  const { colors, t, themeMode, languageMode, tabBarStyle, setTabBarStyle, language } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   const [cacheSize, setCacheSize] = useState('0.0 KB');
 
@@ -173,19 +173,6 @@ export default function SettingsIndexScreen() {
           <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{t('experimentalSetting')}</Text>
         </View>
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {/* Back Navigation Method Link (Android Only) */}
-          {Platform.OS === 'android' && (
-            <Pressable style={[styles.rowPressable, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/settings/back-navigation')}>
-              <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t('backNavigationSetting')}</Text>
-              <View style={styles.rowRight}>
-                <Text style={[styles.rowValue, { color: colors.textSecondary }]}>
-                  {predictiveBack ? t('backNavigationPredictive') : t('backNavigationTraditional')}
-                </Text>
-                <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
-              </View>
-            </Pressable>
-          )}
-
           {/* Tab Bar Style Link */}
           <Pressable style={[styles.rowPressable, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/settings/tab-bar')}>
             <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t('tabBarSetting')}</Text>

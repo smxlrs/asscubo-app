@@ -45,8 +45,6 @@ type ThemeContextType = {
   tabOpacities: Animated.Value[];
   tabGestureActive: boolean;
   setTabGestureActive: (active: boolean) => void;
-  predictiveBack: boolean;
-  setPredictiveBack: (enabled: boolean) => Promise<void>;
 };
 
 const darkColors = {
@@ -190,9 +188,6 @@ const translations: Record<Language, Record<string, string>> = {
     userAgreementLabel: '《用户协议》',
     privacyPolicyLabel: '《隐私政策》',
     experimentalSetting: '实验性功能',
-    backNavigationSetting: '返回方式',
-    backNavigationTraditional: '传统',
-    backNavigationPredictive: '预测性返回',
     enterEmailAddress: '请输入邮箱地址',
     emailNotRegistered: '该邮箱未注册，请先注册账户',
     otpSentTitle: '验证码已发送',
@@ -448,9 +443,6 @@ const translations: Record<Language, Record<string, string>> = {
     userAgreementLabel: 'User Agreement',
     privacyPolicyLabel: 'Privacy Policy',
     experimentalSetting: 'Experimental Features',
-    backNavigationSetting: 'Back Navigation',
-    backNavigationTraditional: 'Traditional',
-    backNavigationPredictive: 'Predictive Back',
     enterEmailAddress: 'Please enter your email address',
     emailNotRegistered: 'This email is not registered. Please register first.',
     otpSentTitle: 'Verification Code Sent',
@@ -707,9 +699,6 @@ const translations: Record<Language, Record<string, string>> = {
     userAgreementLabel: "l'Accordo per l'Utente",
     privacyPolicyLabel: 'Informativa sulla Privacy',
     experimentalSetting: 'Funzioni Sperimentali',
-    backNavigationSetting: 'Navigazione Indietro',
-    backNavigationTraditional: 'Tradizionale',
-    backNavigationPredictive: 'Ritorno Predittivo',
     enterEmailAddress: 'Inserisci il tuo indirizzo email',
     emailNotRegistered: 'Questa email non è registrata. Si prega di registrarsi prima.',
     otpSentTitle: 'Codice di Verifica Inviato',
@@ -964,9 +953,6 @@ const translations: Record<Language, Record<string, string>> = {
     userAgreementLabel: '《用戶協議》',
     privacyPolicyLabel: '《隱私政策》',
     experimentalSetting: '實驗性功能',
-    backNavigationSetting: '返回方式',
-    backNavigationTraditional: '傳統',
-    backNavigationPredictive: '預測性返回',
     enterEmailAddress: '請輸入郵箱地址',
     emailNotRegistered: '該郵箱未註冊，請先註冊帳戶',
     otpSentTitle: '驗證碼已發送',
@@ -1163,7 +1149,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [languageMode, setLanguageModeState] = useState<LanguageMode>('system');
   const [tabBarStyle, setTabBarStyleState] = useState<'traditional' | 'glassmorphism'>('traditional');
   const [glassOpacityLevel, setGlassOpacityLevelState] = useState(2);
-  const [predictiveBack, setPredictiveBackState] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [tick, setTick] = useState(0);
   const tabOpacities = React.useRef([
@@ -1186,7 +1171,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const savedLangMode = await safeStorage.getItem('language_mode');
         const savedTabBarStyle = await safeStorage.getItem('tab_bar_style');
         const savedGlassOpacityLevel = await safeStorage.getItem('glass_opacity_level');
-        const savedPredictiveBack = await safeStorage.getItem('predictive_back');
 
         if (savedMode) setThemeModeState(savedMode as ThemeMode);
         if (savedStart) setCustomStartState(savedStart);
@@ -1198,7 +1182,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             setGlassOpacityLevelState(Math.min(4, Math.max(1, Math.round(nextLevel))));
           }
         }
-        if (savedPredictiveBack !== null) setPredictiveBackState(savedPredictiveBack === 'true');
 
         let initialMode: LanguageMode = 'system';
         if (savedLangMode) {
@@ -1293,11 +1276,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await safeStorage.setItem('glass_opacity_level', String(nextLevel));
   };
 
-  const setPredictiveBack = async (enabled: boolean) => {
-    setPredictiveBackState(enabled);
-    await safeStorage.setItem('predictive_back', enabled ? 'true' : 'false');
-  };
-
   if (!isReady) {
     return <View style={{ flex: 1, backgroundColor: systemScheme === 'dark' ? '#0A0A0A' : '#F5F7FA' }} />;
   }
@@ -1324,8 +1302,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       tabOpacities,
       tabGestureActive,
       setTabGestureActive,
-      predictiveBack,
-      setPredictiveBack
     }}>
       {children}
     </ThemeContext.Provider>

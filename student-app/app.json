@@ -63,7 +63,6 @@
           }
         }
       ],
-      "./plugins/withPredictiveBack",
       "./plugins/withLiquidGlassAndroid"
     ],
     "ios": {

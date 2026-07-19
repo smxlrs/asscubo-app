@@ -106,7 +106,7 @@ async function registerForPushNotificationsAsync() {
 }
 
 function AppContent() {
-  const { colors, isDark, isReady, predictiveBack, t } = useTheme();
+  const { colors, isDark, isReady, t } = useTheme();
   const { user, profile, loading, networkError, retryInit } = useAuth();
   const splashHiddenRef = useRef(false);
 
@@ -184,15 +184,7 @@ function AppContent() {
   }, [t]);
 
   useEffect(() => {
-    if (predictiveBack) {
-      // If predictive back is enabled, we do not intercept the back press on root/sub screens.
-      // The system handles exit/pop natively with predictive back animations.
-      // Exit becomes single back press as requested.
-      return;
-    }
-
-    // If predictive back is disabled, we globally intercept back events to block
-    // the system predictive animations and use custom pop / double-press exit logic instead.
+    // Expo Router owns the JavaScript navigation stack, so handle Android back events here.
     let lastPressTime = 0;
 
     const handleBackPress = () => {
@@ -216,7 +208,7 @@ function AppContent() {
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
     return () => subscription.remove();
-  }, [predictiveBack, t]);
+  }, [t]);
 
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -255,7 +247,7 @@ function AppContent() {
       <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
         <Stack screenOptions={{ 
           headerShown: false, 
-          animation: predictiveBack && Platform.OS === 'android' ? 'default' : 'slide_from_right',
+          animation: 'slide_from_right',
           contentStyle: { backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }
         }}>
           <Stack.Screen name="(tabs)" />
