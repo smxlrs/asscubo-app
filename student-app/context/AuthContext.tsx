@@ -183,14 +183,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: null, alreadyExists: true };
     }
 
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: data.user.id,
-        name: name,
-        role: 'student'
-      });
-      if (profileError) console.error('Error writing profile:', profileError);
-    }
+    // The database trigger creates profiles as auth.users is inserted. With email
+    // confirmation enabled there is no authenticated session yet, so a client-side
+    // insert would correctly be rejected by profiles RLS.
     recordDebugEvent('auth', 'Sign-up completed', { emailDomain: getEmailDomain(email) });
     return { error: null, alreadyExists: false };
   }

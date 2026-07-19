@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { useOtpCooldown } from '../../hooks/useOtpCooldown';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -34,14 +35,7 @@ export default function RegisterScreen() {
   const [success, setSuccess] = useState(false);
   
   const [resending, setResending] = useState(false);
-  const [resendCountdown, setResendCountdown] = useState(0);
-  const resendTimerRef = React.useRef<any>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (resendTimerRef.current) clearInterval(resendTimerRef.current);
-    };
-  }, []);
+  const { remaining: resendCountdown, startCooldown } = useOtpCooldown();
 
   const handleResendSignupEmail = async () => {
     if (!email) return;
@@ -60,16 +54,7 @@ export default function RegisterScreen() {
         Alert.alert(t('resendErrorTitle'), translateAuthError(error.message, language));
       } else {
         Alert.alert(t('resendSuccessTitle'), t('resendSuccessMsg'));
-        setResendCountdown(60);
-        resendTimerRef.current = setInterval(() => {
-          setResendCountdown((prev) => {
-            if (prev <= 1) {
-              if (resendTimerRef.current) clearInterval(resendTimerRef.current);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        startCooldown();
       }
     } catch (err) {
       console.error("Resend signup email error:", err);
@@ -177,6 +162,7 @@ export default function RegisterScreen() {
           } catch (e) {
             console.warn('Failed to save temp signup credentials:', e);
           }
+          startCooldown();
           setSuccess(true);
         }
       } catch (err) {
@@ -218,7 +204,7 @@ export default function RegisterScreen() {
             <ActivityIndicator color="#FFF" size="small" />
           ) : (
             <Text style={[styles.resendButtonText, { color: '#FFF' }]}>
-              {resendCountdown > 0 ? `${t('resendVerifyEmail')} (${resendCountdown}s)` : t('resendVerifyEmail')}
+              {resendCountdown > 0 ? `${resendCountdown}s` : t('resendVerifyEmail')}
             </Text>
           )}
         </Pressable>

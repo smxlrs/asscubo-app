@@ -32,9 +32,11 @@ export default function LoginCallback() {
     let safetyTimer: any = null;
     let subscription: { remove: () => void } | null = null;
     let pollInterval: any = null;
+    let verificationFinished = false;
 
     async function triggerSuccess() {
       if (active) {
+        verificationFinished = true;
         setVerificationSuccess(true);
         setStatusMessage(t('verificationSuccessMsg'));
         if (safetyTimer) {
@@ -54,6 +56,7 @@ export default function LoginCallback() {
 
     function triggerFailure(msg: string) {
       if (active) {
+        verificationFinished = true;
         setErrorMessage(msg);
         setErrorOccurred(true);
         if (safetyTimer) {
@@ -97,8 +100,8 @@ export default function LoginCallback() {
 
         console.log('Starting background verification check for:', email);
         
-        pollInterval = setInterval(async () => {
-          if (!active || verificationSuccess || errorOccurred) {
+        const checkVerification = async () => {
+          if (!active || verificationFinished) {
             if (pollInterval) clearInterval(pollInterval);
             return;
           }
@@ -124,7 +127,12 @@ export default function LoginCallback() {
           } catch (err) {
             console.error('Error during background verification poll:', err);
           }
-        }, 2000);
+        };
+
+        // A confirmation link can return before the app receives its deep-link
+        // payload, so check immediately rather than losing the first two seconds.
+        await checkVerification();
+        if (!verificationFinished) pollInterval = setInterval(checkVerification, 2000);
       } catch (err) {
         console.error('Error setting up background verification check:', err);
       }
@@ -259,7 +267,7 @@ export default function LoginCallback() {
       if (active && !verificationSuccess && !errorOccurred) {
         triggerFailure(t('verificationTimeout'));
       }
-    }, 15000);
+    }, 45000);
 
     return () => {
       active = false;
