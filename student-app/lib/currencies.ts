@@ -8,6 +8,7 @@ export type CurrencyOption = {
 };
 
 export const DISPLAYED_CURRENCIES_STORAGE_KEY = '@ag_displayed_currencies';
+export const HOME_RATE_VISIBLE_STORAGE_KEY = '@ag_show_home_rate';
 export const DEFAULT_DISPLAYED_CURRENCY_CODES = ['EUR', 'CNY', 'USD', 'GBP'];
 
 // Keep each continent in travel-frequency order rather than alphabetic order.

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { BlurView } from 'expo-blur';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
@@ -6,7 +6,7 @@ import {
   Dimensions, Pressable
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -16,6 +16,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS, SHADOWS } from '../../constants/theme';
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
+import { HOME_RATE_VISIBLE_STORAGE_KEY } from '../../lib/currencies';
 
 type Article = {
   id: string;
@@ -418,6 +419,8 @@ export default function HomeScreen() {
   const [selectedCity, setSelectedCity] = useState(CITIES[0]);
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showHomeRate, setShowHomeRate] = useState(true);
+  const [eurToCny, setEurToCny] = useState(7.8256);
 
   // Theme-adapted banner styles
   const bannerColors: readonly [string, string, ...string[]] = isDark 
@@ -442,6 +445,28 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    AsyncStorage.getItem(HOME_RATE_VISIBLE_STORAGE_KEY)
+      .then((stored) => {
+        if (active) setShowHomeRate(stored !== 'false');
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []));
+
+  useEffect(() => {
+    if (!showHomeRate) return;
+    fetch('https://open.er-api.com/v6/latest/EUR')
+      .then((response) => response.json())
+      .then((data) => {
+        if (data?.result === 'success' && typeof data?.rates?.CNY === 'number') {
+          setEurToCny(data.rates.CNY);
+        }
+      })
+      .catch(() => undefined);
+  }, [showHomeRate]);
 
   // Toast State for Refresh feedback
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -796,7 +821,16 @@ export default function HomeScreen() {
               <Text style={[styles.greeting, { color: bannerTextColor }]}>
                 {user ? `${greeting}！${profile?.name || ''}` : greeting}
               </Text>
-              <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
+              <View style={styles.headerSubtitleRow}>
+                <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
+                {showHomeRate && (
+                  <Pressable onPress={() => router.push('/tools/rate')} hitSlop={8}>
+                    <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
+                      {' '}{language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = {eurToCny.toFixed(4)} CNY
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
             
             <View style={styles.headerRightActions}>
@@ -1248,6 +1282,16 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
+  },
+  headerSubtitleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  homeRateText: {
+    fontSize: SIZES.sm,
+    fontFamily: FONTS.medium,
   },
   headerRightActions: {
     flexDirection: 'row',
