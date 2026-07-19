@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Alert, ActivityIndicator, Image, Modal } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
+import { useOtpCooldown } from '../../hooks/useOtpCooldown';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -245,14 +246,7 @@ export default function EditProfileScreen() {
   
   // OTP states
   const [sendingOtp, setSendingOtp] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const timerRef = React.useRef<any>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
+  const { remaining: countdown, startCooldown, resetCooldown } = useOtpCooldown();
 
   const pickImage = async () => {
     try {
@@ -369,16 +363,7 @@ export default function EditProfileScreen() {
       if (error) throw error;
       
       Alert.alert(localized.otpSent, localized.otpSentMsg);
-      setCountdown(60);
-      timerRef.current = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      startCooldown();
     } catch (err: any) {
       console.error(err);
       Alert.alert(localized.otpSendFail, err.message || localized.otpSendFailMsg);
@@ -525,7 +510,7 @@ export default function EditProfileScreen() {
                 setModalPassword('');
                 setModalConfirmPassword('');
                 setModalOtp('');
-                setCountdown(0);
+                resetCooldown();
                 setActiveModal('password');
               }}
             >
@@ -680,7 +665,9 @@ export default function EditProfileScreen() {
                         fontSize: 12, 
                         fontWeight: 'bold' 
                       }}>
-                        {countdown > 0 ? `${countdown}s` : (modalOtp ? localized.resend : localized.getOtp)}
+                        {countdown > 0
+                          ? `${localized.otpSent} ${countdown}s`
+                          : (modalOtp ? `未收到？${localized.resend}` : localized.getOtp)}
                       </Text>
                     )}
                   </Pressable>

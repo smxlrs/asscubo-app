@@ -20,7 +20,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase, translateAuthError } from '../../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Linking from 'expo-linking';
+import { useOtpCooldown } from '../../hooks/useOtpCooldown';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -33,14 +33,7 @@ export default function LoginScreen() {
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const timerRef = React.useRef<any>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
+  const { remaining: countdown, startCooldown } = useOtpCooldown();
 
   const isSendDisabled = !email || countdown > 0 || sendingOtp;
   
@@ -61,7 +54,6 @@ export default function LoginScreen() {
         email: email.trim(),
         options: {
           shouldCreateUser: false,
-          emailRedirectTo: Linking.createURL('login-callback'),
         }
       });
 
@@ -74,16 +66,7 @@ export default function LoginScreen() {
       } else {
         setOtpSent(true);
         Alert.alert(t('otpSentTitle'), t('otpSentMsg'));
-        setCountdown(60);
-        timerRef.current = setInterval(() => {
-          setCountdown((prev) => {
-            if (prev <= 1) {
-              if (timerRef.current) clearInterval(timerRef.current);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        startCooldown();
       }
     } catch (err: any) {
       console.error('Send OTP error:', err);
@@ -330,7 +313,9 @@ export default function LoginScreen() {
                             styles.sendOtpButtonText, 
                             { color: isSendDisabled ? colors.textMuted : "#FFF" }
                           ]}>
-                            {countdown > 0 ? `${countdown}s` : (otpSent ? t('resend') : t('getOtpCode'))}
+                            {countdown > 0
+                              ? `${t('otpSentTitle')} ${countdown}s`
+                              : (otpSent ? `未收到？${t('resend')}` : t('getOtpCode'))}
                           </Text>
                         )}
                       </Pressable>
