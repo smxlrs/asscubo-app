@@ -473,7 +473,7 @@ function DraggableCard({
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{tool.title}</Text>
             {tool.id === 'rate' ? (
               <Text numberOfLines={4} style={[styles.cardDescription, { color: colors.textSecondary }]}>
-                {localized.rateDescPrefix}{"\n"}1 EUR = <Text style={{ color: colors.success, fontWeight: 'bold' }}>{eurToCny.toFixed(4)}</Text> CNY
+                {localized.rateDescPrefix}{"\n"}1 EUR = <Text style={{ color: colors.primary, fontWeight: 'bold' }}>{eurToCny.toFixed(4)}</Text> CNY
               </Text>
             ) : (
               <Text numberOfLines={4} style={[styles.cardDescription, { color: colors.textSecondary }]}>{tool.description}</Text>

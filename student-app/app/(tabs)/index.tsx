@@ -421,6 +421,8 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showHomeRate, setShowHomeRate] = useState(true);
   const [eurToCny, setEurToCny] = useState(7.8256);
+  const [isShowingHomeRate, setIsShowingHomeRate] = useState(false);
+  const homeSubtitleTicker = useRef(new Animated.Value(0)).current;
 
   // Theme-adapted banner styles
   const bannerColors: readonly [string, string, ...string[]] = isDark 
@@ -467,6 +469,33 @@ export default function HomeScreen() {
       })
       .catch(() => undefined);
   }, [showHomeRate]);
+
+  useEffect(() => {
+    homeSubtitleTicker.stopAnimation();
+    homeSubtitleTicker.setValue(0);
+    setIsShowingHomeRate(false);
+
+    if (!showHomeRate) return;
+
+    const interval = setInterval(() => {
+      homeSubtitleTicker.setValue(0);
+      Animated.timing(homeSubtitleTicker, {
+        toValue: 1,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished) return;
+        setIsShowingHomeRate((current) => !current);
+        homeSubtitleTicker.setValue(0);
+      });
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+      homeSubtitleTicker.stopAnimation();
+    };
+  }, [homeSubtitleTicker, showHomeRate]);
 
   // Toast State for Refresh feedback
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -822,13 +851,46 @@ export default function HomeScreen() {
                 {user ? `${greeting}！${profile?.name || ''}` : greeting}
               </Text>
               <View style={styles.headerSubtitleRow}>
-                <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
-                {showHomeRate && (
-                  <Pressable onPress={() => router.push('/tools/rate')} hitSlop={8}>
-                    <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
-                      {' '}{language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = {eurToCny.toFixed(4)} CNY
-                    </Text>
+                {showHomeRate ? (
+                  <Pressable
+                    style={styles.homeRateTickerButton}
+                    onPress={() => router.push('/tools/rate')}
+                    hitSlop={8}
+                  >
+                    <View style={styles.homeRateTickerViewport}>
+                      <Animated.View
+                        style={{
+                          transform: [{
+                            translateY: homeSubtitleTicker.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, -22],
+                            }),
+                          }],
+                        }}
+                      >
+                        <View style={styles.homeRateTickerLine}>
+                          {isShowingHomeRate ? (
+                            <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
+                              {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny.toFixed(4)}</Text> CNY
+                            </Text>
+                          ) : (
+                            <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
+                          )}
+                        </View>
+                        <View style={styles.homeRateTickerLine}>
+                          {isShowingHomeRate ? (
+                            <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
+                          ) : (
+                            <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
+                              {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny.toFixed(4)}</Text> CNY
+                            </Text>
+                          )}
+                        </View>
+                      </Animated.View>
+                    </View>
                   </Pressable>
+                ) : (
+                  <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
                 )}
               </View>
             </View>
@@ -1281,17 +1343,27 @@ const styles = StyleSheet.create({
     fontSize: SIZES.sm,
     fontFamily: FONTS.regular,
     color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
+    lineHeight: 22,
   },
   headerSubtitleRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    marginTop: 2,
+    height: 22,
+    marginTop: 5,
   },
   homeRateText: {
     fontSize: SIZES.sm,
     fontFamily: FONTS.medium,
+    lineHeight: 22,
+  },
+  homeRateTickerButton: {
+    alignSelf: 'flex-start',
+  },
+  homeRateTickerViewport: {
+    height: 22,
+    overflow: 'hidden',
+  },
+  homeRateTickerLine: {
+    height: 22,
+    justifyContent: 'center',
   },
   headerRightActions: {
     flexDirection: 'row',

@@ -382,7 +382,7 @@ export default function RateConverterScreen() {
         <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{cardInfo.label}</Text>
-            <Text style={[styles.infoValue, { color: colors.success }]}>
+            <Text style={[styles.infoValue, { color: colors.primary }]}>
               {cardInfo.value}
             </Text>
           </View>
@@ -429,7 +429,7 @@ export default function RateConverterScreen() {
                     style={[
                       styles.valueText, 
                       { 
-                        color: isActive ? colors.primary : colors.textPrimary,
+                        color: currency.code === 'CNY' || isActive ? colors.primary : colors.textPrimary,
                         fontWeight: isActive ? 'bold' : 'normal' 
                       }
                     ]}
