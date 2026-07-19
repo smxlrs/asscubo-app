@@ -421,8 +421,8 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showHomeRate, setShowHomeRate] = useState(true);
   const [eurToCny, setEurToCny] = useState(7.8256);
-  const [isShowingHomeRate, setIsShowingHomeRate] = useState(false);
   const homeSubtitleTicker = useRef(new Animated.Value(0)).current;
+  const isShowingHomeRateRef = useRef(false);
 
   // Theme-adapted banner styles
   const bannerColors: readonly [string, string, ...string[]] = isDark 
@@ -473,20 +473,18 @@ export default function HomeScreen() {
   useEffect(() => {
     homeSubtitleTicker.stopAnimation();
     homeSubtitleTicker.setValue(0);
-    setIsShowingHomeRate(false);
+    isShowingHomeRateRef.current = false;
 
     if (!showHomeRate) return;
 
     const interval = setInterval(() => {
-      setIsShowingHomeRate((current) => {
-        Animated.timing(homeSubtitleTicker, {
-          toValue: current ? 0 : 1,
-          duration: 600,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: true,
-        }).start();
-        return !current;
-      });
+      isShowingHomeRateRef.current = !isShowingHomeRateRef.current;
+      Animated.timing(homeSubtitleTicker, {
+        toValue: isShowingHomeRateRef.current ? 1 : 0,
+        duration: 1000,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
     }, 3000);
 
     return () => {
