@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Linking, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Linking, Image, Animated, Platform } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,84 +9,42 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { setDebugLoggingEnabled } from '../../lib/logger';
 
-const GITHUB_REPO = 'smxlrs/asscubo-app';
-const RELEASES_PAGE = `https://github.com/${GITHUB_REPO}/releases`;
-const RELEASES_API  = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
-
-/** 比较 4 位版本号，latest > current 时返回 true */
-function isNewerVersion(latest: string, current: string): boolean {
-  const parse = (v: string) => v.replace(/^v/, '').split('.').map(n => parseInt(n) || 0);
-  const l = parse(latest);
-  const c = parse(current);
-  for (let i = 0; i < Math.max(l.length, c.length); i++) {
-    if ((l[i] ?? 0) > (c[i] ?? 0)) return true;
-    if ((l[i] ?? 0) < (c[i] ?? 0)) return false;
-  }
-  return false;
-}
-
-function extractChangelog(body: string, maxLen = 200): string {
-  if (!body) return '';
-  const cleaned = body
-    .replace(/#{1,6}\s*/g, '')
-    .replace(/\*\*/g, '')
-    .replace(/`/g, '')
-    .replace(/^\s*[-*]\s/gm, '• ')
-    .trim();
-  return cleaned.length > maxLen ? cleaned.slice(0, maxLen) + '…' : cleaned;
-}
+const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.asscuboxue.app';
+const APP_STORE_ID = Constants.expoConfig?.extra?.appStoreId as string | undefined;
 
 const UPDATE_TEXTS: Record<string, {
-  newVersion: string; current: string; latest: string;
-  goUpdate: string; later: string; upToDate: string;
-  networkErr: string; openGitHub: string; cancel: string;
-  checkUpdate: string;
+  storeTitle: string; storeDescription: string; openStore: string;
+  storeUnavailable: string; cancel: string; checkUpdate: string;
 }> = {
   zh: {
-    newVersion: '发现新版本',
-    current: '当前版本',
-    latest: '最新版本',
-    goUpdate: '前往下载',
-    later: '稍后再说',
-    upToDate: '当前已是最新版本',
-    networkErr: '网络连接失败，请稍后重试。',
-    openGitHub: '打开 GitHub Releases',
+    storeTitle: '检查更新',
+    storeDescription: '应用更新由应用商店管理。前往商店即可查看、下载或更新当前版本。',
+    openStore: '前往应用商店',
+    storeUnavailable: 'App Store 页面将在 iOS 版本上架后提供。',
     cancel: '取消',
     checkUpdate: '检查更新',
   },
   'zh-Hant': {
-    newVersion: '發現新版本',
-    current: '當前版本',
-    latest: '最新版本',
-    goUpdate: '前往下載',
-    later: '稍後再說',
-    upToDate: '目前已是最新版本',
-    networkErr: '網路連線失敗，請稍後重試。',
-    openGitHub: '開啟 GitHub Releases',
+    storeTitle: '檢查更新',
+    storeDescription: '應用程式更新由應用商店管理。前往商店即可查看、下載或更新目前版本。',
+    openStore: '前往應用商店',
+    storeUnavailable: 'iOS 版本上架後將提供 App Store 頁面。',
     cancel: '取消',
     checkUpdate: '檢查更新',
   },
   en: {
-    newVersion: 'New Version Available',
-    current: 'Current',
-    latest: 'Latest',
-    goUpdate: 'Download Now',
-    later: 'Later',
-    upToDate: "You're on the latest version",
-    networkErr: 'Network error. Please try again later.',
-    openGitHub: 'Open GitHub Releases',
+    storeTitle: 'Check for Updates',
+    storeDescription: 'Updates are managed by your app store. Open the listing to view or install the latest version.',
+    openStore: 'Open App Store',
+    storeUnavailable: 'The App Store listing will be available after the iOS release is published.',
     cancel: 'Cancel',
     checkUpdate: 'Check for Updates',
   },
   it: {
-    newVersion: 'Nuova versione disponibile',
-    current: 'Versione attuale',
-    latest: 'Ultima versione',
-    goUpdate: 'Scarica ora',
-    later: 'Dopo',
-    upToDate: "Hai l'ultima versione",
-    networkErr: 'Errore di rete. Riprova più tardi.',
-    openGitHub: 'Apri GitHub Releases',
+    storeTitle: 'Controlla aggiornamenti',
+    storeDescription: "Gli aggiornamenti sono gestiti dall'app store. Apri la pagina per visualizzare o installare l'ultima versione.",
+    openStore: "Apri l'App Store",
+    storeUnavailable: "La pagina dell'App Store sara disponibile dopo la pubblicazione della versione iOS.",
     cancel: 'Annulla',
     checkUpdate: 'Controlla aggiornamenti',
   },
@@ -95,7 +53,6 @@ const UPDATE_TEXTS: Record<string, {
 export default function AboutIndexScreen() {
   const { colors, t, language } = useTheme();
   const { hasUnreadFeedbackReply } = useAuth();
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [tapCount, setTapCount] = useState(0);
   const [lastTap, setLastTap] = useState(0);
   const [showLogs, setShowLogs] = useState(false);
@@ -191,50 +148,19 @@ export default function AboutIndexScreen() {
   const ut = UPDATE_TEXTS[language] ?? UPDATE_TEXTS['zh'];
 
   const handleCheckUpdate = async () => {
-    setCheckingUpdate(true);
-    try {
-      const res = await fetch(RELEASES_API, {
-        headers: { Accept: 'application/vnd.github.v3+json' },
-      });
+    const storeUrl = Platform.OS === 'ios'
+      ? (APP_STORE_ID ? `https://apps.apple.com/app/id${APP_STORE_ID}` : null)
+      : GOOGLE_PLAY_URL;
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data = await res.json();
-      const latestTag: string = data.tag_name ?? '';
-      const latestVersion = latestTag.replace(/^v/, '');
-
-      if (!latestVersion) throw new Error('No release found');
-
-      if (isNewerVersion(latestVersion, currentVersion)) {
-        const apkAsset = (data.assets as { name: string; browser_download_url: string }[] | undefined)
-          ?.find(a => a.name.endsWith('.apk'));
-        const downloadUrl: string = apkAsset?.browser_download_url ?? RELEASES_PAGE;
-        const changelog = extractChangelog((data.body as string) ?? '');
-
-        Alert.alert(
-          `🎉 ${ut.newVersion} v${latestVersion}`,
-          `${ut.current}: v${currentVersion}\n${ut.latest}: v${latestVersion}${changelog ? `\n\n${changelog}` : ''}`,
-          [
-            { text: ut.later, style: 'cancel' },
-            { text: ut.goUpdate, onPress: () => Linking.openURL(downloadUrl) },
-          ]
-        );
-      } else {
-        Alert.alert(ut.checkUpdate, ut.upToDate);
-      }
-    } catch (e) {
-      console.warn('Update check failed:', e);
-      Alert.alert(
-        ut.checkUpdate,
-        ut.networkErr,
-        [
-          { text: ut.cancel, style: 'cancel' },
-          { text: ut.openGitHub, onPress: () => Linking.openURL(RELEASES_PAGE) },
-        ]
-      );
-    } finally {
-      setCheckingUpdate(false);
+    if (!storeUrl) {
+      Alert.alert(ut.storeTitle, ut.storeUnavailable);
+      return;
     }
+
+    Alert.alert(ut.storeTitle, ut.storeDescription, [
+      { text: ut.cancel, style: 'cancel' },
+      { text: ut.openStore, onPress: () => Linking.openURL(storeUrl) },
+    ]);
   };
 
   return (
@@ -283,11 +209,9 @@ export default function AboutIndexScreen() {
           <Pressable
             style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
             onPress={handleCheckUpdate}
-            disabled={checkingUpdate}
           >
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{ut.checkUpdate}</Text>
             <View style={styles.rowRight}>
-              {checkingUpdate && <ActivityIndicator size="small" color={colors.primaryLight} style={{ marginRight: 8 }} />}
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>
           </Pressable>
