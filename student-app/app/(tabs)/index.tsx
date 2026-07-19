@@ -478,16 +478,14 @@ export default function HomeScreen() {
     if (!showHomeRate) return;
 
     const interval = setInterval(() => {
-      homeSubtitleTicker.setValue(0);
-      Animated.timing(homeSubtitleTicker, {
-        toValue: 1,
-        duration: 280,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (!finished) return;
-        setIsShowingHomeRate((current) => !current);
-        homeSubtitleTicker.setValue(0);
+      setIsShowingHomeRate((current) => {
+        Animated.timing(homeSubtitleTicker, {
+          toValue: current ? 0 : 1,
+          duration: 600,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+        return !current;
       });
     }, 3000);
 
@@ -859,33 +857,36 @@ export default function HomeScreen() {
                   >
                     <View style={styles.homeRateTickerViewport}>
                       <Animated.View
-                        style={{
-                          transform: [{
-                            translateY: homeSubtitleTicker.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [0, -22],
-                            }),
-                          }],
-                        }}
+                        style={[
+                          styles.homeRateTickerLine,
+                          {
+                            transform: [{
+                              translateY: homeSubtitleTicker.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0, -22],
+                              }),
+                            }],
+                          },
+                        ]}
                       >
-                        <View style={styles.homeRateTickerLine}>
-                          {isShowingHomeRate ? (
-                            <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
-                              {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny.toFixed(4)}</Text> CNY
-                            </Text>
-                          ) : (
-                            <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
-                          )}
-                        </View>
-                        <View style={styles.homeRateTickerLine}>
-                          {isShowingHomeRate ? (
-                            <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
-                          ) : (
-                            <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
-                              {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny.toFixed(4)}</Text> CNY
-                            </Text>
-                          )}
-                        </View>
+                        <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
+                      </Animated.View>
+                      <Animated.View
+                        style={[
+                          styles.homeRateTickerLine,
+                          {
+                            transform: [{
+                              translateY: homeSubtitleTicker.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [22, 0],
+                              }),
+                            }],
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
+                          {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny.toFixed(4)}</Text> CNY
+                        </Text>
                       </Animated.View>
                     </View>
                   </Pressable>
@@ -1355,13 +1356,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   homeRateTickerButton: {
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
   },
   homeRateTickerViewport: {
     height: 22,
     overflow: 'hidden',
+    position: 'relative',
   },
   homeRateTickerLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     height: 22,
     justifyContent: 'center',
   },
