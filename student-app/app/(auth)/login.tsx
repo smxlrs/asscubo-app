@@ -314,7 +314,7 @@ export default function LoginScreen() {
                             { color: isSendDisabled ? colors.textMuted : "#FFF" }
                           ]}>
                             {countdown > 0
-                              ? `${t('otpSentTitle')} ${countdown}s`
+                              ? `${countdown}s`
                               : (otpSent ? `未收到？${t('resend')}` : t('getOtpCode'))}
                           </Text>
                         )}
