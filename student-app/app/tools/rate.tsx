@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -11,36 +11,25 @@ import {
   RefreshControl,
   Platform
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  CURRENCY_OPTIONS,
+  DEFAULT_DISPLAYED_CURRENCY_CODES,
+  DISPLAYED_CURRENCIES_STORAGE_KEY,
+  getCurrencyOption,
+} from '../../lib/currencies';
 
 const { width } = Dimensions.get('window');
-
-type Currency = {
-  code: string;
-  flag: string;
-};
-
-const CURRENCIES: Currency[] = [
-  { code: 'EUR', flag: '🇪🇺' },
-  { code: 'CNY', flag: '🇨🇳' },
-  { code: 'USD', flag: '🇺🇸' },
-  { code: 'GBP', flag: '🇬🇧' },
-  { code: 'JPY', flag: '🇯🇵' },
-  { code: 'KRW', flag: '🇰🇷' },
-  { code: 'HKD', flag: '🇭🇰' },
-];
 
 const DEFAULT_RATES: Record<string, number> = {
   EUR: 1.0,
   CNY: 7.8256,
   USD: 1.0852,
-  JPY: 170.25,
-  KRW: 1495.3,
   GBP: 0.8543,
-  HKD: 8.4721,
 };
 
 const LOCALIZED = {
@@ -61,9 +50,7 @@ const LOCALIZED = {
     cny: '人民币',
     usd: '美元',
     gbp: '英镑',
-    jpy: '日元',
-    krw: '韩元',
-    hkd: '港币',
+    currencySettings: '显示货币',
   },
   'zh-Hant': {
     title: '匯率換算',
@@ -82,9 +69,7 @@ const LOCALIZED = {
     cny: '人民幣',
     usd: '美元',
     gbp: '英鎊',
-    jpy: '日圓',
-    krw: '韓圓',
-    hkd: '港幣',
+    currencySettings: '顯示貨幣',
   },
   en: {
     title: 'Exchange Rate',
@@ -103,9 +88,7 @@ const LOCALIZED = {
     cny: 'Yuan',
     usd: 'US Dollar',
     gbp: 'Pound',
-    jpy: 'Yen',
-    krw: 'Won',
-    hkd: 'HK Dollar',
+    currencySettings: 'Display currencies',
   },
   it: {
     title: 'Tasso di Cambio',
@@ -124,9 +107,7 @@ const LOCALIZED = {
     cny: 'Yuan',
     usd: 'Dollaro USA',
     gbp: 'Sterlina',
-    jpy: 'Yen',
-    krw: 'Won',
-    hkd: 'Dollaro HK',
+    currencySettings: 'Valute visualizzate',
   }
 };
 
@@ -138,6 +119,7 @@ export default function RateConverterScreen() {
   const [rates, setRates] = useState<Record<string, number>>(DEFAULT_RATES);
   const [lastUpdated, setLastUpdated] = useState<string>(localized.defaultRates);
   const [loading, setLoading] = useState<boolean>(false);
+  const [displayedCurrencyCodes, setDisplayedCurrencyCodes] = useState<string[]>(DEFAULT_DISPLAYED_CURRENCY_CODES);
 
   // Active currency editing
   const [activeCurrency, setActiveCurrency] = useState<string>('EUR');
@@ -146,11 +128,31 @@ export default function RateConverterScreen() {
     EUR: '1',
     CNY: DEFAULT_RATES.CNY.toFixed(2),
     USD: DEFAULT_RATES.USD.toFixed(2),
-    JPY: DEFAULT_RATES.JPY.toFixed(0),
-    KRW: DEFAULT_RATES.KRW.toFixed(0),
     GBP: DEFAULT_RATES.GBP.toFixed(2),
-    HKD: DEFAULT_RATES.HKD.toFixed(2),
   });
+
+  const displayedCurrencies = displayedCurrencyCodes
+    .map((code) => getCurrencyOption(code))
+    .filter((currency): currency is NonNullable<typeof currency> => Boolean(currency));
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    AsyncStorage.getItem(DISPLAYED_CURRENCIES_STORAGE_KEY)
+      .then((stored) => {
+        if (!stored || !active) return;
+        const parsed = JSON.parse(stored);
+        if (!Array.isArray(parsed)) return;
+        const selected = CURRENCY_OPTIONS
+          .filter((currency) => parsed.includes(currency.code))
+          .map((currency) => currency.code);
+        if (selected.length > 0) {
+          setDisplayedCurrencyCodes(selected);
+          setActiveCurrency((current) => selected.includes(current) ? current : selected[0]);
+        }
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []));
 
   // Toast state and animations
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -278,7 +280,7 @@ export default function RateConverterScreen() {
     
     const newValues: Record<string, string> = {};
     
-    CURRENCIES.forEach(currency => {
+    CURRENCY_OPTIONS.forEach(currency => {
       if (currency.code === sourceCode) {
         newValues[currency.code] = valueStr;
       } else {
@@ -329,7 +331,7 @@ export default function RateConverterScreen() {
   const getDynamicCardInfo = () => {
     const isCny = activeCurrency === 'CNY';
     const displayCode = isCny ? 'EUR' : activeCurrency;
-    const displayName = isCny ? localized.eur : (localized[activeCurrency.toLowerCase() as keyof typeof localized] || '');
+    const displayName = isCny ? localized.eur : (getCurrencyOption(activeCurrency)?.currencyName || activeCurrency);
     
     const rateToCny = isCny 
       ? (rates.CNY || DEFAULT_RATES.CNY)
@@ -351,13 +353,14 @@ export default function RateConverterScreen() {
           <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{localized.title}</Text>
-        <Pressable style={styles.refreshBtn} onPress={() => fetchRates(true)} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <MaterialIcons name="refresh" size={24} color={colors.primary} />
-          )}
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable style={styles.iconButton} onPress={() => router.push('/tools/rate-settings')} accessibilityLabel={localized.currencySettings}>
+            <MaterialIcons name="settings" size={23} color={colors.primary} />
+          </Pressable>
+          <Pressable style={styles.iconButton} onPress={() => fetchRates(true)} disabled={loading} accessibilityLabel={localized.refreshSuccess}>
+            {loading ? <ActivityIndicator size="small" color={colors.primary} /> : <MaterialIcons name="refresh" size={24} color={colors.primary} />}
+          </Pressable>
+        </View>
       </View>
 
       {/* Main Content Area */}
@@ -391,7 +394,7 @@ export default function RateConverterScreen() {
 
         {/* Currency List */}
         <View style={styles.currencyList}>
-          {CURRENCIES.map((currency) => {
+          {displayedCurrencies.map((currency) => {
             const isActive = activeCurrency === currency.code;
             return (
               <Pressable
@@ -414,7 +417,7 @@ export default function RateConverterScreen() {
                   <View style={styles.codeContainer}>
                     <Text style={[styles.codeText, { color: colors.textPrimary }]}>{currency.code}</Text>
                     <Text style={[styles.nameText, { color: colors.textSecondary }]}>
-                      {localized[currency.code.toLowerCase() as keyof typeof localized]}
+                      {currency.currencyName}
                     </Text>
                   </View>
                 </View>
@@ -445,7 +448,7 @@ export default function RateConverterScreen() {
       {showKeypad && (
         <View style={[styles.keypadToolbar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
           <Text style={[styles.toolbarTitle, { color: colors.textSecondary, fontSize: 12 }]}>
-            {localized.inputSource}: {localized[activeCurrency.toLowerCase() as keyof typeof localized] || activeCurrency}
+            {localized.inputSource}: {getCurrencyOption(activeCurrency)?.currencyName || activeCurrency}
           </Text>
           <Pressable style={styles.collapseBtn} onPress={() => setShowKeypad(false)}>
             <Text style={[styles.collapseText, { color: colors.primary, fontSize: 13, fontWeight: '600' }]}>{localized.collapseKeyboard}</Text>
@@ -559,11 +562,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  refreshBtn: {
-    paddingVertical: 6,
-    paddingLeft: 12,
-    minWidth: 44,
-    alignItems: 'flex-end',
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   refreshText: {
     fontSize: 16,

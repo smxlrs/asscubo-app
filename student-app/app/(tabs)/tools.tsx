@@ -32,6 +32,7 @@ const colWidth = cardWidth + GAP;
 const rowHeight = 200;
 
 const TOOLS_ORDER_KEY = '@ag_tools_order';
+const DEFAULT_TOOL_ORDER = ['handbook', 'dictionary', 'studyroom', 'classroom', 'train', 'bus', 'rate', 'links'];
 
 type ToolItem = {
   id: string;
@@ -494,7 +495,7 @@ export default function ToolsScreen() {
   const { colors, t, tabBarStyle, tabOpacities, isDark, language } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   const [eurToCny, setEurToCny] = useState<number>(7.8256);
-  const [toolOrder, setToolOrder] = useState<string[]>(['handbook', 'dictionary', 'rate', 'classroom', 'train', 'bus', 'studyroom', 'links']);
+  const [toolOrder, setToolOrder] = useState<string[]>(DEFAULT_TOOL_ORDER);
   const [isEditing, setIsEditing] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -575,7 +576,7 @@ export default function ToolsScreen() {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const validIds = ['handbook', 'dictionary', 'rate', 'classroom', 'train', 'bus', 'studyroom', 'links'];
+            const validIds = DEFAULT_TOOL_ORDER;
             const uniqueParsed = Array.from(new Set(parsed)).filter((id: any) => validIds.includes(id));
             const missing = validIds.filter(id => !uniqueParsed.includes(id));
             const merged = [...uniqueParsed, ...missing];
