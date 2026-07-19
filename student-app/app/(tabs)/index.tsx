@@ -485,7 +485,7 @@ export default function HomeScreen() {
         easing: Easing.inOut(Easing.cubic),
         useNativeDriver: true,
       }).start();
-    }, 3000);
+    }, 5000);
 
     return () => {
       clearInterval(interval);
