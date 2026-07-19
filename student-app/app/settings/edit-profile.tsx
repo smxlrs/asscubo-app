@@ -357,9 +357,10 @@ export default function EditProfileScreen() {
   };
 
   const handleSendOtp = async () => {
+    if (!user?.email) return;
     setSendingOtp(true);
     try {
-      const { error } = await supabase.auth.reauthenticate();
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email);
       if (error) throw error;
       
       Alert.alert(localized.otpSent, localized.otpSentMsg);
@@ -395,7 +396,7 @@ export default function EditProfileScreen() {
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email: user?.email || '',
         token: modalOtp.trim(),
-        type: 'reauthentication'
+        type: 'recovery'
       });
       
       if (verifyError) {
@@ -666,7 +667,7 @@ export default function EditProfileScreen() {
                         fontWeight: 'bold' 
                       }}>
                         {countdown > 0
-                          ? `${localized.otpSent} ${countdown}s`
+                          ? `${countdown}s`
                           : (modalOtp ? `未收到？${localized.resend}` : localized.getOtp)}
                       </Text>
                     )}
