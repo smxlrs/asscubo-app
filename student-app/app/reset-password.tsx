@@ -17,6 +17,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase, translateAuthError } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
+import { recordDebugEvent } from '../lib/logger';
 
 function getTokensFromUrl(url: string) {
   const hash = url.includes('#') ? url.slice(url.indexOf('#') + 1) : '';
@@ -83,12 +84,15 @@ export default function ResetPasswordScreen() {
     setLoading(true);
     setMessage(null);
     try {
+      recordDebugEvent('auth', 'Password reset email requested', { emailDomain: email.trim().split('@')[1]?.toLowerCase() || 'invalid' });
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: Linking.createURL('reset-password'),
       });
       if (error) throw error;
+      recordDebugEvent('auth', 'Password reset email request completed');
       setMessage(t('resetLinkSentDescription'));
     } catch (error: any) {
+      recordDebugEvent('auth', 'Password reset email request failed', { error: error?.message || String(error) }, 'warn');
       setMessage(translateAuthError(error?.message || '', language));
     } finally {
       setLoading(false);
@@ -108,13 +112,16 @@ export default function ResetPasswordScreen() {
     setLoading(true);
     setMessage(null);
     try {
+      recordDebugEvent('auth', 'Password update requested');
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       await supabase.auth.signOut();
+      recordDebugEvent('auth', 'Password update completed');
       Alert.alert(t('resetPassword'), t('passwordUpdated'), [
         { text: t('goToLogin'), onPress: () => router.replace('/(auth)/login') },
       ]);
     } catch (error: any) {
+      recordDebugEvent('auth', 'Password update failed', { error: error?.message || String(error) }, 'warn');
       setMessage(translateAuthError(error?.message || '', language));
     } finally {
       setLoading(false);

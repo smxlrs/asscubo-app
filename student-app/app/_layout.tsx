@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { initLogger } from '../lib/logger';
+import { initLogger, recordDebugEvent } from '../lib/logger';
 initLogger();
-import { Stack, router } from 'expo-router';
+import { Stack, router, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, BackHandler, ToastAndroid, View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -27,6 +27,16 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { getSavedQuickActionIds, registerQuickActions } from '../lib/quickActions';
+
+function DebugNavigationTracker() {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    recordDebugEvent('navigation', 'Screen focused', { path: pathname });
+  }, [pathname]);
+
+  return null;
+}
 
 // Configure how notifications are presented when the app is in the foreground
 if (Notifications) {
@@ -189,17 +199,20 @@ function AppContent() {
 
     const handleBackPress = () => {
       if (router.canGoBack()) {
+        recordDebugEvent('navigation', 'Android back requested', { action: 'pop' });
         router.back();
         return true; // Intercepted: handles back manually, blocking system gesture animation
       }
 
       const now = Date.now();
       if (now - lastPressTime < 2000) {
+        recordDebugEvent('navigation', 'Android exit confirmed');
         BackHandler.exitApp();
         return true;
       }
 
       lastPressTime = now;
+      recordDebugEvent('navigation', 'Android exit confirmation requested');
       if (Platform.OS === 'android') {
         ToastAndroid.show(t('exitAppPrompt'), ToastAndroid.SHORT);
       }
@@ -243,6 +256,7 @@ function AppContent() {
 
   return (
     <NavigationProvider value={navTheme}>
+      <DebugNavigationTracker />
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
         <Stack screenOptions={{ 

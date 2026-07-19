@@ -1,10 +1,16 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { recordDebugEvent } from '../lib/logger';
 import * as Linking from 'expo-linking';
 import { AppState } from 'react-native';
 
 const AUTH_TIMEOUT_MS = 5000;
+
+function getEmailDomain(email: string) {
+  const domain = email.trim().split('@')[1];
+  return domain ? domain.toLowerCase() : 'invalid';
+}
 
 /** 给任意 Promise 加超时，超时时 resolve(null) 而非 reject，防止崩溃 */
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
@@ -143,11 +149,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
+    recordDebugEvent('auth', 'Sign-in requested', { emailDomain: getEmailDomain(email) });
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    recordDebugEvent(
+      'auth',
+      error ? 'Sign-in rejected' : 'Sign-in completed',
+      error ? { emailDomain: getEmailDomain(email), error: error.message, code: error.code } : { emailDomain: getEmailDomain(email) },
+      error ? 'warn' : 'log'
+    );
     return { error };
   }
 
   async function signUp(email: string, password: string, name: string) {
+    recordDebugEvent('auth', 'Sign-up requested', { emailDomain: getEmailDomain(email) });
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -156,12 +170,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailRedirectTo: 'https://asscubo.it/verified.html'
       }
     });
-    if (error) return { error, alreadyExists: false };
+    if (error) {
+      recordDebugEvent('auth', 'Sign-up rejected', { emailDomain: getEmailDomain(email), error: error.message, code: error.code }, 'warn');
+      return { error, alreadyExists: false };
+    }
 
     // With email confirmation enabled, Supabase intentionally returns a successful
     // response for an existing address. An empty identities list is its signal that
     // no new account was created, so never upsert that user's profile.
     if (data.user?.identities?.length === 0) {
+      recordDebugEvent('auth', 'Sign-up found existing account', { emailDomain: getEmailDomain(email) }, 'warn');
       return { error: null, alreadyExists: true };
     }
 
@@ -173,10 +191,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (profileError) console.error('Error writing profile:', profileError);
     }
+    recordDebugEvent('auth', 'Sign-up completed', { emailDomain: getEmailDomain(email) });
     return { error: null, alreadyExists: false };
   }
 
   async function signOut() {
+    recordDebugEvent('auth', 'Sign-out requested');
     if (user?.id) {
       try {
         await supabase.from('profiles').update({ push_token: null }).eq('id', user.id);
@@ -185,6 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     await supabase.auth.signOut();
+    recordDebugEvent('auth', 'Sign-out completed');
   }
 
   const [hasUnreadFeedbackReply, setHasUnreadFeedbackReply] = useState(false);

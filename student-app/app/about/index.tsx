@@ -7,6 +7,7 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { setDebugLoggingEnabled } from '../../lib/logger';
 
 const GITHUB_REPO = 'smxlrs/asscubo-app';
 const RELEASES_PAGE = `https://github.com/${GITHUB_REPO}/releases`;
@@ -171,7 +172,9 @@ export default function AboutIndexScreen() {
         else showToast('再按一下进入调试模式');
       } else if (newCount >= 8) {
         setShowLogs(true);
-        AsyncStorage.setItem('@ag_debug_mode', 'true');
+        setDebugLoggingEnabled(true).catch((error) => {
+          console.warn('Failed to enable debug mode:', error);
+        });
         if (language === 'zh-Hant') showToast('您已進入調試模式');
         else if (isIt) showToast('Sei entrato in modalità debug');
         else if (language === 'en') showToast('You have entered debug mode');

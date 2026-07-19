@@ -63,7 +63,8 @@
           }
         }
       ],
-      "./plugins/withLiquidGlassAndroid"
+      "./plugins/withLiquidGlassAndroid",
+      "expo-sharing"
     ],
     "ios": {
       "supportsTablet": false,

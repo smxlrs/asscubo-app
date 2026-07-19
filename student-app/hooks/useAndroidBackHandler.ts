@@ -1,5 +1,6 @@
 import { useEffect, type DependencyList } from 'react';
 import { BackHandler, Platform } from 'react-native';
+import { recordDebugEvent } from '../lib/logger';
 
 type BackHandlerCallback = () => boolean | null | undefined;
 
@@ -11,7 +12,9 @@ export function useAndroidBackHandler(
     if (Platform.OS !== 'android') return;
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      return callback() === true;
+      const handled = callback() === true;
+      if (handled) recordDebugEvent('navigation', 'Android back handled by screen');
+      return handled;
     });
 
     return () => subscription.remove();
