@@ -388,7 +388,7 @@ export default function ManageUsersScreen() {
             注册时间: {formattedDate}
           </Text>
           <Text style={[styles.metaText, { color: colors.textMuted }]}>
-            推送状态: {item.push_token ? '已激活' : '未激活'}
+            推送状态: <Text style={{ color: item.push_token ? colors.primary : colors.textMuted }}>{item.push_token ? '已激活' : '未激活'}</Text>
           </Text>
         </View>
 
