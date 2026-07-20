@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Linking, Image, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Linking, Image, Animated, NativeModules, Platform } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,14 +7,16 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import { setDebugLoggingEnabled } from '../../lib/logger';
+import { recordDebugEvent, setDebugLoggingEnabled } from '../../lib/logger';
 
 const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.asscuboxue.app';
 const APP_STORE_ID = Constants.expoConfig?.extra?.appStoreId as string | undefined;
 
 const UPDATE_TEXTS: Record<string, {
   storeTitle: string; storeDescription: string; openStore: string;
-  storeUnavailable: string; cancel: string; checkUpdate: string;
+  storeUnavailable: string; cancel: string; checkUpdate: string; updateAvailable: string;
+  updateAvailableDescription: string; updateNow: string; upToDate: string;
+  upToDateDescription: string; confirm: string; unableToCheck: string;
 }> = {
   zh: {
     storeTitle: '检查更新',
@@ -23,6 +25,13 @@ const UPDATE_TEXTS: Record<string, {
     storeUnavailable: 'App Store 页面将在 iOS 版本上架后提供。',
     cancel: '取消',
     checkUpdate: '检查更新',
+    updateAvailable: '发现新版本',
+    updateAvailableDescription: 'Google Play 中已有可用的新版本，是否现在前往更新？',
+    updateNow: '立即更新',
+    upToDate: '当前已是最新版本',
+    upToDateDescription: '您安装的版本已与 Google Play 当前测试轨道保持一致。',
+    confirm: '确认',
+    unableToCheck: '暂时无法向 Google Play 确认更新状态。请确认当前版本由 Google Play 安装，且设备可访问 Play 商店。',
   },
   'zh-Hant': {
     storeTitle: '檢查更新',
@@ -31,6 +40,13 @@ const UPDATE_TEXTS: Record<string, {
     storeUnavailable: 'iOS 版本上架後將提供 App Store 頁面。',
     cancel: '取消',
     checkUpdate: '檢查更新',
+    updateAvailable: '發現新版本',
+    updateAvailableDescription: 'Google Play 已有可用的新版本，是否現在前往更新？',
+    updateNow: '立即更新',
+    upToDate: '目前已是最新版本',
+    upToDateDescription: '您安裝的版本已與 Google Play 目前測試軌道保持一致。',
+    confirm: '確認',
+    unableToCheck: '暫時無法向 Google Play 確認更新狀態。請確認目前版本由 Google Play 安裝，且裝置可存取 Play 商店。',
   },
   en: {
     storeTitle: 'Check for Updates',
@@ -39,6 +55,13 @@ const UPDATE_TEXTS: Record<string, {
     storeUnavailable: 'The App Store listing will be available after the iOS release is published.',
     cancel: 'Cancel',
     checkUpdate: 'Check for Updates',
+    updateAvailable: 'Update available',
+    updateAvailableDescription: 'A newer version is available on Google Play. Would you like to update now?',
+    updateNow: 'Update now',
+    upToDate: 'You are up to date',
+    upToDateDescription: 'Your installed version matches the current Google Play testing track.',
+    confirm: 'OK',
+    unableToCheck: 'Google Play could not confirm the update status. Make sure this app was installed from Google Play and that the Play Store is available on this device.',
   },
   it: {
     storeTitle: 'Controlla aggiornamenti',
@@ -47,6 +70,13 @@ const UPDATE_TEXTS: Record<string, {
     storeUnavailable: "La pagina dell'App Store sara disponibile dopo la pubblicazione della versione iOS.",
     cancel: 'Annulla',
     checkUpdate: 'Controlla aggiornamenti',
+    updateAvailable: 'Aggiornamento disponibile',
+    updateAvailableDescription: 'Su Google Play e disponibile una versione piu recente. Vuoi aggiornare ora?',
+    updateNow: 'Aggiorna ora',
+    upToDate: 'Hai gia l\'ultima versione',
+    upToDateDescription: 'La versione installata corrisponde all\'attuale canale di test Google Play.',
+    confirm: 'OK',
+    unableToCheck: 'Google Play non puo confermare lo stato dell\'aggiornamento. Verifica che l\'app sia stata installata da Google Play e che il Play Store sia disponibile sul dispositivo.',
   },
 };
 
@@ -148,6 +178,45 @@ export default function AboutIndexScreen() {
   const ut = UPDATE_TEXTS[language] ?? UPDATE_TEXTS['zh'];
 
   const handleCheckUpdate = async () => {
+    if (Platform.OS === 'android') {
+      const playStoreUpdate = NativeModules.PlayStoreUpdate as {
+        checkForUpdate?: () => Promise<'available' | 'up_to_date' | 'unavailable'>;
+      } | undefined;
+
+      if (!playStoreUpdate?.checkForUpdate) {
+        recordDebugEvent('update', 'Google Play update check unavailable', { reason: 'native-module-missing' }, 'warn');
+        Alert.alert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }]);
+        return;
+      }
+
+      try {
+        const status = await playStoreUpdate.checkForUpdate();
+        recordDebugEvent('update', 'Google Play update check completed', { status });
+
+        if (status === 'available') {
+          Alert.alert(ut.updateAvailable, ut.updateAvailableDescription, [
+            { text: ut.cancel, style: 'cancel' },
+            {
+              text: ut.updateNow,
+              onPress: () => {
+                Linking.openURL(`market://details?id=com.asscuboxue.app`)
+                  .catch(() => Linking.openURL(GOOGLE_PLAY_URL))
+                  .catch((error) => recordDebugEvent('update', 'Failed to open Google Play listing', error, 'warn'));
+              },
+            },
+          ]);
+        } else if (status === 'up_to_date') {
+          Alert.alert(ut.upToDate, ut.upToDateDescription, [{ text: ut.confirm }]);
+        } else {
+          Alert.alert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }]);
+        }
+      } catch (error) {
+        recordDebugEvent('update', 'Google Play update check failed', error, 'warn');
+        Alert.alert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }]);
+      }
+      return;
+    }
+
     const storeUrl = Platform.OS === 'ios'
       ? (APP_STORE_ID ? `https://apps.apple.com/app/id${APP_STORE_ID}` : null)
       : GOOGLE_PLAY_URL;
