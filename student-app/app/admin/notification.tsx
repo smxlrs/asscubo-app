@@ -272,10 +272,8 @@ export default function PublishNotificationScreen() {
 
       // 2. Broadcast Expo Push Notification to all users if checked
       if (sendPush) {
-        const categoryLabel = category ? CATEGORIES.find(c => c.value === category)?.label : '系统通知';
-        const pushTitle = `【${categoryLabel}】${title}`;
         const pushResult = await broadcastPushNotification(
-          pushTitle,
+          title.trim(),
           summary.trim(),
           category || 'general', // Fallback to general for preference delivery
           finalLink || undefined,

@@ -73,7 +73,7 @@ export default function ManageUsersScreen() {
     fetchUsers();
   }, []);
 
-  const sendPushNotification = async (pushToken: string, bodyText: string) => {
+  const sendPushNotification = async (pushToken: string, title: string, bodyText: string) => {
     try {
       await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
@@ -85,7 +85,7 @@ export default function ManageUsersScreen() {
         body: JSON.stringify({
           to: pushToken,
           sound: 'default',
-          title: '系统通知',
+          title,
           body: bodyText,
           data: { type: 'profile_violation' }
         })
@@ -126,7 +126,7 @@ export default function ManageUsersScreen() {
 
                       // 2. Send push notice if token exists
                       if (user.push_token) {
-                        await sendPushNotification(user.push_token, '您的头像不符合规定，请重新设置。');
+                        await sendPushNotification(user.push_token, '头像需重新设置', '您的头像不符合规定，请重新设置。');
                       }
 
                       // 3. Update local state
@@ -183,7 +183,7 @@ export default function ManageUsersScreen() {
 
                       // 2. Send push notice if token exists
                       if (user.push_token) {
-                        await sendPushNotification(user.push_token, '您的昵称不符合规定，请重新设置。');
+                        await sendPushNotification(user.push_token, '昵称需重新设置', '您的昵称不符合规定，请重新设置。');
                       }
 
                       // 3. Update local state
