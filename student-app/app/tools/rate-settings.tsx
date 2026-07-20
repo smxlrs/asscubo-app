@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, BackHandler, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,16 +15,16 @@ import {
 
 const COPY = {
   zh: {
-    title: '显示货币', search: '搜索国家、货币或代码', selected: '已显示 {count} 种货币', note: '按旅行及日常使用频率排序；未选货币不会出现在换算页面。', atLeastOne: '请至少保留一种货币。', homeRate: '首页显示今日汇率', homeRateDescription: '在首页“博学 · 连接在意生活”后显示 EUR 兑 CNY 的实时汇率。',
+    title: '显示货币', search: '搜索国家、货币或代码', selected: '已显示 {count} 种货币', note: '按旅行及日常使用频率排序；未选货币不会出现在换算页面。', atLeastOne: '请至少保留一种货币。', homeRate: '首页滚动显示今日汇率', homeRateDescription: '与“博学 · 连接在意生活”每 5 秒上下切换显示 EUR 兑 CNY 的实时汇率。',
   },
   'zh-Hant': {
-    title: '顯示貨幣', search: '搜尋國家、貨幣或代碼', selected: '已顯示 {count} 種貨幣', note: '按旅行及日常使用頻率排序；未選貨幣不會出現在換算頁面。', atLeastOne: '請至少保留一種貨幣。', homeRate: '首頁顯示今日匯率', homeRateDescription: '在首頁「博學 · 連接在意生活」後顯示 EUR 兌 CNY 的即時匯率。',
+    title: '顯示貨幣', search: '搜尋國家、貨幣或代碼', selected: '已顯示 {count} 種貨幣', note: '按旅行及日常使用頻率排序；未選貨幣不會出現在換算頁面。', atLeastOne: '請至少保留一種貨幣。', homeRate: '首頁輪播顯示今日匯率', homeRateDescription: '每 5 秒與「博學 · 連接在意生活」上下切換顯示 EUR 兌 CNY 的即時匯率。',
   },
   en: {
-    title: 'Display currencies', search: 'Search country, currency, or code', selected: '{count} currencies shown', note: 'Ordered by travel and everyday-use frequency. Hidden currencies stay out of the converter.', atLeastOne: 'Keep at least one currency selected.', homeRate: 'Show today’s rate on Home', homeRateDescription: 'Show the live EUR-to-CNY rate after the Home subtitle.',
+    title: 'Display currencies', search: 'Search country, currency, or code', selected: '{count} currencies shown', note: 'Ordered by travel and everyday-use frequency. Hidden currencies stay out of the converter.', atLeastOne: 'Keep at least one currency selected.', homeRate: 'Rotate today’s rate on Home', homeRateDescription: 'Alternate the live EUR-to-CNY rate with the Home subtitle every 5 seconds.',
   },
   it: {
-    title: 'Valute visualizzate', search: 'Cerca paese, valuta o codice', selected: '{count} valute visualizzate', note: 'Ordinate per frequenza di viaggio e uso quotidiano. Le valute non selezionate non appaiono nel convertitore.', atLeastOne: 'Mantieni selezionata almeno una valuta.', homeRate: 'Mostra il cambio nella Home', homeRateDescription: 'Mostra il tasso EUR/CNY aggiornato dopo il sottotitolo della Home.',
+    title: 'Valute visualizzate', search: 'Cerca paese, valuta o codice', selected: '{count} valute visualizzate', note: 'Ordinate per frequenza di viaggio e uso quotidiano. Le valute non selezionate non appaiono nel convertitore.', atLeastOne: 'Mantieni selezionata almeno una valuta.', homeRate: 'Alterna il cambio nella Home', homeRateDescription: 'Alterna il tasso EUR/CNY con il sottotitolo della Home ogni 5 secondi.',
   },
 };
 
@@ -32,8 +32,11 @@ export default function RateSettingsScreen() {
   const { colors, language } = useTheme();
   const copy = COPY[language as keyof typeof COPY] || COPY.zh;
   const [query, setQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [collapsedContinents, setCollapsedContinents] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>(DEFAULT_DISPLAYED_CURRENCY_CODES);
   const [showHomeRate, setShowHomeRate] = useState(true);
+  const searchInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(DISPLAYED_CURRENCIES_STORAGE_KEY)
@@ -58,6 +61,34 @@ export default function RateSettingsScreen() {
     await AsyncStorage.setItem(HOME_RATE_VISIBLE_STORAGE_KEY, String(enabled));
   };
 
+  const closeSearch = useCallback(() => {
+    setIsSearching(false);
+    setQuery('');
+  }, []);
+
+  const handleBack = useCallback(() => {
+    if (isSearching) {
+      closeSearch();
+      return;
+    }
+    router.back();
+  }, [closeSearch, isSearching]);
+
+  useFocusEffect(useCallback(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!isSearching) return false;
+      closeSearch();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [closeSearch, isSearching]));
+
+  useEffect(() => {
+    if (!isSearching) return;
+    const timeout = setTimeout(() => searchInputRef.current?.focus(), 80);
+    return () => clearTimeout(timeout);
+  }, [isSearching]);
+
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return CURRENCY_OPTIONS;
@@ -80,34 +111,42 @@ export default function RateSettingsScreen() {
     await AsyncStorage.setItem(DISPLAYED_CURRENCIES_STORAGE_KEY, JSON.stringify(next));
   };
 
+  const toggleContinent = (continent: string) => {
+    setCollapsedContinents((current) => current.includes(continent)
+      ? current.filter((item) => item !== continent)
+      : [...current, continent]);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={12}>
+        <Pressable style={styles.backButton} onPress={handleBack} hitSlop={12}>
           <MaterialIcons name="arrow-back" size={24} color={colors.primary} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{copy.title}</Text>
-        <View style={styles.headerSpacer} />
+        {isSearching ? (
+          <View style={[styles.headerSearchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <MaterialIcons name="search" size={19} color={colors.textMuted} />
+            <TextInput
+              ref={searchInputRef}
+              value={query}
+              onChangeText={setQuery}
+              placeholder={copy.search}
+              placeholderTextColor={colors.textMuted}
+              style={[styles.headerSearchInput, { color: colors.textPrimary }]}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+          </View>
+        ) : (
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{copy.title}</Text>
+        )}
+        <Pressable style={styles.searchButton} onPress={() => isSearching ? closeSearch() : setIsSearching(true)} hitSlop={12}>
+          <MaterialIcons name={isSearching ? 'close' : 'search'} size={23} color={colors.primary} />
+        </Pressable>
       </View>
 
       <View style={styles.topArea}>
-        <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <MaterialIcons name="search" size={20} color={colors.textMuted} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={copy.search}
-            placeholderTextColor={colors.textMuted}
-            style={[styles.searchInput, { color: colors.textPrimary }]}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {query.length > 0 && (
-            <Pressable onPress={() => setQuery('')} hitSlop={10}>
-              <MaterialIcons name="close" size={19} color={colors.textMuted} />
-            </Pressable>
-          )}
-        </View>
         <Text style={[styles.summary, { color: colors.primary }]}>{copy.selected.replace('{count}', String(selected.length))}</Text>
         <Text style={[styles.note, { color: colors.textSecondary }]}>{copy.note}</Text>
         <View style={[styles.homeRateRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -123,10 +162,16 @@ export default function RateSettingsScreen() {
         {CONTINENTS.map((continent) => {
           const currencies = filtered.filter((currency) => currency.continent === continent);
           if (currencies.length === 0) return null;
+          const isCollapsed = !isSearching && collapsedContinents.includes(continent);
           return (
             <View key={continent} style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{continent}</Text>
-              <View style={[styles.sectionList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{continent}</Text>
+                <Pressable onPress={() => toggleContinent(continent)} hitSlop={10} accessibilityLabel={isCollapsed ? `展开${continent}` : `收起${continent}`}>
+                  <MaterialIcons name={isCollapsed ? 'keyboard-arrow-down' : 'keyboard-arrow-up'} size={22} color={colors.textMuted} />
+                </Pressable>
+              </View>
+              {!isCollapsed && <View style={[styles.sectionList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 {currencies.map((currency, index) => {
                   const isSelected = selected.includes(currency.code);
                   return (
@@ -149,7 +194,7 @@ export default function RateSettingsScreen() {
                     </Pressable>
                   );
                 })}
-              </View>
+              </View>}
             </View>
           );
         })}
@@ -163,11 +208,11 @@ const styles = StyleSheet.create({
   header: { height: 56, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16 },
   backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
   title: { flex: 1, fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  headerSpacer: { width: 40 },
+  searchButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
+  headerSearchBox: { flex: 1, height: 38, borderWidth: 1, borderRadius: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 },
+  headerSearchInput: { flex: 1, height: '100%', fontSize: 14, marginLeft: 7, paddingVertical: 0 },
   topArea: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 },
-  searchBox: { height: 46, borderWidth: 1, borderRadius: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 },
-  searchInput: { flex: 1, fontSize: 15, marginLeft: 8, height: '100%' },
-  summary: { fontSize: 14, fontWeight: '700', marginTop: 14 },
+  summary: { fontSize: 14, fontWeight: '700' },
   note: { fontSize: 12, lineHeight: 18, marginTop: 4 },
   homeRateRow: { marginTop: 16, borderWidth: 1, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
   homeRateTextWrap: { flex: 1, paddingRight: 12 },
@@ -175,7 +220,8 @@ const styles = StyleSheet.create({
   homeRateDescription: { fontSize: 12, lineHeight: 17, marginTop: 3 },
   listContent: { padding: 16, paddingTop: 8, paddingBottom: 32 },
   section: { marginTop: 16 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', marginBottom: 8, paddingLeft: 4 },
+  sectionHeader: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingLeft: 4, paddingRight: 2 },
+  sectionTitle: { fontSize: 13, fontWeight: '700' },
   sectionList: { borderWidth: 1, borderRadius: 8, overflow: 'hidden' },
   currencyRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14 },
   flag: { fontSize: 27, marginRight: 12 },
