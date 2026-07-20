@@ -595,14 +595,13 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 6,
   },
   infoLabel: {
     fontSize: 12,
     fontWeight: '600',
+    marginBottom: 4,
   },
   infoValue: {
     fontSize: 15,

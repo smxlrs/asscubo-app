@@ -848,12 +848,7 @@ export default function HomeScreen() {
               </Text>
               <View style={styles.headerSubtitleRow}>
                 {showHomeRate ? (
-                  <Pressable
-                    style={styles.homeRateTickerButton}
-                    onPress={() => router.push('/tools/rate')}
-                    hitSlop={8}
-                  >
-                    <View style={styles.homeRateTickerViewport}>
+                  <View style={styles.homeRateTickerViewport}>
                       <Animated.View
                         style={[
                           styles.homeRateTickerLine,
@@ -882,12 +877,13 @@ export default function HomeScreen() {
                           },
                         ]}
                       >
-                        <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
-                          {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny.toFixed(4)}</Text> CNY
-                        </Text>
+                        <Pressable onPress={() => router.push('/tools/rate')} hitSlop={8}>
+                          <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
+                            {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny.toFixed(4)}</Text> CNY
+                          </Text>
+                        </Pressable>
                       </Animated.View>
-                    </View>
-                  </Pressable>
+                  </View>
                 ) : (
                   <Text style={[styles.headerSubtitle, { color: bannerSubtitleColor }]}>{t('appSubtitleHeader')}</Text>
                 )}
@@ -1352,9 +1348,6 @@ const styles = StyleSheet.create({
     fontSize: SIZES.sm,
     fontFamily: FONTS.medium,
     lineHeight: 22,
-  },
-  homeRateTickerButton: {
-    alignSelf: 'stretch',
   },
   homeRateTickerViewport: {
     height: 22,
