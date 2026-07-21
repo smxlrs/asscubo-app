@@ -15,16 +15,16 @@ import {
 
 const COPY = {
   zh: {
-    title: '显示货币', search: '搜索国家、货币或代码', selected: '已显示 {count} 种货币', note: '按旅行及日常使用频率排序；未选货币不会出现在换算页面。', atLeastOne: '请至少保留一种货币。', homeRate: '首页滚动显示今日汇率', homeRateDescription: '与“博学 · 连接在意生活”每 5 秒上下切换显示 EUR 兑 CNY 的实时汇率。',
+    title: '显示货币', search: '搜索国家/地区、货币或代码', selected: '已显示 {count} 种货币', note: '按旅行及日常使用频率排序；未选货币不会出现在换算页面。', atLeastOne: '请至少保留一种货币。', homeRate: '首页滚动显示今日汇率', homeRateDescription: '与“博学 · 连接在意生活”每 5 秒上下切换显示 EUR 兑 CNY 的实时汇率。',
   },
   'zh-Hant': {
-    title: '顯示貨幣', search: '搜尋國家、貨幣或代碼', selected: '已顯示 {count} 種貨幣', note: '按旅行及日常使用頻率排序；未選貨幣不會出現在換算頁面。', atLeastOne: '請至少保留一種貨幣。', homeRate: '首頁輪播顯示今日匯率', homeRateDescription: '每 5 秒與「博學 · 連接在意生活」上下切換顯示 EUR 兌 CNY 的即時匯率。',
+    title: '顯示貨幣', search: '搜尋國家/地區、貨幣或代碼', selected: '已顯示 {count} 種貨幣', note: '按旅行及日常使用頻率排序；未選貨幣不會出現在換算頁面。', atLeastOne: '請至少保留一種貨幣。', homeRate: '首頁輪播顯示今日匯率', homeRateDescription: '每 5 秒與「博學 · 連接在意生活」上下切換顯示 EUR 兌 CNY 的即時匯率。',
   },
   en: {
-    title: 'Display currencies', search: 'Search country, currency, or code', selected: '{count} currencies shown', note: 'Ordered by travel and everyday-use frequency. Hidden currencies stay out of the converter.', atLeastOne: 'Keep at least one currency selected.', homeRate: 'Rotate today’s rate on Home', homeRateDescription: 'Alternate the live EUR-to-CNY rate with the Home subtitle every 5 seconds.',
+    title: 'Display currencies', search: 'Search country/region, currency, or code', selected: '{count} currencies shown', note: 'Ordered by travel and everyday-use frequency. Hidden currencies stay out of the converter.', atLeastOne: 'Keep at least one currency selected.', homeRate: 'Rotate today’s rate on Home', homeRateDescription: 'Alternate the live EUR-to-CNY rate with the Home subtitle every 5 seconds.',
   },
   it: {
-    title: 'Valute visualizzate', search: 'Cerca paese, valuta o codice', selected: '{count} valute visualizzate', note: 'Ordinate per frequenza di viaggio e uso quotidiano. Le valute non selezionate non appaiono nel convertitore.', atLeastOne: 'Mantieni selezionata almeno una valuta.', homeRate: 'Alterna il cambio nella Home', homeRateDescription: 'Alterna il tasso EUR/CNY con il sottotitolo della Home ogni 5 secondi.',
+    title: 'Valute visualizzate', search: 'Cerca paese/regione, valuta o codice', selected: '{count} valute visualizzate', note: 'Ordinate per frequenza di viaggio e uso quotidiano. Le valute non selezionate non appaiono nel convertitore.', atLeastOne: 'Mantieni selezionata almeno una valuta.', homeRate: 'Alterna il cambio nella Home', homeRateDescription: 'Alterna il tasso EUR/CNY con il sottotitolo della Home ogni 5 secondi.',
   },
 };
 
