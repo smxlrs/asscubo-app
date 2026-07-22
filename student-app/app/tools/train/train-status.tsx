@@ -96,6 +96,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     stopStatusSuppressed: '已取消停靠',
     stopStatusAdded: '新增停靠站',
     stopStatusUnknown: '暂无实时数据',
+    nextDay: '次日',
     minUnit: '分钟',
     earlyMin: '早到',
     origin: '始发站',
@@ -136,6 +137,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     stopStatusSuppressed: '已取消停靠',
     stopStatusAdded: '新增停靠站',
     stopStatusUnknown: '暫無即時數據',
+    nextDay: '次日',
     minUnit: '分鐘',
     earlyMin: '早到',
     origin: '始發站',
@@ -164,6 +166,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     stopStatusSuppressed: 'Stop Cancelled',
     stopStatusAdded: 'Additional Stop',
     stopStatusUnknown: 'No live status',
+    nextDay: 'Next\nday',
     minUnit: 'min',
     earlyMin: 'Early',
     origin: 'Origin',
@@ -204,6 +207,7 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     stopStatusSuppressed: 'Fermata Soppressa',
     stopStatusAdded: 'Fermata Straordinaria',
     stopStatusUnknown: 'Dato non disponibile',
+    nextDay: 'Giorno\ndopo',
     minUnit: 'min',
     earlyMin: 'Anticipo',
     origin: 'Origine',
@@ -430,6 +434,17 @@ export default function TrainStatusScreen() {
     return formatRomeDateFromTimestamp(val);
   };
 
+  const getRomeDateKey = (unixMs: number) => {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Rome',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date(unixMs));
+    const valueOf = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value || '';
+    return `${valueOf('year')}-${valueOf('month')}-${valueOf('day')}`;
+  };
+
   const fetchData = async (isRef = false) => {
     if (!trainNumber) return;
     if (isFetchingRef.current) return;
@@ -541,6 +556,42 @@ export default function TrainStatusScreen() {
       }
       
       if (data) {
+        const requestedTimestamp = parseInt(resolvedTimestamp, 10);
+        const serviceStartTime = data.stops.find(stop => stop.scheduledDepartureTime)?.scheduledDepartureTime
+          || data.scheduledDepartureTime;
+        const requestedRunDate = getRomeDateKey(requestedTimestamp);
+        const returnedServiceDate = getRomeDateKey(serviceStartTime);
+
+        // ViaggiaTreno occasionally returns the still-running previous service for a
+        // future timestamp of the same train number. Preserve the selected future
+        // service, but strip the stale realtime state from the previous service.
+        if (requestedRunDate && returnedServiceDate && requestedRunDate !== returnedServiceDate) {
+          const dayOffset = Math.round((requestedTimestamp - serviceStartTime) / (24 * 60 * 60 * 1000));
+          const offsetMs = dayOffset * 24 * 60 * 60 * 1000;
+          const shiftPlannedTime = (value: number | null) => value === null ? null : value + offsetMs;
+
+          data = {
+            ...data,
+            scheduledDepartureTime: serviceStartTime + offsetMs,
+            scheduledArrivalTime: shiftPlannedTime(
+              data.stops[data.stops.length - 1]?.scheduledArrivalTime || data.scheduledArrivalTime
+            ) || data.scheduledArrivalTime,
+            delay: 0,
+            lastReportedStation: '',
+            lastReportedTime: null,
+            stops: data.stops.map(stop => ({
+              ...stop,
+              scheduledArrivalTime: shiftPlannedTime(stop.scheduledArrivalTime),
+              scheduledDepartureTime: shiftPlannedTime(stop.scheduledDepartureTime),
+              actualArrivalTime: null,
+              actualDepartureTime: null,
+              actualPlatform: '',
+              arrivalDelay: 0,
+              departureDelay: 0,
+            })),
+          };
+        }
+
         setStatus(data);
         await updateRecentTrainInHistory(data, resolvedStationID, resolvedTimestamp);
 
@@ -681,11 +732,14 @@ export default function TrainStatusScreen() {
       )
     : -1;
   const timeProgressActiveIndex = status ? getLastPassedStopIndexByTime(status.stops, status.delay) : -1;
+  const isNotStartedYet = status.stops.every(
+    stop => stop.actualArrivalTime === null && stop.actualDepartureTime === null
+  );
 
   // Compute activeStopIndex by taking the maximum of time-based reports, name-based position, and time-based progression
-  const activeStopIndex = Math.max(timeBasedActiveIndex, nameBasedActiveIndex, timeProgressActiveIndex);
-
-  const isNotStartedYet = status && status.stops.every(s => s.actualArrivalTime === null && s.actualDepartureTime === null);
+  const activeStopIndex = isNotStartedYet
+    ? -1
+    : Math.max(timeBasedActiveIndex, nameBasedActiveIndex, timeProgressActiveIndex);
 
   // Determine delay styling
   const delayMinutes = status?.delay || 0;
@@ -721,19 +775,21 @@ export default function TrainStatusScreen() {
   };
 
   const getDisplayTimes = (scheduled: number | null, actual: number | null) => {
-    if (!scheduled) return { sch: '', act: '', isDelayed: false, isEarly: false };
+    if (!scheduled) return { sch: '', act: '', hasLiveTime: false, isDelayed: false, isEarly: false };
     const schStr = formatTimeStr(scheduled);
     
     let actStr = '--:--';
     let isDelayed = false;
     let isEarly = false;
     
+    const hasLiveTime = actual !== null || (!isNotStartedYet && (status?.delay || 0) !== 0);
+
     if (actual) {
       actStr = formatTimeStr(actual);
       const diffMin = Math.round((actual - scheduled) / 60000);
       isDelayed = diffMin > 0;
       isEarly = diffMin < 0;
-    } else {
+    } else if (!isNotStartedYet) {
       const delayVal = status?.delay || 0;
       const predicted = scheduled + delayVal * 60000;
       actStr = formatTimeStr(predicted);
@@ -741,7 +797,7 @@ export default function TrainStatusScreen() {
       isEarly = delayVal < 0;
     }
     
-    return { sch: schStr, act: actStr, isDelayed, isEarly };
+    return { sch: schStr, act: actStr, hasLiveTime, isDelayed, isEarly };
   };
 
   return (
@@ -823,7 +879,7 @@ export default function TrainStatusScreen() {
             </View>
 
             {/* Last report status bar */}
-            {status.lastReportedStation && (
+            {!isNotStartedYet && status.lastReportedStation && (
               <View style={[styles.lastReportRow, { backgroundColor: colors.background, borderRadius: 8 }]}>
                 <MaterialIcons name="my-location" size={16} color={colors.primary} style={{ marginRight: 6 }} />
                 <Text style={[styles.lastReportText, { color: colors.textSecondary }]}>
@@ -918,7 +974,13 @@ export default function TrainStatusScreen() {
       >
         <View style={styles.timelineWrapper}>
             {(() => {
-              const isTrainNotStarted = status.stops.every(s => s.actualArrivalTime === null && s.actualDepartureTime === null);
+              const serviceOriginTime = status.stops.find(stop => stop.scheduledDepartureTime)?.scheduledDepartureTime
+                || status.scheduledDepartureTime;
+              const serviceOriginDate = getRomeDateKey(serviceOriginTime);
+              const firstNextDayStopIndex = status.stops.findIndex(stop => {
+                const plannedTimes = [stop.scheduledArrivalTime, stop.scheduledDepartureTime];
+                return plannedTimes.some(time => time !== null && getRomeDateKey(time) !== serviceOriginDate);
+              });
               
               return status.stops.map((stop, idx) => {
                 const isFirst = idx === 0;
@@ -946,15 +1008,13 @@ export default function TrainStatusScreen() {
                       isUpcoming = false;
                     }
                   }
-                } else {
-                  if (isFirst && isTrainNotStarted) {
-                    isCurrentStation = true;
-                    isUpcoming = false;
-                  }
                 }
 
                 // Platform change check
-                const platformInfo = getPlatformDisplayInfo(stop.scheduledPlatform || '', stop.actualPlatform || '');
+                const platformInfo = getPlatformDisplayInfo(
+                  stop.scheduledPlatform || '',
+                  isNotStartedYet ? '' : stop.actualPlatform || ''
+                );
 
                 // Time calculations (Scheduled and Actual side-by-side)
                 const arrTimes = getDisplayTimes(stop.scheduledArrivalTime, stop.actualArrivalTime);
@@ -965,6 +1025,15 @@ export default function TrainStatusScreen() {
                 let stopDelayText = '';
                 if (stopDelay > 0) stopDelayText = `+${stopDelay}'`;
                 else if (stopDelay < 0) stopDelayText = `${stopDelay}'`;
+
+                const isFirstNextDayStop = idx === firstNextDayStopIndex;
+                const nextDayStartsOnArrival = isFirstNextDayStop
+                  && stop.scheduledArrivalTime !== null
+                  && getRomeDateKey(stop.scheduledArrivalTime) !== serviceOriginDate;
+                const nextDayStartsOnDeparture = isFirstNextDayStop
+                  && !nextDayStartsOnArrival
+                  && stop.scheduledDepartureTime !== null
+                  && getRomeDateKey(stop.scheduledDepartureTime) !== serviceOriginDate;
 
                 return (
                   <View key={stop.stationId + '_' + idx} style={styles.timelineNodeRow}>
@@ -1048,28 +1117,62 @@ export default function TrainStatusScreen() {
                         {/* Time Slots */}
                         <View style={styles.infoCol}>
                           {!isFirst && (
-                            <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>
-                              {t('stopArr')}: <Text style={{ color: colors.textPrimary, fontWeight: '500' }}>{arrTimes.sch}</Text>
+                            <View style={styles.timeRow}>
+                              {nextDayStartsOnArrival && (
+                                <Text style={[styles.nextDayMarkerText, { color: colors.primary }]}>
+                                  {language === 'zh' || language === 'zh-Hant'
+                                    ? t('nextDay').split('').join('\n')
+                                    : t('nextDay')}
+                                </Text>
+                              )}
+                              {arrTimes.hasLiveTime ? (
+                              <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>
+                              <Text style={{ color: colors.textSecondary }}>{t('stopArr')}: </Text><Text style={{ color: colors.textPrimary, fontWeight: '500' }}>{arrTimes.sch}</Text>
                               {'  →  '}
                               <Text style={{ 
-                                color: arrTimes.isDelayed ? colors.error : (arrTimes.isEarly ? colors.success : colors.textPrimary), 
-                                fontWeight: '700' 
+                                fontWeight: '700',
+                                color: arrTimes.hasLiveTime
+                                  ? (arrTimes.isDelayed ? colors.error : (arrTimes.isEarly ? colors.success : colors.textPrimary))
+                                  : 'transparent',
                               }}>
                                 {arrTimes.act}
                               </Text>
-                            </Text>
+                              </Text>
+                              ) : (
+                                <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>
+                                  {t('stopArr')}: <Text style={{ color: colors.textPrimary, fontWeight: '500' }}>{arrTimes.sch}</Text>
+                                </Text>
+                              )}
+                            </View>
                           )}
                           {!isLast && (
-                            <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>
-                              {t('stopDep')}: <Text style={{ color: colors.textPrimary, fontWeight: '500' }}>{depTimes.sch}</Text>
+                            <View style={styles.timeRow}>
+                              {nextDayStartsOnDeparture && (
+                                <Text style={[styles.nextDayMarkerText, { color: colors.primary }]}>
+                                  {language === 'zh' || language === 'zh-Hant'
+                                    ? t('nextDay').split('').join('\n')
+                                    : t('nextDay')}
+                                </Text>
+                              )}
+                              {depTimes.hasLiveTime ? (
+                              <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>
+                              <Text style={{ color: colors.textSecondary }}>{t('stopDep')}: </Text><Text style={{ color: colors.textPrimary, fontWeight: '500' }}>{depTimes.sch}</Text>
                               {'  →  '}
                               <Text style={{ 
-                                color: depTimes.isDelayed ? colors.error : (depTimes.isEarly ? colors.success : colors.textPrimary), 
-                                fontWeight: '700' 
+                                fontWeight: '700',
+                                color: depTimes.hasLiveTime
+                                  ? (depTimes.isDelayed ? colors.error : (depTimes.isEarly ? colors.success : colors.textPrimary))
+                                  : 'transparent',
                               }}>
                                 {depTimes.act}
                               </Text>
-                            </Text>
+                              </Text>
+                              ) : (
+                                <Text style={[styles.timeLabel, { color: colors.textSecondary }]}>
+                                  {t('stopDep')}: <Text style={{ color: colors.textPrimary, fontWeight: '500' }}>{depTimes.sch}</Text>
+                                </Text>
+                              )}
+                            </View>
                           )}
                         </View>
 
@@ -1479,6 +1582,19 @@ const styles = StyleSheet.create({
   alertDate: {
     fontSize: 10,
     marginTop: 6,
+    textAlign: 'right',
+  },
+  timeRow: {
+    position: 'relative',
+  },
+  nextDayMarkerText: {
+    position: 'absolute',
+    left: -37,
+    top: -3,
+    width: 18,
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 11,
     textAlign: 'right',
   },
   alertSummary: {
