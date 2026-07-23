@@ -11,6 +11,8 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import android.content.Intent
+import android.net.Uri
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.facebook.react.uimanager.ViewManager
 import com.google.android.play.core.install.model.UpdateAvailability
@@ -32,6 +34,26 @@ class PlayStoreUpdateModule(reactContext: ReactApplicationContext) : ReactContex
         // This commonly means that the installed app was not obtained from Google Play.
         promise.resolve("unavailable")
       }
+  }
+
+  @ReactMethod
+  fun openGooglePlay(promise: Promise) {
+    val playIntent = Intent(
+      Intent.ACTION_VIEW,
+      Uri.parse("market://details?id=" + reactApplicationContext.packageName)
+    ).apply {
+      // Do not let OEM app stores handle the generic market:// scheme.
+      setPackage("com.android.vending")
+      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    try {
+      reactApplicationContext.startActivity(playIntent)
+      promise.resolve(true)
+    } catch (_: Exception) {
+      // Google Play is unavailable or disabled on this device.
+      promise.resolve(false)
+    }
   }
 }
 

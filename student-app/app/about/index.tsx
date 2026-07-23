@@ -178,6 +178,7 @@ export default function AboutIndexScreen() {
     if (Platform.OS === 'android') {
       const playStoreUpdate = NativeModules.PlayStoreUpdate as {
         checkForUpdate?: () => Promise<'available' | 'up_to_date' | 'unavailable'>;
+        openGooglePlay?: () => Promise<boolean>;
       } | undefined;
 
       const startedAt = Date.now();
@@ -198,10 +199,19 @@ export default function AboutIndexScreen() {
             { text: ut.cancel, style: 'cancel' },
             {
               text: ut.updateNow,
-              onPress: () => {
-                Linking.openURL(`market://details?id=com.asscuboxue.app`)
-                  .catch(() => Linking.openURL(GOOGLE_PLAY_URL))
-                  .catch((error) => recordDebugEvent('update', 'Failed to open Google Play listing', error, 'warn'));
+              onPress: async () => {
+                try {
+                  const opened = playStoreUpdate?.openGooglePlay
+                    ? await playStoreUpdate.openGooglePlay()
+                    : false;
+                  recordDebugEvent('update', 'Attempted to open Google Play update listing', { opened });
+                  if (!opened) {
+                    Alert.alert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }]);
+                  }
+                } catch (error) {
+                  recordDebugEvent('update', 'Failed to open Google Play listing', error, 'warn');
+                  Alert.alert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }]);
+                }
               },
             },
           ]);
