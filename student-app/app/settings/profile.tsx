@@ -1,11 +1,13 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, Image, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Image, Modal, TextInput } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { showCustomAlert } from '../../lib/customAlert';
+import { appAlert as Alert } from '../../lib/appAlert';
 
 const LOCALIZED = {
   zh: {
@@ -142,6 +144,7 @@ export default function ProfileScreen() {
   const [deleting, setDeleting] = React.useState(false);
   const [isOtpModalVisible, setIsOtpModalVisible] = React.useState(false);
   const [otpToken, setOtpToken] = React.useState('');
+  const [otpError, setOtpError] = React.useState<string | null>(null);
   const [verifying, setVerifying] = React.useState(false);
 
   useFocusEffect(
@@ -151,7 +154,7 @@ export default function ProfileScreen() {
   );
 
   const handleSignOut = async () => {
-    Alert.alert(localized.confirmLogoutTitle, localized.confirmLogoutMsg, [
+    showCustomAlert(localized.confirmLogoutTitle, localized.confirmLogoutMsg, [
       { text: t('cancel') || '取消', style: 'cancel' },
       {
         text: t('confirm') || '确定',
@@ -165,17 +168,17 @@ export default function ProfileScreen() {
           }
         }
       }
-    ]);
+    ], { messageAlign: 'left', buttonPresentation: 'text', textButtonAlignment: 'end' });
   };
 
   const handleDeleteAccount = async () => {
-    Alert.alert(localized.confirmDeleteTitle, localized.confirmDeleteMsg, [
+    showCustomAlert(localized.confirmDeleteTitle.replace(/^⚠️\s*/, ''), localized.confirmDeleteMsg, [
       { text: t('cancel') || '取消', style: 'cancel' },
       {
         text: t('confirm') || '确定',
         style: 'destructive',
         onPress: () => {
-          Alert.alert(localized.deleteVerifyTitle, localized.deleteVerifyMsg, [
+          showCustomAlert(localized.deleteVerifyTitle, localized.deleteVerifyMsg, [
             { text: t('cancel') || '取消', style: 'cancel' },
             {
               text: localized.sendOtp,
@@ -186,24 +189,30 @@ export default function ProfileScreen() {
                   if (error) throw error;
                   
                   setOtpToken('');
+                  setOtpError(null);
                   setIsOtpModalVisible(true);
                 } catch (err: any) {
                   console.error('Reauthenticate error:', err);
-                  Alert.alert(localized.sendOtpError, err.message || localized.sendOtpErrorMsg);
+                  showCustomAlert(
+                    localized.sendOtpError,
+                    err.message || localized.sendOtpErrorMsg,
+                    [{ text: t('confirm') || '确定' }],
+                    { messageAlign: 'left', buttonPresentation: 'text' }
+                  );
                 } finally {
                   setDeleting(false);
                 }
               }
             }
-          ]);
+          ], { messageAlign: 'left', buttonPresentation: 'text', textButtonAlignment: 'end' });
         }
       }
-    ]);
+    ], { icon: 'warning', messageAlign: 'left', buttonPresentation: 'text', textButtonAlignment: 'end' });
   };
 
   const handleVerifyOtp = async () => {
     if (otpToken.length !== 6) {
-      Alert.alert(t('tip') || '提示', localized.enterOtpTitle);
+      setOtpError(localized.enterOtpTitle);
       return;
     }
     
@@ -224,11 +233,20 @@ export default function ProfileScreen() {
       
       setIsOtpModalVisible(false);
       await signOut();
-      Alert.alert(localized.deleteSuccess, localized.deleteSuccessMsg);
-      router.replace('/(tabs)');
+      showCustomAlert(
+        localized.deleteSuccess,
+        localized.deleteSuccessMsg,
+        [{ text: t('confirm') || '确定', onPress: () => router.replace('/(tabs)') }],
+        { messageAlign: 'left', buttonPresentation: 'text' }
+      );
     } catch (err: any) {
       console.error('Delete account flow error:', err);
-      Alert.alert(localized.deleteFail, err.message || localized.deleteFailMsg);
+      showCustomAlert(
+        localized.deleteFail,
+        err.message || localized.deleteFailMsg,
+        [{ text: t('confirm') || '确定' }],
+        { messageAlign: 'left', buttonPresentation: 'text' }
+      );
     } finally {
       setVerifying(false);
     }
@@ -354,9 +372,10 @@ export default function ProfileScreen() {
             <TextInput
               style={[
                 styles.otpInput,
+                otpError && styles.otpInputWithError,
                 { 
                   color: colors.textPrimary,
-                  borderColor: colors.border,
+                  borderColor: otpError ? colors.error : colors.border,
                   backgroundColor: colors.surfaceElevated,
                 }
               ]}
@@ -365,29 +384,33 @@ export default function ProfileScreen() {
               keyboardType="number-pad"
               maxLength={6}
               value={otpToken}
-              onChangeText={setOtpToken}
+              onChangeText={(value) => {
+                setOtpToken(value);
+                if (otpError) setOtpError(null);
+              }}
               autoFocus={true}
               editable={!verifying}
             />
+            {otpError ? <Text style={[styles.otpErrorText, { color: colors.error }]}>{otpError}</Text> : null}
 
             <View style={styles.modalButtons}>
               <Pressable
-                style={[styles.modalButton, styles.cancelButton, { borderColor: colors.border }]}
+                style={styles.modalButton}
                 onPress={() => setIsOtpModalVisible(false)}
                 disabled={verifying}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>{t('cancel') || '取消'}</Text>
+                <Text style={[styles.modalButtonText, { color: colors.textSecondary }]}>{t('cancel') || '取消'}</Text>
               </Pressable>
               
               <Pressable
-                style={[styles.modalButton, styles.confirmButton, { backgroundColor: colors.error }]}
+                style={styles.modalButton}
                 onPress={handleVerifyOtp}
                 disabled={verifying}
               >
                 {verifying ? (
-                  <ActivityIndicator color="#FFF" size="small" />
+                  <ActivityIndicator color={colors.error} size="small" />
                 ) : (
-                  <Text style={styles.confirmButtonText}>{localized.confirmDeleteBtn}</Text>
+                  <Text style={[styles.modalButtonText, { color: colors.error }]}>{localized.confirmDeleteBtn}</Text>
                 )}
               </Pressable>
             </View>
@@ -504,32 +527,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 24,
   },
   modalContent: {
     width: '100%',
-    maxWidth: 320,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    maxWidth: 376,
+    borderRadius: 20,
+    paddingTop: 20,
+    paddingBottom: 13,
+    paddingHorizontal: 24,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: 'bold',
     marginBottom: 8,
-    textAlign: 'center',
+    lineHeight: 27,
+    textAlign: 'left',
   },
   modalSub: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginBottom: 20,
+    fontSize: 15,
+    lineHeight: 23,
+    textAlign: 'left',
+    marginBottom: 18,
   },
   otpInput: {
     width: '100%',
@@ -540,32 +559,31 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     letterSpacing: 8,
-    marginBottom: 24,
+    marginBottom: 18,
     paddingHorizontal: 12,
+  },
+  otpInputWithError: {
+    marginBottom: 4,
+  },
+  otpErrorText: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 10,
   },
   modalButtons: {
     flexDirection: 'row',
     width: '100%',
+    justifyContent: 'flex-end',
+    gap: 32,
+    marginTop: 12,
   },
   modalButton: {
-    flex: 1,
-    height: 44,
-    borderRadius: 8,
+    minHeight: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cancelButton: {
-    marginRight: 12,
-    borderWidth: 1,
-  },
-  confirmButton: {},
-  cancelButtonText: {
+  modalButtonText: {
     fontSize: 15,
-    fontWeight: '600',
-  },
-  confirmButtonText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

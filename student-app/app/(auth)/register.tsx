@@ -10,7 +10,6 @@ import {
   Platform, 
   TouchableWithoutFeedback, 
   Keyboard,
-  Alert,
   ScrollView
 } from 'react-native';
 import { Link, router } from 'expo-router';
@@ -23,6 +22,7 @@ import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { useOtpCooldown } from '../../hooks/useOtpCooldown';
+import { appAlert as Alert } from '../../lib/appAlert';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');

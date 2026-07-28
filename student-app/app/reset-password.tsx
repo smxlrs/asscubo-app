@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -18,6 +17,7 @@ import { supabase, translateAuthError } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { recordDebugEvent } from '../lib/logger';
 import { useOtpCooldown } from '../hooks/useOtpCooldown';
+import { appAlert as Alert } from '../lib/appAlert';
 
 export default function ResetPasswordScreen() {
   const { colors, t, language } = useTheme();

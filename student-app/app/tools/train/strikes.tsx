@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Modal,
   Pressable,
   RefreshControl,
@@ -87,13 +88,20 @@ export default function TransportStrikesScreen() {
   const [city, setCity] = useState('all');
   const [mode, setMode] = useState('all');
   const [activeSelector, setActiveSelector] = useState<SelectorKey | null>(null);
+  const [showRefreshSuccess, setShowRefreshSuccess] = useState(false);
+  const [listTop, setListTop] = useState(0);
+  const refreshSuccessOpacity = useRef(new Animated.Value(0)).current;
+  const refreshSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const t = (key: string) => LOCALIZED[language]?.[key] || LOCALIZED.en[key] || key;
   const localizeOfficial = (value: string) => language === 'zh' || language === 'zh-Hant' ? ZH_OFFICIAL_LABELS[value] || value : value;
 
-  const loadStrikes = useCallback(async () => {
+  const loadStrikes = useCallback(async (minimumDuration = 0) => {
+    const startedAt = Date.now();
     setLoading(true);
     const result = await getTransportStrikes();
+    const remaining = Math.max(0, minimumDuration - (Date.now() - startedAt));
+    if (remaining > 0) await new Promise<void>((resolve) => setTimeout(resolve, remaining));
     setStrikes(result.strikes);
     setAvailable(result.available);
     setLoading(false);
@@ -102,6 +110,25 @@ export default function TransportStrikesScreen() {
   useEffect(() => {
     loadStrikes();
   }, [loadStrikes]);
+
+  useEffect(() => () => {
+    if (refreshSuccessTimer.current) clearTimeout(refreshSuccessTimer.current);
+  }, []);
+
+  const showSuccessFeedback = useCallback(() => {
+    if (refreshSuccessTimer.current) clearTimeout(refreshSuccessTimer.current);
+    setShowRefreshSuccess(true);
+    refreshSuccessOpacity.setValue(0);
+    Animated.timing(refreshSuccessOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    refreshSuccessTimer.current = setTimeout(() => {
+      Animated.timing(refreshSuccessOpacity, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => setShowRefreshSuccess(false));
+    }, 1000);
+  }, [refreshSuccessOpacity]);
+
+  const handleRefresh = useCallback(async () => {
+    await loadStrikes(1000);
+    showSuccessFeedback();
+  }, [loadStrikes, showSuccessFeedback]);
 
   const regionOptions = useMemo(() => [...new Set(strikes
     .map((strike) => strike.region.trim())
@@ -164,7 +191,7 @@ export default function TransportStrikesScreen() {
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t('title')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('subtitle')}</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Refresh" onPress={loadStrikes} style={styles.headerButton} hitSlop={10}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Refresh" onPress={handleRefresh} style={styles.headerButton} hitSlop={10}>
           <MaterialIcons name="refresh" size={23} color={colors.textPrimary} />
         </Pressable>
       </View>
@@ -202,7 +229,8 @@ export default function TransportStrikesScreen() {
 
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={loading && available !== null} onRefresh={loadStrikes} tintColor={colors.primary} />}
+        onLayout={(event) => setListTop(event.nativeEvent.layout.y)}
+        refreshControl={<RefreshControl refreshing={loading && available !== null} onRefresh={handleRefresh} tintColor={colors.primary} colors={[colors.primary]} progressViewOffset={64} />}
       >
         {loading && available === null ? (
           <View style={styles.statusContainer}><ActivityIndicator color={colors.primary} /><Text style={[styles.statusText, { color: colors.textSecondary }]}>{t('loading')}</Text></View>
@@ -217,6 +245,12 @@ export default function TransportStrikesScreen() {
           <Text style={[styles.disclaimer, { color: colors.textMuted }]}>{t('disclaimer')}</Text>
         </View>
       </ScrollView>
+
+      {showRefreshSuccess ? (
+        <Animated.View style={[styles.checkmarkBubble, { top: listTop + 264, opacity: refreshSuccessOpacity, backgroundColor: colors.surface }]}>
+          <MaterialIcons name="check" size={24} color={colors.primary} />
+        </Animated.View>
+      ) : null}
 
       <Modal visible={activeSelector !== null} transparent animationType="fade" onRequestClose={() => setActiveSelector(null)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setActiveSelector(null)}>
@@ -279,6 +313,7 @@ const styles = StyleSheet.create({
   headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }, headerTitle: { flex: 1, alignItems: 'center', paddingHorizontal: 4 }, title: { fontSize: 19, fontWeight: '700' }, subtitle: { marginTop: 2, fontSize: 12 },
   filters: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 12, gap: 7, borderBottomWidth: StyleSheet.hairlineWidth }, selector: { flex: 1, minWidth: 0, minHeight: 56, borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 7, justifyContent: 'center' }, selectorDisabled: { opacity: 0.55 },
   selectorLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 3 }, selectorLabel: { flex: 1, fontSize: 10 }, selectorValueRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 2 }, selectorValue: { flex: 1, minWidth: 0, marginTop: 3, fontSize: 12, fontWeight: '600' }, officialOriginal: { fontSize: 10, fontWeight: '400' },
+  checkmarkBubble: { position: 'absolute', left: '50%', marginLeft: -20, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 3, elevation: 4, zIndex: 30 },
   content: { padding: 16, paddingBottom: 40 }, statusContainer: { minHeight: 220, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }, statusText: { marginTop: 12, textAlign: 'center', fontSize: 14, lineHeight: 21 },
   card: { marginBottom: 12, borderWidth: 1, borderRadius: 12, padding: 14 }, cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }, dateBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 6, paddingHorizontal: 9, paddingVertical: 6 }, dateText: { color: '#FFF', fontSize: 13, fontWeight: '700' }, relevance: { fontSize: 14, fontWeight: '700' }, detailRow: { marginTop: 8 }, detailLabel: { fontSize: 12, marginBottom: 2 }, detailValue: { fontSize: 14, lineHeight: 20 },
   sourceBox: { marginTop: 8, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 16 }, sourceText: { fontSize: 12, fontWeight: '600' }, disclaimer: { marginTop: 5, fontSize: 12, lineHeight: 18 },

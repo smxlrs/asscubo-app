@@ -11,7 +11,6 @@ import {
   StatusBar,
   Image,
   Linking,
-  Alert,
   Platform,
   LayoutAnimation,
   UIManager,
@@ -25,6 +24,7 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { useAndroidBackHandler } from '../../../hooks/useAndroidBackHandler';
+import { appAlert as Alert } from '../../../lib/appAlert';
 
 import { supabase } from '../../../lib/supabase';
 

@@ -7,11 +7,11 @@ import {
   TouchableOpacity, 
   Animated, 
   Dimensions, 
-  Platform,
   TouchableWithoutFeedback
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { customAlertManager, AlertButton } from '../lib/customAlert';
+import { customAlertManager, AlertButton, AlertIcon } from '../lib/customAlert';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -49,21 +49,12 @@ export function CustomAlertModal() {
           }),
         ]).start();
       } else {
-        // Start hiding animations
-        Animated.parallel([
-          Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleAnim, {
-            toValue: 0.94,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          setVisible(false);
-        });
+        // Android Modal can leave a translucent window frame during exit animations.
+        // Close it atomically so no gray afterimage remains after a button press.
+        fadeAnim.stopAnimation();
+        scaleAnim.stopAnimation();
+        setVisible(false);
+        setRenderedConfig(null);
       }
     });
 
@@ -73,35 +64,39 @@ export function CustomAlertModal() {
   if (!renderedConfig) return null;
 
   const handleButtonPress = (button: AlertButton) => {
-    // Hide first
     customAlertManager.hide();
-    
-    // Execute callback after animations finish (delayed slightly)
     if (button.onPress) {
-      setTimeout(() => {
-        button.onPress?.();
-      }, 150);
+      setTimeout(button.onPress, 0);
     }
   };
 
   const handleDismiss = () => {
     if (renderedConfig.options?.cancelable !== false) {
       customAlertManager.hide();
-      if (renderedConfig.options?.onDismiss) {
-        setTimeout(() => {
-          renderedConfig.options.onDismiss();
-        }, 150);
-      }
+      renderedConfig.options?.onDismiss?.();
     }
   };
 
   const title = renderedConfig.title;
   const message = renderedConfig.message;
+  const icon = renderedConfig.options?.icon as AlertIcon | undefined;
+  const messageAlign = renderedConfig.options?.messageAlign ?? 'center';
+  const textOnlyButtons = renderedConfig.options?.buttonPresentation === 'text';
+  const textButtonAlignment = renderedConfig.options?.textButtonAlignment ?? 'split';
   
   // Default to a single localized confirm button if no buttons are provided
   const buttons: AlertButton[] = renderedConfig.buttons && renderedConfig.buttons.length > 0 
     ? renderedConfig.buttons 
     : [{ text: t('confirm'), style: 'default' }];
+
+  const iconStyles: Record<AlertIcon, { name: string; color: string; backgroundColor: string }> = {
+    update: { name: 'progress-download', color: colors.primary, backgroundColor: colors.primarySoft },
+    success: { name: 'check', color: colors.success, backgroundColor: `${colors.success}18` },
+    warning: { name: 'alert-circle-outline', color: colors.primary, backgroundColor: colors.primarySoft },
+    error: { name: 'alert-circle-outline', color: colors.error, backgroundColor: `${colors.error}18` },
+    info: { name: 'information-outline', color: colors.primary, backgroundColor: colors.primarySoft },
+  };
+  const currentIcon = icon ? iconStyles[icon] : null;
 
 
 
@@ -126,6 +121,11 @@ export function CustomAlertModal() {
                 }
               ]}
             >
+              {currentIcon ? (
+                <View style={[styles.iconCircle, { backgroundColor: currentIcon.backgroundColor }]}>
+                  <MaterialCommunityIcons name={currentIcon.name as any} size={23} color={currentIcon.color} />
+                </View>
+              ) : null}
               {/* Title */}
               {title ? (
                 <Text style={[styles.titleText, { color: colors.textPrimary }]}>
@@ -135,40 +135,52 @@ export function CustomAlertModal() {
 
               {/* Message Description */}
               {message ? (
-                <Text style={[styles.messageText, { color: colors.textSecondary }]}>
+                <Text style={[styles.messageText, { color: colors.textSecondary, textAlign: messageAlign }]}>
                   {message}
                 </Text>
               ) : null}
 
               {/* Buttons Area */}
-              <View style={buttons.length <= 2 ? styles.buttonsRow : styles.buttonsColumn}>
+              <View style={[
+                buttons.length <= 2 ? styles.buttonsRow : styles.buttonsColumn,
+                buttons.length === 1 && styles.singleButtonRow,
+                textOnlyButtons && styles.textButtonsRow,
+                textOnlyButtons && textButtonAlignment === 'end' && styles.textButtonsEndAligned,
+                buttons.length === 1 && textOnlyButtons && styles.singleTextButtonRow,
+              ]}>
                 {buttons.map((btn, index) => {
                   const isCancel = btn.style === 'cancel';
                   const isDestructive = btn.style === 'destructive';
-                  
-                  // OK/Confirm is primary red, cancel is secondary, destructive is red/orange
-                  let btnTextColor = colors.primary;
-                  if (isCancel) {
-                    btnTextColor = colors.textSecondary;
-                  } else if (isDestructive) {
-                    btnTextColor = colors.error || '#EF4444';
-                  }
+                  const isPrimary = !isCancel;
+                  const buttonColor = colors.primary;
+                  const buttonTextColor = isPrimary
+                    ? (isDark ? '#F5F5F5' : colors.primary)
+                    : colors.textSecondary;
 
                   const defaultText = isCancel ? t('cancel') : t('confirm');
 
                   return (
                     <TouchableOpacity
                       key={index}
-                      style={styles.textButton}
+                      style={[
+                        styles.button,
+                        buttons.length === 1
+                          ? styles.singleButton
+                          : !textOnlyButtons && styles.splitButton,
+                        !textOnlyButtons && isPrimary
+                          ? { backgroundColor: buttonColor, borderColor: buttonColor }
+                          : !textOnlyButtons
+                          ? { backgroundColor: 'transparent', borderColor: colors.border }
+                          : styles.textOnlyButton,
+                        textOnlyButtons && index === buttons.length - 1 && styles.trailingTextButton,
+                      ]}
                       onPress={() => handleButtonPress(btn)}
-                      activeOpacity={0.7}
+                      activeOpacity={0.78}
+                      hitSlop={textOnlyButtons ? { top: 8, right: 8, bottom: 8, left: 8 } : undefined}
                     >
                       <Text style={[
-                        styles.textButtonText, 
-                        { 
-                          color: btnTextColor, 
-                          fontWeight: isCancel ? 'normal' : 'bold' 
-                        }
+                        styles.buttonText,
+                        { color: textOnlyButtons ? buttonTextColor : (isPrimary ? '#FFFFFF' : colors.textSecondary) },
                       ]}>
                         {btn.text || defaultText}
                       </Text>
@@ -195,58 +207,79 @@ const styles = StyleSheet.create({
   },
   alertCard: {
     width: '100%',
-    maxWidth: SCREEN_WIDTH > 400 ? 330 : SCREEN_WIDTH - 48,
-    borderRadius: 16,
-    paddingVertical: 22,
+    maxWidth: SCREEN_WIDTH > 400 ? 376 : SCREEN_WIDTH - 32,
+    borderRadius: 20,
+    // Text glyphs do not fill their line boxes. These values keep the visible
+    // top and bottom whitespace visually aligned with the 24dp side padding.
+    paddingTop: 20,
+    paddingBottom: 13,
     paddingHorizontal: 24,
-    borderWidth: 1,
     alignItems: 'stretch',
     transform: [{ scale: 0.92 }], // Default scale to prevent first-frame scale flash
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
   },
   titleText: {
     fontSize: 19,
     fontWeight: 'bold',
     textAlign: 'left',
-    marginBottom: 10,
-    lineHeight: 25,
+    marginBottom: 8,
+    lineHeight: 27,
   },
   messageText: {
     fontSize: 15,
-    textAlign: 'left',
-    marginBottom: 24,
-    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 18,
+    lineHeight: 23,
   },
   buttonsRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
     gap: 8,
   },
   buttonsColumn: {
     flexDirection: 'column',
-    alignItems: 'flex-end',
+    alignItems: 'stretch',
     gap: 6,
   },
-  textButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+  iconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  button: {
+    minHeight: 46,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  textButtonText: {
+  splitButton: { flex: 1 },
+  singleButton: { minWidth: 84 },
+  singleButtonRow: { justifyContent: 'flex-end' },
+  textButtonsRow: {
+    justifyContent: 'space-between',
+    gap: 0,
+    marginTop: 12,
+  },
+  textButtonsEndAligned: { justifyContent: 'flex-end', gap: 32 },
+  singleTextButtonRow: { justifyContent: 'flex-end' },
+  textOnlyButton: {
+    minHeight: 36,
+    minWidth: 0,
+    borderWidth: 0,
+    paddingHorizontal: 0,
+    transform: [{ translateY: 3 }],
+  },
+  // Compensates for the font's trailing and descender side bearings so the
+  // visible action glyphs align with the 24dp content inset.
+  trailingTextButton: { transform: [{ translateX: 3 }, { translateY: 3 }] },
+  buttonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

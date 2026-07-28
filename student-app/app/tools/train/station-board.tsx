@@ -7,7 +7,6 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
-  Alert,
   Dimensions,
   ScrollView,
   Animated,
@@ -17,6 +16,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { appAlert as Alert } from '../../../lib/appAlert';
 import { useTheme, Language } from '../../../context/ThemeContext';
 import {
   getStationBoard,

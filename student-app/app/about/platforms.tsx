@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Linking, Alert, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Linking, Modal, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
+import { appAlert as Alert } from '../../lib/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons, FontAwesome5, AntDesign } from '@expo/vector-icons';

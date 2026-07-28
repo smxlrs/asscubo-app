@@ -20,6 +20,33 @@ type Feedback = {
   replied_by_name: string | null;
 };
 
+type FeedbackMedia = {
+  url: string;
+  type: 'image' | 'video';
+};
+
+const isVideoUrl = (url: string) => /\.(mp4|mov|m4v|webm|avi)(?:\?|$)/i.test(url);
+
+const getFeedbackMedia = (mediaUrl: string | null): FeedbackMedia[] => {
+  if (!mediaUrl) return [];
+
+  try {
+    const parsed = JSON.parse(mediaUrl);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((item): item is { url: string; type?: string } => typeof item?.url === 'string')
+        .map((item) => ({
+          url: item.url,
+          type: item.type === 'video' || isVideoUrl(item.url) ? 'video' : 'image',
+        }));
+    }
+  } catch {
+    // Legacy feedbacks contain one plain public URL.
+  }
+
+  return [{ url: mediaUrl, type: isVideoUrl(mediaUrl) ? 'video' : 'image' }];
+};
+
 const STATUS_DETAILS = {
   unread: { label: '未读', color: '#EF4444', icon: 'email-outline' },
   read: { label: '已读', color: '#3B82F6', icon: 'email-open-outline' },
@@ -181,7 +208,8 @@ export default function ManageFeedbacksScreen() {
 
   const renderItem = ({ item }: { item: Feedback }) => {
     const statusInfo = STATUS_DETAILS[item.status] ?? STATUS_DETAILS['unread'];
-    const isVideo = item.media_url?.toLowerCase().endsWith('.mp4');
+    const attachments = getFeedbackMedia(item.media_url);
+    const hasVideo = attachments.some((attachment) => attachment.type === 'video');
 
     return (
       <Pressable 
@@ -224,15 +252,15 @@ export default function ManageFeedbacksScreen() {
         <View style={styles.cardFooter}>
           <Text style={[styles.dateText, { color: colors.textMuted }]}>{formatDateTime(item.created_at)}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {item.media_url && (
+            {attachments.length > 0 && (
               <View style={styles.mediaIndicator}>
                 <MaterialCommunityIcons 
-                  name={isVideo ? "video-outline" : "image-outline"} 
+                  name={hasVideo ? "video-outline" : "image-outline"} 
                   size={14} 
                   color={colors.primaryLight} 
                 />
                 <Text style={[styles.mediaIndicatorText, { color: colors.primaryLight }]}>
-                  {isVideo ? '附带视频' : '附带图片'}
+                  {attachments.length > 1 ? `${attachments.length} 个附件` : hasVideo ? '附带视频' : '附带图片'}
                 </Text>
               </View>
             )}
@@ -347,24 +375,28 @@ export default function ManageFeedbacksScreen() {
                   </Text>
                 </View>
 
-                {/* Media Attachment */}
-                {selectedFeedback.media_url && (
+                {/* Media Attachments */}
+                {getFeedbackMedia(selectedFeedback.media_url).length > 0 && (
                   <View style={styles.attachmentContainer}>
                     <Text style={[styles.detailBodyTitle, { color: colors.textPrimary, marginBottom: 8 }]}>媒体附件：</Text>
-                    {selectedFeedback.media_url.toLowerCase().endsWith('.mp4') ? (
-                      <Pressable 
-                        style={[styles.videoPlaceholderCard, { backgroundColor: colors.surfaceElevated }]}
-                        onPress={() => Alert.alert('视频播放提示', '视频附件暂不支持在后台直接播放，请复制链接在浏览器中下载查看:\n\n' + selectedFeedback.media_url)}
-                      >
-                        <MaterialCommunityIcons name="video" size={32} color={colors.primaryLight} />
-                        <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>点击获取视频链接</Text>
-                      </Pressable>
-                    ) : (
-                      <Pressable onPress={() => setActiveImageUrl(selectedFeedback.media_url)}>
-                        <Image source={{ uri: selectedFeedback.media_url }} style={styles.attachmentImage} resizeMode="cover" />
-                        <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' }}>点击放大查看大图</Text>
-                      </Pressable>
-                    )}
+                    <View style={styles.attachmentsGrid}>
+                      {getFeedbackMedia(selectedFeedback.media_url).map((attachment, index) => (
+                        attachment.type === 'video' ? (
+                          <Pressable
+                            key={attachment.url}
+                            style={[styles.videoAttachmentCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
+                            onPress={() => Alert.alert('视频附件', attachment.url)}
+                          >
+                            <MaterialCommunityIcons name="video-outline" size={28} color={colors.primaryLight} />
+                            <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 6 }}>视频 {index + 1}</Text>
+                          </Pressable>
+                        ) : (
+                          <Pressable key={attachment.url} onPress={() => setActiveImageUrl(attachment.url)}>
+                            <Image source={{ uri: attachment.url }} style={styles.attachmentImage} resizeMode="cover" />
+                          </Pressable>
+                        )
+                      ))}
+                    </View>
                   </View>
                 )}
 
@@ -697,17 +729,23 @@ const styles = StyleSheet.create({
   attachmentContainer: {
     width: '100%',
   },
-  videoPlaceholderCard: {
-    width: '100%',
+  attachmentsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  videoAttachmentCard: {
+    width: 120,
     height: 120,
     borderRadius: 8,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   attachmentImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
+    width: 120,
+    height: 120,
+    borderRadius: 8,
     backgroundColor: 'rgba(0,0,0,0.05)',
   },
   statusActionsBox: {

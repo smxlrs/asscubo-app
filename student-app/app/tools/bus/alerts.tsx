@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Linking, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -46,10 +46,17 @@ export default function BusServiceAlertsScreen() {
   const [showTranslation, setShowTranslation] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [translationError, setTranslationError] = useState(false);
+  const [showRefreshSuccess, setShowRefreshSuccess] = useState(false);
+  const [listTop, setListTop] = useState(0);
+  const refreshSuccessOpacity = useRef(new Animated.Value(0)).current;
+  const refreshSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (minimumDuration = 0) => {
+    const startedAt = Date.now();
     setLoading(true);
     const result = await getTperServiceAlerts();
+    const remaining = Math.max(0, minimumDuration - (Date.now() - startedAt));
+    if (remaining > 0) await new Promise<void>((resolve) => setTimeout(resolve, remaining));
     setAlerts(result.alerts);
     setAvailable(result.available);
     setLastSyncedAt(result.lastSyncedAt);
@@ -57,6 +64,25 @@ export default function BusServiceAlertsScreen() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => () => {
+    if (refreshSuccessTimer.current) clearTimeout(refreshSuccessTimer.current);
+  }, []);
+
+  const showSuccessFeedback = useCallback(() => {
+    if (refreshSuccessTimer.current) clearTimeout(refreshSuccessTimer.current);
+    setShowRefreshSuccess(true);
+    refreshSuccessOpacity.setValue(0);
+    Animated.timing(refreshSuccessOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    refreshSuccessTimer.current = setTimeout(() => {
+      Animated.timing(refreshSuccessOpacity, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => setShowRefreshSuccess(false));
+    }, 1000);
+  }, [refreshSuccessOpacity]);
+
+  const handleRefresh = useCallback(async () => {
+    await load(1000);
+    showSuccessFeedback();
+  }, [load, showSuccessFeedback]);
 
   const lines = useMemo(() => [...new Set(alerts.flatMap((alert) => alert.affected_lines.map(normalizeLine)))].sort(compareLines), [alerts]);
   const filteredAlerts = useMemo(() => line === 'all' ? alerts : alerts.filter((alert) => alert.affected_lines.map(normalizeLine).includes(line)), [alerts, line]);
@@ -96,7 +122,7 @@ export default function BusServiceAlertsScreen() {
           <Text style={[styles.title, { color: colors.textPrimary }]}>{copy.title}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{copy.subtitle}</Text>
         </View>
-        <Pressable onPress={load} style={styles.headerButton} hitSlop={10} accessibilityRole="button" accessibilityLabel="Refresh">
+        <Pressable onPress={handleRefresh} style={styles.headerButton} hitSlop={10} accessibilityRole="button" accessibilityLabel="Refresh">
           <MaterialIcons name="refresh" size={23} color={colors.textPrimary} />
         </Pressable>
       </View>
@@ -114,7 +140,12 @@ export default function BusServiceAlertsScreen() {
         </Pressable>
       </View>
 
-      <ScrollView style={styles.list} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading && available !== null} onRefresh={load} tintColor={colors.primary} />}>
+      <ScrollView
+        style={styles.list}
+        contentContainerStyle={styles.content}
+        onLayout={(event) => setListTop(event.nativeEvent.layout.y)}
+        refreshControl={<RefreshControl refreshing={loading && available !== null} onRefresh={handleRefresh} tintColor={colors.primary} colors={[colors.primary]} progressViewOffset={34} />}
+      >
         {loading && available === null ? <Status icon="sync" text={copy.loading} colors={colors} busy /> : null}
         {!loading && !available ? <Status icon="cloud-off" text={copy.unavailable} colors={colors} /> : null}
         {!loading && available && filteredAlerts.length === 0 ? <Status icon="event-available" text={copy.empty} colors={colors} /> : null}
@@ -125,6 +156,12 @@ export default function BusServiceAlertsScreen() {
           <Text style={[styles.footerSubtext, { color: colors.textMuted }]}>{copy.note}</Text>
         </View>
       </ScrollView>
+
+      {showRefreshSuccess ? (
+        <Animated.View style={[styles.checkmarkBubble, { top: listTop + 229, opacity: refreshSuccessOpacity, backgroundColor: colors.surface }]}>
+          <MaterialIcons name="check" size={24} color={colors.primary} />
+        </Animated.View>
+      ) : null}
 
       <Modal visible={selected !== null} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={() => setSelected(null)}>
         <View style={styles.modalBackdrop}>
@@ -204,5 +241,5 @@ function AlertCard({ alert, copy, colors, language, onPress }: { alert: TperServ
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 }, header: { height: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' }, headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, titleBlock: { flex: 1, alignItems: 'center' }, title: { fontSize: 18, fontWeight: '700' }, subtitle: { fontSize: 11, marginTop: 2 }, filterBar: { height: 63, flexShrink: 0, borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, justifyContent: 'center' }, lineSelector: { height: 43, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, lineSelectorLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 }, lineSelectorLabel: { fontSize: 12, fontWeight: '600' }, lineSelectorValueRow: { maxWidth: '58%', flexDirection: 'row', alignItems: 'center', gap: 3 }, lineSelectorValue: { fontSize: 14, fontWeight: '700' }, list: { flex: 1 }, content: { padding: 16, paddingBottom: 32, gap: 12 }, status: { minHeight: 220, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24 }, statusText: { fontSize: 14, textAlign: 'center', lineHeight: 21 }, card: { borderWidth: 1, borderLeftWidth: 5, borderRadius: 12, padding: 14 }, cardTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 }, cardTitle: { flex: 1, fontSize: 16, fontWeight: '700', lineHeight: 22 }, meta: { gap: 3, marginTop: 11 }, metaText: { fontSize: 12, lineHeight: 17 }, preview: { fontSize: 13, lineHeight: 19, marginTop: 11 }, cardMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }, cardMoreText: { fontSize: 13, fontWeight: '700' }, footer: { marginTop: 10, paddingTop: 14, gap: 5, borderTopWidth: StyleSheet.hairlineWidth }, footerText: { fontSize: 12, fontWeight: '600' }, footerSubtext: { fontSize: 11, lineHeight: 16 }, modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }, modal: { maxHeight: '88%', borderTopLeftRadius: 18, borderTopRightRadius: 18 }, modalHeader: { height: 58, paddingLeft: 20, paddingRight: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth }, modalTitle: { fontSize: 17, fontWeight: '700' }, closeIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }, modalContent: { padding: 20, paddingBottom: 20 }, noticeTitle: { fontSize: 19, fontWeight: '700', lineHeight: 26 }, originalLabel: { fontSize: 12, fontWeight: '700', marginTop: 18, marginBottom: 7 }, description: { fontSize: 15, lineHeight: 23 }, translationError: { marginTop: 10, fontSize: 13, lineHeight: 19 }, translateSource: { marginTop: 9, fontSize: 11, lineHeight: 16 }, primaryButton: { marginTop: 20, height: 46, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, primaryButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' }, secondaryButton: { marginTop: 10, height: 44, borderRadius: 8, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, secondaryButtonText: { fontSize: 14, fontWeight: '700' }, selectorBackdrop: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.42)' }, selectorModal: { maxHeight: '70%', borderRadius: 10 }, selectorModalHeader: { height: 54, paddingHorizontal: 18, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth }, selectorModalTitle: { fontSize: 16, fontWeight: '700' }, selectorOptions: { padding: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, selectorOption: { width: '22%', height: 42, borderRadius: 21, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }, selectorOptionText: { fontSize: 13, fontWeight: '700' },
+  container: { flex: 1 }, header: { height: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' }, headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, titleBlock: { flex: 1, alignItems: 'center' }, title: { fontSize: 18, fontWeight: '700' }, subtitle: { fontSize: 11, marginTop: 2 }, filterBar: { height: 63, flexShrink: 0, borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, justifyContent: 'center' }, lineSelector: { height: 43, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, lineSelectorLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 }, lineSelectorLabel: { fontSize: 12, fontWeight: '600' }, lineSelectorValueRow: { maxWidth: '58%', flexDirection: 'row', alignItems: 'center', gap: 3 }, lineSelectorValue: { fontSize: 14, fontWeight: '700' }, list: { flex: 1 }, checkmarkBubble: { position: 'absolute', left: '50%', marginLeft: -20, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 3, elevation: 4, zIndex: 30 }, content: { padding: 16, paddingBottom: 32, gap: 12 }, status: { minHeight: 220, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24 }, statusText: { fontSize: 14, textAlign: 'center', lineHeight: 21 }, card: { borderWidth: 1, borderLeftWidth: 5, borderRadius: 12, padding: 14 }, cardTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 }, cardTitle: { flex: 1, fontSize: 16, fontWeight: '700', lineHeight: 22 }, meta: { gap: 3, marginTop: 11 }, metaText: { fontSize: 12, lineHeight: 17 }, preview: { fontSize: 13, lineHeight: 19, marginTop: 11 }, cardMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }, cardMoreText: { fontSize: 13, fontWeight: '700' }, footer: { marginTop: 10, paddingTop: 14, gap: 5, borderTopWidth: StyleSheet.hairlineWidth }, footerText: { fontSize: 12, fontWeight: '600' }, footerSubtext: { fontSize: 11, lineHeight: 16 }, modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }, modal: { maxHeight: '88%', borderTopLeftRadius: 18, borderTopRightRadius: 18 }, modalHeader: { height: 58, paddingLeft: 20, paddingRight: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth }, modalTitle: { fontSize: 17, fontWeight: '700' }, closeIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }, modalContent: { padding: 20, paddingBottom: 20 }, noticeTitle: { fontSize: 19, fontWeight: '700', lineHeight: 26 }, originalLabel: { fontSize: 12, fontWeight: '700', marginTop: 18, marginBottom: 7 }, description: { fontSize: 15, lineHeight: 23 }, translationError: { marginTop: 10, fontSize: 13, lineHeight: 19 }, translateSource: { marginTop: 9, fontSize: 11, lineHeight: 16 }, primaryButton: { marginTop: 20, height: 46, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, primaryButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' }, secondaryButton: { marginTop: 10, height: 44, borderRadius: 8, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, secondaryButtonText: { fontSize: 14, fontWeight: '700' }, selectorBackdrop: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.42)' }, selectorModal: { maxHeight: '70%', borderRadius: 10 }, selectorModalHeader: { height: 54, paddingHorizontal: 18, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth }, selectorModalTitle: { fontSize: 16, fontWeight: '700' }, selectorOptions: { padding: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, selectorOption: { width: '22%', height: 42, borderRadius: 21, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }, selectorOptionText: { fontSize: 13, fontWeight: '700' },
 });

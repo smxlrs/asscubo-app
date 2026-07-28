@@ -10,7 +10,6 @@ import {
   Animated,
   Dimensions,
   Platform,
-  Alert,
   Modal,
   PanResponder,
 } from 'react-native';
@@ -21,6 +20,7 @@ import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-ic
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
+import { appAlert as Alert } from '../../../lib/appAlert';
 import {
   fetchBusArrivals,
   searchStopsByName,
@@ -627,6 +627,8 @@ export default function BusBoardScreen() {
   const tabAnim = useRef(new Animated.Value(0)).current;
   const mapScrollViewRef = useRef<ScrollView>(null);
   const [mapCenter, setMapCenter] = useState({ lat: 44.4949, lon: 11.3426 });
+  const [mapReady, setMapReady] = useState(false);
+  const hasAutoLocatedMapRef = useRef(false);
   // Add Favorite Modal state
   const [favModalVisible, setFavModalVisible] = useState(false);
   const [newFavCustomName, setNewFavCustomName] = useState('');
@@ -741,6 +743,60 @@ export default function BusBoardScreen() {
       useNativeDriver: true,
     }).start();
   }, [activeTab]);
+
+  const focusMapOnLocation = (latitude: number, longitude: number) => {
+    setMapCenter({ lat: latitude, lon: longitude });
+    webViewRef.current?.injectJavaScript(`
+      if (window.updateUserLocation) {
+        window.updateUserLocation(${latitude}, ${longitude});
+      }
+      true;
+    `);
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'map') {
+      setMapReady(false);
+      hasAutoLocatedMapRef.current = false;
+      return;
+    }
+
+    if (!mapReady || hasAutoLocatedMapRef.current) return;
+
+    hasAutoLocatedMapRef.current = true;
+    let cancelled = false;
+
+    const autoLocateOnMapEntry = async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+
+        // Start from Android/iOS's recent location immediately, then refine in the background.
+        const recentLocation = await Location.getLastKnownPositionAsync({
+          maxAge: 5 * 60 * 1000,
+          requiredAccuracy: 1000,
+        });
+        if (recentLocation && !cancelled) {
+          focusMapOnLocation(recentLocation.coords.latitude, recentLocation.coords.longitude);
+        }
+
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Low,
+        });
+        if (!cancelled) {
+          focusMapOnLocation(location.coords.latitude, location.coords.longitude);
+        }
+      } catch (error) {
+        // Automatic positioning is intentionally silent; the manual button still reports failures.
+        console.warn('Unable to automatically locate user on bus map:', error);
+      }
+    };
+
+    void autoLocateOnMapEntry();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, mapReady]);
 
   const translateX = tabAnim.interpolate({
     inputRange: [0, 1],
@@ -967,11 +1023,7 @@ export default function BusBoardScreen() {
         accuracy: Location.Accuracy.Balanced,
       });
       const { latitude, longitude } = location.coords;
-      webViewRef.current?.injectJavaScript(`
-        if (window.updateUserLocation) {
-          window.updateUserLocation(${latitude}, ${longitude});
-        }
-      `);
+      focusMapOnLocation(latitude, longitude);
     } catch (error) {
       console.error('Error getting location:', error);
       Alert.alert(localized.notice, localized.locFail);
@@ -1401,7 +1453,7 @@ export default function BusBoardScreen() {
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#A31621" />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{localized.title}</Text>
+        <Text pointerEvents="none" style={[styles.headerTitle, { color: colors.textPrimary }]}>{localized.title}</Text>
         <View style={styles.headerActions}>
           <Pressable
             onPress={() => router.push('/tools/bus/alerts')}
@@ -1669,6 +1721,7 @@ export default function BusBoardScreen() {
               source={{ html: getMapHtml(isDark, localized) }}
               style={{ flex: 1 }}
               onMessage={handleMapMessage}
+              onLoadEnd={() => setMapReady(true)}
               domStorageEnabled={true}
               javaScriptEnabled={true}
             />
@@ -1946,6 +1999,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    position: 'relative',
   },
   backBtn: {
     width: 44,
@@ -1955,8 +2009,12 @@ const styles = StyleSheet.create({
     marginLeft: -10,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 64,
+    right: 64,
     fontSize: 18,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   refreshBtn: {
     paddingVertical: 6,
@@ -1968,6 +2026,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     minWidth: 80,
+    zIndex: 1,
   },
   alertsButton: {
     width: 36,

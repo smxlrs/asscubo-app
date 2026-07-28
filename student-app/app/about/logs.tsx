@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { appAlert as Alert } from '../../lib/appAlert';
 import { useTheme } from '../../context/ThemeContext';
 import {
   buildLogFileContent,

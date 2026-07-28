@@ -4,9 +4,15 @@ export type AlertButton = {
   style?: 'default' | 'cancel' | 'destructive';
 };
 
+export type AlertIcon = 'update' | 'success' | 'warning' | 'error' | 'info';
+
 export type AlertOptions = {
   cancelable?: boolean;
   onDismiss?: () => void;
+  icon?: AlertIcon;
+  messageAlign?: 'left' | 'center';
+  buttonPresentation?: 'filled' | 'text';
+  textButtonAlignment?: 'split' | 'end';
 };
 
 type AlertConfig = {

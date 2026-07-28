@@ -11,7 +11,6 @@ import {
   TouchableWithoutFeedback, 
   Keyboard,
   Image,
-  Alert,
   ScrollView
 } from 'react-native';
 import { Link, router } from 'expo-router';
@@ -21,6 +20,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase, translateAuthError } from '../../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOtpCooldown } from '../../hooks/useOtpCooldown';
+import { showCustomAlert } from '../../lib/customAlert';
+import { appAlert as Alert } from '../../lib/appAlert';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -65,7 +66,12 @@ export default function LoginScreen() {
         }
       } else {
         setOtpSent(true);
-        Alert.alert(t('otpSentTitle'), t('otpSentMsg'));
+        showCustomAlert(
+          t('otpSentTitle'),
+          t('otpSentMsg'),
+          [{ text: t('confirm') }],
+          { messageAlign: 'left', buttonPresentation: 'text' }
+        );
         startCooldown();
       }
     } catch (err: any) {
@@ -315,7 +321,7 @@ export default function LoginScreen() {
                           ]}>
                             {countdown > 0
                               ? `${countdown}s`
-                              : (otpSent ? `未收到？${t('resend')}` : t('getOtpCode'))}
+                              : (otpSent ? t('resend') : t('getOtpCode'))}
                           </Text>
                         )}
                       </Pressable>

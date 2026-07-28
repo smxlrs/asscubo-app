@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, Pressable, ScrollView, View, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
+import { StyleSheet, Text, Pressable, ScrollView, View, TextInput, ActivityIndicator, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { appAlert as Alert } from '../../lib/appAlert';
 import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -60,8 +61,7 @@ export default function FeedbackScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   // Media picker states
-  const [mediaUri, setMediaUri] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [mediaAssets, setMediaAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
   const getWechatLabel = () => {
     if (language === 'it') return 'WeChat (Opzionale)';
@@ -127,21 +127,22 @@ export default function FeedbackScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      quality: 0.8,
+      mediaTypes: ['images', 'videos'],
+      allowsMultipleSelection: true,
+      allowsEditing: false,
+      quality: 1,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      const asset = result.assets[0];
-      setMediaUri(asset.uri);
-      setMediaType(asset.type === 'video' ? 'video' : 'image');
+      setMediaAssets((currentAssets) => {
+        const knownUris = new Set(currentAssets.map((asset) => asset.uri));
+        return [...currentAssets, ...result.assets.filter((asset) => !knownUris.has(asset.uri))];
+      });
     }
   };
 
-  const handleRemoveMedia = () => {
-    setMediaUri(null);
-    setMediaType(null);
+  const handleRemoveMedia = (uri: string) => {
+    setMediaAssets((currentAssets) => currentAssets.filter((asset) => asset.uri !== uri));
   };
 
   const handleFeedbackSubmit = async () => {
@@ -158,15 +159,18 @@ export default function FeedbackScreen() {
 
     setSubmitting(true);
     try {
-      let uploadedMediaUrl = null;
+      const uploadedMedia: Array<{ url: string; type: 'image' | 'video' }> = [];
 
-      // 1. Upload media to Supabase Storage if selected
-      if (mediaUri) {
-        const base64 = await FileSystem.readAsStringAsync(mediaUri, {
+      // Upload each attachment in sequence so several videos do not compete for memory.
+      for (const mediaAsset of mediaAssets) {
+        const base64 = await FileSystem.readAsStringAsync(mediaAsset.uri, {
           encoding: FileSystem.EncodingType.Base64,
         });
 
-        const fileExt = mediaUri.split('.').pop() || (mediaType === 'video' ? 'mp4' : 'jpg');
+        const mediaType = mediaAsset.type === 'video' ? 'video' : 'image';
+        const fileExt = mediaAsset.fileName?.split('.').pop()?.toLowerCase()
+          || mediaAsset.uri.split('?')[0].split('.').pop()?.toLowerCase()
+          || (mediaType === 'video' ? 'mp4' : 'jpg');
         const fileName = `feedback-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
@@ -175,7 +179,7 @@ export default function FeedbackScreen() {
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('covers')
           .upload(filePath, arrayBuffer, {
-            contentType: mediaType === 'video' ? 'video/mp4' : `image/${fileExt === 'png' ? 'png' : 'jpeg'}`,
+            contentType: mediaAsset.mimeType || (mediaType === 'video' ? 'video/mp4' : `image/${fileExt === 'png' ? 'png' : 'jpeg'}`),
           });
 
         if (uploadError) throw uploadError;
@@ -185,7 +189,7 @@ export default function FeedbackScreen() {
           .from('covers')
           .getPublicUrl(filePath);
 
-        uploadedMediaUrl = publicUrl;
+        uploadedMedia.push({ url: publicUrl, type: mediaType });
       }
 
       // 2. Insert feedback data to feedbacks table
@@ -196,7 +200,8 @@ export default function FeedbackScreen() {
           email: email.trim(),
           wechat: wechat.trim() || null,
           content: feedbackText.trim(),
-          media_url: uploadedMediaUrl,
+          // This remains compatible with the existing text column and legacy single attachments.
+          media_url: uploadedMedia.length > 0 ? JSON.stringify(uploadedMedia) : null,
           created_at: new Date().toISOString()
         }]);
 
@@ -206,8 +211,7 @@ export default function FeedbackScreen() {
       setEmail('');
       setWechat('');
       setFeedbackText('');
-      setMediaUri(null);
-      setMediaType(null);
+      setMediaAssets([]);
       router.back();
     } catch (err: any) {
       console.error('Failed to submit feedback:', err);
@@ -296,36 +300,43 @@ export default function FeedbackScreen() {
           />
         </View>
 
-        {/* Image/Video Upload preview card */}
-        {mediaUri && (
-          <View style={[styles.mediaPreviewContainer, { borderColor: colors.border }]}>
-            {mediaType === 'image' ? (
-              <Image source={{ uri: mediaUri }} style={styles.mediaPreview} />
-            ) : (
-              <View style={[styles.videoPlaceholder, { backgroundColor: colors.surfaceElevated }]}>
-                <Text style={[styles.videoPlaceholderText, { color: colors.textPrimary }]}>
-                  {language === 'it' ? '📹 Video Selezionato' : language === 'en' ? '📹 Video Selected' : language === 'zh-Hant' ? '📹 已選擇影片' : '📹 已选择视频'}
-                </Text>
-              </View>
-            )}
-            <Pressable style={[styles.removeMediaBtn, { backgroundColor: colors.error }]} onPress={handleRemoveMedia}>
-              <Text style={styles.removeMediaBtnText}>×</Text>
-            </Pressable>
-          </View>
+        {/* Selected attachments */}
+        {mediaAssets.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mediaPreviewList}>
+            {mediaAssets.map((asset) => {
+              const isVideo = asset.type === 'video';
+              return (
+                <View key={asset.assetId || asset.uri} style={[styles.mediaPreviewItem, { borderColor: colors.border }]}>
+                  {isVideo ? (
+                    <View style={[styles.videoPlaceholder, { backgroundColor: colors.surfaceElevated }]}>
+                      <MaterialCommunityIcons name="video-outline" size={28} color={colors.primary} />
+                    </View>
+                  ) : (
+                    <Image source={{ uri: asset.uri }} style={styles.mediaPreview} />
+                  )}
+                  <Pressable
+                    style={[styles.removeMediaBtn, { backgroundColor: colors.error }]}
+                    onPress={() => handleRemoveMedia(asset.uri)}
+                    accessibilityLabel="Remove attachment"
+                  >
+                    <MaterialCommunityIcons name="close" size={16} color="#FFF" />
+                  </Pressable>
+                </View>
+              );
+            })}
+          </ScrollView>
         )}
 
         {/* Media upload button */}
-        {!mediaUri && (
-          <Pressable 
-            style={[styles.uploadButton, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]} 
-            onPress={handleSelectMedia}
-          >
-            <Text style={styles.uploadButtonIcon}>➕</Text>
-            <Text style={[styles.uploadButtonText, { color: colors.textSecondary }]}>
-              {getUploadLabel()}
-            </Text>
-          </Pressable>
-        )}
+        <Pressable 
+          style={[styles.uploadButton, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]} 
+          onPress={handleSelectMedia}
+        >
+          <MaterialCommunityIcons name="image-plus" size={24} color={colors.textSecondary} style={styles.uploadButtonIcon} />
+          <Text style={[styles.uploadButtonText, { color: colors.textSecondary }]}>
+            {getUploadLabel()}
+          </Text>
+        </Pressable>
 
         <Pressable 
           style={[styles.submitButton, { backgroundColor: colors.primary }, submitting && { opacity: 0.7 }]} 
@@ -417,14 +428,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     paddingTop: 16,
   },
-  mediaPreviewContainer: {
+  mediaPreviewList: {
+    gap: 12,
+    paddingBottom: 18,
+  },
+  mediaPreviewItem: {
     position: 'relative',
-    width: '100%',
-    height: 180,
+    width: 112,
+    height: 112,
     borderRadius: 12,
     borderWidth: 1,
     overflow: 'hidden',
-    marginBottom: 18,
   },
   mediaPreview: {
     width: '100%',
@@ -437,10 +451,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  videoPlaceholderText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
   removeMediaBtn: {
     position: 'absolute',
     top: 10,
@@ -450,12 +460,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  removeMediaBtnText: {
-    color: '#FFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-    lineHeight: 20,
   },
   uploadButton: {
     width: '100%',

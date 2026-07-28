@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, Linking, Image, Animated, NativeModules, Platform, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Linking, Image, Animated, NativeModules, Platform, Modal, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { recordDebugEvent, setDebugLoggingEnabled } from '../../lib/logger';
+import { showCustomAlert } from '../../lib/customAlert';
 
 const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.asscuboxue.app';
 const APP_STORE_ID = Constants.expoConfig?.extra?.appStoreId as string | undefined;
@@ -29,7 +30,7 @@ const UPDATE_TEXTS: Record<string, {
     updateNow: '立即更新',
     upToDate: '当前已是最新版本',
     confirm: '确认',
-    unableToCheck: '暂时无法向 Google Play 确认更新状态。请确认当前版本由 Google Play 安装，且设备可访问 Play 商店。',
+    unableToCheck: '暂时无法向应用商店确认更新状态，请检查应用商店的可访问性。',
     checking: '正在检查更新…',
   },
   'zh-Hant': {
@@ -43,7 +44,7 @@ const UPDATE_TEXTS: Record<string, {
     updateNow: '立即更新',
     upToDate: '目前已是最新版本',
     confirm: '確認',
-    unableToCheck: '暫時無法向 Google Play 確認更新狀態。請確認目前版本由 Google Play 安裝，且裝置可存取 Play 商店。',
+    unableToCheck: '暫時無法向應用程式商店確認更新狀態，請檢查應用程式商店是否可存取。',
     checking: '正在檢查更新…',
   },
   en: {
@@ -57,7 +58,7 @@ const UPDATE_TEXTS: Record<string, {
     updateNow: 'Update now',
     upToDate: 'You are up to date',
     confirm: 'OK',
-    unableToCheck: 'Google Play could not confirm the update status. Make sure this app was installed from Google Play and that the Play Store is available on this device.',
+    unableToCheck: 'Unable to confirm the update status with the app store. Please check whether the app store is accessible.',
     checking: 'Checking for updates…',
   },
   it: {
@@ -71,7 +72,7 @@ const UPDATE_TEXTS: Record<string, {
     updateNow: 'Aggiorna ora',
     upToDate: 'Hai gia l\'ultima versione',
     confirm: 'OK',
-    unableToCheck: 'Google Play non puo confermare lo stato dell\'aggiornamento. Verifica che l\'app sia stata installata da Google Play e che il Play Store sia disponibile sul dispositivo.',
+    unableToCheck: 'Impossibile confermare lo stato dell\'aggiornamento con l\'app store. Verifica che l\'app store sia accessibile.',
     checking: 'Verifica aggiornamenti…',
   },
 };
@@ -195,7 +196,7 @@ export default function AboutIndexScreen() {
         recordDebugEvent('update', 'Google Play update check completed', { status });
 
         if (status === 'available') {
-          Alert.alert(ut.updateAvailable, undefined, [
+          showCustomAlert(ut.updateAvailable, undefined, [
             { text: ut.cancel, style: 'cancel' },
             {
               text: ut.updateNow,
@@ -206,20 +207,20 @@ export default function AboutIndexScreen() {
                     : false;
                   recordDebugEvent('update', 'Attempted to open Google Play update listing', { opened });
                   if (!opened) {
-                    Alert.alert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }]);
+                    showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
                   }
                 } catch (error) {
                   recordDebugEvent('update', 'Failed to open Google Play listing', error, 'warn');
-                  Alert.alert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }]);
+                  showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
                 }
               },
             },
-          ]);
+          ], { buttonPresentation: 'text', textButtonAlignment: 'end' });
         } else if (status === 'up_to_date') {
-          Alert.alert(ut.upToDate, undefined, [{ text: ut.confirm }]);
+          showCustomAlert(ut.upToDate, undefined, [{ text: ut.confirm }], { buttonPresentation: 'text' });
         } else {
           recordDebugEvent('update', 'Google Play update check unavailable', { reason: 'native-module-missing-or-store-unavailable' }, 'warn');
-          Alert.alert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }]);
+          showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
         }
       } catch (error) {
         const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
@@ -228,7 +229,7 @@ export default function AboutIndexScreen() {
         }
         setIsCheckingUpdate(false);
         recordDebugEvent('update', 'Google Play update check failed', error, 'warn');
-        Alert.alert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }]);
+        showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
       }
       return;
     }
@@ -238,14 +239,14 @@ export default function AboutIndexScreen() {
       : GOOGLE_PLAY_URL;
 
     if (!storeUrl) {
-      Alert.alert(ut.storeTitle, ut.storeUnavailable);
+      showCustomAlert(ut.storeTitle, ut.storeUnavailable, [{ text: ut.confirm }], { messageAlign: 'left' });
       return;
     }
 
-    Alert.alert(ut.storeTitle, ut.storeDescription, [
+    showCustomAlert(ut.storeTitle, ut.storeDescription, [
       { text: ut.cancel, style: 'cancel' },
       { text: ut.openStore, onPress: () => Linking.openURL(storeUrl) },
-    ]);
+    ], { icon: 'update' });
   };
 
   return (

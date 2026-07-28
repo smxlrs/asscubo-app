@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Alert, Animated as RNAnimated, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Animated as RNAnimated, BackHandler } from 'react-native';
 import { router, useNavigation } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { appAlert as Alert } from '../../lib/appAlert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {

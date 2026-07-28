@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   Switch,
-  Alert,
   StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -18,6 +17,7 @@ import {
   saveDictionariesConfig,
   DictionaryInfo,
 } from '../../../lib/db';
+import { appAlert as Alert } from '../../../lib/appAlert';
 
 const LOCALIZED_STRINGS: Record<Language, Record<string, string>> = {
   zh: {

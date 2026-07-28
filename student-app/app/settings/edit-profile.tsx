@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Alert, ActivityIndicator, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Image, Modal } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useOtpCooldown } from '../../hooks/useOtpCooldown';
@@ -8,6 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
+import { showCustomAlert } from '../../lib/customAlert';
+import { appAlert as Alert } from '../../lib/appAlert';
 
 const LOCALIZED = {
   zh: {
@@ -228,6 +230,13 @@ const LOCALIZED = {
   }
 };
 
+const PASSWORD_VALIDATION_COPY = {
+  zh: { required: '请输入新密码', confirmRequired: '请再次输入新密码' },
+  'zh-Hant': { required: '請輸入新密碼', confirmRequired: '請再次輸入新密碼' },
+  en: { required: 'Please enter a new password', confirmRequired: 'Please re-enter the new password' },
+  it: { required: 'Inserisci una nuova password', confirmRequired: 'Reinserisci la nuova password' },
+};
+
 export default function EditProfileScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const { colors, language, t } = useTheme();
@@ -243,10 +252,13 @@ export default function EditProfileScreen() {
   const [modalPassword, setModalPassword] = useState('');
   const [modalConfirmPassword, setModalConfirmPassword] = useState('');
   const [modalOtp, setModalOtp] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
   
   // OTP states
   const [sendingOtp, setSendingOtp] = useState(false);
   const { remaining: countdown, startCooldown, resetCooldown } = useOtpCooldown();
+  const passwordValidationCopy = PASSWORD_VALIDATION_COPY[language as keyof typeof PASSWORD_VALIDATION_COPY] || PASSWORD_VALIDATION_COPY.zh;
 
   const pickImage = async () => {
     try {
@@ -358,34 +370,66 @@ export default function EditProfileScreen() {
 
   const handleSendOtp = async () => {
     if (!user?.email) return;
+    const nextPassword = modalPassword.trim();
+    if (!nextPassword) {
+      setPasswordError(passwordValidationCopy.required);
+      return;
+    }
+    if (nextPassword.length < 6) {
+      setPasswordError(localized.passMinLength);
+      return;
+    }
+    if (modalConfirmPassword.trim() && modalConfirmPassword !== modalPassword) {
+      setConfirmPasswordError(localized.passMismatch);
+      return;
+    }
+
+    setPasswordError(null);
+    setConfirmPasswordError(null);
     setSendingOtp(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email);
       if (error) throw error;
       
-      Alert.alert(localized.otpSent, localized.otpSentMsg);
+      showCustomAlert(
+        localized.otpSent,
+        localized.otpSentMsg,
+        [{ text: t('confirm') || '确定' }],
+        { messageAlign: 'left', buttonPresentation: 'text' }
+      );
       startCooldown();
     } catch (err: any) {
       console.error(err);
-      Alert.alert(localized.otpSendFail, err.message || localized.otpSendFailMsg);
+      showCustomAlert(
+        localized.otpSendFail,
+        err.message || localized.otpSendFailMsg,
+        [{ text: t('confirm') || '确定' }],
+        { messageAlign: 'left', buttonPresentation: 'text' }
+      );
     } finally {
       setSendingOtp(false);
     }
   };
 
   const handleUpdatePassword = async () => {
-    if (!modalPassword.trim() || !modalConfirmPassword.trim()) {
-      Alert.alert(localized.tip, localized.emptyPass);
+    if (!modalPassword.trim()) {
+      setPasswordError(passwordValidationCopy.required);
       return;
     }
     if (modalPassword.length < 6) {
-      Alert.alert(localized.securityTip, localized.passMinLength);
+      setPasswordError(localized.passMinLength);
+      return;
+    }
+    if (!modalConfirmPassword.trim()) {
+      setConfirmPasswordError(passwordValidationCopy.confirmRequired);
       return;
     }
     if (modalPassword !== modalConfirmPassword) {
-      Alert.alert(localized.tip, localized.passMismatch);
+      setConfirmPasswordError(localized.passMismatch);
       return;
     }
+    setPasswordError(null);
+    setConfirmPasswordError(null);
     if (!modalOtp.trim() || modalOtp.length !== 6) {
       Alert.alert(localized.tip, localized.enterOtp);
       return;
@@ -511,6 +555,8 @@ export default function EditProfileScreen() {
                 setModalPassword('');
                 setModalConfirmPassword('');
                 setModalOtp('');
+                setPasswordError(null);
+                setConfirmPasswordError(null);
                 resetCooldown();
                 setActiveModal('password');
               }}
@@ -619,22 +665,44 @@ export default function EditProfileScreen() {
               <>
                 <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{localized.editPassword}</Text>
                 <TextInput
-                  style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
+                  style={[
+                    styles.modalInput,
+                    passwordError && styles.modalInputWithError,
+                    { color: colors.textPrimary, borderColor: passwordError ? colors.error : colors.border, backgroundColor: colors.surfaceElevated }
+                  ]}
                   value={modalPassword}
-                  onChangeText={setModalPassword}
+                  onChangeText={(value) => {
+                    setModalPassword(value);
+                    if (passwordError) setPasswordError(null);
+                    if (confirmPasswordError) setConfirmPasswordError(null);
+                  }}
                   placeholder={localized.newPasswordPlaceholder}
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry
                   autoFocus={true}
                 />
+                {passwordError ? <Text style={[styles.fieldError, { color: colors.error }]}>{passwordError}</Text> : null}
                 <TextInput
-                  style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
+                  style={[
+                    styles.modalInput,
+                    confirmPasswordError && styles.modalInputWithError,
+                    { color: colors.textPrimary, borderColor: confirmPasswordError ? colors.error : colors.border, backgroundColor: colors.surfaceElevated }
+                  ]}
                   value={modalConfirmPassword}
-                  onChangeText={setModalConfirmPassword}
+                  onChangeText={(value) => {
+                    setModalConfirmPassword(value);
+                    if (confirmPasswordError) setConfirmPasswordError(null);
+                  }}
+                  onBlur={() => {
+                    if (modalConfirmPassword.trim() && modalConfirmPassword !== modalPassword) {
+                      setConfirmPasswordError(localized.passMismatch);
+                    }
+                  }}
                   placeholder={localized.confirmPasswordPlaceholder}
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry
                 />
+                {confirmPasswordError ? <Text style={[styles.fieldError, { color: colors.error }]}>{confirmPasswordError}</Text> : null}
                 <View style={styles.otpInputRow}>
                   <TextInput
                     style={[
@@ -855,6 +923,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 15,
     marginBottom: 14,
+  },
+  modalInputWithError: {
+    marginBottom: 4,
+  },
+  fieldError: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 10,
   },
   modalButtons: {
     flexDirection: 'row',

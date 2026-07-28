@@ -10,6 +10,7 @@ import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { ThemeProvider as NavigationProvider, DefaultTheme, DarkTheme } from 'expo-router/react-navigation';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CustomAlertModal } from '../components/CustomAlertModal';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch((err) => {
@@ -282,6 +283,7 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <AppContent />
+        <CustomAlertModal />
       </AuthProvider>
     </ThemeProvider>
   );
