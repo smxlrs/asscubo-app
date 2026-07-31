@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontFamily: FONTS.bold,
+    fontWeight: 'bold',
   },
   headerPlaceholder: {
     width: 50,

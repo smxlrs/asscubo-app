@@ -553,18 +553,24 @@ const styles = StyleSheet.create({
   backBtn: {
     paddingVertical: 6,
     paddingRight: 12,
+    zIndex: 1,
   },
   backText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
   headerTitle: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
     fontSize: 18,
     fontWeight: 'bold',
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    zIndex: 1,
   },
   iconButton: {
     width: 40,
