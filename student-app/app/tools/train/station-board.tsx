@@ -564,6 +564,11 @@ export default function StationBoardScreen() {
 
     // Operator branding details
     const op = getOperatorInfo(item.codiceCliente, item.category);
+    const category = String(item.category || '').trim();
+    const trainNumber = String(item.trainNumber || '').trim();
+    const trainLabel = category && category.toUpperCase() !== op.code.toUpperCase()
+      ? `${category} ${trainNumber}`.trim()
+      : trainNumber;
 
     return (
       <Pressable
@@ -584,9 +589,11 @@ export default function StationBoardScreen() {
               <View style={[styles.opCodeBadge, { borderColor: op.color, backgroundColor: op.color + '10' }]}>
                 <Text style={[styles.opCodeText, { color: op.color }]}>{op.code}</Text>
               </View>
-              <Text style={[styles.trainNumCategoryText, { color: colors.textPrimary }]}>
-                {item.category && item.category.toUpperCase() !== op.code.toUpperCase() ? `${item.category} ` : ''}
-                {item.trainNumber}
+              <Text
+                numberOfLines={1}
+                style={[styles.trainNumCategoryText, { color: colors.textPrimary }]}
+              >
+                {trainLabel}
               </Text>
             </View>
 
@@ -1012,6 +1019,7 @@ const styles = StyleSheet.create({
   trainNumCategoryText: {
     fontSize: 13,
     fontWeight: 'bold',
+    flexShrink: 1,
   },
   boardTimeline: {
     marginTop: 6,
