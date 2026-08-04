@@ -2230,9 +2230,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lineText: {
+    width: '100%',
     color: '#FFF',
     fontSize: 15,
     fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   arrivalMiddle: {
     flex: 1,
@@ -2525,9 +2530,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   lineTextLarge: {
+    width: '100%',
     color: '#FFF',
     fontSize: 22,
     fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   locateButton: {
     position: 'absolute',
