@@ -1,19 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   Pressable,
-  ScrollView,
   Switch,
   StatusBar,
+  Modal,
+  ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme, Language } from '../../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { File } from 'expo-file-system';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import DraggableFlatList from 'react-native-draggable-flatlist';
 import {
+  importDictionaryFile,
   loadDictionariesConfig,
+  removeImportedDictionary,
   saveDictionariesConfig,
   DictionaryInfo,
 } from '../../../lib/db';
@@ -78,6 +85,24 @@ export default function DictionarySettingsScreen() {
   };
   const [dicts, setDicts] = useState<DictionaryInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({
+    visible: false,
+    phase: 'copying' as 'copying' | 'reading' | 'indexing' | 'cancelling',
+    completed: 0,
+    total: 0,
+    fileName: '',
+    fileIndex: 0,
+    fileTotal: 0,
+  });
+  const cancelImportRef = useRef(false);
+  const [builtInExpanded, setBuiltInExpanded] = useState(true);
+  const [importedExpanded, setImportedExpanded] = useState(true);
+
+  const builtInDicts = dicts.filter((dictionary) => dictionary.isSystem);
+  const importedDicts = dicts.filter((dictionary) => !dictionary.isSystem);
+  const builtInLabel = activeLang === 'en' ? 'Built-in Dictionaries' : activeLang === 'it' ? 'Dizionari Integrati' : '内置词典库';
+  const importedLabel = activeLang === 'en' ? 'Imported Dictionaries' : activeLang === 'it' ? 'Dizionari Importati' : '手动导入词典库';
 
   useEffect(() => {
     async function loadConfig() {
@@ -105,57 +130,111 @@ export default function DictionarySettingsScreen() {
     await saveDictionariesConfig(updated);
   };
 
-  // Move a dictionary up in display order
-  const handleMoveUp = async (index: number) => {
-    if (index === 0) return;
-    const updated = [...dicts];
-    
-    // Swap elements
-    const temp = updated[index];
-    updated[index] = updated[index - 1];
-    updated[index - 1] = temp;
-    
-    // Re-index orderIndex values
-    const final = updated.map((item, idx) => ({
-      ...item,
-      orderIndex: idx + 1
-    }));
-    
+  const handleDragEnd = async (isSystem: boolean, reorderedGroup: DictionaryInfo[]) => {
+    const otherGroup = dicts.filter((dictionary) => dictionary.isSystem !== isSystem);
+    const ordered = isSystem
+      ? [...reorderedGroup, ...otherGroup]
+      : [...otherGroup, ...reorderedGroup];
+    const final = ordered.map((dictionary, index) => ({ ...dictionary, orderIndex: index + 1 }));
     setDicts(final);
     await saveDictionariesConfig(final);
   };
 
-  // Move a dictionary down in display order
-  const handleMoveDown = async (index: number) => {
-    if (index === dicts.length - 1) return;
-    const updated = [...dicts];
-    
-    // Swap elements
-    const temp = updated[index];
-    updated[index] = updated[index + 1];
-    updated[index + 1] = temp;
-    
-    // Re-index orderIndex values
-    const final = updated.map((item, idx) => ({
-      ...item,
-      orderIndex: idx + 1
-    }));
-    
-    setDicts(final);
-    await saveDictionariesConfig(final);
+  const handleManualImportPress = async () => {
+    if (importing) return;
+    try {
+      const result = await File.pickFileAsync({
+        multipleFiles: true,
+        mimeTypes: ['application/octet-stream', 'application/x-mdict', '*/*'],
+      });
+      if (result.canceled || !result.result) return;
+
+      const selectedFiles = result.result;
+      if (selectedFiles.length === 0) return;
+
+      cancelImportRef.current = false;
+      setImporting(true);
+      for (const [fileIndex, selectedFile] of selectedFiles.entries()) {
+        setImportProgress({
+          visible: true,
+          phase: 'copying',
+          completed: 0,
+          total: 0,
+          fileName: selectedFile.name,
+          fileIndex: fileIndex + 1,
+          fileTotal: selectedFiles.length,
+        });
+        await importDictionaryFile(selectedFile, selectedFile.name, {
+          shouldCancel: () => cancelImportRef.current,
+          onProgress: (phase, progress) => {
+            setImportProgress({
+              visible: true,
+              phase,
+              completed: progress?.completed ?? 0,
+              total: progress?.total ?? 0,
+              fileName: selectedFile.name,
+              fileIndex: fileIndex + 1,
+              fileTotal: selectedFiles.length,
+            });
+          },
+        });
+      }
+      const config = await loadDictionariesConfig();
+      setDicts(config);
+      Alert.alert(
+        activeLang === 'en' ? 'Dictionaries imported' : activeLang === 'it' ? 'Dizionari importati' : '词典已导入',
+        activeLang === 'en'
+          ? `${selectedFiles.length} dictionaries are ready to use.`
+          : activeLang === 'it'
+            ? `${selectedFiles.length} dizionari sono pronti all'uso.`
+            : `${selectedFiles.length}本词典已经可以使用。`,
+        [{ text: ls('alertOk'), style: 'default' }]
+      );
+    } catch (error) {
+      if (cancelImportRef.current) return;
+      console.error('Failed to import dictionary:', error);
+      Alert.alert(
+        activeLang === 'en' ? 'Import failed' : activeLang === 'it' ? 'Importazione non riuscita' : '导入失败',
+        error instanceof Error ? error.message : (activeLang === 'en' ? 'Unable to import this dictionary file.' : '无法导入这个词典文件。'),
+        [{ text: ls('alertOk'), style: 'default' }]
+      );
+    } finally {
+      setImporting(false);
+      setImportProgress((current) => ({ ...current, visible: false }));
+    }
   };
 
-  // Future Manual Import dialog placeholder
-  const handleManualImportPress = () => {
+  const requestImportCancel = () => {
+    if (!importing) return;
+    cancelImportRef.current = true;
+    setImportProgress((current) => ({ ...current, phase: 'cancelling' }));
+  };
+
+  const handleDeleteImportedDictionary = (dictionary: DictionaryInfo) => {
     Alert.alert(
-      ls('alertTitle'),
-      ls('alertMsg'),
-      [{ text: ls('alertOk'), style: 'default' }]
+      activeLang === 'en' ? 'Remove dictionary?' : activeLang === 'it' ? 'Rimuovere il dizionario?' : '删除词典？',
+      activeLang === 'en' ? `Remove ${dictionary.name} from this device?` : activeLang === 'it' ? `Rimuovere ${dictionary.name} da questo dispositivo?` : `从本机移除“${dictionary.name}”？`,
+      [
+        { text: activeLang === 'en' ? 'Cancel' : activeLang === 'it' ? 'Annulla' : '取消', style: 'cancel' },
+        {
+          text: activeLang === 'en' ? 'Remove' : activeLang === 'it' ? 'Rimuovi' : '删除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeImportedDictionary(dictionary.id);
+              setDicts(await loadDictionariesConfig());
+            } catch (error) {
+              console.error('Failed to remove imported dictionary:', error);
+            }
+          },
+        },
+      ]
     );
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <GestureHandlerRootView style={styles.gestureRoot}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       
       {/* Settings Header */}
@@ -167,12 +246,142 @@ export default function DictionarySettingsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      <Modal transparent visible={importProgress.visible} animationType="fade" onRequestClose={requestImportCancel} statusBarTranslucent>
+        <View style={styles.progressOverlay}>
+          <View style={[styles.progressCard, { backgroundColor: colors.surfaceElevated || colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.progressIcon, { backgroundColor: isDark ? '#A3162133' : '#A3162114' }]}>
+              <MaterialIcons name={importProgress.phase === 'cancelling' ? 'hourglass-top' : 'library-books'} size={24} color={isDark ? '#FF8D8D' : '#A31621'} />
+            </View>
+            <Text style={[styles.progressTitle, { color: colors.textPrimary }]}>
+              {activeLang === 'en' ? 'Importing dictionary' : activeLang === 'it' ? 'Importazione dizionario' : '正在导入词典'}
+            </Text>
+            {importProgress.fileTotal > 0 && (
+              <Text style={[styles.progressFileName, { color: colors.textMuted }]} numberOfLines={1}>
+                {importProgress.fileIndex} / {importProgress.fileTotal} - {importProgress.fileName}
+              </Text>
+            )}
+            <Text style={[styles.progressMessage, { color: colors.textSecondary }]}>
+              {importProgress.phase === 'copying'
+                ? (activeLang === 'en' ? 'Copying dictionary file...' : activeLang === 'it' ? 'Copia del file dizionario...' : '正在复制词典文件...')
+                : importProgress.phase === 'reading'
+                  ? (activeLang === 'en' ? 'Reading dictionary entries...' : activeLang === 'it' ? 'Lettura delle voci del dizionario...' : '正在读取词条...')
+                  : importProgress.phase === 'cancelling'
+                    ? (activeLang === 'en' ? 'Cancelling and cleaning up...' : activeLang === 'it' ? 'Annullamento e pulizia...' : '正在取消并清理文件...')
+                    : (activeLang === 'en' ? 'Building search index...' : activeLang === 'it' ? 'Creazione indice di ricerca...' : '正在建立检索索引...')}
+            </Text>
+            {importProgress.total > 0 ? (
+              <>
+                <View style={[styles.progressTrack, { backgroundColor: isDark ? '#FFFFFF1A' : '#0000000E' }]}>
+                  <View style={[styles.progressFill, { width: `${Math.round((importProgress.completed / importProgress.total) * 100)}%` }]} />
+                </View>
+                <Text style={[styles.progressCount, { color: colors.textMuted }]}>
+                  {importProgress.completed.toLocaleString()} / {importProgress.total.toLocaleString()} ({Math.round((importProgress.completed / importProgress.total) * 100)}%)
+                </Text>
+              </>
+            ) : (
+              <ActivityIndicator size="small" color={isDark ? '#FF8D8D' : '#A31621'} style={styles.progressSpinner} />
+            )}
+            <Pressable style={[styles.cancelImportButton, { borderColor: isDark ? '#FF8D8D66' : '#A3162150', opacity: importProgress.phase === 'cancelling' ? 0.55 : 1 }]} onPress={requestImportCancel} disabled={importProgress.phase === 'cancelling'}>
+              <Text style={[styles.cancelImportText, { color: isDark ? '#FF8D8D' : '#A31621' }]}>
+                {activeLang === 'en' ? 'Cancel import' : activeLang === 'it' ? 'Annulla importazione' : '取消导入'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       {loading ? (
         <View style={styles.centerContainer}>
           <Text style={{ color: colors.textSecondary }}>{ls('loading')}</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <Pressable style={styles.groupHeader} onPress={() => setBuiltInExpanded((value) => !value)}>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{builtInLabel} ({builtInDicts.length})</Text>
+            <MaterialIcons name={builtInExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} size={26} color={colors.textSecondary} />
+          </Pressable>
+          {builtInExpanded && (
+            <>
+              <View style={[styles.notice, { backgroundColor: isDark ? '#A316211C' : '#A316210D', borderColor: isDark ? '#FF8D8D45' : '#A3162130' }]}>
+                <MaterialIcons name="info-outline" size={20} color={isDark ? '#FF8D8D' : '#A31621'} />
+                <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
+                  {activeLang === 'en' ? 'The built-in dictionaries below are provided for language learning and academic exchange.' : activeLang === 'it' ? 'I dizionari integrati seguenti sono destinati allo studio linguistico e allo scambio accademico.' : '以下内置词典来源于网络，仅供语言学习与学术交流使用。'}
+                </Text>
+              </View>
+              <DraggableFlatList
+                data={builtInDicts}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                activationDistance={28}
+                onDragEnd={({ data }) => handleDragEnd(true, data)}
+                renderItem={({ item, getIndex, drag, isActive }) => (
+                  <View style={[styles.dictCard, { backgroundColor: colors.surface, borderColor: colors.border, opacity: isActive ? 0.82 : item.isEnabled ? 1 : 0.7 }]}>
+                    <View style={styles.cardMain}>
+                      <View style={styles.cardLeft}>
+                        <Text style={[styles.dictTitle, { color: colors.textPrimary }]}>{(getIndex() ?? 0) + 1}. {item.name}</Text>
+                        <Text style={[styles.dictDesc, { color: colors.textSecondary }]}>{item.description}</Text>
+                      </View>
+                      <View style={styles.cardRight}>
+                        <Switch value={item.isEnabled} onValueChange={(value) => handleToggleSwitch(item.id, value)} trackColor={{ false: isDark ? '#3A3A3C' : '#D1D1D6', true: isDark ? '#FF6B6B' : '#A31621' }} thumbColor={item.isEnabled ? '#FFFFFF' : (isDark ? '#8E8E93' : '#F4F3F4')} />
+                        <Pressable accessibilityRole="button" accessibilityLabel="Drag to reorder" style={styles.dragHandle} onLongPress={drag} delayLongPress={120}>
+                          <MaterialIcons name="drag-handle" size={24} color={isDark ? '#FF8D8D' : '#A31621'} />
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              />
+            </>
+          )}
+
+          <Pressable style={[styles.groupHeader, styles.importGroupHeader]} onPress={() => setImportedExpanded((value) => !value)}>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{importedLabel} ({importedDicts.length})</Text>
+            <MaterialIcons name={importedExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} size={26} color={colors.textSecondary} />
+          </Pressable>
+          {importedExpanded && (
+            <>
+              <DraggableFlatList
+                data={importedDicts}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                activationDistance={28}
+                onDragEnd={({ data }) => handleDragEnd(false, data)}
+                renderItem={({ item, getIndex, drag, isActive }) => (
+                  <View style={[styles.dictCard, { backgroundColor: colors.surface, borderColor: colors.border, opacity: isActive ? 0.82 : item.isEnabled ? 1 : 0.7 }]}>
+                    <View style={styles.cardMain}>
+                      <View style={styles.cardLeft}>
+                        <Text style={[styles.dictTitle, { color: colors.textPrimary }]}>{(getIndex() ?? 0) + 1}. {item.name}</Text>
+                        <Text style={[styles.dictDesc, { color: colors.textSecondary }]}>{item.description}</Text>
+                        <Text style={[styles.dictSource, { color: colors.textMuted }]}>Source: {item.source}</Text>
+                      </View>
+                      <View style={styles.cardRight}>
+                        <Switch value={item.isEnabled} onValueChange={(value) => handleToggleSwitch(item.id, value)} trackColor={{ false: isDark ? '#3A3A3C' : '#D1D1D6', true: isDark ? '#FF6B6B' : '#A31621' }} thumbColor={item.isEnabled ? '#FFFFFF' : (isDark ? '#8E8E93' : '#F4F3F4')} />
+                        <Pressable accessibilityRole="button" accessibilityLabel="Drag to reorder" style={styles.dragHandle} onLongPress={drag} delayLongPress={120}>
+                          <MaterialIcons name="drag-handle" size={24} color={isDark ? '#FF8D8D' : '#A31621'} />
+                        </Pressable>
+                        <Pressable accessibilityRole="button" accessibilityLabel="Remove imported dictionary" style={styles.removeBtn} onPress={() => handleDeleteImportedDictionary(item)}>
+                          <MaterialIcons name="delete-outline" size={20} color={isDark ? '#FF8D8D' : '#A31621'} />
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              />
+              <View style={[styles.importCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={styles.importLeft}>
+                  <MaterialIcons name="upload-file" size={28} color={isDark ? '#FF8D8D' : '#A31621'} style={styles.importIcon} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.importTitle, { color: colors.textPrimary }]}>{ls('importTitle')}</Text>
+                    <Text style={[styles.importDesc, { color: colors.textSecondary }]}>{ls('importDesc')}</Text>
+                  </View>
+                </View>
+                <Pressable style={({ pressed }) => [styles.importBtn, { backgroundColor: pressed || importing ? '#A31621cc' : '#A31621' }]} onPress={handleManualImportPress} disabled={importing}>
+                  <Text style={styles.importBtnText}>{importing ? (activeLang === 'en' ? 'Indexing...' : activeLang === 'it' ? 'Indicizzazione...' : '正在建立索引...') : ls('importBtn')}</Text>
+                </Pressable>
+              </View>
+            </>
+          )}
+          <View style={styles.legacyHidden}>
           
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
             {ls('installedDicts').replace('{count}', String(dicts.length))}
@@ -232,7 +441,7 @@ export default function DictionarySettingsScreen() {
                         idx === 0 && styles.disabledBtn
                       ]} 
                       disabled={idx === 0}
-                      onPress={() => handleMoveUp(idx)}
+                      onPress={() => undefined}
                     >
                       <MaterialIcons 
                         name="keyboard-arrow-up" 
@@ -250,7 +459,7 @@ export default function DictionarySettingsScreen() {
                         idx === dicts.length - 1 && styles.disabledBtn
                       ]} 
                       disabled={idx === dicts.length - 1}
-                      onPress={() => handleMoveDown(idx)}
+                      onPress={() => undefined}
                     >
                       <MaterialIcons 
                         name="keyboard-arrow-down" 
@@ -259,6 +468,16 @@ export default function DictionarySettingsScreen() {
                       />
                     </Pressable>
                   </View>
+                  {!item.isSystem && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Remove imported dictionary"
+                      style={styles.removeBtn}
+                      onPress={() => handleDeleteImportedDictionary(item)}
+                    >
+                      <MaterialIcons name="delete-outline" size={20} color={isDark ? '#FF8D8D' : '#A31621'} />
+                    </Pressable>
+                  )}
                 </View>
               </View>
             </View>
@@ -278,21 +497,27 @@ export default function DictionarySettingsScreen() {
             <Pressable 
               style={({ pressed }) => [
                 styles.importBtn, 
-                { backgroundColor: pressed ? '#A31621cc' : '#A31621' }
+                { backgroundColor: pressed || importing ? '#A31621cc' : '#A31621' }
               ]} 
               onPress={handleManualImportPress}
+              disabled={importing}
             >
-              <Text style={styles.importBtnText}>{ls('importBtn')}</Text>
+              <Text style={styles.importBtnText}>{importing ? (activeLang === 'en' ? 'Importing...' : activeLang === 'it' ? 'Importazione...' : '正在导入...') : ls('importBtn')}</Text>
             </Pressable>
           </View>
 
+          </View>
         </ScrollView>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  gestureRoot: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
@@ -325,14 +550,107 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  progressOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.58)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  progressCard: {
+    width: '100%',
+    maxWidth: 376,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: 'stretch',
+  },
+  progressIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  progressTitle: {
+    fontSize: 19,
+    fontWeight: 'bold',
+    textAlign: 'left',
+    marginBottom: 8,
+  },
+  progressFileName: {
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  progressMessage: {
+    fontSize: 15,
+    lineHeight: 23,
+    marginBottom: 18,
+  },
+  progressTrack: {
+    height: 7,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#A31621',
+  },
+  progressCount: {
+    fontSize: 12,
+    textAlign: 'right',
+    marginTop: 8,
+  },
+  progressSpinner: {
+    alignSelf: 'flex-start',
+    marginBottom: 2,
+  },
+  cancelImportButton: {
+    minHeight: 42,
+    marginTop: 22,
+    borderWidth: 1,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelImportText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
   },
+  groupHeader: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  importGroupHeader: {
+    marginTop: 18,
+  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 6,
+  },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
   },
   sectionSubtitle: {
     fontSize: 12,
@@ -374,12 +692,31 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   cardRight: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+  },
+  dragHandle: {
+    width: 32,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   reorderControls: {
     flexDirection: 'row',
     gap: 8,
+  },
+  removeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  importIcon: {
+    marginRight: 12,
+  },
+  legacyHidden: {
+    display: 'none',
   },
   arrowBtn: {
     width: 32,

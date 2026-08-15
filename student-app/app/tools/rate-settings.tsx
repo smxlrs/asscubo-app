@@ -166,12 +166,15 @@ export default function RateSettingsScreen() {
           const isCollapsed = !isSearching && collapsedContinents.includes(continent);
           return (
             <View key={continent} style={styles.section}>
-              <View style={styles.sectionHeader}>
+              <Pressable
+                style={({ pressed }) => [styles.sectionHeader, pressed && styles.sectionHeaderPressed]}
+                onPress={() => toggleContinent(continent)}
+                accessibilityRole="button"
+                accessibilityLabel={isCollapsed ? `展开${continent}` : `收起${continent}`}
+              >
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{continent}</Text>
-                <Pressable onPress={() => toggleContinent(continent)} hitSlop={10} accessibilityLabel={isCollapsed ? `展开${continent}` : `收起${continent}`}>
-                  <MaterialIcons name={isCollapsed ? 'keyboard-arrow-down' : 'keyboard-arrow-up'} size={22} color={colors.textMuted} />
-                </Pressable>
-              </View>
+                <MaterialIcons name={isCollapsed ? 'keyboard-arrow-down' : 'keyboard-arrow-up'} size={22} color={colors.textMuted} />
+              </Pressable>
               {!isCollapsed && <View style={[styles.sectionList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 {currencies.map((currency, index) => {
                   const isSelected = selected.includes(currency.code);
@@ -222,6 +225,7 @@ const styles = StyleSheet.create({
   listContent: { padding: 16, paddingTop: 8, paddingBottom: 32 },
   section: { marginTop: 16 },
   sectionHeader: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingLeft: 4, paddingRight: 2 },
+  sectionHeaderPressed: { opacity: 0.58 },
   sectionTitle: { fontSize: 13, fontWeight: '700' },
   sectionList: { borderWidth: 1, borderRadius: 8, overflow: 'hidden' },
   currencyRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14 },

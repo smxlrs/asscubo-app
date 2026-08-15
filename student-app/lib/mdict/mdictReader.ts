@@ -1467,4 +1467,115 @@ export class MDX extends Mdict {
         return results;
     }
 }
+
+export interface IndexedMdxStructure {
+    encoding: string;
+    encrypt: number;
+    recordBlockStartOffset: number;
+    recordInfoList: RecordInfo[];
+}
+
+export interface IndexedMdxEntry {
+    keyText: string;
+    recordStartOffset: number;
+    recordEndOffset: number;
+}
+
+// Reads a record from a prebuilt dictionary index without rebuilding MDict's
+// header and key-block structures on the JavaScript thread.
+export class IndexedMDXReader {
+    private scanner: FileScanner;
+    private meta: MdictMeta;
+    private recordInfoList: RecordInfo[];
+    private recordBlockStartOffset: number;
+    private recordBlockCache = new Map<number, Uint8Array>();
+
+    constructor(bytes: Uint8Array, structure: IndexedMdxStructure) {
+        this.scanner = new FileScanner(bytes);
+        this.meta = new MdictMeta();
+        this.meta.encoding = structure.encoding;
+        this.meta.encrypt = structure.encrypt;
+        this.meta.decoder = this.getDecoder(structure.encoding);
+        this.recordInfoList = structure.recordInfoList;
+        this.recordBlockStartOffset = structure.recordBlockStartOffset;
+    }
+
+    private getDecoder(encoding: string): TextDecoder {
+        if (encoding === UTF16) return UTF_16LE_DECODER;
+        if (encoding === BIG5) return BIG5_DECODER;
+        if (encoding === GB18030) return GB18030_DECODER;
+        return UTF_8_DECODER;
+    }
+
+    private reduceRecordBlockInfo(recordStart: number): number {
+        let left = 0;
+        let right = this.recordInfoList.length - 1;
+        while (left <= right) {
+            const mid = left + ((right - left) >> 1);
+            if (recordStart >= this.recordInfoList[mid].unpackAccumulatorOffset) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return left - 1;
+    }
+
+    private decompressRecordBlock(recordBuffer: Uint8Array, unpackSize: number): Uint8Array {
+        if (recordBuffer.length < 8) {
+            throw new Error(`Incomplete record block: received ${recordBuffer.length} bytes`);
+        }
+        const compressionType = recordBuffer[0];
+        if (compressionType === 0) {
+            return recordBuffer.subarray(8);
+        }
+
+        const payload = this.meta.encrypt === 1
+            ? common.mdxDecrypt(recordBuffer)
+            : recordBuffer.subarray(8);
+
+        if (compressionType === 1) {
+            return lzo1x.decompress(payload, unpackSize, 1308672);
+        }
+        if (compressionType === 2) {
+            return pako.inflate(payload);
+        }
+        throw new Error(`Unsupported record compression type: ${compressionType}`);
+    }
+
+    fetch(entry: IndexedMdxEntry): { keyText: string; definition: string | null } {
+        const recordBlockIndex = this.reduceRecordBlockInfo(entry.recordStartOffset);
+        if (recordBlockIndex < 0) {
+            return { keyText: entry.keyText, definition: null };
+        }
+
+        let recordBlock = this.recordBlockCache.get(recordBlockIndex);
+        const recordInfo = this.recordInfoList[recordBlockIndex];
+        if (!recordBlock) {
+            const recordOffset = this.recordBlockStartOffset + recordInfo.packAccumulateOffset;
+            const packed = this.scanner.readBuffer(
+                recordOffset,
+                recordInfo.packSize
+            );
+            if (packed.length !== recordInfo.packSize) {
+                throw new Error(
+                    `Record block is outside the MDX file (offset ${recordOffset}, size ${recordInfo.packSize}, available ${packed.length})`
+                );
+            }
+            recordBlock = this.decompressRecordBlock(packed, recordInfo.unpackSize);
+            this.recordBlockCache.set(recordBlockIndex, recordBlock);
+            if (this.recordBlockCache.size > 20) {
+                const oldestKey = this.recordBlockCache.keys().next().value;
+                if (oldestKey !== undefined) this.recordBlockCache.delete(oldestKey);
+            }
+        }
+
+        const start = entry.recordStartOffset - recordInfo.unpackAccumulatorOffset;
+        const end = entry.recordEndOffset - recordInfo.unpackAccumulatorOffset;
+        return {
+            keyText: entry.keyText,
+            definition: this.meta.decoder.decode(recordBlock.subarray(start, end)),
+        };
+    }
+}
 //# sourceMappingURL=mdx.js.map

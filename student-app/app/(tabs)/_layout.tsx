@@ -88,21 +88,19 @@ function GlassRimHighlight({
   activeBoost?: boolean;
 }) {
   const boost = activeBoost ? 1.35 : 1;
-  const dockVerticalGlowScale = compact ? 1 : 0.34;
-  const dockTopGlowScale = compact ? 1 : 0.38;
-  const topOpacity = (compact ? (isDark ? 0.11 : 0.48) : (isDark ? 0.14 : 0.72)) * boost * dockVerticalGlowScale * dockTopGlowScale;
-  const sideOpacity = (compact ? (isDark ? 0.045 : 0.18) : (isDark ? 0.065 : 0.28)) * boost * dockVerticalGlowScale;
-  const leftGlintOpacity = compact ? (isDark ? 0.10 : 0.36) : (isDark ? 0.055 : 0.20);
-  const leftGlintWidth = compact ? (isDark ? 22 : 28) : (isDark ? 24 : 32);
+  const topOpacity = (compact ? (isDark ? 0.14 : 0.48) : (isDark ? 0.20 : 0.72)) * boost;
+  const sideOpacity = compact ? (isDark ? 0.035 : 0.18) : (isDark ? 0.025 : 0.28);
+  const leftGlintOpacity = compact ? (isDark ? 0.07 : 0.36) : (isDark ? 0.045 : 0.20);
+  const leftGlintWidth = compact ? (isDark ? 16 : 28) : (isDark ? 18 : 32);
   const edgeHighlightColor = compact
     ? (isDark ? `rgba(255,255,255,${activeBoost ? 0.30 : 0.19})` : `rgba(255,255,255,${activeBoost ? 0.66 : 0.48})`)
-    : (isDark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.72)');
+    : (isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.72)');
   const bottomHighlightColor = compact
     ? (isDark ? `rgba(255,255,255,${activeBoost ? 0.32 : 0.21})` : `rgba(255,255,255,${activeBoost ? 0.72 : 0.54})`)
-    : (isDark ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.28)');
+    : (isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.28)');
   const rimColor = compact
     ? (isDark ? `rgba(255,255,255,${activeBoost ? 0.22 : 0.14})` : `rgba(60,60,67,${activeBoost ? 0.20 : 0.13})`)
-    : (isDark ? 'rgba(255,255,255,0.16)' : 'rgba(60,60,67,0.22)');
+    : (isDark ? 'rgba(0,0,0,0.34)' : 'rgba(60,60,67,0.22)');
 
   return (
     <View
@@ -114,7 +112,7 @@ function GlassRimHighlight({
           StyleSheet.absoluteFill,
           {
             borderRadius,
-            borderWidth: compact ? StyleSheet.hairlineWidth : isDark ? 1.25 : 0.75,
+            borderWidth: compact ? StyleSheet.hairlineWidth : isDark ? StyleSheet.hairlineWidth : 0.75,
             borderColor: rimColor,
           },
         ]}
@@ -132,7 +130,7 @@ function GlassRimHighlight({
         style={[
           styles.glassTopSheen,
           {
-            height: compact ? (isDark ? 8 : 19) : (isDark ? 2 : 5),
+            height: compact ? (isDark ? 7 : 19) : (isDark ? 6 : 5),
             borderTopLeftRadius: borderRadius,
             borderTopRightRadius: borderRadius,
           },
@@ -758,17 +756,18 @@ export default function TabsLayout() {
                   styles.dockVisualSurface,
                   styles.glassContainerBorder,
                   {
-                    shadowOpacity: 0,
-                    shadowRadius: 0,
-                    shadowOffset: { width: 0, height: 0 },
-                    elevation: 0,
-                    overflow: 'hidden',
+                    shadowOpacity: isDark ? 0.22 : 0.10,
+                    shadowRadius: isDark ? 20 : 14,
+                    shadowOffset: { width: 0, height: isDark ? 10 : 7 },
+                    elevation: isDark ? 9 : 5,
                   }
                 ]}
               >
-                <GlassBackground borderRadius={TAB_BAR_RADIUS} isDark={isDark} blurStep={glassOpacityLevel} />
-                {isDark ? <View pointerEvents="none" style={styles.darkDockBaseTint} /> : null}
-                <GlassRimHighlight borderRadius={TAB_BAR_RADIUS} isDark={isDark} />
+                <View style={styles.dockVisualClip}>
+                  <GlassBackground borderRadius={TAB_BAR_RADIUS} isDark={isDark} blurStep={glassOpacityLevel} />
+                  {isDark ? <View pointerEvents="none" style={styles.darkDockBaseTint} /> : null}
+                  <GlassRimHighlight borderRadius={TAB_BAR_RADIUS} isDark={isDark} />
+                </View>
               </View>
 
               {sliderBoostActive ? (
@@ -1039,6 +1038,15 @@ const styles = StyleSheet.create({
     right: DOCK_VISUAL_SIDE_INSET,
     bottom: 0,
   },
+  dockVisualClip: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: TAB_BAR_RADIUS,
+    overflow: 'hidden',
+  },
   dockOpticalLayer: {
     position: 'absolute',
     top: 0,
@@ -1056,7 +1064,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(120, 120, 128, 0.14)',
+    backgroundColor: 'rgba(104, 110, 122, 0.09)',
   },
   dockOpticalSourceClip: {
     position: 'absolute',
@@ -1131,10 +1139,10 @@ const styles = StyleSheet.create({
   glassContainerBorder: {
     borderRadius: TAB_BAR_RADIUS,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 8,
   },
   glassContainerInner: {
     position: 'absolute',

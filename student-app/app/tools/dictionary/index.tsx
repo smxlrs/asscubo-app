@@ -28,6 +28,7 @@ import {
   isMDXInstanceLoaded,
   getSingleDefinition,
 } from '../../../lib/db';
+import { hasBundledDictionaryIndex, warmBundledDictionaryIndex } from '../../../lib/dictionaryIndex';
 
 const { width } = Dimensions.get('window');
 const HISTORY_LIMIT = 20;
@@ -725,6 +726,36 @@ export default function DictionaryScreen() {
           const dicts = await loadDictionariesConfig();
           setDictionaries(dicts);
 
+          // Start the primary dictionary as soon as configuration is available so its
+          // initialization overlaps with loading history and view preferences.
+          const enabledIds = dicts
+            .filter(d => d.isEnabled)
+            .sort((a, b) => a.orderIndex - b.orderIndex)
+            .map(d => d.id);
+
+          // Start copying the prebuilt index before the user enters a word.
+          void warmBundledDictionaryIndex(enabledIds);
+
+          const importedIds = enabledIds.filter(id => !hasBundledDictionaryIndex(id));
+          if (importedIds.length > 0) {
+            void (async () => {
+              try {
+                console.log(`[Dictionary] Preloading imported dictionary: ${importedIds[0]}`);
+                await getOrLoadMDXInstance(importedIds[0]);
+                console.log(`[Dictionary] Imported dictionary ${importedIds[0]} preloaded`);
+
+                if (importedIds.length > 1) {
+                  await new Promise(resolve => setTimeout(resolve, 1500));
+                  console.log(`[Dictionary] Preloading imported dictionary: ${importedIds[1]}`);
+                  await getOrLoadMDXInstance(importedIds[1]);
+                  console.log(`[Dictionary] Imported dictionary ${importedIds[1]} preloaded`);
+                }
+              } catch (err) {
+                console.warn('[Dictionary] Background preloading failed:', err);
+              }
+            })();
+          }
+
           // Load search history
           const storedHistory = await AsyncStorage.getItem(HISTORY_KEY);
           if (storedHistory) {
@@ -739,30 +770,6 @@ export default function DictionaryScreen() {
             collapsedDictsRef.current = parsed;
           }
 
-          // Preload the first few enabled dictionaries silently in the background
-          const enabledIds = dicts
-            .filter(d => d.isEnabled)
-            .sort((a, b) => a.orderIndex - b.orderIndex)
-            .map(d => d.id);
-          
-          if (enabledIds.length > 0) {
-            setTimeout(async () => {
-              try {
-                console.log(`[Dictionary] Preloading primary dictionary: ${enabledIds[0]}`);
-                await getOrLoadMDXInstance(enabledIds[0]);
-                console.log(`[Dictionary] Primary dictionary ${enabledIds[0]} preloaded`);
-
-                if (enabledIds.length > 1) {
-                  await new Promise(resolve => setTimeout(resolve, 1500));
-                  console.log(`[Dictionary] Preloading secondary dictionary: ${enabledIds[1]}`);
-                  await getOrLoadMDXInstance(enabledIds[1]);
-                  console.log(`[Dictionary] Secondary dictionary ${enabledIds[1]} preloaded`);
-                }
-              } catch (err) {
-                console.warn('[Dictionary] Background preloading failed:', err);
-              }
-            }, 300);
-          }
         } catch (e) {
           console.error('Failed to init dictionary screen:', e);
         } finally {
@@ -840,8 +847,12 @@ export default function DictionaryScreen() {
       await saveToHistory(word);
 
       // Separate enabled dictionaries by their loaded status
-      const loadedDictIds = enabledDictIds.filter(id => isMDXInstanceLoaded(id));
-      const pendingDictIds = enabledDictIds.filter(id => !isMDXInstanceLoaded(id));
+      const loadedDictIds = enabledDictIds.filter(
+        id => isMDXInstanceLoaded(id) || hasBundledDictionaryIndex(id)
+      );
+      const pendingDictIds = enabledDictIds.filter(
+        id => !isMDXInstanceLoaded(id) && !hasBundledDictionaryIndex(id)
+      );
 
       const initialDefs: { dict_id: string; definition: string }[] = [];
 
@@ -885,53 +896,60 @@ export default function DictionaryScreen() {
         setBackgroundProgress({ loaded: 0, total: pendingDictIds.length });
 
         (async () => {
+          let nextIndex = 0;
           let loadedCount = 0;
           const currentWord = word;
-          
-          for (const dictId of pendingDictIds) {
-            // Stop background loading if search target changed
-            if (currentSearchRef.current !== currentWord) break;
-            
-            try {
-              // Yield control to let React Native UI thread paint and keep animations fluid, giving GC enough time
-              await new Promise(resolve => setTimeout(resolve, 250));
-              if (currentSearchRef.current !== currentWord) break;
-              
-              const def = await getSingleDefinition(currentWord, dictId);
-              if (currentSearchRef.current !== currentWord) break;
-              
-              if (def) {
-                setDefinitions(prev => {
-                  if (currentSearchRef.current !== currentWord) return prev;
-                  const newDefs = [...prev, def];
-                  // Maintain user preferred dictionary display order
-                  return newDefs.sort((a, b) => {
-                    const idxA = enabledDictIds.indexOf(a.dict_id);
-                    const idxB = enabledDictIds.indexOf(b.dict_id);
-                    return idxA - idxB;
-                  });
-                });
+          const workerCount = Math.min(3, pendingDictIds.length);
 
-                // Inject dynamically to WebView without page reload
-                const defJson = JSON.stringify(def).replace(/</g, '\\u003c');
-                webviewRef.current?.injectJavaScript(`
-                  if (window.appendDefinition) {
-                    window.appendDefinition(${defJson});
-                  } else {
-                    window.PENDING_DEFS = window.PENDING_DEFS || [];
-                    window.PENDING_DEFS.push(${defJson});
-                  }
-                `);
-              }
-            } catch (err) {
-              console.error(`Progressive background lookup error for ${dictId}:`, err);
-            } finally {
-              if (currentSearchRef.current === currentWord) {
-                loadedCount++;
-                setBackgroundProgress({ loaded: loadedCount, total: pendingDictIds.length });
+          // Let the initial results paint, then load a small bounded batch. Loading all
+          // MDX files at once causes avoidable memory pressure on lower-end devices.
+          await new Promise(resolve => setTimeout(resolve, 0));
+
+          const loadNext = async () => {
+            while (currentSearchRef.current === currentWord) {
+              const index = nextIndex++;
+              if (index >= pendingDictIds.length) return;
+              const dictId = pendingDictIds[index];
+
+              try {
+                const def = await getSingleDefinition(currentWord, dictId);
+                if (currentSearchRef.current !== currentWord) return;
+
+                if (def) {
+                  setDefinitions(prev => {
+                    if (currentSearchRef.current !== currentWord) return prev;
+                    const newDefs = [...prev, def];
+                    // Maintain user preferred dictionary display order
+                    return newDefs.sort((a, b) => {
+                      const idxA = enabledDictIds.indexOf(a.dict_id);
+                      const idxB = enabledDictIds.indexOf(b.dict_id);
+                      return idxA - idxB;
+                    });
+                  });
+
+                  // Inject dynamically to WebView without page reload
+                  const defJson = JSON.stringify(def).replace(/</g, '\\u003c');
+                  webviewRef.current?.injectJavaScript(`
+                    if (window.appendDefinition) {
+                      window.appendDefinition(${defJson});
+                    } else {
+                      window.PENDING_DEFS = window.PENDING_DEFS || [];
+                      window.PENDING_DEFS.push(${defJson});
+                    }
+                  `);
+                }
+              } catch (err) {
+                console.error(`Progressive background lookup error for ${dictId}:`, err);
+              } finally {
+                if (currentSearchRef.current === currentWord) {
+                  loadedCount++;
+                  setBackgroundProgress({ loaded: loadedCount, total: pendingDictIds.length });
+                }
               }
             }
-          }
+          };
+
+          await Promise.all(Array.from({ length: workerCount }, () => loadNext()));
           
           if (currentSearchRef.current === currentWord) {
             setBackgroundSearching(false);

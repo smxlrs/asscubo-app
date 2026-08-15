@@ -43,6 +43,13 @@ function serialize(value: unknown): string {
   }
 }
 
+function isIgnoredDevelopmentWarning(args: unknown[]): boolean {
+  const message = args.map(serialize).join(' ');
+  // react-native-draggable-flatlist currently triggers this React Native 0.85
+  // deprecation warning internally. It is not actionable for app users.
+  return message.includes('InteractionManager has been deprecated');
+}
+
 function schedulePersist() {
   if (!debugEnabled) return;
   if (persistTimer) clearTimeout(persistTimer);
@@ -140,6 +147,7 @@ export function initLogger() {
     originalConsole.log.apply(console, args);
   };
   console.warn = (...args) => {
+    if (isIgnoredDevelopmentWarning(args)) return;
     recordDebugEvent('console', args.map(serialize).join(' '), undefined, 'warn');
     originalConsole.warn.apply(console, args);
   };

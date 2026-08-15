@@ -1,8 +1,16 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import { File } from 'expo-file-system';
 import { Asset } from 'expo-asset';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MDX } from './mdict/mdictReader';
-import * as base64js from 'base64-js';
+import {
+  buildImportedDictionaryIndex,
+  type DictionaryIndexProgress,
+  getIndexedDefinition,
+  getIndexedSuggestions,
+  hasPersistentDictionaryIndex,
+  removeImportedDictionaryIndex,
+} from './dictionaryIndex';
 
 export type DictionaryInfo = {
   id: string;
@@ -42,58 +50,6 @@ const DICT_ASSETS: { [key: string]: any } = {
 // Global cache for loaded MDX instances
 const mdxInstances: { [dictId: string]: MDX } = {};
 const mdxLoadingPromises: { [dictId: string]: Promise<MDX | null> } = {};
-
-// Base64 to Uint8Array decoder (high-performance pure JS implementation)
-const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-const lookup = new Uint8Array(256);
-for (let i = 0; i < chars.length; i++) {
-  lookup[chars.charCodeAt(i)] = i;
-}
-
-function base64ToBytes(b64: string): Uint8Array {
-  // 1. Try modern native Uint8Array.fromBase64 (Hermes/ES2024 native)
-  if (typeof (Uint8Array as any).fromBase64 === 'function') {
-    try {
-      return (Uint8Array as any).fromBase64(b64);
-    } catch (e) {
-      // Fallback
-    }
-  }
-
-  // 2. Try community optimized library base64-js
-  try {
-    return base64js.toByteArray(b64);
-  } catch (e) {
-    // Fallback
-  }
-
-  // 3. Custom JS fallback
-  const len = b64.length;
-  let placeHolders = 0;
-  if (b64[len - 1] === '=') {
-    placeHolders = 1;
-    if (b64[len - 2] === '=') {
-      placeHolders = 2;
-    }
-  }
-  
-  const bytes = new Uint8Array((len * 3 / 4) - placeHolders);
-  let g = 0;
-  
-  for (let i = 0; i < len; i += 4) {
-    const chunk = 
-      (lookup[b64.charCodeAt(i)] << 18) |
-      (lookup[b64.charCodeAt(i + 1)] << 12) |
-      (lookup[b64.charCodeAt(i + 2)] << 6) |
-      lookup[b64.charCodeAt(i + 3)];
-      
-    bytes[g++] = (chunk >> 16) & 0xff;
-    if (g < bytes.length) bytes[g++] = (chunk >> 8) & 0xff;
-    if (g < bytes.length) bytes[g++] = chunk & 0xff;
-  }
-  
-  return bytes;
-}
 
 // Accent normalization for search friendliness
 export function cleanWord(word: string): string {
@@ -146,6 +102,22 @@ async function safeCopyAsset(dictId: string, localPath: string): Promise<boolean
   return false;
 }
 
+async function bundledAssetSize(dictId: string): Promise<number | null> {
+  const assetRef = DICT_ASSETS[dictId];
+  if (!assetRef) return null;
+
+  try {
+    const asset = Asset.fromModule(assetRef);
+    await asset.downloadAsync();
+    if (!asset.localUri) return null;
+    const assetInfo = await FileSystem.getInfoAsync(asset.localUri);
+    return assetInfo.exists && typeof assetInfo.size === 'number' ? assetInfo.size : null;
+  } catch (error) {
+    console.warn(`Unable to verify bundled dictionary ${dictId}:`, error);
+    return null;
+  }
+}
+
 // Copy MDX assets to local directory
 export async function initDatabase(): Promise<any> {
   const dirInfo = await FileSystem.getInfoAsync(DICT_DIR);
@@ -166,8 +138,10 @@ export async function initDatabase(): Promise<any> {
 
     const localPath = `${DICT_DIR}/${dict.id}.mdx`;
     const localInfo = await FileSystem.getInfoAsync(localPath);
-    // If not exists or size is 0 (broken copy), perform a safe atomic copy
-    if (!localInfo.exists || localInfo.size === 0) {
+    const expectedSize = await bundledAssetSize(dict.id);
+    // A previous app version may have left a valid but different MDX behind.
+    // Its record offsets cannot be used with the current prebuilt index.
+    if (!localInfo.exists || localInfo.size === 0 || (expectedSize !== null && localInfo.size !== expectedSize)) {
       console.log(`Copying dictionary ${dict.name} to local storage...`);
       await safeCopyAsset(dict.id, localPath);
     }
@@ -233,11 +207,10 @@ export async function getOrLoadMDXInstance(dictId: string): Promise<MDX | null> 
       console.log(`Loading MDX file into memory with 6s timeout: ${dictId}...`);
       const startLoad = Date.now();
 
-      // Wrap FileSystem.readAsStringAsync and MDX instantiation in a timeout race to prevent bridge freeze
+      // Read bytes natively to avoid a large Base64 string and a second JS-side decode.
       const loadAndParsePromise = (async () => {
-        const base64 = await FileSystem.readAsStringAsync(localPath, { encoding: 'base64' });
-        const bytes = base64ToBytes(base64);
-        console.log(`Decoded base64 for ${dictId} in ${Date.now() - startLoad}ms. File size: ${bytes.length} bytes.`);
+        const bytes = await new File(localPath).bytes();
+        console.log(`Read MDX bytes for ${dictId} in ${Date.now() - startLoad}ms. File size: ${bytes.length} bytes.`);
         
         const startParse = Date.now();
         const mdx = new MDX(bytes, undefined);
@@ -304,6 +277,104 @@ export async function saveDictionariesConfig(config: DictionaryInfo[]): Promise<
   }
 }
 
+function importedDictionaryId(): string {
+  return `imported_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function importedDictionaryName(fileName: string): string {
+  return fileName
+    .replace(/\.mdx$/i, '')
+    .replace(/[\\/:*?"<>|]/g, ' ')
+    .trim()
+    .slice(0, 80) || 'Imported dictionary';
+}
+
+export async function importDictionaryFile(
+  sourceFile: File,
+  fileName: string,
+  options: {
+    onProgress?: (phase: 'copying' | 'reading' | 'indexing', progress?: DictionaryIndexProgress) => void;
+    shouldCancel?: () => boolean;
+  } = {}
+): Promise<DictionaryInfo> {
+  if (!/\.mdx$/i.test(fileName)) {
+    throw new Error('Please select an .mdx dictionary file.');
+  }
+
+  const id = importedDictionaryId();
+  const localPath = `${DICT_DIR}/${id}.mdx`;
+  const tempPath = `${localPath}.tmp`;
+
+  try {
+    if (options.shouldCancel?.()) throw new Error('Dictionary import was cancelled.');
+    const dirInfo = await FileSystem.getInfoAsync(DICT_DIR);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(DICT_DIR, { intermediates: true });
+    }
+
+    options.onProgress?.('copying');
+    // Keep the File instance returned by the system picker so its Android
+    // provider permission is retained through the copy operation.
+    await sourceFile.copy(new File(tempPath));
+    if (options.shouldCancel?.()) throw new Error('Dictionary import was cancelled.');
+    const copiedInfo = await FileSystem.getInfoAsync(tempPath);
+    if (!copiedInfo.exists || !copiedInfo.size) {
+      throw new Error('The selected file is empty or could not be copied.');
+    }
+
+    // Validate before making the import visible or replacing its temporary file.
+    options.onProgress?.('reading');
+    const bytes = await new File(tempPath).bytes();
+    const mdx = new MDX(bytes, undefined);
+    if (!mdx.meta?.encoding) {
+      throw new Error('The selected file is not a supported MDict dictionary.');
+    }
+
+    await FileSystem.moveAsync({ from: tempPath, to: localPath });
+    options.onProgress?.('indexing', { completed: 0, total: 0 });
+    await buildImportedDictionaryIndex(id, copiedInfo.size, mdx, {
+      shouldCancel: options.shouldCancel,
+      onProgress: (progress) => options.onProgress?.('indexing', progress),
+    });
+    mdx.close();
+
+    const config = await loadDictionariesConfig();
+    const dictionary: DictionaryInfo = {
+      id,
+      name: importedDictionaryName(fileName),
+      description: 'User imported MDict dictionary',
+      isEnabled: true,
+      orderIndex: config.length + 1,
+      isSystem: false,
+      source: fileName,
+    };
+    await saveDictionariesConfig([...config, dictionary]);
+    return dictionary;
+  } catch (error) {
+    delete mdxInstances[id];
+    await FileSystem.deleteAsync(tempPath, { idempotent: true }).catch(() => undefined);
+    await FileSystem.deleteAsync(localPath, { idempotent: true }).catch(() => undefined);
+    throw error;
+  }
+}
+
+export async function removeImportedDictionary(dictId: string): Promise<void> {
+  if (!dictId.startsWith('imported_')) return;
+
+  const instance = mdxInstances[dictId];
+  instance?.close?.();
+  delete mdxInstances[dictId];
+  delete mdxLoadingPromises[dictId];
+
+  await removeImportedDictionaryIndex(dictId);
+  await FileSystem.deleteAsync(`${DICT_DIR}/${dictId}.mdx`, { idempotent: true });
+  const config = await loadDictionariesConfig();
+  const remaining = config
+    .filter((dictionary) => dictionary.id !== dictId)
+    .map((dictionary, index) => ({ ...dictionary, orderIndex: index + 1 }));
+  await saveDictionariesConfig(remaining);
+}
+
 // Strip HTML tags and return a clean text snippet
 export function stripHtml(html: string): string {
   if (!html) return '';
@@ -323,22 +394,35 @@ export async function searchWords(query: string, enabledDictIds: string[]): Prom
   const cleanedQuery = cleanWord(query);
   if (!cleanedQuery) return [];
 
-  // If no dictionaries are loaded at all in memory, load the first enabled one on-demand
-  // so that suggestions work instantly for the first search
-  let loadedCount = enabledDictIds.filter(id => !!mdxInstances[id]).length;
-  if (loadedCount === 0 && enabledDictIds.length > 0) {
+  const allSuggestions: SuggestionItem[] = [];
+  const seen = new Set<string>();
+
+  // Built-in dictionaries use the persistent index before any MDX parser is created.
+  const indexedSuggestions = await getIndexedSuggestions(cleanedQuery, enabledDictIds);
+  for (const keyText of indexedSuggestions) {
+    if (!seen.has(keyText)) {
+      seen.add(keyText);
+      allSuggestions.push({ word: keyText, definition: '' });
+    }
+  }
+
+  // Only dictionaries without any persistent index need the compatible MDX path.
+  const indexFlags = await Promise.all(
+    enabledDictIds.map(async (id) => [id, await hasPersistentDictionaryIndex(id)] as const)
+  );
+  const indexedIds = new Set(indexFlags.filter(([, indexed]) => indexed).map(([id]) => id));
+  const unindexedIds = enabledDictIds.filter((id) => !indexedIds.has(id));
+  const loadedCount = unindexedIds.filter(id => !!mdxInstances[id]).length;
+  if (loadedCount === 0 && unindexedIds.length > 0) {
     try {
-      await getOrLoadMDXInstance(enabledDictIds[0]);
+      await getOrLoadMDXInstance(unindexedIds[0]);
     } catch (e) {
       console.warn(`Failed to on-demand load first dictionary for suggestions:`, e);
     }
   }
 
-  const allSuggestions: SuggestionItem[] = [];
-  const seen = new Set<string>();
-
   // Fetch prefix matching suggestions from each dictionary
-  for (const dictId of enabledDictIds) {
+  for (const dictId of unindexedIds) {
     try {
       // Only search in dictionaries that are already loaded in memory to prevent typing lag
       const mdx = mdxInstances[dictId];
@@ -391,6 +475,11 @@ export async function getDefinitions(word: string, enabledDictIds: string[]): Pr
 
   const lookupPromises = enabledDictIds.map(async (dictId) => {
     try {
+      const indexed = await getIndexedDefinition(dictId, cleanedTarget);
+      if (indexed.handled) {
+        return indexed.definition ? { dict_id: dictId, definition: indexed.definition } : null;
+      }
+
       const mdx = await getOrLoadMDXInstance(dictId);
       if (!mdx) return null;
 
@@ -453,6 +542,11 @@ export async function getSingleDefinition(word: string, dictId: string): Promise
   const cleanedTarget = cleanWord(word);
 
   try {
+    const indexed = await getIndexedDefinition(dictId, cleanedTarget);
+    if (indexed.handled) {
+      return indexed.definition ? { dict_id: dictId, definition: indexed.definition } : null;
+    }
+
     const mdx = await getOrLoadMDXInstance(dictId);
     if (!mdx) return null;
 
