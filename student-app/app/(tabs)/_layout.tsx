@@ -1,13 +1,14 @@
 import { Tabs, router } from 'expo-router';
-import { View, Text, Animated, StyleSheet, Easing, Pressable, Platform, Dimensions, LayoutChangeEvent, PanResponder } from 'react-native';
+import { View, Text, Animated, StyleSheet, Easing, Pressable, Platform, Dimensions, LayoutChangeEvent } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import React, { useRef, useEffect, useState } from 'react';
 import { useQuickActionRouting } from 'expo-quick-actions/router';
-import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, interpolateColor } from 'react-native-reanimated';
+import Reanimated, { runOnJS, useSharedValue, useAnimatedStyle, withSpring, interpolateColor } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { GlassBackground } from '../../components/GlassBackground';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TAB_BAR_SCALE = 0.9;
@@ -20,6 +21,7 @@ const SLIDER_TAB_INSET = 7 * TAB_BAR_SCALE;
 const SLIDER_TOP_INSET = 3 * TAB_BAR_SCALE;
 const SLIDER_HEIGHT = TAB_BAR_HEIGHT - SLIDER_TOP_INSET * 2;
 const SLIDER_RADIUS = SLIDER_HEIGHT / 2;
+const SLIDER_PRESS_GROWTH = 0.2;
 const DOCK_CONTENT_HORIZONTAL_PADDING = 8;
 const DOCK_VISUAL_SIDE_INSET = DOCK_CONTENT_HORIZONTAL_PADDING;
 const INITIAL_TAB_BAR_WIDTH = SCREEN_WIDTH - TAB_BAR_HORIZONTAL_INSET * 2;
@@ -81,42 +83,43 @@ function GlassRimHighlight({
   isDark,
   compact = false,
   activeBoost = false,
+  surfaceWidth,
 }: {
   borderRadius: number;
   isDark: boolean;
   compact?: boolean;
   activeBoost?: boolean;
+  surfaceWidth?: number;
 }) {
   const boost = activeBoost ? 1.35 : 1;
   const topOpacity = (compact ? (isDark ? 0.14 : 0.48) : (isDark ? 0.20 : 0.72)) * boost;
   const sideOpacity = compact ? (isDark ? 0.035 : 0.18) : (isDark ? 0.025 : 0.28);
   const leftGlintOpacity = compact ? (isDark ? 0.07 : 0.36) : (isDark ? 0.045 : 0.20);
   const leftGlintWidth = compact ? (isDark ? 16 : 28) : (isDark ? 18 : 32);
-  const edgeHighlightColor = compact
-    ? (isDark ? `rgba(255,255,255,${activeBoost ? 0.30 : 0.19})` : `rgba(255,255,255,${activeBoost ? 0.66 : 0.48})`)
-    : (isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.72)');
   const bottomHighlightColor = compact
     ? (isDark ? `rgba(255,255,255,${activeBoost ? 0.32 : 0.21})` : `rgba(255,255,255,${activeBoost ? 0.72 : 0.54})`)
-    : (isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.28)');
-  const rimColor = compact
-    ? (isDark ? `rgba(255,255,255,${activeBoost ? 0.22 : 0.14})` : `rgba(60,60,67,${activeBoost ? 0.20 : 0.13})`)
-    : (isDark ? 'rgba(0,0,0,0.34)' : 'rgba(60,60,67,0.22)');
+    : (isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.50)');
+  const rimColor = isDark
+    ? `rgba(255,255,255,${activeBoost ? 0.22 : 0.14})`
+    : `rgba(60,60,67,${activeBoost ? 0.20 : 0.13})`;
 
   return (
     <View
       pointerEvents="none"
       style={[StyleSheet.absoluteFill, { borderRadius, overflow: 'hidden' }]}
     >
-      <View
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            borderRadius,
-            borderWidth: compact ? StyleSheet.hairlineWidth : isDark ? StyleSheet.hairlineWidth : 0.75,
-            borderColor: rimColor,
-          },
-        ]}
-      />
+      {compact ? (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: rimColor,
+            },
+          ]}
+        />
+      ) : null}
       <LinearGradient
         pointerEvents="none"
         colors={[
@@ -153,9 +156,35 @@ function GlassRimHighlight({
           },
         ]}
       />
-      <View
-        style={styles.glassBottomRim}
-      />
+      {!compact && surfaceWidth ? (
+        <Svg
+          pointerEvents="none"
+          width={surfaceWidth}
+          height={TAB_BAR_HEIGHT}
+          viewBox={`0 0 ${surfaceWidth} ${TAB_BAR_HEIGHT}`}
+          style={StyleSheet.absoluteFill}
+        >
+          <Defs>
+            <SvgLinearGradient id="dock-rim" x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0" stopColor={isDark ? '#FFFFFF' : '#3C3C43'} stopOpacity={isDark ? 0.24 : 0.24} />
+              <Stop offset="0.42" stopColor={isDark ? '#FFFFFF' : '#3C3C43'} stopOpacity={isDark ? 0.08 : 0.18} />
+              <Stop offset="0.70" stopColor={isDark ? '#FFFFFF' : '#3C3C43'} stopOpacity={isDark ? 0.10 : 0.22} />
+              <Stop offset="1" stopColor={isDark ? '#FFFFFF' : '#3C3C43'} stopOpacity={isDark ? 0.22 : 0.30} />
+            </SvgLinearGradient>
+          </Defs>
+          <Rect
+            x={0.5}
+            y={0.5}
+            width={Math.max(0, surfaceWidth - 1)}
+            height={TAB_BAR_HEIGHT - 1}
+            rx={Math.max(0, borderRadius - 0.5)}
+            ry={Math.max(0, borderRadius - 0.5)}
+            fill="none"
+            stroke="url(#dock-rim)"
+            strokeWidth={1.05}
+          />
+        </Svg>
+      ) : null}
       <LinearGradient
         pointerEvents="none"
         colors={[
@@ -264,59 +293,64 @@ function TabIcon({ label, iconName, focused, activeColor, inactiveColor }: { lab
   );
 }
 
-function DockOpticalTabItem({
+function DockMorphIcon({
+  name,
+  color,
+  focused,
+  size = 21,
+}: {
+  name: BootstrapTabIconName;
+  color: string;
+  focused: boolean;
+  size?: number;
+}) {
+  return (
+    <View style={{ width: size, height: size }}>
+      <BootstrapTabIcon name={name} focused={focused} size={size} color={color} />
+    </View>
+  );
+}
+
+function DockMorphTabItem({
   label,
   iconName,
-  focused,
   isDark,
+  focused,
+  hideLabel = false,
+  hideIcon = false,
 }: {
   label: string;
   iconName: BootstrapTabIconName;
-  focused: boolean;
   isDark: boolean;
+  focused: boolean;
+  hideLabel?: boolean;
+  hideIcon?: boolean;
 }) {
   const itemColor = isDark ? '#FFFFFF' : '#000000';
+  const iconSize = 21;
 
   return (
     <View style={styles.dockOpticalTabItem}>
-      <BootstrapTabIcon name={iconName} focused={focused} size={21} color={itemColor} />
+      <View style={{ opacity: hideIcon ? 0 : 1 }}>
+        <DockMorphIcon
+          name={iconName}
+          color={itemColor}
+          focused={focused}
+          size={iconSize}
+        />
+      </View>
       <Text
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.8}
         style={[
           styles.dockOpticalTabLabel,
-          { color: itemColor, fontWeight: focused ? '600' : '400' },
+          { color: itemColor, fontWeight: '500', opacity: hideLabel ? 0 : 1 },
         ]}
       >
         {label}
       </Text>
     </View>
-  );
-}
-
-function DockTabSlot({
-  item,
-  focused,
-  empty = false,
-  isDark,
-}: {
-  item: { label: string; iconName: BootstrapTabIconName };
-  focused: boolean;
-  empty?: boolean;
-  isDark: boolean;
-}) {
-  if (empty) {
-    return <View style={styles.dockOpticalTabItem} />;
-  }
-
-  return (
-    <DockOpticalTabItem
-      label={item.label}
-      iconName={item.iconName}
-      focused={focused}
-      isDark={isDark}
-    />
   );
 }
 
@@ -345,24 +379,15 @@ export default function TabsLayout() {
   // Reanimated shared values
   const leftPosition = useSharedValue(initialSliderCenterX - initialHalfWidth);
   const rightPosition = useSharedValue(initialSliderCenterX + initialHalfWidth);
-  const staticWidth = useSharedValue(initialSliderWidth);
   const glowColorProgress = useSharedValue(0);
   const sliderPressProgress = useSharedValue(0);
+  const tabBarWidthShared = useSharedValue(INITIAL_TAB_BAR_WIDTH);
+  const activeIndexShared = useSharedValue(0);
+  const dragStartCenterX = useSharedValue(initialSliderCenterX);
+  const dragTargetIndex = useSharedValue(0);
 
   const prevIndexRef = useRef(0);
-
-  // Drag gesture tracking state & PanResponder factory
-  const stateRef = useRef({ activeIndex, tabBarWidth });
-  useEffect(() => {
-    stateRef.current = { activeIndex, tabBarWidth };
-  }, [activeIndex, tabBarWidth]);
-
   const isDraggingRef = useRef(false);
-  const isReleasingRef = useRef(false);
-  const startTabRef = useRef(3);
-  const lastDraggedIndexRef = useRef(0);
-  // Tracks the intended tab route during a continuous gesture (updates immediately)
-  const navigatedTabRef = useRef(0);
 
   const setSliderPressed = (pressed: boolean) => {
     setIsSliderPressed(pressed);
@@ -373,187 +398,93 @@ export default function TabsLayout() {
     });
   };
 
-  const createPanResponder = (k: number) => {
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only trigger if horizontal movement is dominant (prevents accidentally intercepting vertical scrolls)
-        return stateRef.current.activeIndex === k && 
-               Math.abs(gestureState.dx) > 5 && 
-               Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-      },
-      onPanResponderGrant: () => {
-        isDraggingRef.current = true;
-        setIsDragging(true);
-        setSliderPressed(true);
-        startTabRef.current = stateRef.current.activeIndex;
-        lastDraggedIndexRef.current = stateRef.current.activeIndex;
-        navigatedTabRef.current = stateRef.current.activeIndex;
-        setTabGestureActive(true);
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        const { tabBarWidth: currentTabBarWidth } = stateRef.current;
-        const dockContentWidth = Math.max(0, currentTabBarWidth - DOCK_CONTENT_HORIZONTAL_PADDING * 2);
-        const tabWidth = dockContentWidth / 4;
-        const startTab = startTabRef.current;
-        const startCenterX = DOCK_CONTENT_HORIZONTAL_PADDING + (startTab + 0.5) * tabWidth;
-        let dragCenterX = startCenterX + gestureState.dx;
-
-        const minCenterX = DOCK_CONTENT_HORIZONTAL_PADDING + 0.5 * tabWidth;
-        const maxCenterX = DOCK_CONTENT_HORIZONTAL_PADDING + 3.5 * tabWidth;
-        dragCenterX = Math.max(minCenterX, Math.min(maxCenterX, dragCenterX));
-
-        const sliderW = tabWidth - SLIDER_TAB_INSET;
-        const halfWidth = sliderW / 2;
-
-        // Wrap the real-time slider position in a tight spring.
-        // This acts as a shock absorber: if the JS thread drops a frame due to router.navigate,
-        // the UI thread will gracefully interpolate the position rather than freezing and jumping!
-        leftPosition.value = withSpring(dragCenterX - halfWidth, { damping: 28, stiffness: 260, mass: 0.8 });
-        rightPosition.value = withSpring(dragCenterX + halfWidth, { damping: 28, stiffness: 260, mass: 0.8 });
-
-        // Smooth real-time background color transition as we drag!
-        glowColorProgress.value = withSpring((dragCenterX - DOCK_CONTENT_HORIZONTAL_PADDING) / tabWidth - 0.5, { damping: 28, stiffness: 260, mass: 0.8 });
-
-        const nearestTab = Math.round((dragCenterX - DOCK_CONTENT_HORIZONTAL_PADDING) / tabWidth - 0.5);
-        const nearestTabConstrained = Math.min(3, Math.max(0, nearestTab));
-
-        lastDraggedIndexRef.current = nearestTabConstrained;
-
-        // If we cross a midpoint into a new tab zone, navigate to it immediately.
-        if (nearestTabConstrained !== navigatedTabRef.current) {
-          const targetPath = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'][nearestTabConstrained];
-          navigatedTabRef.current = nearestTabConstrained;
-          
-          // Defer the heavy React Navigation (unmount/mount) to the next JS tick.
-          setTimeout(() => {
-            router.navigate(targetPath);
-          }, 16); 
-        }
-
-        // Calculate and set the opacity for EVERY tab based on its physical distance from the slider!
-        // This is a revolutionary fix: because each tab has its own independent opacity value,
-        // the old tab naturally fades out while the new tab naturally fades in, completely independent of
-        // React Navigation's delayed render cycle. This prevents ANY possibility of flashing.
-        for (let i = 0; i < 4; i++) {
-          const tabCenter = DOCK_CONTENT_HORIZONTAL_PADDING + (i + 0.5) * tabWidth;
-          const distFromActive = Math.abs(dragCenterX - tabCenter);
-          // By dividing by 0.55 * tabWidth, at exactly the midpoint (0.5W), the opacity doesn't drop
-          // completely to 0, ensuring a smoother visual handover between the old and new pages.
-          const normalizedDist = Math.min(1, distFromActive / (0.55 * tabWidth));
-          // Use quadratic curve for buttery smooth visual fading (1 - x^2)
-          const opacityVal = Math.max(0, 1.0 - Math.pow(normalizedDist, 2));
-          tabOpacities[i].setValue(opacityVal);
-        }
-
-        if (nearestTabConstrained !== stateRef.current.activeIndex) {
-          setActiveIndex(nearestTabConstrained);
-        }
-      },
-      onPanResponderRelease: () => {
-        isDraggingRef.current = false;
-        isReleasingRef.current = true;
-        setIsDragging(false);
-        setSliderPressed(false);
-        const { tabBarWidth: currentTabBarWidth } = stateRef.current;
-        const dockContentWidth = Math.max(0, currentTabBarWidth - DOCK_CONTENT_HORIZONTAL_PADDING * 2);
-        const tabWidth = dockContentWidth / 4;
-        const sliderW = tabWidth - SLIDER_TAB_INSET;
-
-        const targetIndex = lastDraggedIndexRef.current;
-        const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
-
-        // Failsafe: if we somehow released before triggering the final navigate
-        if (targetIndex !== navigatedTabRef.current) {
-          navigatedTabRef.current = targetIndex;
-          router.navigate(tabPaths[targetIndex]);
-        }
-
-        const finalCenterX = DOCK_CONTENT_HORIZONTAL_PADDING + (targetIndex + 0.5) * tabWidth;
-        const finalLeft = finalCenterX - (sliderW / 2);
-        leftPosition.value = withSpring(finalLeft, { damping: 22, stiffness: 180 });
-        rightPosition.value = withSpring(finalLeft + sliderW, { damping: 22, stiffness: 180 });
-        glowColorProgress.value = withSpring(targetIndex, { damping: 24, stiffness: 160 });
-
-        // Fade all tabs to their resting states
-        const animations = [];
-        for (let i = 0; i < 4; i++) {
-          animations.push(
-            Animated.timing(tabOpacities[i], {
-              toValue: i === targetIndex ? 1.0 : 0.0,
-              duration: 220,
-              useNativeDriver: false,
-            })
-          );
-        }
-        
-        Animated.parallel(animations).start(() => {
-          setTabGestureActive(false);
-          isReleasingRef.current = false;
-        });
-      },
-      onPanResponderTerminate: () => {
-        isDraggingRef.current = false;
-        isReleasingRef.current = true;
-        setIsDragging(false);
-        setSliderPressed(false);
-        const { tabBarWidth: currentTabBarWidth } = stateRef.current;
-        const dockContentWidth = Math.max(0, currentTabBarWidth - DOCK_CONTENT_HORIZONTAL_PADDING * 2);
-        const tabWidth = dockContentWidth / 4;
-        const sliderW = tabWidth - SLIDER_TAB_INSET;
-
-        const targetIndex = lastDraggedIndexRef.current;
-        const tabPaths = ['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'];
-
-        if (targetIndex !== navigatedTabRef.current) {
-          navigatedTabRef.current = targetIndex;
-          router.navigate(tabPaths[targetIndex]);
-        }
-
-        const finalCenterX = DOCK_CONTENT_HORIZONTAL_PADDING + (targetIndex + 0.5) * tabWidth;
-        const finalLeft = finalCenterX - (sliderW / 2);
-        leftPosition.value = withSpring(finalLeft, { damping: 22, stiffness: 180 });
-        rightPosition.value = withSpring(finalLeft + sliderW, { damping: 22, stiffness: 180 });
-        glowColorProgress.value = withSpring(targetIndex, { damping: 24, stiffness: 160 });
-
-        const animations = [];
-        for (let i = 0; i < 4; i++) {
-          animations.push(
-            Animated.timing(tabOpacities[i], {
-              toValue: i === targetIndex ? 1.0 : 0.0,
-              duration: 220,
-              useNativeDriver: false,
-            })
-          );
-        }
-        
-        Animated.parallel(animations).start(() => {
-          setTabGestureActive(false);
-          isReleasingRef.current = false;
-        });
-      }
-    });
+  const beginDockDrag = () => {
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    setSliderPressed(true);
+    setTabGestureActive(true);
   };
 
-  const panResponder0 = useRef(createPanResponder(0)).current;
-  const panResponder1 = useRef(createPanResponder(1)).current;
-  const panResponder2 = useRef(createPanResponder(2)).current;
-  const panResponder3 = useRef(createPanResponder(3)).current;
-  const panResponders = [panResponder0, panResponder1, panResponder2, panResponder3];
+  const finishDockDrag = (targetIndex: number) => {
+    isDraggingRef.current = false;
+    setIsDragging(false);
+    setSliderPressed(false);
+    setTabGestureActive(false);
+    setActiveIndex(targetIndex);
+    router.navigate(['/(tabs)', '/(tabs)/notifications', '/(tabs)/tools', '/(tabs)/profile'][targetIndex]);
+  };
+
+  const cancelDockDrag = () => {
+    isDraggingRef.current = false;
+    setIsDragging(false);
+    setSliderPressed(false);
+    setTabGestureActive(false);
+  };
+
+  const createDockPanGesture = (tabIndex: number) =>
+    Gesture.Pan()
+      .enabled(USE_GLASSMORPHISM && activeIndex === tabIndex)
+      .activeOffsetX([-6, 6])
+      .failOffsetY([-18, 18])
+      .onBegin(() => {
+        const dockContentWidth = Math.max(0, tabBarWidthShared.value - DOCK_CONTENT_HORIZONTAL_PADDING * 2);
+        const tabWidth = dockContentWidth / 4;
+        const startIndex = activeIndexShared.value;
+        dragStartCenterX.value = DOCK_CONTENT_HORIZONTAL_PADDING + (startIndex + 0.5) * tabWidth;
+        dragTargetIndex.value = startIndex;
+        sliderPressProgress.value = withSpring(1, { damping: 15, stiffness: 240, mass: 0.75 });
+        runOnJS(beginDockDrag)();
+      })
+      .onUpdate((event) => {
+        const dockContentWidth = Math.max(0, tabBarWidthShared.value - DOCK_CONTENT_HORIZONTAL_PADDING * 2);
+        const tabWidth = dockContentWidth / 4;
+        const minCenterX = DOCK_CONTENT_HORIZONTAL_PADDING + 0.5 * tabWidth;
+        const maxCenterX = DOCK_CONTENT_HORIZONTAL_PADDING + 3.5 * tabWidth;
+        const dragCenterX = Math.max(minCenterX, Math.min(maxCenterX, dragStartCenterX.value + event.translationX));
+        const halfWidth = (tabWidth - SLIDER_TAB_INSET) / 2;
+
+        // Keep the glass directly under the finger. Springs are reserved for the release snap.
+        leftPosition.value = dragCenterX - halfWidth;
+        rightPosition.value = dragCenterX + halfWidth;
+        glowColorProgress.value = (dragCenterX - DOCK_CONTENT_HORIZONTAL_PADDING) / tabWidth - 0.5;
+        dragTargetIndex.value = Math.min(3, Math.max(0, Math.round((dragCenterX - DOCK_CONTENT_HORIZONTAL_PADDING) / tabWidth - 0.5)));
+      })
+      .onEnd(() => {
+        const dockContentWidth = Math.max(0, tabBarWidthShared.value - DOCK_CONTENT_HORIZONTAL_PADDING * 2);
+        const tabWidth = dockContentWidth / 4;
+        const targetIndex = dragTargetIndex.value;
+        const finalCenterX = DOCK_CONTENT_HORIZONTAL_PADDING + (targetIndex + 0.5) * tabWidth;
+        const finalLeft = finalCenterX - (tabWidth - SLIDER_TAB_INSET) / 2;
+
+        leftPosition.value = withSpring(finalLeft, { damping: 22, stiffness: 180 });
+        rightPosition.value = withSpring(finalLeft + tabWidth - SLIDER_TAB_INSET, { damping: 22, stiffness: 180 });
+        glowColorProgress.value = withSpring(targetIndex, { damping: 24, stiffness: 160 });
+        sliderPressProgress.value = withSpring(0, { damping: 18, stiffness: 180, mass: 0.75 });
+        runOnJS(finishDockDrag)(targetIndex);
+      })
+      .onFinalize((_, success) => {
+        if (!success) {
+          sliderPressProgress.value = withSpring(0, { damping: 18, stiffness: 180, mass: 0.75 });
+          runOnJS(cancelDockDrag)();
+        }
+      });
+
+  const dockPanGestures = [
+    createDockPanGesture(0),
+    createDockPanGesture(1),
+    createDockPanGesture(2),
+    createDockPanGesture(3),
+  ];
+
+  // Page content stays stable while the Dock is dragged; only the navigation chrome animates.
+  useEffect(() => {
+    tabOpacities.forEach((opacity) => opacity.setValue(1));
+  }, [tabOpacities]);
 
   // Trigger liquid stretch and sliding animation when index or width changes
   useEffect(() => {
-    if (isDraggingRef.current) {
-      prevIndexRef.current = activeIndex;
-      return; // Skip auto spring animations during manual gesture drags
-    }
-    
-    // Handle tap! When tapping, snap immediately without fading.
-    if (!isReleasingRef.current) {
-      for (let j = 0; j < 4; j++) {
-        tabOpacities[j].setValue(j === activeIndex ? 1.0 : 0.0);
-      }
-    }
+    activeIndexShared.value = activeIndex;
+    if (isDraggingRef.current) return;
 
     const dockContentWidth = Math.max(0, tabBarWidth - DOCK_CONTENT_HORIZONTAL_PADDING * 2);
     const tabWidth = dockContentWidth / 4;
@@ -564,8 +495,6 @@ export default function TabsLayout() {
 
     const targetLeft = centerX - halfWidth;
     const targetRight = centerX + halfWidth;
-
-    staticWidth.value = sliderW;
 
     const movingRight = i > prevIndexRef.current;
 
@@ -594,11 +523,15 @@ export default function TabsLayout() {
 
   // Animated styles for sliding highlight and inner bubble content
   const sliderStyle = useAnimatedStyle(() => {
-    const left = leftPosition.value;
-    const right = rightPosition.value;
-    const width = Math.max(28, right - left);
-    const targetW = staticWidth.value;
+    const baseLeft = leftPosition.value;
+    const baseRight = rightPosition.value;
+    const baseWidth = Math.max(28, baseRight - baseLeft);
     const press = sliderPressProgress.value;
+    const expansion = baseWidth * SLIDER_PRESS_GROWTH * press;
+    const visualLeft = baseLeft - expansion / 2;
+    const visualWidth = baseWidth + expansion;
+    const visualHeight = SLIDER_HEIGHT * (1 + press * SLIDER_PRESS_GROWTH);
+    const visualTop = SLIDER_TOP_INSET - (visualHeight - SLIDER_HEIGHT) / 2;
 
     const activeShadowColor = interpolateColor(
       glowColorProgress.value,
@@ -617,16 +550,45 @@ export default function TabsLayout() {
     );
 
     return {
-      left,
-      width,
+      left: visualLeft,
+      top: visualTop,
+      width: visualWidth,
+      height: visualHeight,
+      borderRadius: visualHeight / 2,
       shadowColor: activeShadowColor,
-      transform: [
-        { scale: 1 + press * 0.20 },
-        {
-          // Dynamic vertical squish on fast movement
-          scaleY: withSpring(Math.max(0.85, 1 - (width - targetW) * 0.003), { damping: 18, stiffness: 180 })
-        }
-      ]
+    };
+  });
+
+  const focusedIconClipStyle = useAnimatedStyle(() => {
+    const baseWidth = Math.max(28, rightPosition.value - leftPosition.value);
+    const press = sliderPressProgress.value;
+    const expansionX = baseWidth * SLIDER_PRESS_GROWTH * press;
+    const scaleY = 1 + SLIDER_PRESS_GROWTH * press;
+    const visualHeight = SLIDER_HEIGHT * scaleY;
+
+    return {
+      left: leftPosition.value - expansionX / 2,
+      top: SLIDER_TOP_INSET - (visualHeight - SLIDER_HEIGHT) / 2,
+      width: baseWidth + expansionX,
+      height: visualHeight,
+      borderRadius: visualHeight / 2,
+    };
+  });
+
+  const focusedIconContentStyle = useAnimatedStyle(() => {
+    const baseWidth = Math.max(28, rightPosition.value - leftPosition.value);
+    const press = sliderPressProgress.value;
+    const expansionX = baseWidth * SLIDER_PRESS_GROWTH * press;
+    const scaleY = 1 + SLIDER_PRESS_GROWTH * press;
+    const visualHeight = SLIDER_HEIGHT * scaleY;
+    const visualLeft = leftPosition.value - expansionX / 2;
+    const visualTop = SLIDER_TOP_INSET - (visualHeight - SLIDER_HEIGHT) / 2;
+
+    return {
+      left: -visualLeft,
+      top: -visualTop,
+      width: tabBarWidthShared.value,
+      height: TAB_BAR_HEIGHT,
     };
   });
 
@@ -658,33 +620,6 @@ export default function TabsLayout() {
     };
   }, [isDark]);
 
-  const dockOpticalSourceStyle = useAnimatedStyle(() => {
-    const left = leftPosition.value;
-    const right = rightPosition.value;
-    const width = Math.max(28, right - left);
-    const press = sliderPressProgress.value;
-
-    return {
-      left,
-      width,
-      opacity: press,
-      transform: [{ scale: 1 + press * 0.20 }],
-    };
-  });
-
-  const sliderActiveTabContentStyle = useAnimatedStyle(() => {
-    return {
-      opacity: 1 - sliderPressProgress.value,
-    };
-  });
-
-  const dockOpticalSourceContentStyle = useAnimatedStyle(() => {
-    return {
-      width: tabBarWidth,
-      transform: [{ translateX: -leftPosition.value }],
-    };
-  });
-
   const standardTabBarHeight =
     76 + (Platform.OS === 'android' && insets.bottom >= 40 ? insets.bottom : 0);
 
@@ -710,10 +645,15 @@ export default function TabsLayout() {
   };
 
   const sliderBoostActive = isSliderPressed || isDragging;
-  const sliderGlassBlurStep = sliderBoostActive ? 0 : Math.min(5, glassOpacityLevel + 1);
+  // At rest the slider is one blur level above the Dock; pressing clears it for refraction.
+  const sliderGlassBlurStep = sliderBoostActive
+    ? 0
+    : Math.min(6, glassOpacityLevel + 1);
 
   const onTabBarLayout = (e: LayoutChangeEvent) => {
-    setTabBarWidth(e.nativeEvent.layout.width);
+    const width = e.nativeEvent.layout.width;
+    setTabBarWidth(width);
+    tabBarWidthShared.value = width;
   };
 
   const dockTabs: Array<{ label: string; iconName: BootstrapTabIconName }> = [
@@ -722,12 +662,9 @@ export default function TabsLayout() {
     { label: t('tools'), iconName: 'tools' },
     { label: t('profile'), iconName: 'profile' },
   ];
-  const activeDockTab = dockTabs[activeIndex] ?? dockTabs[0];
-  const dockContentWidth = Math.max(0, tabBarWidth - DOCK_CONTENT_HORIZONTAL_PADDING * 2);
-  const dockItemWidth = dockContentWidth / 4;
 
   return (
-    <View style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <ExpoTabs
         key={tabBarStyle}
         safeAreaInsets={USE_GLASSMORPHISM ? { bottom: 0, top: 0, left: 0, right: 0 } : undefined}
@@ -750,45 +687,59 @@ export default function TabsLayout() {
                   },
                 ]}
               >
-              {/* 1. Liquid Glass Dock — native backdrop refraction shader */}
               <View
                 style={[
                   styles.dockVisualSurface,
-                  styles.glassContainerBorder,
-                  {
-                    shadowOpacity: isDark ? 0.22 : 0.10,
-                    shadowRadius: isDark ? 20 : 14,
-                    shadowOffset: { width: 0, height: isDark ? 10 : 7 },
-                    elevation: isDark ? 9 : 5,
-                  }
+                  { left: DOCK_VISUAL_SIDE_INSET, right: DOCK_VISUAL_SIDE_INSET },
                 ]}
               >
                 <View style={styles.dockVisualClip}>
-                  <GlassBackground borderRadius={TAB_BAR_RADIUS} isDark={isDark} blurStep={glassOpacityLevel} />
+                  <GlassBackground
+                    borderRadius={TAB_BAR_RADIUS}
+                    isDark={isDark}
+                    blurStep={glassOpacityLevel}
+                    edgeReflection
+                  />
                   {isDark ? <View pointerEvents="none" style={styles.darkDockBaseTint} /> : null}
-                  <GlassRimHighlight borderRadius={TAB_BAR_RADIUS} isDark={isDark} />
                 </View>
               </View>
 
               {sliderBoostActive ? (
-                <Reanimated.View pointerEvents="none" style={[styles.dockOpticalSourceClip, dockOpticalSourceStyle]}>
-                  <Reanimated.View style={[styles.dockOpticalSourceChrome, dockOpticalSourceContentStyle]}>
-                    <GlassRimHighlight borderRadius={TAB_BAR_RADIUS} isDark={isDark} />
-                  </Reanimated.View>
-                  <Reanimated.View style={[styles.dockOpticalLayer, styles.dockOpticalSourceContent, dockOpticalSourceContentStyle]}>
+                <>
+                  {/* These remain optical sources for the pressed lens. */}
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.dockRimSource,
+                      {
+                        left: DOCK_VISUAL_SIDE_INSET,
+                        right: DOCK_VISUAL_SIDE_INSET,
+                      },
+                    ]}
+                  >
+                    <GlassRimHighlight
+                      borderRadius={TAB_BAR_RADIUS}
+                      isDark={isDark}
+                      surfaceWidth={Math.max(0, tabBarWidth - DOCK_VISUAL_SIDE_INSET * 2)}
+                    />
+                  </View>
+
+                  <View pointerEvents="none" style={styles.dockOpticalLayer}>
                     {dockTabs.map((item) => (
-                      <DockTabSlot
-                        key={`dock-source-${item.iconName}`}
-                        item={item}
-                        focused
+                      <DockMorphTabItem
+                        key={`dock-source-icon-${item.iconName}`}
+                        label={item.label}
+                        iconName={item.iconName}
                         isDark={isDark}
+                        focused={false}
+                        hideLabel
                       />
                     ))}
-                  </Reanimated.View>
-                </Reanimated.View>
+                  </View>
+                </>
               ) : null}
 
-              {/* 2. Liquid Shared Slider (with edge refraction) */}
+              {/* The pressed slider clears the page backdrop but still refracts the Dock sources above. */}
               <Reanimated.View 
                 style={[
                   styles.sliderPill,
@@ -804,44 +755,94 @@ export default function TabsLayout() {
                 ]} 
               >
                 <GlassBackground
-                  borderRadius={SLIDER_RADIUS}
+                  borderRadius={TAB_BAR_HEIGHT}
                   isDark={isDark}
                   blurStep={sliderGlassBlurStep}
                   chromaticBoost={sliderBoostActive}
                   refractionEnabled
+                  edgeReflection={!sliderBoostActive}
+                  excludeNestedGlass={sliderBoostActive}
                 />
                 <Reanimated.View style={[StyleSheet.absoluteFill, innerSliderStyle]} />
-                <GlassRimHighlight borderRadius={SLIDER_RADIUS} isDark={isDark} compact activeBoost={sliderBoostActive} />
               </Reanimated.View>
 
+              {!sliderBoostActive ? (
+                <>
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.dockRimSource,
+                      { left: DOCK_VISUAL_SIDE_INSET, right: DOCK_VISUAL_SIDE_INSET },
+                    ]}
+                  >
+                    <GlassRimHighlight
+                      borderRadius={TAB_BAR_RADIUS}
+                      isDark={isDark}
+                      surfaceWidth={Math.max(0, tabBarWidth - DOCK_VISUAL_SIDE_INSET * 2)}
+                    />
+                  </View>
+                  <View pointerEvents="none" style={styles.dockOpticalLayer}>
+                    {dockTabs.map((item) => (
+                      <DockMorphTabItem
+                        key={`dock-rest-icon-${item.iconName}`}
+                        label={item.label}
+                        iconName={item.iconName}
+                        isDark={isDark}
+                        focused={false}
+                        hideLabel
+                      />
+                    ))}
+                  </View>
+                </>
+              ) : null}
+
+              {/* Filled icons use the slider's complete capsule as one continuous mask. */}
+              <Reanimated.View
+                pointerEvents="none"
+                style={[styles.dockFocusedIconClip, focusedIconClipStyle]}
+              >
+                <Reanimated.View style={[styles.dockFocusedIconContent, focusedIconContentStyle]}>
+                  {dockTabs.map((item) => (
+                    <DockMorphTabItem
+                      key={`dock-filled-icon-${item.iconName}`}
+                      label={item.label}
+                      iconName={item.iconName}
+                      isDark={isDark}
+                      focused
+                      hideLabel
+                    />
+                  ))}
+                </Reanimated.View>
+              </Reanimated.View>
+
+              {/* Labels stay crisp and single-sourced; only icons participate in optical morphing. */}
               <View pointerEvents="none" style={styles.dockOpticalLayer}>
-                {dockTabs.map((item, index) => (
-                  <DockTabSlot
-                    key={`dock-base-${item.iconName}`}
-                    item={item}
-                    focused={activeIndex === index}
-                    empty={activeIndex === index}
+                {dockTabs.map((item) => (
+                  <DockMorphTabItem
+                    key={`dock-label-${item.iconName}`}
+                    label={item.label}
+                    iconName={item.iconName}
                     isDark={isDark}
+                    focused={false}
+                    hideIcon
                   />
                 ))}
               </View>
 
+              {/* Foreground rim keeps the slider visually above the controls without re-sampling them. */}
               <Reanimated.View
                 pointerEvents="none"
                 style={[
-                  styles.selectedDockTabLayer,
-                  {
-                    left: DOCK_CONTENT_HORIZONTAL_PADDING + activeIndex * dockItemWidth,
-                    width: dockItemWidth,
-                  },
-                  sliderActiveTabContentStyle,
+                  styles.sliderPill,
+                  { backgroundColor: 'transparent', overflow: 'hidden' },
+                  sliderStyle,
                 ]}
               >
-                <DockOpticalTabItem
-                  label={activeDockTab.label}
-                  iconName={activeDockTab.iconName}
-                  focused
+                <GlassRimHighlight
+                  borderRadius={TAB_BAR_HEIGHT}
                   isDark={isDark}
+                  compact
+                  activeBoost={sliderBoostActive}
                 />
               </Reanimated.View>
               </View>
@@ -880,10 +881,8 @@ export default function TabsLayout() {
               const flatStyle = StyleSheet.flatten(style) || {};
               const { backgroundColor, ...cleanStyle } = flatStyle;
               return (
-                <View 
-                  {...panResponders[0].panHandlers}
-                  style={cleanStyle}
-                >
+                <GestureDetector gesture={dockPanGestures[0]}>
+                <View style={cleanStyle}>
                   <Pressable 
                     {...rest} 
                     ref={ref as any}
@@ -892,6 +891,7 @@ export default function TabsLayout() {
                     style={[styles.tabPressable, !USE_GLASSMORPHISM && styles.standardTabTouchPressable]}
                   />
                 </View>
+                </GestureDetector>
               );
             }
           }}
@@ -910,10 +910,8 @@ export default function TabsLayout() {
               const flatStyle = StyleSheet.flatten(style) || {};
               const { backgroundColor, ...cleanStyle } = flatStyle;
               return (
-                <View 
-                  {...panResponders[1].panHandlers}
-                  style={cleanStyle}
-                >
+                <GestureDetector gesture={dockPanGestures[1]}>
+                <View style={cleanStyle}>
                   <Pressable 
                     {...rest} 
                     ref={ref as any}
@@ -922,6 +920,7 @@ export default function TabsLayout() {
                     style={[styles.tabPressable, !USE_GLASSMORPHISM && styles.standardTabTouchPressable]}
                   />
                 </View>
+                </GestureDetector>
               );
             }
           }}
@@ -940,10 +939,8 @@ export default function TabsLayout() {
               const flatStyle = StyleSheet.flatten(style) || {};
               const { backgroundColor, ...cleanStyle } = flatStyle;
               return (
-                <View 
-                  {...panResponders[2].panHandlers}
-                  style={cleanStyle}
-                >
+                <GestureDetector gesture={dockPanGestures[2]}>
+                <View style={cleanStyle}>
                   <Pressable 
                     {...rest} 
                     ref={ref as any}
@@ -952,6 +949,7 @@ export default function TabsLayout() {
                     style={[styles.tabPressable, !USE_GLASSMORPHISM && styles.standardTabTouchPressable]}
                   />
                 </View>
+                </GestureDetector>
               );
             }
           }}
@@ -970,10 +968,8 @@ export default function TabsLayout() {
               const flatStyle = StyleSheet.flatten(style) || {};
               const { backgroundColor, ...cleanStyle } = flatStyle;
               return (
-                <View 
-                  {...panResponders[3].panHandlers}
-                  style={cleanStyle}
-                >
+                <GestureDetector gesture={dockPanGestures[3]}>
+                <View style={cleanStyle}>
                   <Pressable 
                     {...rest} 
                     ref={ref as any}
@@ -982,6 +978,7 @@ export default function TabsLayout() {
                     style={[styles.tabPressable, !USE_GLASSMORPHISM && styles.standardTabTouchPressable]}
                   />
                 </View>
+                </GestureDetector>
               );
             }
           }}
@@ -1011,7 +1008,7 @@ export default function TabsLayout() {
           }}
         />
       </ExpoTabs>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -1034,8 +1031,6 @@ const styles = StyleSheet.create({
   dockVisualSurface: {
     position: 'absolute',
     top: 0,
-    left: DOCK_VISUAL_SIDE_INSET,
-    right: DOCK_VISUAL_SIDE_INSET,
     bottom: 0,
   },
   dockVisualClip: {
@@ -1047,12 +1042,28 @@ const styles = StyleSheet.create({
     borderRadius: TAB_BAR_RADIUS,
     overflow: 'hidden',
   },
+  dockRimSource: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+  },
   dockOpticalLayer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: DOCK_CONTENT_HORIZONTAL_PADDING,
+  },
+  dockFocusedIconClip: {
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  dockFocusedIconContent: {
+    position: 'absolute',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
@@ -1066,27 +1077,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(104, 110, 122, 0.09)',
   },
-  dockOpticalSourceClip: {
-    position: 'absolute',
-    top: SLIDER_TOP_INSET,
-    height: SLIDER_HEIGHT,
-    borderRadius: SLIDER_RADIUS,
-    overflow: 'hidden',
-  },
-  dockOpticalSourceChrome: {
-    position: 'absolute',
-    top: -SLIDER_TOP_INSET,
-    left: 0,
-    height: TAB_BAR_HEIGHT,
-    borderRadius: TAB_BAR_RADIUS,
-    overflow: 'hidden',
-  },
-  dockOpticalSourceContent: {
-    position: 'absolute',
-    top: -SLIDER_TOP_INSET,
-    left: 0,
-    height: TAB_BAR_HEIGHT,
-  },
   dockOpticalTabItem: {
     flex: 1,
     height: TAB_BAR_HEIGHT,
@@ -1099,14 +1089,6 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     marginTop: 3,
     textAlign: 'center',
-  },
-  selectedDockTabLayer: {
-    position: 'absolute',
-    top: 0,
-    height: TAB_BAR_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
   },
   iconWrapper: {
     width: 56,
@@ -1164,9 +1146,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     bottom: 0,
-  },
-  glassBottomRim: {
-    display: 'none',
   },
   glassBottomSheen: {
     position: 'absolute',

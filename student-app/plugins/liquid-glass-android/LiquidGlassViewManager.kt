@@ -42,4 +42,16 @@ class LiquidGlassViewManager : SimpleViewManager<LiquidGlassView>() {
         view.refractionEnabled = refractionEnabled
         view.invalidate()
     }
+
+    @ReactProp(name = "edgeReflection")
+    fun setEdgeReflection(view: LiquidGlassView, edgeReflection: Boolean) {
+        view.edgeReflection = edgeReflection
+        view.invalidate()
+    }
+
+    @ReactProp(name = "excludeNestedGlass")
+    fun setExcludeNestedGlass(view: LiquidGlassView, excludeNestedGlass: Boolean) {
+        view.excludeNestedGlass = excludeNestedGlass
+        view.invalidate()
+    }
 }

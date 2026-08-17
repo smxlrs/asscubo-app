@@ -10,6 +10,8 @@ interface GlassBackgroundProps {
   blurStep?: number;
   chromaticBoost?: boolean;
   refractionEnabled?: boolean;
+  edgeReflection?: boolean;
+  excludeNestedGlass?: boolean;
 }
 
 interface GlassFallbackProps {
@@ -49,6 +51,8 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
   blurStep = 1,
   chromaticBoost = false,
   refractionEnabled = true,
+  edgeReflection = false,
+  excludeNestedGlass = false,
 }) => {
   const [reduceTransparency, setReduceTransparency] = React.useState(false);
 
@@ -87,6 +91,8 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
         blurStep={blurStep}
         chromaticBoost={chromaticBoost}
         refractionEnabled={refractionEnabled}
+        edgeReflection={edgeReflection}
+        excludeNestedGlass={excludeNestedGlass}
         style={StyleSheet.absoluteFill}
       />
     );

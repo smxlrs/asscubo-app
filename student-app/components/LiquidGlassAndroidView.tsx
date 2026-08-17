@@ -6,6 +6,8 @@ interface LiquidGlassViewProps extends ViewProps {
   blurStep?: number;
   chromaticBoost?: boolean;
   refractionEnabled?: boolean;
+  edgeReflection?: boolean;
+  excludeNestedGlass?: boolean;
 }
 
 export const LiquidGlassAndroidView = requireNativeComponent<LiquidGlassViewProps>('LiquidGlassView');

@@ -54,6 +54,19 @@ class LiquidGlassView(context: Context) : View(context) {
             invalidate()
         }
 
+    var edgeReflection: Boolean = false
+        set(value) {
+            field = value
+            applyRenderEffect()
+            invalidate()
+        }
+
+    var excludeNestedGlass: Boolean = false
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     private val mFrameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
             invalidate()
@@ -73,6 +86,7 @@ class LiquidGlassView(context: Context) : View(context) {
             uniform float rim;
             uniform float isDark;
             uniform float chromatic;
+            uniform float reflection;
 
             float sdRoundRect(vec2 p, vec2 hs, float r) {
                 vec2 q = abs(p) - hs + r;
@@ -93,19 +107,28 @@ class LiquidGlassView(context: Context) : View(context) {
                 float t = clamp(1.0 + d / band, 0.0, 1.0);
                 float bend = t * t * t * t;
 
-                vec2 sampleAt = coord - n * bend * refraction;
-                half4 col = content.eval(sampleAt);
+                half4 base = content.eval(coord);
+                half4 col = base;
 
-                vec2 tangent = vec2(-n.y, n.x);
-                float chroma = chromatic * bend * bend;
-                if (chroma > 0.01) {
-                    half4 redSample = content.eval(sampleAt + tangent * chroma + n * chroma * 0.18);
-                    half4 greenSample = content.eval(sampleAt - n * chroma * 0.12);
-                    half4 blueSample = content.eval(sampleAt - tangent * chroma - n * chroma * 0.18);
-                    float spectralMix = clamp(bend * 0.94, 0.0, 0.88);
-                    col.r = mix(col.r, redSample.r, spectralMix);
-                    col.g = mix(col.g, greenSample.g, spectralMix * 0.58);
-                    col.b = mix(col.b, blueSample.b, spectralMix);
+                if (reflection > 0.5) {
+                    // Keep the compression/reflection mapping from origin/main.
+                    vec2 sampleAt = coord - n * bend * refraction;
+                    col = content.eval(sampleAt);
+                } else {
+                    vec2 sampleAt = coord - n * bend * refraction;
+                    col = content.eval(sampleAt);
+
+                    vec2 tangent = vec2(-n.y, n.x);
+                    float chroma = chromatic * bend * bend;
+                    if (chroma > 0.01) {
+                        half4 redSample = content.eval(sampleAt + tangent * chroma + n * chroma * 0.08);
+                        half4 greenSample = content.eval(sampleAt - n * chroma * 0.05);
+                        half4 blueSample = content.eval(sampleAt - tangent * chroma - n * chroma * 0.08);
+                        float spectralMix = clamp(bend * 1.22, 0.0, 1.0);
+                        col.r = mix(col.r, redSample.r, spectralMix);
+                        col.g = mix(col.g, greenSample.g, spectralMix * 0.45);
+                        col.b = mix(col.b, blueSample.b, spectralMix);
+                    }
                 }
 
                 vec2 L = normalize(vec2(-0.55, -0.83));
@@ -135,35 +158,49 @@ class LiquidGlassView(context: Context) : View(context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             try {
                 val shader = RuntimeShader(AGSL_SRC)
-                val r = if (borderRadius > 0f) borderRadius * density else h * 0.5f
+                val requestedRadius = if (borderRadius > 0f) borderRadius * density else h * 0.5f
+                val r = requestedRadius.coerceAtMost(minOf(w, h) * 0.5f)
 
                 shader.setFloatUniform("size", w, h)
                 shader.setFloatUniform("radius", r)
                 val refractionPx = if (!refractionEnabled) {
                     0.0f
-                } else if (chromaticBoost) {
-                    22.0f * density
-                } else {
+                } else if (edgeReflection) {
                     14.0f * density
+                } else if (chromaticBoost) {
+                    7.0f * density
+                } else {
+                    3.0f * density
                 }
-                val chromaticPx = if (refractionEnabled && chromaticBoost) 13.0f * density else 0.0f
+                // 30 is the spectral strength, not a 30dp sampling displacement. Keeping
+                // displacement narrow prevents the Dock rim from splitting into long arcs.
+                val chromaticPx = if (refractionEnabled && chromaticBoost) 7.5f * density else 0.0f
 
-                shader.setFloatUniform("band", (if (chromaticBoost) 16.0f else 15.0f) * density)
+                val edgeBandDp = when {
+                    edgeReflection -> 15.0f
+                    chromaticBoost -> 8.5f
+                    else -> 8.0f
+                }
+                shader.setFloatUniform("band", edgeBandDp * density)
                 shader.setFloatUniform("refraction", refractionPx)
                 shader.setFloatUniform("rim", 0.45f)
                 shader.setFloatUniform("isDark", if (isDark) 1.0f else 0.0f)
                 shader.setFloatUniform("chromatic", chromaticPx)
+                shader.setFloatUniform("reflection", if (edgeReflection) 1.0f else 0.0f)
 
                 val blurEffect = RenderEffect.createBlurEffect(blurPx, blurPx, Shader.TileMode.CLAMP)
                 val shaderEffect = RenderEffect.createRuntimeShaderEffect(shader, "content")
                 val chainEffect = RenderEffect.createChainEffect(shaderEffect, blurEffect)
+                setRenderEffect(null)
                 setRenderEffect(chainEffect)
             } catch (e: Exception) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    setRenderEffect(null)
                     setRenderEffect(RenderEffect.createBlurEffect(blurPx, blurPx, Shader.TileMode.CLAMP))
                 }
             }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            setRenderEffect(null)
             setRenderEffect(RenderEffect.createBlurEffect(blurPx, blurPx, Shader.TileMode.CLAMP))
         }
     }
@@ -231,6 +268,17 @@ class LiquidGlassView(context: Context) : View(context) {
         val myLocation = IntArray(2)
         getLocationInWindow(myLocation)
 
+        val exclusionAncestor = if (excludeNestedGlass) {
+            ancestors.firstOrNull { ancestor ->
+                val branchIndex = ancestor.indexOfChild(
+                    if (ancestor === parentGroup) this else ancestors[ancestors.indexOf(ancestor) - 1]
+                )
+                (0 until branchIndex).any { containsLiquidGlassView(ancestor.getChildAt(it)) }
+            }
+        } else {
+            null
+        }
+
         for (i in ancestors.size - 1 downTo 0) {
             val ancestor = ancestors[i]
             val childOnBranch: View = if (i > 0) ancestors[i - 1] else this
@@ -238,7 +286,8 @@ class LiquidGlassView(context: Context) : View(context) {
 
             for (j in 0 until indexInAncestor) {
                 val sibling = ancestor.getChildAt(j)
-                if (sibling.visibility == VISIBLE && sibling != childOnBranch) {
+                val skipsNestedGlass = ancestor === exclusionAncestor && containsLiquidGlassView(sibling)
+                if (sibling.visibility == VISIBLE && sibling != childOnBranch && !skipsNestedGlass) {
                     val siblingLocation = IntArray(2)
                     sibling.getLocationInWindow(siblingLocation)
                     val dx = siblingLocation[0] - myLocation[0]
@@ -265,5 +314,15 @@ class LiquidGlassView(context: Context) : View(context) {
 
         canvas.drawBitmap(bitmap, 0f, 0f, mPaint)
         super.draw(canvas)
+    }
+
+    private fun containsLiquidGlassView(view: View): Boolean {
+        if (view is LiquidGlassView && view !== this) return true
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                if (containsLiquidGlassView(view.getChildAt(i))) return true
+            }
+        }
+        return false
     }
 }
