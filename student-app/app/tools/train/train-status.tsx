@@ -22,7 +22,6 @@ import {
   getTrainStatus,
   searchTrain,
   getTrainAlerts,
-  getOperatorInfo,
   getFutureItaloTrainSchedule,
   VtTrainStatus,
   VtStop,
@@ -32,6 +31,7 @@ import {
   formatRomeDateFromTimestamp
 } from '../../../lib/viaggiaTrenoService';
 import { MarqueeText } from '../../../components/MarqueeText';
+import { TrainIdentity } from '../../../components/train/TrainIdentity';
 
 const { width } = Dimensions.get('window');
 
@@ -829,30 +829,14 @@ export default function TrainStatusScreen() {
           {/* Train Summary Dashboard Card */}
           <View style={[styles.dashboardCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.dashboardHeader}>
-              <View style={styles.trainBadgeRow}>
-                <View style={[styles.catBadge, { backgroundColor: isHighSpeed ? '#E30613' + '20' : colors.primarySoft }]}>
-                  <Text style={[styles.catBadgeText, { color: isHighSpeed ? '#E30613' : colors.primary }]}>
-                    {status.category}
-                  </Text>
-                </View>
-                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.trainNumText, { color: colors.textPrimary, marginRight: 8 }]}>{status.number}</Text>
-                {(() => {
-                  const op = getOperatorInfo(status.codiceCliente ?? null, status.category);
-                  return (
-                    <View style={{
-                      borderColor: op.color,
-                      borderWidth: 1,
-                      backgroundColor: op.color + '10',
-                      paddingHorizontal: 6,
-                      paddingVertical: 2,
-                      borderRadius: 6,
-                    }}>
-                      <Text style={{ fontSize: 9, color: op.color, fontWeight: 'bold' }}>{op.name}</Text>
-                    </View>
-                  );
-                })()}
-              </View>
-              <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.delayBadgeText, { color: delayColor, fontWeight: 'bold' }]}>
+              <TrainIdentity
+                variant="summary"
+                trainNumber={status.number}
+                category={status.category}
+                codiceCliente={status.codiceCliente}
+                isHighSpeed={Boolean(isHighSpeed)}
+              />
+              <Text style={[styles.delayBadgeText, { color: delayColor, fontWeight: 'bold' }]}>
                 {delayText}
               </Text>
             </View>
@@ -1337,32 +1321,18 @@ const styles = StyleSheet.create({
   },
   dashboardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     alignItems: 'center',
+    columnGap: 12,
+    rowGap: 8,
     marginBottom: 16,
-  },
-  trainBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexShrink: 1,
-  },
-  catBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  catBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  trainNumText: {
-    fontSize: 15,
-    fontWeight: 'bold',
   },
   delayBadgeText: {
     fontSize: 13,
     flexShrink: 0,
+    maxWidth: '100%',
+    marginLeft: 'auto',
+    textAlign: 'right',
   },
   endpointsRow: {
     flexDirection: 'row',

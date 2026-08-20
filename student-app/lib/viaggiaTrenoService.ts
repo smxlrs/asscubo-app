@@ -130,6 +130,14 @@ export interface VtTrainSummary {
   codiceCliente?: number | string | null;
 }
 
+export const normalizeTrainNumber = (
+  value: string | number | null | undefined,
+  fallback: string | number = ''
+): string => {
+  const normalized = String(value ?? '').trim();
+  return normalized || String(fallback).trim();
+};
+
 const CHINESE_CITY_MAPPINGS: Record<string, string> = {
   '米兰': 'milano',
   '米': 'milano',
@@ -294,7 +302,7 @@ export const parseTimeStr = (timeStr: string, baseDate: Date): number | null => 
 export function parseItaloTrainStatus(data: any): VtTrainStatus | null {
   if (!data || data.IsEmpty || !data.TrainSchedule) return null;
   const schedule = data.TrainSchedule;
-  const num = schedule.TrainNumber || '';
+  const num = normalizeTrainNumber(schedule.TrainNumber);
   
   const baseDate = new Date();
   
@@ -697,7 +705,7 @@ export async function searchStations(query: string): Promise<VtStation[]> {
  * Resolve train number into list of matching runs with origin, station id, and timestamp
  */
 export async function searchTrain(trainNumber: string | number): Promise<VtTrainSearchMatch[]> {
-  const cleanNumber = String(trainNumber).trim();
+  const cleanNumber = normalizeTrainNumber(trainNumber);
   if (!cleanNumber) return [];
 
   const vtPromise = (async (): Promise<VtTrainSearchMatch[]> => {
@@ -717,7 +725,7 @@ export async function searchTrain(trainNumber: string | number): Promise<VtTrain
           const parts = idValue.split('-');
           return {
             label: label.trim(),
-            number: parts[0] || cleanNumber,
+            number: normalizeTrainNumber(parts[0], cleanNumber),
             departureStationID: parts[1] || '',
             timestamp: parts[2] || ''
           };
@@ -776,7 +784,7 @@ export async function getTrainStatus(
   trainNumber: string | number,
   timestamp?: string
 ): Promise<VtTrainStatus | null> {
-  const cleanNum = String(trainNumber).trim();
+  const cleanNum = normalizeTrainNumber(trainNumber);
   const cleanStation = departureStationID.trim();
   if (!cleanNum || !cleanStation) return null;
 
@@ -849,7 +857,7 @@ export async function getTrainStatus(
     }
 
     return adjustInternationalTrainStatus({
-      number: data.numeroTreno || cleanNum,
+      number: normalizeTrainNumber(data.numeroTreno, cleanNum),
       category: inferTrainCategory(data.numeroTreno || cleanNum, parsedCategory || data.categoria),
       origin: firstStopName,
       destination: lastStopName,
@@ -909,7 +917,7 @@ export async function getStationBoard(
           : entry.binarioEffettivoArrivoDescrizione || entry.binarioEffettivoArrivo || '');
 
         return adjustInternationalBoardEntry({
-          trainNumber: entry.numeroTreno ? String(entry.numeroTreno) : '',
+          trainNumber: normalizeTrainNumber(entry.numeroTreno),
           category: inferTrainCategory(entry.numeroTreno || '', entry.categoriaDescrizione || entry.categoria),
           origin: getCleanStationName(entry.origine || '', entry.codOrigine || ''),
           destination: getCleanStationName(entry.destinazione || ''),
@@ -963,7 +971,7 @@ export async function getStationBoard(
         }
 
         return adjustInternationalBoardEntry({
-          trainNumber: entry.Numero ? String(entry.Numero) : '',
+          trainNumber: normalizeTrainNumber(entry.Numero),
           category: 'NTV',
           origin,
           destination,
@@ -1294,7 +1302,7 @@ export async function getFutureItaloTrainSchedule(
   ];
   
   return {
-    number: trainNumber,
+    number: normalizeTrainNumber(trainNumber),
     category: 'NTV',
     origin: originName,
     destination: destinationName,

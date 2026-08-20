@@ -30,6 +30,7 @@ import {
   formatRomeDateTimeFromTimestamp
 } from '../../../lib/viaggiaTrenoService';
 import { stations } from '../../../assets/stations';
+import { TrainIdentity } from '../../../components/train/TrainIdentity';
 
 const { width } = Dimensions.get('window');
 
@@ -277,12 +278,7 @@ export default function TrainToolIndex() {
 
   const renderTrainCard = (item: VtTrainSummary | VtTrainSearchMatch) => {
     const isFullSummary = 'origin' in item && item.origin;
-    
-    // Resolve operator details
-    const op = getOperatorInfo(
-      (item as any).codiceCliente, 
-      (item as any).category || ''
-    );
+    const op = getOperatorInfo((item as any).codiceCliente, (item as any).category || '');
     
     const starred = favoriteTrains.some(f => String(f.number) === String(item.number));
     
@@ -296,19 +292,16 @@ export default function TrainToolIndex() {
         style={[styles.trainCardItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >
         <Pressable
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 0 }}
           onPress={() => handleSelectTrainMatch(item)}
         >
           <View style={styles.trainCardHeader}>
-            <View style={styles.operatorBadgeRow}>
-              <View style={[styles.opCodeBadge, { borderColor: op.color, backgroundColor: op.color + '10' }]}>
-                <Text style={[styles.opCodeText, { color: op.color }]}>{op.code}</Text>
-              </View>
-              <Text style={[styles.trainNumCategoryText, { color: colors.textPrimary }]}>
-                {((item as any).category && (item as any).category.toUpperCase() !== op.code.toUpperCase()) ? `${(item as any).category} ` : ''}
-                {item.number}
-              </Text>
-            </View>
+            <TrainIdentity
+              trainNumber={item.number}
+              category={(item as any).category}
+              codiceCliente={(item as any).codiceCliente}
+              style={styles.trainIdentity}
+            />
           </View>
 
           {isFullSummary ? (
@@ -1260,25 +1253,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
+    minWidth: 0,
   },
-  operatorBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  opCodeBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-    borderWidth: 1,
-    marginRight: 8,
-  },
-  opCodeText: {
-    fontSize: 9,
-    fontWeight: 'bold',
-  },
-  trainNumCategoryText: {
-    fontSize: 13,
-    fontWeight: 'bold',
+  trainIdentity: {
+    flex: 1,
   },
   timelineContainer: {
     flexDirection: 'row',

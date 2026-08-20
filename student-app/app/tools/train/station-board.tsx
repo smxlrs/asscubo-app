@@ -30,6 +30,7 @@ import {
   formatRomeTimeStr
 } from '../../../lib/viaggiaTrenoService';
 import { MarqueeText } from '../../../components/MarqueeText';
+import { TrainIdentity } from '../../../components/train/TrainIdentity';
 const { width } = Dimensions.get('window');
 
 const LOCALIZED: Record<Language, Record<string, string>> = {
@@ -564,12 +565,6 @@ export default function StationBoardScreen() {
 
     // Operator branding details
     const op = getOperatorInfo(item.codiceCliente, item.category);
-    const category = String(item.category || '').trim();
-    const trainNumber = String(item.trainNumber || '').trim();
-    const trainLabel = category && category.toUpperCase() !== op.code.toUpperCase()
-      ? `${category} ${trainNumber}`.trim()
-      : trainNumber;
-
     return (
       <Pressable
         style={({ pressed }) => [
@@ -585,17 +580,12 @@ export default function StationBoardScreen() {
         <View style={[styles.cardMain, { marginBottom: 0 }]}>
           <View style={styles.trainInfo}>
             {/* Operator and Train number row */}
-            <View style={styles.trainBadgeRow}>
-              <View style={[styles.opCodeBadge, { borderColor: op.color, backgroundColor: op.color + '10' }]}>
-                <Text style={[styles.opCodeText, { color: op.color }]}>{op.code}</Text>
-              </View>
-              <Text
-                numberOfLines={1}
-                style={[styles.trainNumCategoryText, { color: colors.textPrimary }]}
-              >
-                {trainLabel}
-              </Text>
-            </View>
+            <TrainIdentity
+              trainNumber={item.trainNumber}
+              category={item.category}
+              codiceCliente={item.codiceCliente}
+              style={styles.trainIdentity}
+            />
 
             {/* Structured timeline routes origin/destination */}
             <View style={styles.boardTimeline}>
@@ -999,27 +989,11 @@ const styles = StyleSheet.create({
   },
   trainInfo: {
     flex: 1,
+    minWidth: 0,
   },
-  trainBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  trainIdentity: {
+    width: '100%',
     marginBottom: 6,
-  },
-  opCodeBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-    borderWidth: 1,
-    marginRight: 8,
-  },
-  opCodeText: {
-    fontSize: 9,
-    fontWeight: 'bold',
-  },
-  trainNumCategoryText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    flexShrink: 1,
   },
   boardTimeline: {
     marginTop: 6,
