@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -30,6 +30,7 @@ export default function ResetPasswordScreen() {
   const [codeSent, setCodeSent] = useState(false);
   const [recoveryReady, setRecoveryReady] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const otpInputRef = useRef<TextInput>(null);
   const { remaining, startCooldown } = useOtpCooldown();
 
   const emailDomain = email.trim().split('@')[1]?.toLowerCase() || 'invalid';
@@ -50,6 +51,7 @@ export default function ResetPasswordScreen() {
       startCooldown();
       recordDebugEvent('auth', 'Password reset code request completed', { emailDomain });
       setMessage('验证码已发送，请输入邮件中的 6 位验证码。');
+      setTimeout(() => otpInputRef.current?.focus(), 100);
     } catch (error: any) {
       recordDebugEvent('auth', 'Password reset code request failed', { emailDomain, error: error?.message || String(error) }, 'warn');
       setMessage(translateAuthError(error?.message || '', language));
@@ -183,6 +185,7 @@ export default function ResetPasswordScreen() {
                 {codeSent && (
                   <View style={styles.codeRow}>
                     <TextInput
+                      ref={otpInputRef}
                       style={[styles.input, styles.codeInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                       placeholder={t('otpCodePlaceholder')}
                       placeholderTextColor={colors.textMuted}

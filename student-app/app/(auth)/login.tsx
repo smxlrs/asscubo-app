@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -34,6 +34,7 @@ export default function LoginScreen() {
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const otpInputRef = useRef<TextInput>(null);
   const { remaining: countdown, startCooldown } = useOtpCooldown();
 
   const isSendDisabled = !email || countdown > 0 || sendingOtp;
@@ -41,6 +42,10 @@ export default function LoginScreen() {
   const { signIn } = useAuth();
   const { colors, t, language } = useTheme();
   const insets = useSafeAreaInsets();
+
+  const focusOtpInput = () => {
+    setTimeout(() => otpInputRef.current?.focus(), 100);
+  };
 
   const handleSendOtp = async () => {
     if (!email) {
@@ -69,7 +74,7 @@ export default function LoginScreen() {
         showCustomAlert(
           t('otpSentTitle'),
           t('otpSentMsg'),
-          [{ text: t('confirm') }],
+          [{ text: t('confirm'), onPress: focusOtpInput }],
           { messageAlign: 'left', buttonPresentation: 'text' }
         );
         startCooldown();
@@ -286,6 +291,7 @@ export default function LoginScreen() {
                     <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('otpCodeLabel')}</Text>
                     <View style={styles.otpInputRow}>
                       <TextInput 
+                        ref={otpInputRef}
                         style={[
                           styles.input, 
                           styles.otpCodeInput, 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Image, Modal } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
@@ -252,6 +252,7 @@ export default function EditProfileScreen() {
   const [modalPassword, setModalPassword] = useState('');
   const [modalConfirmPassword, setModalConfirmPassword] = useState('');
   const [modalOtp, setModalOtp] = useState('');
+  const otpInputRef = useRef<TextInput>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
   
@@ -394,7 +395,10 @@ export default function EditProfileScreen() {
       showCustomAlert(
         localized.otpSent,
         localized.otpSentMsg,
-        [{ text: t('confirm') || '确定' }],
+        [{
+          text: t('confirm') || '确定',
+          onPress: () => setTimeout(() => otpInputRef.current?.focus(), 100),
+        }],
         { messageAlign: 'left', buttonPresentation: 'text' }
       );
       startCooldown();
@@ -705,6 +709,7 @@ export default function EditProfileScreen() {
                 {confirmPasswordError ? <Text style={[styles.fieldError, { color: colors.error }]}>{confirmPasswordError}</Text> : null}
                 <View style={styles.otpInputRow}>
                   <TextInput
+                    ref={otpInputRef}
                     style={[
                       styles.modalInput,
                       styles.otpCodeInput,

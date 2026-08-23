@@ -138,6 +138,21 @@ export const normalizeTrainNumber = (
   return normalized || String(fallback).trim();
 };
 
+export const normalizeTrainCategory = (value: string | null | undefined): string => {
+  const category = String(value ?? '').trim();
+  const upper = category.toUpperCase();
+
+  if (upper === 'FRECCIAROSSA') return 'FR';
+  if (upper === 'FRECCIARGENTO') return 'FA';
+  if (upper === 'FRECCIABIANCA') return 'FB';
+  if (upper === 'INTERCITY') return 'IC';
+  if (upper === 'INTERCITY NOTTE') return 'ICN';
+  if (upper === 'REGIONALE VELOCE') return 'RV';
+  if (upper === 'REGIO' || upper === 'REGIONALE') return 'REG';
+
+  return category;
+};
+
 const CHINESE_CITY_MAPPINGS: Record<string, string> = {
   '米兰': 'milano',
   '米': 'milano',
@@ -1196,18 +1211,11 @@ export async function getTrainAlerts(
  * Infer train category based on train number if category is missing or expand long category names.
  */
 export function inferTrainCategory(trainNumber: string | number, currentCategory: string = ''): string {
-  const cat = String(currentCategory || '').trim();
+  const cat = normalizeTrainCategory(currentCategory);
   const numStr = String(trainNumber || '').trim();
 
   // Normalize existing categories
   if (cat) {
-    const upper = cat.toUpperCase();
-    if (upper === 'FRECCIAROSSA') return 'FR';
-    if (upper === 'FRECCIARGENTO') return 'FA';
-    if (upper === 'FRECCIABIANCA') return 'FB';
-    if (upper === 'INTERCITY') return 'IC';
-    if (upper === 'INTERCITY NOTTE') return 'ICN';
-    if (upper === 'REGIO' || upper === 'REGIONALE') return 'REG';
     return cat;
   }
 

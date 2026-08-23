@@ -9,7 +9,7 @@ const TERMS_URL = 'https://asscubo.it/terms.html';
 const DELETE_ACCOUNT_URL = 'https://asscubo.it/delete-account';
 
 export default function TermsScreen() {
-  const { colors } = useTheme();
+  const { colors, t } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   // 每次进入页面都生成新时间戳，强制跳过缓存
@@ -31,7 +31,7 @@ export default function TermsScreen() {
             marginVertical: 4,
           }} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>用户协议 / Terms of Service</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('userAgreement')}</Text>
         <View style={styles.headerPlaceholder} />
       </View>
 

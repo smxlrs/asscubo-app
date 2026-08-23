@@ -1,7 +1,12 @@
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { getOperatorInfo, normalizeTrainNumber } from '../../lib/viaggiaTrenoService';
+import { MarqueeText } from '../MarqueeText';
+import {
+  getOperatorInfo,
+  normalizeTrainCategory,
+  normalizeTrainNumber,
+} from '../../lib/viaggiaTrenoService';
 
 type TrainIdentityVariant = 'summary' | 'compact';
 
@@ -24,8 +29,9 @@ export function TrainIdentity({
 }: TrainIdentityProps) {
   const { colors } = useTheme();
   const normalizedNumber = normalizeTrainNumber(trainNumber) || '--';
-  const normalizedCategory = String(category ?? '').trim();
+  const normalizedCategory = normalizeTrainCategory(category);
   const operator = getOperatorInfo(codiceCliente ?? null, normalizedCategory);
+  const shouldScrollNumber = Array.from(normalizedNumber).length > 6;
 
   if (variant === 'summary') {
     const badgeColor = isHighSpeed ? '#E30613' : colors.primary;
@@ -38,9 +44,18 @@ export function TrainIdentity({
             <Text style={[styles.summaryCategoryText, { color: badgeColor }]}>{normalizedCategory}</Text>
           </View>
         ) : null}
-        <Text numberOfLines={1} style={[styles.summaryNumber, { color: colors.textPrimary }]}>
-          {normalizedNumber}
-        </Text>
+        {shouldScrollNumber ? (
+          <View style={styles.summaryNumberViewport}>
+            <MarqueeText
+              text={normalizedNumber}
+              style={[styles.summaryNumber, { color: colors.textPrimary }]}
+            />
+          </View>
+        ) : (
+          <Text numberOfLines={1} style={[styles.summaryNumber, styles.summaryNumberSpacing, { color: colors.textPrimary }]}>
+            {normalizedNumber}
+          </Text>
+        )}
         <View style={[styles.operatorNameBadge, { borderColor: operator.color, backgroundColor: `${operator.color}10` }]}>
           <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.operatorNameText, { color: operator.color }]}>
             {operator.name}
@@ -62,9 +77,18 @@ export function TrainIdentity({
           {normalizedCategory}
         </Text>
       ) : null}
-      <Text numberOfLines={1} style={[styles.compactNumber, { color: colors.textPrimary }]}>
-        {normalizedNumber}
-      </Text>
+      {shouldScrollNumber ? (
+        <View style={styles.compactNumberViewport}>
+          <MarqueeText
+            text={normalizedNumber}
+            style={[styles.compactNumber, { color: colors.textPrimary }]}
+          />
+        </View>
+      ) : (
+        <Text numberOfLines={1} style={[styles.compactNumber, { color: colors.textPrimary }]}>
+          {normalizedNumber}
+        </Text>
+      )}
     </View>
   );
 }
@@ -91,10 +115,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   summaryNumber: {
-    flexShrink: 0,
     fontSize: 15,
     fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
+  },
+  summaryNumberSpacing: {
+    flexShrink: 0,
     marginRight: 8,
+  },
+  summaryNumberViewport: {
+    width: 57,
+    flexShrink: 0,
+    marginRight: 8,
+    overflow: 'hidden',
   },
   operatorNameBadge: {
     minWidth: 0,
@@ -132,8 +165,13 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   compactNumber: {
-    flexShrink: 0,
     fontSize: 13,
     fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
+  },
+  compactNumberViewport: {
+    width: 49,
+    flexShrink: 0,
+    overflow: 'hidden',
   },
 });
