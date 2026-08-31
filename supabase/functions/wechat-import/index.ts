@@ -62,16 +62,26 @@ serve(async (req) => {
       });
     }
 
-    // Verify role is admin or super_admin
+    // Verify the user has the specific article synchronization permission.
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
-      console.warn(`User ${user.id} tried to access admin feature but role is: ${profile?.role}`);
-      return new Response(JSON.stringify({ error: "Forbidden: Admin role required" }), {
+    const { data: permission, error: permissionError } = await supabase
+      .from('admin_permissions')
+      .select('permission')
+      .eq('admin_id', user.id)
+      .eq('permission', 'articles.sync')
+      .maybeSingle();
+
+    const canSync = profile?.role === 'super_admin'
+      || (profile?.role === 'admin' && Boolean(permission));
+
+    if (profileError || permissionError || !profile || !canSync) {
+      console.warn(`User ${user.id} tried to import an article without articles.sync permission.`);
+      return new Response(JSON.stringify({ error: "Forbidden: Article synchronization permission required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });

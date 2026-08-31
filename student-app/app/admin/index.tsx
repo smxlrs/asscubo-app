@@ -5,9 +5,11 @@ import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AdminDashboardScreen() {
   const { colors } = useTheme();
+  const { hasAdminPermission } = useAuth();
   const [syncing, setSyncing] = useState(false);
 
   const handleSyncWechat = () => {
@@ -24,6 +26,10 @@ export default function AdminDashboardScreen() {
               const { data, error } = await supabase.functions.invoke('wechat-sync');
               if (error) throw error;
               if (data && data.status === 'error') throw new Error(data.message || '同步失败');
+              if (data?.status === 'busy') {
+                Alert.alert('同步进行中', '已有自动或手动同步任务正在运行，请稍后再查看结果。');
+                return;
+              }
               
               const synced = data?.synced ?? 0;
               const skipped = data?.skipped ?? 0;
@@ -93,6 +99,77 @@ export default function AdminDashboardScreen() {
     );
   };
 
+  const articleItems = [
+    hasAdminPermission('articles.sync') && {
+      key: 'wechat-import', icon: 'link-plus', label: '一键导入微信文章', value: '链接抓取',
+      onPress: () => router.push('/admin/wechat-import'),
+    },
+    hasAdminPermission('articles.sync') && {
+      key: 'wechat-sync', icon: 'sync',
+      label: syncing ? '正在同步微信文章...' : '立即同步微信文章',
+      value: '后台检测并同步', onPress: handleSyncWechat, disabled: syncing, loading: syncing,
+    },
+    hasAdminPermission('articles.manage') && {
+      key: 'clear-articles', icon: 'trash-can-outline',
+      label: clearing ? '正在清理已删文章...' : '清理历史已删文章',
+      value: '保留最新10篇的排重', onPress: handleClearOldArticles, disabled: clearing, loading: clearing,
+    },
+    hasAdminPermission('articles.manage') && {
+      key: 'manage-articles', icon: 'playlist-edit', label: '管理已有文章及分类', value: '分类与删除',
+      onPress: () => router.push('/admin/manage-articles'),
+    },
+  ].filter(Boolean) as Array<{
+    key: string; icon: string; label: string; value: string; onPress: () => void; disabled?: boolean; loading?: boolean;
+  }>;
+
+  const notificationItems = [
+    hasAdminPermission('notifications.publish') && {
+      key: 'publish-notification', icon: 'bullhorn-outline', label: '发布通知', value: '群发推送',
+      onPress: () => router.push('/admin/notification'),
+    },
+    hasAdminPermission('notifications.manage') && {
+      key: 'manage-notifications', icon: 'bell-ring-outline', label: '管理已有通知及分类', value: '分类与删除',
+      onPress: () => router.push('/admin/manage-notifications'),
+    },
+  ].filter(Boolean) as Array<{
+    key: string; icon: string; label: string; value: string; onPress: () => void; disabled?: boolean; loading?: boolean;
+  }>;
+
+  const handbookItems = [
+    hasAdminPermission('handbook.manage') && {
+      key: 'manage-handbook', icon: 'book-open-page-variant-outline', label: '新生手册管理', value: '章节与内容',
+      onPress: () => router.push('/admin/manage-handbook'),
+    },
+  ].filter(Boolean) as Array<{
+    key: string; icon: string; label: string; value: string; onPress: () => void;
+  }>;
+
+  const userItems = [
+    (hasAdminPermission('users.moderate') || hasAdminPermission('users.delete')) && {
+      key: 'manage-users', icon: 'account-multiple-outline', label: '已注册用户管理', value: '审核与账号安全',
+      onPress: () => router.push('/admin/manage-users'),
+    },
+    hasAdminPermission('feedback.manage') && {
+      key: 'manage-feedbacks', icon: 'message-draw', label: '用户意见反馈管理', value: '状态标记与查看',
+      onPress: () => router.push('/admin/manage-feedbacks'),
+    },
+  ].filter(Boolean) as Array<{
+    key: string; icon: string; label: string; value: string; onPress: () => void;
+  }>;
+
+  const futureItems = [
+    {
+      key: 'manage-cssa-card', icon: 'card-account-details-outline', label: '学联卡管理', value: '未上线',
+      onPress: () => undefined, disabled: true,
+    },
+    hasAdminPermission('events.manage') && {
+      key: 'manage-events', icon: 'calendar-edit', label: '活动发布与管理', value: '未上线',
+      onPress: () => undefined, disabled: true,
+    },
+  ].filter(Boolean) as Array<{
+    key: string; icon: string; label: string; value: string; onPress: () => void; disabled: boolean;
+  }>;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {/* Header */}
@@ -105,152 +182,124 @@ export default function AdminDashboardScreen() {
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>信息发布与公告</Text>
-        </View>
-
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Pressable 
-            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
-            onPress={() => router.push('/admin/notification')}
-          >
-            <MaterialCommunityIcons name="bullhorn-outline" size={20} color={colors.primaryLight} style={styles.rowIcon} />
-            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>发布通知</Text>
-            <View style={styles.rowRight}>
-              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>群发推送</Text>
-              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+        {articleItems.length > 0 && (
+          <>
+            <View style={styles.sectionHeaderContainer}>
+              <Text style={styles.sectionHeader}>文章管理</Text>
             </View>
-          </Pressable>
-
-          <Pressable 
-            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
-            onPress={() => router.push('/admin/wechat-import')}
-          >
-            <MaterialCommunityIcons name="link-plus" size={20} color={colors.primaryLight} style={styles.rowIcon} />
-            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>一键导入微信文章</Text>
-            <View style={styles.rowRight}>
-              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>链接抓取</Text>
-              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {articleItems.map((item, index) => (
+                <Pressable
+                  key={item.key}
+                  style={[styles.rowPressable, { borderBottomColor: colors.border }, index === articleItems.length - 1 && { borderBottomWidth: 0 }]}
+                  onPress={item.onPress}
+                  disabled={item.disabled}
+                >
+                  <MaterialCommunityIcons name={item.icon as any} size={20} color={item.disabled ? colors.textMuted : colors.primaryLight} style={styles.rowIcon} />
+                  <Text style={[styles.rowLabel, { color: item.disabled ? colors.textMuted : colors.textPrimary }]}>{item.label}</Text>
+                  <View style={styles.rowRight}>
+                    {item.loading ? <ActivityIndicator size="small" color={colors.primaryLight} style={{ marginRight: 8 }} /> : (
+                      <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{item.value}</Text>
+                    )}
+                    <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+                  </View>
+                </Pressable>
+              ))}
             </View>
-          </Pressable>
+          </>
+        )}
 
-          <Pressable 
-            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
-            onPress={handleSyncWechat}
-            disabled={syncing}
-          >
-            <MaterialCommunityIcons 
-              name="sync" 
-              size={20} 
-              color={syncing ? colors.textMuted : colors.primaryLight} 
-              style={styles.rowIcon} 
-            />
-            <Text style={[styles.rowLabel, { color: syncing ? colors.textMuted : colors.textPrimary }]}>
-              {syncing ? '正在同步微信文章...' : '立即同步微信文章'}
-            </Text>
-            <View style={styles.rowRight}>
-              {syncing ? (
-                <ActivityIndicator size="small" color={colors.primaryLight} style={{ marginRight: 8 }} />
-              ) : (
-                <Text style={[styles.rowValue, { color: colors.textSecondary }]}>后台检测并同步</Text>
-              )}
-              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+        {notificationItems.length > 0 && (
+          <>
+            <View style={styles.sectionHeaderContainer}>
+              <Text style={styles.sectionHeader}>通知管理</Text>
             </View>
-          </Pressable>
-
-          <Pressable 
-            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
-            onPress={handleClearOldArticles}
-            disabled={clearing}
-          >
-            <MaterialCommunityIcons 
-              name="trash-can-outline" 
-              size={20} 
-              color={clearing ? colors.textMuted : colors.primaryLight} 
-              style={styles.rowIcon} 
-            />
-            <Text style={[styles.rowLabel, { color: clearing ? colors.textMuted : colors.textPrimary }]}>
-              {clearing ? '正在清理已删文章...' : '清理历史已删文章'}
-            </Text>
-            <View style={styles.rowRight}>
-              {clearing ? (
-                <ActivityIndicator size="small" color="#EF4444" style={{ marginRight: 8 }} />
-              ) : (
-                <Text style={[styles.rowValue, { color: colors.textSecondary }]}>保留最新10篇的排重</Text>
-              )}
-              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {notificationItems.map((item, index) => (
+                <Pressable
+                  key={item.key}
+                  style={[styles.rowPressable, { borderBottomColor: colors.border }, index === notificationItems.length - 1 && { borderBottomWidth: 0 }]}
+                  onPress={item.onPress}
+                >
+                  <MaterialCommunityIcons name={item.icon as any} size={20} color={colors.primaryLight} style={styles.rowIcon} />
+                  <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{item.label}</Text>
+                  <View style={styles.rowRight}>
+                    <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{item.value}</Text>
+                    <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+                  </View>
+                </Pressable>
+              ))}
             </View>
-          </Pressable>
+          </>
+        )}
 
-          <Pressable 
-            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
-            onPress={() => router.push('/admin/manage-articles')}
-          >
-            <MaterialCommunityIcons name="playlist-edit" size={20} color={colors.primaryLight} style={styles.rowIcon} />
-            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>管理已有文章及分类</Text>
-            <View style={styles.rowRight}>
-              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>分类与删除</Text>
-              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+        {handbookItems.length > 0 && (
+          <>
+            <View style={styles.sectionHeaderContainer}>
+              <Text style={styles.sectionHeader}>新生手册</Text>
             </View>
-          </Pressable>
-
-          <Pressable 
-            style={[styles.rowPressable, { borderBottomWidth: 0 }]} 
-            onPress={() => router.push('/admin/manage-notifications')}
-          >
-            <MaterialCommunityIcons name="bell-ring-outline" size={20} color={colors.primaryLight} style={styles.rowIcon} />
-            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>管理已有通知及分类</Text>
-            <View style={styles.rowRight}>
-              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>分类与删除</Text>
-              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {handbookItems.map((item) => (
+                <Pressable
+                  key={item.key}
+                  style={[styles.rowPressable, { borderBottomColor: colors.border, borderBottomWidth: 0 }]}
+                  onPress={item.onPress}
+                >
+                  <MaterialCommunityIcons name={item.icon as any} size={20} color={colors.primaryLight} style={styles.rowIcon} />
+                  <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{item.label}</Text>
+                  <View style={styles.rowRight}>
+                    <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{item.value}</Text>
+                    <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+                  </View>
+                </Pressable>
+              ))}
             </View>
-          </Pressable>
-        </View>
+          </>
+        )}
 
-        <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>用户与安全管理</Text>
-        </View>
-
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Pressable 
-            style={[styles.rowPressable, { borderBottomColor: colors.border }]} 
-            onPress={() => router.push('/admin/manage-users')}
-          >
-            <MaterialCommunityIcons name="account-multiple-outline" size={20} color={colors.primaryLight} style={styles.rowIcon} />
-            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>已注册用户管理</Text>
-            <View style={styles.rowRight}>
-              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>头像/昵称审核</Text>
-              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+        {userItems.length > 0 && (
+          <>
+            <View style={styles.sectionHeaderContainer}>
+              <Text style={styles.sectionHeader}>用户与安全管理</Text>
             </View>
-          </Pressable>
-
-          <Pressable 
-            style={[styles.rowPressable, { borderBottomWidth: 0 }]} 
-            onPress={() => router.push('/admin/manage-feedbacks')}
-          >
-            <MaterialCommunityIcons name="message-draw" size={20} color={colors.primaryLight} style={styles.rowIcon} />
-            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>用户意见反馈管理</Text>
-            <View style={styles.rowRight}>
-              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>状态标记与查看</Text>
-              <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+            <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {userItems.map((item, index) => (
+                <Pressable
+                  key={item.key}
+                  style={[styles.rowPressable, { borderBottomColor: colors.border }, index === userItems.length - 1 && { borderBottomWidth: 0 }]}
+                  onPress={item.onPress}
+                >
+                  <MaterialCommunityIcons name={item.icon as any} size={20} color={colors.primaryLight} style={styles.rowIcon} />
+                  <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{item.label}</Text>
+                  <View style={styles.rowRight}>
+                    <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{item.value}</Text>
+                    <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+                  </View>
+                </Pressable>
+              ))}
             </View>
-          </Pressable>
-        </View>
+          </>
+        )}
 
-        <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>未来管理功能 (建设中)</Text>
-        </View>
-
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {/* ASSCUBO Card management placeholder */}
-          <View style={styles.rowView}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialCommunityIcons name="card-account-details-outline" size={20} color={colors.textMuted} style={styles.rowIcon} />
-              <Text style={[styles.rowLabel, { color: colors.textMuted }]}>学联卡管理</Text>
+        {futureItems.length > 0 && (
+          <>
+            <View style={styles.sectionHeaderContainer}>
+              <Text style={styles.sectionHeader}>未来管理功能</Text>
             </View>
-            <Text style={[styles.statusText, { color: colors.textMuted }]}>建设中</Text>
-          </View>
-        </View>
+            <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {futureItems.map((item, index) => (
+                <View
+                  key={item.key}
+                  style={[styles.rowView, { borderBottomColor: colors.border }, index === futureItems.length - 1 && { borderBottomWidth: 0 }]}
+                >
+                  <MaterialCommunityIcons name={item.icon as any} size={20} color={colors.textMuted} style={styles.rowIcon} />
+                  <Text style={[styles.rowLabel, styles.futureRowLabel, { color: colors.textMuted }]}>{item.label}</Text>
+                  <Text style={[styles.statusText, { color: colors.textMuted }]}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -316,7 +365,6 @@ const styles = StyleSheet.create({
   rowView: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
@@ -326,6 +374,10 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: 16,
+  },
+  futureRowLabel: {
+    flex: 1,
+    textAlign: 'left',
   },
   rowRight: {
     flexDirection: 'row',

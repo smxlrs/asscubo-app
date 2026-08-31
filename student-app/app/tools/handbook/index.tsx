@@ -37,6 +37,7 @@ type Chapter = {
   order_index: number;
   content_type: 'pdf' | 'richtext';
   content_body?: string;
+  content_url?: string;
   parent_id: string | null;
   children?: Chapter[];
 };
@@ -1082,6 +1083,22 @@ export default function HandbookReaderScreen() {
 
   // Helper to render customized typography elements from markdown content body
   const renderContentBody = () => {
+    if (currentChapter?.content_type === 'pdf' && currentChapter.content_url) {
+      return (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="file-pdf-box" size={52} color={colors.primary} />
+          <Text style={[styles.noContent, { color: selectedTheme.textColor, marginTop: 14 }]}>{currentChapter.title}</Text>
+          <Pressable
+            style={[styles.pdfOpenButton, { backgroundColor: colors.primary }]}
+            onPress={() => Linking.openURL(currentChapter.content_url!)}
+          >
+            <MaterialCommunityIcons name="open-in-new" size={19} color="#FFFFFF" />
+            <Text style={styles.pdfOpenButtonText}>打开 PDF</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
     if (!currentChapter || !currentChapter.content_body) {
       return (
         <View style={styles.emptyContainer}>
@@ -1843,6 +1860,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 8,
     textAlign: 'center',
+  },
+  pdfOpenButton: {
+    height: 44,
+    marginTop: 20,
+    paddingHorizontal: 18,
+    borderRadius: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  pdfOpenButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
   h1: {
     fontWeight: 'bold',

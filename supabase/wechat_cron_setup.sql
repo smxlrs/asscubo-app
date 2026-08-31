@@ -32,7 +32,8 @@ SELECT cron.schedule(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer <您的SERVICE_ROLE_KEY>'
     ),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 120000
   );
   $$
 );

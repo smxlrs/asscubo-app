@@ -3,294 +3,435 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const WECHAT_APPID = Deno.env.get("WECHAT_APPID");
 const WECHAT_APPSECRET = Deno.env.get("WECHAT_APPSECRET");
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const WECHAT_API_BASE = Deno.env.get("WECHAT_API_BASE") || "https://api.weixin.qq.com";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const DEFAULT_WECHAT_API_BASE = "https://api.weixin.qq.com";
+const CONFIGURED_WECHAT_API_BASE = Deno.env.get("WECHAT_API_BASE")?.replace(/\/$/, "");
+const WECHAT_PROXY_TOKEN = Deno.env.get("WECHAT_PROXY_TOKEN");
+const WECHAT_API_BASES = [...new Set([CONFIGURED_WECHAT_API_BASE, DEFAULT_WECHAT_API_BASE].filter(Boolean))] as string[];
+const PUBLICATIONS_PER_RUN = clampNumber(Deno.env.get("WECHAT_SYNC_COUNT"), 20, 1, 20);
+const INTERNAL_REQUEST_TIMEOUT_MS = 10_000;
+const PUSH_REQUEST_TIMEOUT_MS = 15_000;
+const CONFIGURED_API_TIMEOUT_MS = 12_000;
+const DEFAULT_API_TIMEOUT_MS = 25_000;
+const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+const SYNC_LOCK_SECONDS = 180;
+const EXPO_BATCH_SIZE = 100;
+const PUSH_CONCURRENCY = 4;
 
-// HTML decoding helper
-function decodeHtmlEntities(str: string): string {
-  if (!str) return '';
-  return str
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+type WeChatNewsItem = {
+  title?: string;
+  digest?: string;
+  author?: string;
+  url?: string;
+  thumb_url?: string;
+};
+
+type WeChatPublication = {
+  article_id?: string;
+  update_time?: number;
+  content?: { news_item?: WeChatNewsItem[] };
+};
+
+type SyncCandidate = {
+  source_id: string;
+  title: string;
+  summary: string;
+  link: string;
+  originalLink: string;
+  cover_image: string | null;
+  created_at: string;
+};
+
+type InsertedArticle = {
+  id: string;
+  title: string;
+  summary: string | null;
+  link: string;
+  created_at: string;
+};
+
+function clampNumber(raw: string | null, fallback: number, min: number, max: number): number {
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? Math.min(Math.max(Math.trunc(parsed), min), max) : fallback;
+}
+
+function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function decodeHtmlEntities(value = ""): string {
+  return value
     .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, '&')
+    .replace(/&amp;/g, "&")
     .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ');
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ");
 }
 
-// WeChat URL normalization to strip dynamic tracking / temp signature parameters
-function normalizeWechatUrl(url: string): string {
-  if (!url) return '';
+function normalizeWechatUrl(value: string): string {
   try {
-    const parsed = new URL(url);
-    if (parsed.hostname === 'mp.weixin.qq.com') {
-      const biz = parsed.searchParams.get('__biz');
-      const mid = parsed.searchParams.get('mid');
-      const idx = parsed.searchParams.get('idx');
-      const sn = parsed.searchParams.get('sn');
-      if (biz && mid && idx && sn) {
-        return `https://mp.weixin.qq.com/s?__biz=${biz}&mid=${mid}&idx=${idx}&sn=${sn}`;
-      }
+    const parsed = new URL(value);
+    if (parsed.hostname !== "mp.weixin.qq.com") return value;
+
+    const biz = parsed.searchParams.get("__biz");
+    const mid = parsed.searchParams.get("mid");
+    const idx = parsed.searchParams.get("idx");
+    const sn = parsed.searchParams.get("sn");
+    if (biz && mid && idx && sn) {
+      const normalized = new URL("https://mp.weixin.qq.com/s");
+      normalized.searchParams.set("__biz", biz);
+      normalized.searchParams.set("mid", mid);
+      normalized.searchParams.set("idx", idx);
+      normalized.searchParams.set("sn", sn);
+      return normalized.toString();
     }
-  } catch (e) {
-    // fallback to original if parsing fails
+  } catch {
+    // Keep the original URL when WeChat returns an unexpected format.
   }
-  return url;
+  return value;
 }
 
-// Save article and send Expo Push notification
-async function saveAndPushArticle(
-  supabase: any,
-  title: string,
-  summary: string,
-  url: string,
-  coverImage: string | null,
-  publishTime: string
-) {
-  // 1. 插入微信文章数据到 articles 表
-  const { data: articleData, error: articleError } = await supabase
-    .from('articles')
-    .insert([{
-      title: title,
-      summary: summary,
-      content: '微信外链文章',
-      category: 'general',
-      cover_image: coverImage,
-      link: url,
-      is_published: true,
-      view_count: 0,
-      created_at: publishTime
-    }])
-    .select();
+async function fetchJson(url: string, timeoutMs: number, init?: RequestInit): Promise<{ response: Response; data: any }> {
+  const response = await fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const data = await response.json();
+  return { response, data };
+}
 
-  if (articleError) {
-    console.error(`Error inserting article "${title}" into Supabase:`, articleError);
+function timeoutForApiBase(apiBase: string): number {
+  return apiBase === DEFAULT_WECHAT_API_BASE ? DEFAULT_API_TIMEOUT_MS : CONFIGURED_API_TIMEOUT_MS;
+}
+
+function apiHost(apiBase: string): string {
+  try {
+    return new URL(apiBase).host;
+  } catch {
+    return "configured-api";
+  }
+}
+
+function headersForApiBase(apiBase: string, headers?: HeadersInit): Headers {
+  const requestHeaders = new Headers(headers);
+  if (apiBase === CONFIGURED_WECHAT_API_BASE && WECHAT_PROXY_TOKEN) {
+    requestHeaders.set("X-WeChat-Proxy-Token", WECHAT_PROXY_TOKEN);
+  }
+  return requestHeaders;
+}
+
+async function isValidServiceRoleToken(authHeader: string): Promise<boolean> {
+  try {
+    const probeUrl = new URL(`${SUPABASE_URL}/rest/v1/wechat_sync_state`);
+    probeUrl.searchParams.set("select", "singleton");
+    probeUrl.searchParams.set("limit", "1");
+    const response = await fetch(probeUrl, {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: authHeader,
+      },
+      signal: AbortSignal.timeout(INTERNAL_REQUEST_TIMEOUT_MS),
+    });
+    return response.ok;
+  } catch (error) {
+    console.warn("Unable to validate internal scheduler token:", error);
     return false;
   }
-  const articleId = articleData && articleData[0]?.id;
+}
 
-  // 2. [Removed insertion into notifications table to separate articles and notifications]
+async function isAuthorized(req: Request, supabase: any): Promise<boolean> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return false;
+  if (authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) return true;
+  if (await isValidServiceRoleToken(authHeader)) return true;
 
-  // 3. 获取所有设备的 Push Token
-  const { data: tokensData, error: tokensError } = await supabase
-    .from('push_tokens')
-    .select('token');
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const { data: authData, error: userError } = await supabase.auth.getUser(token);
+  const user = authData?.user;
+  if (userError || !user) return false;
 
-  if (tokensError || !tokensData || tokensData.length === 0) {
-    console.log('No push tokens found or failed to query:', tokensError);
-    return true;
-  }
+  const [{ data: profile, error: profileError }, { data: permission, error: permissionError }] = await Promise.all([
+    supabase.from("profiles").select("role").eq("id", user.id).single(),
+    supabase.from("admin_permissions").select("permission").eq("admin_id", user.id).eq("permission", "articles.sync").maybeSingle(),
+  ]);
 
-  const tokens = Array.from(new Set(tokensData.map((t: any) => t.token)));
-  console.log(`Sending mass push to ${tokens.length} devices for article "${title}"...`);
+  return !profileError
+    && !permissionError
+    && (profile?.role === "super_admin" || (profile?.role === "admin" && permission));
+}
 
-  // 4. 构造 Expo 推送消息 Payload
-  const pushTitle = `【综合通知】${title}`;
-  const messages = tokens.map(token => ({
-    to: token,
-    sound: 'default',
-    title: pushTitle,
-    body: summary,
-    data: { category: 'general', link: url, articleId },
-  }));
+async function getAccessToken(supabase: any, forceRefresh = false): Promise<string> {
+  if (!forceRefresh) {
+    const { data: cached, error } = await supabase
+      .from("wechat_sync_state")
+      .select("access_token, access_token_expires_at")
+      .eq("singleton", true)
+      .single();
 
-  // 按照 Expo 每批 100 条的限制进行拆分发送
-  const chunkSize = 100;
-  for (let i = 0; i < messages.length; i += chunkSize) {
-    const chunk = messages.slice(i, i + chunkSize);
-    try {
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Accept-encoding': 'gzip, deflate',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(chunk),
-      });
-      const resData = await response.json();
-      console.log(`Expo push batch result for chunk starting at index ${i}:`, resData);
-    } catch (e) {
-      console.error('Failed to send push notification chunk:', e);
+    if (!error && cached?.access_token && cached.access_token_expires_at) {
+      const expiresAt = new Date(cached.access_token_expires_at).getTime();
+      if (expiresAt - TOKEN_REFRESH_BUFFER_MS > Date.now()) return cached.access_token;
     }
   }
 
-  return true;
+  const failures: string[] = [];
+  let tokenData: any = null;
+  for (const apiBase of WECHAT_API_BASES) {
+    try {
+      const tokenUrl = new URL(`${apiBase}/cgi-bin/token`);
+      tokenUrl.searchParams.set("grant_type", "client_credential");
+      tokenUrl.searchParams.set("appid", WECHAT_APPID!);
+      tokenUrl.searchParams.set("secret", WECHAT_APPSECRET!);
+      const { response, data } = await fetchJson(tokenUrl.toString(), timeoutForApiBase(apiBase), {
+        headers: headersForApiBase(apiBase),
+      });
+      if (response.ok && !data.errcode && data.access_token) {
+        tokenData = data;
+        break;
+      }
+      failures.push(`${apiHost(apiBase)}: ${data.errmsg || `HTTP ${response.status}`}`);
+    } catch (error: any) {
+      failures.push(`${apiHost(apiBase)}: ${error?.message || "network error"}`);
+    }
+  }
+  if (!tokenData) throw new Error(`Failed to fetch WeChat access token: ${failures.join("; ")}`);
+
+  const expiresIn = clampNumber(String(tokenData.expires_in || 7200), 7200, 600, 7200);
+  const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+  const { error: cacheError } = await supabase
+    .from("wechat_sync_state")
+    .update({ access_token: tokenData.access_token, access_token_expires_at: expiresAt, updated_at: new Date().toISOString() })
+    .eq("singleton", true);
+  if (cacheError) console.warn("Unable to persist WeChat access token cache:", cacheError.message);
+
+  return tokenData.access_token;
+}
+
+async function fetchPublications(supabase: any): Promise<WeChatPublication[]> {
+  let accessToken = await getAccessToken(supabase);
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const failures: string[] = [];
+    let tokenExpired = false;
+    for (const apiBase of WECHAT_API_BASES) {
+      try {
+        const batchUrl = `${apiBase}/cgi-bin/freepublish/batchget?access_token=${encodeURIComponent(accessToken)}`;
+        const { response, data } = await fetchJson(batchUrl, timeoutForApiBase(apiBase), {
+          method: "POST",
+          headers: headersForApiBase(apiBase, { "Content-Type": "application/json" }),
+          body: JSON.stringify({ offset: 0, count: PUBLICATIONS_PER_RUN, no_content: 0 }),
+        });
+        if (response.ok && !data.errcode) return data.item || [];
+        tokenExpired ||= data.errcode === 40014 || data.errcode === 42001;
+        failures.push(`${apiHost(apiBase)}: ${data.errmsg || `HTTP ${response.status}`}`);
+      } catch (error: any) {
+        failures.push(`${apiHost(apiBase)}: ${error?.message || "network error"}`);
+      }
+    }
+
+    if (attempt === 0 && tokenExpired) {
+      accessToken = await getAccessToken(supabase, true);
+      continue;
+    }
+    throw new Error(`Failed to fetch WeChat publications: ${failures.join("; ")}`);
+  }
+
+  return [];
+}
+
+function toCandidates(publications: WeChatPublication[]): SyncCandidate[] {
+  const candidates = new Map<string, SyncCandidate>();
+
+  for (const publication of publications) {
+    const newsItems = publication.content?.news_item || [];
+    newsItems.forEach((article, index) => {
+      const originalLink = article.url?.trim();
+      if (!originalLink) return;
+
+      const link = normalizeWechatUrl(originalLink);
+      const sourceId = publication.article_id ? `${publication.article_id}_${index}` : link;
+      const timestamp = Number(publication.update_time) > 0 ? Number(publication.update_time) * 1000 : Date.now();
+      candidates.set(sourceId, {
+        source_id: sourceId,
+        title: decodeHtmlEntities(article.title || "无标题"),
+        summary: decodeHtmlEntities(article.digest || article.author || "微信公众号推文"),
+        link,
+        originalLink,
+        cover_image: article.thumb_url || null,
+        created_at: new Date(timestamp).toISOString(),
+      });
+    });
+  }
+
+  return [...candidates.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+async function findNewCandidates(supabase: any, candidates: SyncCandidate[]): Promise<SyncCandidate[]> {
+  if (candidates.length === 0) return [];
+
+  const sourceIds = candidates.map((article) => article.source_id);
+  const links = [...new Set(candidates.flatMap((article) => [article.link, article.originalLink]))];
+  const [sourceResult, linkResult] = await Promise.all([
+    supabase.from("articles").select("source_id").eq("source", "wechat").in("source_id", sourceIds),
+    supabase.from("articles").select("link").in("link", links),
+  ]);
+
+  if (sourceResult.error) throw sourceResult.error;
+  if (linkResult.error) throw linkResult.error;
+
+  const existingSourceIds = new Set((sourceResult.data || []).map((row: any) => row.source_id));
+  const existingLinks = new Set((linkResult.data || []).map((row: any) => row.link));
+  return candidates.filter((article) =>
+    !existingSourceIds.has(article.source_id)
+    && !existingLinks.has(article.link)
+    && !existingLinks.has(article.originalLink)
+  );
+}
+
+async function insertArticles(supabase: any, candidates: SyncCandidate[]): Promise<InsertedArticle[]> {
+  if (candidates.length === 0) return [];
+
+  const rows = candidates.map((article) => ({
+    title: article.title,
+    summary: article.summary,
+    content: "微信外链文章",
+    category: "general",
+    cover_image: article.cover_image,
+    link: article.link,
+    source: "wechat",
+    source_id: article.source_id,
+    is_published: true,
+    view_count: 0,
+    created_at: article.created_at,
+  }));
+
+  const { data, error } = await supabase
+    .from("articles")
+    .insert(rows)
+    .select("id, title, summary, link, created_at");
+  if (error) throw error;
+  return (data || []) as InsertedArticle[];
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) chunks.push(items.slice(index, index + size));
+  return chunks;
+}
+
+async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, concurrency: number): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = new Array(tasks.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const index = nextIndex++;
+      try {
+        results[index] = { status: "fulfilled", value: await tasks[index]() };
+      } catch (reason) {
+        results[index] = { status: "rejected", reason };
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()));
+  return results;
+}
+
+async function sendPushNotifications(supabase: any, articles: InsertedArticle[]): Promise<{ batches: number; failures: number }> {
+  if (articles.length === 0) return { batches: 0, failures: 0 };
+
+  const { data: tokenRows, error } = await supabase.from("push_tokens").select("token");
+  if (error) throw error;
+
+  const tokens = [...new Set((tokenRows || []).map((row: any) => row.token).filter(Boolean))] as string[];
+  if (tokens.length === 0) return { batches: 0, failures: 0 };
+
+  const newest = [...articles].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const payloads = tokens.map((token) => articles.length === 1 ? {
+    to: token,
+    sound: "default",
+    title: `【综合通知】${newest.title}`,
+    body: newest.summary || "微信公众号发布了新文章",
+    data: { category: "general", link: newest.link, articleId: newest.id },
+  } : {
+    to: token,
+    sound: "default",
+    title: `新增 ${articles.length} 篇微信公众号文章`,
+    body: `最新：${newest.title}`,
+    data: { category: "general", link: newest.link, articleId: newest.id },
+  });
+
+  const batches = chunk(payloads, EXPO_BATCH_SIZE);
+  const results = await runWithConcurrency(batches.map((batch) => async () => {
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { Accept: "application/json", "Accept-Encoding": "gzip, deflate", "Content-Type": "application/json" },
+      body: JSON.stringify(batch),
+      signal: AbortSignal.timeout(PUSH_REQUEST_TIMEOUT_MS),
+    });
+    if (!response.ok) throw new Error(`Expo push failed (${response.status}).`);
+    await response.text();
+  }), PUSH_CONCURRENCY);
+
+  return { batches: batches.length, failures: results.filter((result) => result.status === "rejected").length };
 }
 
 serve(async (req) => {
-  // CORS Headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  // 1. 安全校验 (仅允许带服务角色密钥的内部或授权请求触发，或管理员/超级管理员用户 JWT)
-  const authHeader = req.headers.get("Authorization");
-  const fallbackServiceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2eHpnYW96YmZlcXR0bWhtbGxkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDk1MTQxMCwiZXhwIjoyMDk2NTI3NDEwfQ.jamD65zd9C28tF_Wk7BC_98OYDMgQ4-zBg_st0InHfA";
-  
-  let authorized = false;
-  if (authHeader) {
-    const isServiceKey = authHeader === `Bearer ${supabaseServiceKey}` || authHeader === `Bearer ${fallbackServiceKey}`;
-    if (isServiceKey) {
-      authorized = true;
-    } else {
-      try {
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        const token = authHeader.replace("Bearer ", "");
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-        if (!userError && user) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-          if (!profileError && profile && (profile.role === 'admin' || profile.role === 'super_admin')) {
-            authorized = true;
-            console.log(`User ${user.id} authorized as admin/super_admin for manual WeChat sync.`);
-          } else {
-            console.warn(`User ${user.id} role is: ${profile?.role}. Unauthorized for manual WeChat sync.`);
-          }
-        } else {
-          console.warn("Manual WeChat sync: user token authentication failed:", userError);
-        }
-      } catch (err) {
-        console.error("Manual WeChat sync auth check error:", err);
-      }
-    }
-  }
-
-  if (!authorized) {
-    console.warn("Unauthorized access attempt detected.");
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-  }
-
-  // 校验微信配置环境变量
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  if (!(await isAuthorized(req, supabase))) return jsonResponse({ status: "error", message: "Unauthorized" }, 401);
   if (!WECHAT_APPID || !WECHAT_APPSECRET) {
-    console.error("Missing WECHAT_APPID or WECHAT_APPSECRET environment variables.");
-    return new Response(JSON.stringify({ error: "Server Configuration Error: Missing WeChat credentials in environment." }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    return jsonResponse({ status: "error", message: "Missing WeChat credentials." }, 500);
   }
 
+  const { data: claimed, error: claimError } = await supabase.rpc("claim_wechat_sync_run", {
+    lock_for_seconds: SYNC_LOCK_SECONDS,
+  });
+  if (claimError) return jsonResponse({ status: "error", message: claimError.message }, 500);
+  if (!claimed) return jsonResponse({ status: "busy", synced: 0, skipped: 0, message: "A WeChat sync is already running." }, 202);
+
+  let result: Record<string, unknown> = { status: "error", synced: 0, skipped: 0 };
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const publications = await fetchPublications(supabase);
+    const candidates = toCandidates(publications);
+    const newCandidates = await findNewCandidates(supabase, candidates);
+    const inserted = await insertArticles(supabase, newCandidates);
 
-    // 2. 获取微信 Access Token
-    console.log("Fetching WeChat Access Token...");
-    const tokenUrl = `${WECHAT_API_BASE}/cgi-bin/token?grant_type=client_credential&appid=${WECHAT_APPID}&secret=${WECHAT_APPSECRET}`;
-    const tokenRes = await fetch(tokenUrl);
-    const tokenData = await tokenRes.json();
-
-    if (!tokenRes.ok || tokenData.errcode) {
-      throw new Error(tokenData.errmsg || `Failed to fetch access token. Code: ${tokenData.errcode}`);
+    let push = { batches: 0, failures: 0 };
+    try {
+      push = await sendPushNotifications(supabase, inserted);
+    } catch (pushError) {
+      push = { batches: 0, failures: 1 };
+      console.error("Articles were saved but push delivery failed:", pushError);
     }
 
-    const accessToken = tokenData.access_token;
-    console.log("WeChat Access Token successfully retrieved.");
-
-    // 3. 拉取最新的公众号推文列表 (拉取第 1 页最新的 20 条)
-    console.log("Fetching latest WeChat articles...");
-    const batchUrl = `${WECHAT_API_BASE}/cgi-bin/freepublish/batchget?access_token=${accessToken}`;
-    const batchRes = await fetch(batchUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        offset: 0,
-        count: 10,
-        no_content: 0 // 设置为 0 确保获取到 content.news_item 列表
-      })
-    });
-
-    const batchData = await batchRes.json();
-    if (!batchRes.ok || batchData.errcode) {
-      throw new Error(batchData.errmsg || `Failed to fetch publications. Code: ${batchData.errcode}`);
-    }
-
-    const items = batchData.item || [];
-    console.log(`Retrieved ${items.length} publications. Checking for duplicates...`);
-
-    let successCount = 0;
-    let skippedCount = 0;
-
-    // 4. 遍历处理每篇推文 (注意 items 排列是从新到旧，处理时我们可以倒序处理，先同步旧的，再同步新的)
-    for (let i = items.length - 1; i >= 0; i--) {
-      const item = items[i];
-      const newsItem = item.content?.news_item || [];
-      const updateTime = item.update_time;
-      const publishTime = new Date(updateTime * 1000).toISOString();
-
-      for (const article of newsItem) {
-        const title = decodeHtmlEntities(article.title);
-        const summary = decodeHtmlEntities(article.digest || article.author || '微信公众号推文');
-        const url = article.url;
-        const coverImage = article.thumb_url || null;
-
-        if (!url) continue;
-
-        const normalizedUrl = normalizeWechatUrl(url);
-
-        // 检查数据库中是否已存在该链接的文章 (兼容匹配原始链接和标准化链接)
-        const { data: existing, error: checkError } = await supabase
-          .from('articles')
-          .select('id')
-          .or(`link.eq.${url},link.eq.${normalizedUrl}`)
-          .maybeSingle();
-
-        if (checkError) {
-          console.error(`Error checking duplicate for article "${title}":`, checkError);
-          continue;
-        }
-
-        if (existing) {
-          console.log(`[SKIPPED] Article already exists: "${title}"`);
-          skippedCount++;
-          continue;
-        }
-
-        // 保存文章到数据库，并给所有用户发送推送消息 (保存标准化链接)
-        const saved = await saveAndPushArticle(supabase, title, summary, normalizedUrl, coverImage, publishTime);
-        if (saved) {
-          console.log(`[SYNCED] New article added: "${title}"`);
-          successCount++;
-        }
-      }
-    }
-
-    console.log(`Sync complete. Synced: ${successCount}, Skipped: ${skippedCount}`);
-    return new Response(
-      JSON.stringify({
-        status: "success",
-        synced: successCount,
-        skipped: skippedCount
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
-
-  } catch (err: any) {
-    console.error("Fatal error during WeChat sync process:", err);
-    return new Response(
-      JSON.stringify({
-        status: "error",
-        message: err.message || "Internal Server Error"
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
+    result = {
+      status: "success",
+      fetched: candidates.length,
+      synced: inserted.length,
+      skipped: candidates.length - newCandidates.length,
+      push_batches: push.batches,
+      push_failures: push.failures,
+    };
+    return jsonResponse(result);
+  } catch (error: any) {
+    console.error("Fatal WeChat sync error:", error);
+    result = { ...result, message: error?.message || "Internal Server Error" };
+    return jsonResponse(result, 500);
+  } finally {
+    const { error: finishError } = await supabase.rpc("finish_wechat_sync_run", { sync_result: result });
+    if (finishError) console.error("Unable to release WeChat sync lock:", finishError.message);
   }
 });

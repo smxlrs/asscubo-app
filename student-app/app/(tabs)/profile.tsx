@@ -162,7 +162,7 @@ export default function ProfileScreen() {
           )}
 
           <View style={[styles.menuSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            {profile?.role === 'admin' && (
+            {(profile?.role === 'admin' || profile?.role === 'super_admin') && (
               <Pressable style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]} onPress={() => router.push('/admin')}>
                 <ProfileBootstrapIcon name="shield" size={22} color={colors.primaryLight} style={styles.menuIcon} />
                 <Text style={[styles.menuLabel, { color: colors.textPrimary, fontWeight: 'bold' }]}>{localized.adminPanel}</Text>

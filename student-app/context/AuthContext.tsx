@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { recordDebugEvent } from '../lib/logger';
 import * as Linking from 'expo-linking';
 import { AppState } from 'react-native';
+import { AdminPermission, ALL_ADMIN_PERMISSIONS } from '../lib/adminPermissions';
 
 const AUTH_TIMEOUT_MS = 5000;
 
@@ -42,6 +43,8 @@ type AuthContextType = {
   signUp: (email: string, password: string, name: string) => Promise<{ error: any; alreadyExists: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  adminPermissions: AdminPermission[];
+  hasAdminPermission: (permission: AdminPermission) => boolean;
   retryInit: () => void;
   hasUnreadFeedbackReply: boolean;
   refreshUnreadFeedbackReplies: () => Promise<void>;
@@ -56,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [networkError, setNetworkError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [adminPermissions, setAdminPermissions] = useState<AdminPermission[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchProfile(session.user.id, session.user, false);
       } else {
         setProfile(null);
+        setAdminPermissions([]);
         setLoading(false);
       }
     });
@@ -135,6 +140,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         setProfile(currentProfile);
+        if (currentProfile.role === 'super_admin') {
+          setAdminPermissions(ALL_ADMIN_PERMISSIONS);
+        } else if (currentProfile.role === 'admin') {
+          const { data: permissionData, error: permissionError } = await supabase.rpc('get_my_admin_permissions');
+          if (permissionError) {
+            console.warn('Failed to fetch administrator permissions:', permissionError);
+            setAdminPermissions([]);
+          } else {
+            setAdminPermissions((permissionData || []) as AdminPermission[]);
+          }
+        } else {
+          setAdminPermissions([]);
+        }
       }
     } catch (e) {
       console.error('Error fetching profile:', e);
@@ -200,6 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     await supabase.auth.signOut();
+    setAdminPermissions([]);
     recordDebugEvent('auth', 'Sign-out completed');
   }
 
@@ -227,6 +246,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function refreshProfile() {
     if (user) await fetchProfile(user.id, user);
+  }
+
+  function hasAdminPermission(permission: AdminPermission) {
+    return profile?.role === 'super_admin' || adminPermissions.includes(permission);
   }
 
   useEffect(() => {
@@ -260,7 +283,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn, 
       signUp, 
       signOut, 
-      refreshProfile, 
+      refreshProfile,
+      adminPermissions,
+      hasAdminPermission,
       retryInit,
       hasUnreadFeedbackReply,
       refreshUnreadFeedbackReplies

@@ -153,12 +153,8 @@ function AppContent() {
       try {
         const token = await registerForPushNotificationsAsync();
         if (token) {
-          // 1. Upsert push token in push_tokens table
-          await supabase.from('push_tokens').upsert({
-            user_id: user?.id || null, // null for guests
-            token: token,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'token' });
+          // Register through a narrow RPC so device tokens are never publicly readable.
+          await supabase.rpc('register_push_token', { device_token: token });
 
           // 2. Sync token to user profile if logged in
           if (user?.id) {
