@@ -43,6 +43,20 @@ function formatDate(value: string | null): string {
   return new Date(value).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+function readableLoadError(error: any): string {
+  const raw = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+  if (raw.includes('wechat_sync_runs') && (raw.includes('does not exist') || raw.includes('schema cache'))) {
+    return '同步记录功能尚未完成数据库配置，请联系超级管理员执行最新数据库迁移。';
+  }
+  if (raw.includes('permission denied') || raw.includes('row-level security')) {
+    return '当前账号无法读取同步记录，请确认已开通“文章同步”权限。';
+  }
+  if (raw.includes('network') || raw.includes('fetch') || raw.includes('timeout') || raw.includes('unknownhost')) {
+    return '网络连接异常，暂时无法读取同步记录，请稍后重试。';
+  }
+  return '无法读取同步记录，请稍后刷新重试。';
+}
+
 export default function WechatSyncScreen() {
   const { colors } = useTheme();
   const [runs, setRuns] = useState<SyncRun[]>([]);
@@ -57,7 +71,7 @@ export default function WechatSyncScreen() {
       setRuns((data || []) as SyncRun[]);
     } catch (error: any) {
       console.error('Failed to load WeChat sync status:', error);
-      Alert.alert('加载失败', '无法读取同步记录，请稍后刷新重试。');
+      Alert.alert('加载失败', readableLoadError(error));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -105,9 +119,17 @@ export default function WechatSyncScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={colors.primary} />}
           contentContainerStyle={styles.content}
           ListHeaderComponent={<>
-            <Pressable style={[styles.syncButton, { backgroundColor: colors.primary }]} onPress={handleSync} disabled={syncing}>
-              {syncing ? <ActivityIndicator color="#FFF" /> : <MaterialCommunityIcons name="sync" size={20} color="#FFF" />}
-              <Text style={styles.syncButtonText}>{syncing ? '正在同步...' : '立即同步微信文章'}</Text>
+            <Pressable
+              style={[styles.syncButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={handleSync}
+              disabled={syncing}
+            >
+              {syncing
+                ? <ActivityIndicator size="small" color={colors.primaryLight} style={styles.syncIcon} />
+                : <MaterialCommunityIcons name="sync" size={20} color={colors.primaryLight} style={styles.syncIcon} />}
+              <Text style={[styles.syncButtonText, { color: colors.textPrimary }]}>{syncing ? '正在同步微信文章...' : '立即同步微信文章'}</Text>
+              <Text style={[styles.syncButtonValue, { color: colors.textSecondary }]}>{syncing ? '请稍候' : '后台检测并同步'}</Text>
+              <Text style={[styles.syncArrow, { color: colors.textMuted }]}>›</Text>
             </Pressable>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>最近 10 次同步记录</Text>
           </>}
@@ -144,8 +166,11 @@ const styles = StyleSheet.create({
   metrics: { flexDirection: 'row', gap: 20, marginTop: 14 },
   metric: { fontSize: 14, fontWeight: '600' },
   errorText: { marginTop: 12, fontSize: 13 },
-  syncButton: { marginHorizontal: 16, minHeight: 46, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  syncButtonText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
+  syncButton: { minHeight: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderBottomWidth: 1 },
+  syncIcon: { marginRight: 12 },
+  syncButtonText: { fontSize: 16 },
+  syncButtonValue: { marginLeft: 'auto', marginRight: 8, fontSize: 14 },
+  syncArrow: { fontSize: 18 },
   sectionTitle: { marginTop: 24, marginHorizontal: 16, marginBottom: 8, fontSize: 14, fontWeight: '600' },
   article: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
   runHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

@@ -42,10 +42,10 @@ export const ADMIN_PERMISSION_OPTIONS = [
     icon: 'book-open-page-variant-outline',
   },
   {
-    key: 'community.moderate',
-    label: '社区内容管理',
-    description: '处理社区内的违规帖子和内容',
-    icon: 'forum-remove-outline',
+    key: 'cssa_card.manage',
+    label: '学联卡管理',
+    description: '管理学联卡相关资料与功能',
+    icon: 'card-account-details-outline',
   },
   {
     key: 'users.moderate',

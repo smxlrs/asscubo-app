@@ -101,7 +101,24 @@ export function translateAuthError(message: string, lang: Language = 'zh'): stri
   if (msgLower.includes('rate limit exceeded') || msgLower.includes('too many requests')) {
     return dict.rate_limit_exceeded;
   }
-  if (msgLower.includes('network request failed')) {
+  if (
+    msgLower.includes('network request failed')
+    || msgLower.includes('fetch failed')
+    || msgLower.includes('failed to fetch')
+    || msgLower.includes('unknownhostexception')
+    || msgLower.includes('unable to resolve host')
+    || msgLower.includes('no address associated with hostname')
+    || msgLower.includes('sockettimeoutexception')
+    || msgLower.includes('connectexception')
+    || msgLower.includes('sslhandshakeexception')
+    || msgLower.includes('connection refused')
+    || msgLower.includes('connection reset')
+    || msgLower.includes('network is unreachable')
+    || msgLower.includes('econnrefused')
+    || msgLower.includes('enotfound')
+    || msgLower.includes('etimedout')
+    || msgLower.includes('the operation was aborted')
+  ) {
     return dict.network_failed;
   }
   if (msgLower.includes('password should be at least 6 characters')) {

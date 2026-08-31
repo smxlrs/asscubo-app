@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Image, Animated, type StyleProp, type ViewStyle } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -106,8 +106,13 @@ export default function ProfileScreen() {
   const user = userObj?.user;
   const profile = userObj?.profile;
   const hasUnreadFeedbackReply = userObj?.hasUnreadFeedbackReply;
+  const refreshProfile = userObj?.refreshProfile;
   const { colors, t, tabBarStyle, tabOpacities, isDark, language } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
+
+  useFocusEffect(useCallback(() => {
+    refreshProfile?.();
+  }, []));
 
   const navigateToLogin = () => {
     router.push('/(auth)/login');

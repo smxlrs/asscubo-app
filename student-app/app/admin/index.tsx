@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,7 +9,17 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function AdminDashboardScreen() {
   const { colors } = useTheme();
-  const { hasAdminPermission } = useAuth();
+  const { hasAdminPermission, refreshProfile } = useAuth();
+  const [refreshingAccess, setRefreshingAccess] = useState(true);
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    setRefreshingAccess(true);
+    refreshProfile().finally(() => {
+      if (active) setRefreshingAccess(false);
+    });
+    return () => { active = false; };
+  }, []));
   const [clearing, setClearing] = useState(false);
 
   const handleClearOldArticles = () => {
@@ -121,7 +131,7 @@ export default function AdminDashboardScreen() {
   }>;
 
   const futureItems = [
-    {
+    hasAdminPermission('cssa_card.manage') && {
       key: 'manage-cssa-card', icon: 'card-account-details-outline', label: '学联卡管理', value: '未上线',
       onPress: () => undefined, disabled: true,
     },
@@ -144,7 +154,14 @@ export default function AdminDashboardScreen() {
         <View style={styles.headerPlaceholder} />
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {refreshingAccess && (
+          <View style={styles.accessLoading}>
+            <ActivityIndicator size="small" color={colors.primaryLight} />
+          </View>
+        )}
+        {!refreshingAccess && (
+          <>
         {articleItems.length > 0 && (
           <>
             <View style={styles.sectionHeaderContainer}>
@@ -263,6 +280,8 @@ export default function AdminDashboardScreen() {
             </View>
           </>
         )}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -302,6 +321,13 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 28,
+  },
+  accessLoading: {
+    paddingVertical: 40,
+    alignItems: 'center',
   },
   sectionHeaderContainer: {
     marginLeft: 16,

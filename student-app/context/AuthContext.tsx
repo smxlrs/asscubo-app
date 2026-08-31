@@ -7,6 +7,8 @@ import { AppState } from 'react-native';
 import { AdminPermission, ALL_ADMIN_PERMISSIONS } from '../lib/adminPermissions';
 
 const AUTH_TIMEOUT_MS = 5000;
+const PROFILE_MAX_ATTEMPTS = 3;
+const PROFILE_RETRY_DELAY_MS = 1200;
 
 function getEmailDomain(email: string) {
   const domain = email.trim().split('@')[1];
@@ -110,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [retryKey]);
 
-  async function fetchProfile(userId: string, currentUser?: User | null, cancelled = false) {
+  async function fetchProfile(userId: string, currentUser?: User | null, cancelled = false, attempt = 1) {
     try {
       const result = await withTimeout(
         Promise.resolve(supabase.from('profiles').select('*').eq('id', userId).single()),
@@ -120,7 +122,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return;
 
       if (result === null) {
-        setNetworkError(true);
+        if (attempt < PROFILE_MAX_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
+          if (!cancelled) await fetchProfile(userId, currentUser, cancelled, attempt + 1);
+        } else {
+          setNetworkError(true);
+        }
         return;
       }
 
@@ -140,19 +147,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         setProfile(currentProfile);
+        setNetworkError(false);
         if (currentProfile.role === 'super_admin') {
           setAdminPermissions(ALL_ADMIN_PERMISSIONS);
         } else if (currentProfile.role === 'admin') {
           const { data: permissionData, error: permissionError } = await supabase.rpc('get_my_admin_permissions');
           if (permissionError) {
             console.warn('Failed to fetch administrator permissions:', permissionError);
+            if (attempt < PROFILE_MAX_ATTEMPTS) {
+              await new Promise((resolve) => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
+              if (!cancelled) await fetchProfile(userId, currentUser, cancelled, attempt + 1);
+              return;
+            }
             setAdminPermissions([]);
+            setNetworkError(true);
           } else {
             setAdminPermissions((permissionData || []) as AdminPermission[]);
           }
         } else {
           setAdminPermissions([]);
         }
+      } else if (attempt < PROFILE_MAX_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
+        if (!cancelled) await fetchProfile(userId, currentUser, cancelled, attempt + 1);
+      } else {
+        console.warn('Failed to fetch profile after retries:', error);
+        setNetworkError(true);
       }
     } catch (e) {
       console.error('Error fetching profile:', e);
