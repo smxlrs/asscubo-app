@@ -10,42 +10,6 @@ import { useAuth } from '../../context/AuthContext';
 export default function AdminDashboardScreen() {
   const { colors } = useTheme();
   const { hasAdminPermission } = useAuth();
-  const [syncing, setSyncing] = useState(false);
-
-  const handleSyncWechat = () => {
-    Alert.alert(
-      '立即同步微信文章',
-      '确定要立即检测并同步微信公众号的最新文章吗？\n这可能会需要几秒钟时间，同步成功后会自动给所有订阅用户发送推送通知。',
-      [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定同步',
-          onPress: async () => {
-            setSyncing(true);
-            try {
-              const { data, error } = await supabase.functions.invoke('wechat-sync');
-              if (error) throw error;
-              if (data && data.status === 'error') throw new Error(data.message || '同步失败');
-              if (data?.status === 'busy') {
-                Alert.alert('同步进行中', '已有自动或手动同步任务正在运行，请稍后再查看结果。');
-                return;
-              }
-              
-              const synced = data?.synced ?? 0;
-              const skipped = data?.skipped ?? 0;
-              Alert.alert('同步完成', `检测同步成功！\n新增同步: ${synced} 篇\n跳过重复: ${skipped} 篇`);
-            } catch (err: any) {
-              console.error('Manual WeChat sync error:', err);
-              Alert.alert('同步失败', err.message || '请检查网络或配置后重试。');
-            } finally {
-              setSyncing(false);
-            }
-          }
-        }
-      ]
-    );
-  };
-
   const [clearing, setClearing] = useState(false);
 
   const handleClearOldArticles = () => {
@@ -105,9 +69,8 @@ export default function AdminDashboardScreen() {
       onPress: () => router.push('/admin/wechat-import'),
     },
     hasAdminPermission('articles.sync') && {
-      key: 'wechat-sync', icon: 'sync',
-      label: syncing ? '正在同步微信文章...' : '立即同步微信文章',
-      value: '后台检测并同步', onPress: handleSyncWechat, disabled: syncing, loading: syncing,
+      key: 'wechat-sync', icon: 'sync', label: '同步微信文章', value: '查看记录与手动同步',
+      onPress: () => router.push('/admin/wechat-sync'),
     },
     hasAdminPermission('articles.manage') && {
       key: 'clear-articles', icon: 'trash-can-outline',

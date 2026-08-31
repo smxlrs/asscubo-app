@@ -101,6 +101,27 @@ function normalizeWechatUrl(value: string): string {
   return value;
 }
 
+function linkVariants(value: string): string[] {
+  const variants = new Set<string>();
+  const add = (candidate: string) => {
+    if (candidate) variants.add(candidate);
+  };
+
+  add(value);
+  add(normalizeWechatUrl(value));
+  try {
+    add(decodeURIComponent(value));
+  } catch {
+    // Keep the original value when it contains malformed escape sequences.
+  }
+  try {
+    add(decodeURIComponent(normalizeWechatUrl(value)));
+  } catch {
+    // Keep the normalized value when it contains malformed escape sequences.
+  }
+  return [...variants];
+}
+
 async function fetchJson(url: string, timeoutMs: number, init?: RequestInit): Promise<{ response: Response; data: any }> {
   const response = await fetch(url, {
     ...init,
@@ -280,7 +301,10 @@ async function findNewCandidates(supabase: any, candidates: SyncCandidate[]): Pr
   if (candidates.length === 0) return [];
 
   const sourceIds = candidates.map((article) => article.source_id);
-  const links = [...new Set(candidates.flatMap((article) => [article.link, article.originalLink]))];
+  const links = [...new Set(candidates.flatMap((article) => [
+    ...linkVariants(article.link),
+    ...linkVariants(article.originalLink),
+  ]))];
   const [sourceResult, linkResult] = await Promise.all([
     supabase.from("articles").select("source_id").eq("source", "wechat").in("source_id", sourceIds),
     supabase.from("articles").select("link").in("link", links),
@@ -290,11 +314,11 @@ async function findNewCandidates(supabase: any, candidates: SyncCandidate[]): Pr
   if (linkResult.error) throw linkResult.error;
 
   const existingSourceIds = new Set((sourceResult.data || []).map((row: any) => row.source_id));
-  const existingLinks = new Set((linkResult.data || []).map((row: any) => row.link));
+  const existingLinks = new Set((linkResult.data || []).flatMap((row: any) => linkVariants(row.link || "")));
   return candidates.filter((article) =>
     !existingSourceIds.has(article.source_id)
-    && !existingLinks.has(article.link)
-    && !existingLinks.has(article.originalLink)
+    && !linkVariants(article.link).some((link) => existingLinks.has(link))
+    && !linkVariants(article.originalLink).some((link) => existingLinks.has(link))
   );
 }
 
@@ -402,6 +426,16 @@ serve(async (req) => {
   if (claimError) return jsonResponse({ status: "error", message: claimError.message }, 500);
   if (!claimed) return jsonResponse({ status: "busy", synced: 0, skipped: 0, message: "A WeChat sync is already running." }, 202);
 
+  const trigger = req.headers.get("X-Sync-Trigger") === "manual" ? "manual" : "automatic";
+  let runId: string | null = null;
+  const { data: run, error: runError } = await supabase
+    .from("wechat_sync_runs")
+    .insert({ trigger, status: "running" })
+    .select("id")
+    .single();
+  if (runError) console.error("Unable to create WeChat sync history record:", runError.message);
+  else runId = run?.id || null;
+
   let result: Record<string, unknown> = { status: "error", synced: 0, skipped: 0 };
   try {
     const publications = await fetchPublications(supabase);
@@ -433,5 +467,13 @@ serve(async (req) => {
   } finally {
     const { error: finishError } = await supabase.rpc("finish_wechat_sync_run", { sync_result: result });
     if (finishError) console.error("Unable to release WeChat sync lock:", finishError.message);
+    if (runId) {
+      const status = result.status === "success" ? "success" : "error";
+      const { error: historyError } = await supabase
+        .from("wechat_sync_runs")
+        .update({ completed_at: new Date().toISOString(), status, result })
+        .eq("id", runId);
+      if (historyError) console.error("Unable to update WeChat sync history record:", historyError.message);
+    }
   }
 });

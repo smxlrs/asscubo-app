@@ -8,6 +8,7 @@ import { AdminPermission } from '../../lib/adminPermissions';
 const ROUTE_PERMISSIONS: Record<string, AdminPermission | AdminPermission[]> = {
   '/admin/notification': 'notifications.publish',
   '/admin/wechat-import': 'articles.sync',
+  '/admin/wechat-sync': 'articles.sync',
   '/admin/manage-articles': 'articles.manage',
   '/admin/manage-notifications': 'notifications.manage',
   '/admin/manage-handbook': 'handbook.manage',
