@@ -65,6 +65,7 @@
       ],
       "./plugins/withLiquidGlassAndroid",
       "./plugins/withPlayStoreUpdateAndroid",
+      "./plugins/withAndroidReleaseOptimization",
       "expo-sharing"
     ],
     "ios": {
