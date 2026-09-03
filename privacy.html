@@ -69,41 +69,45 @@
       margin-bottom: 28px;
     }
 
-    /* ── Notice Card ── */
-    .notice-card {
-      background-color: var(--notice-bg);
+    /* ── Language Switcher ── */
+    .language-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 28px;
+    }
+    .language-tab {
+      appearance: none;
+      -webkit-tap-highlight-color: transparent;
       border: 1px solid var(--border);
-      border-left: 4px solid var(--primary);
-      border-radius: 10px;
-      padding: 14px 18px;
+      border-radius: 20px;
+      background: transparent;
+      color: var(--text-sub);
+      cursor: pointer;
+      font: inherit;
       font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.7;
-      margin-bottom: 36px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      padding: 8px 14px;
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .language-tab[aria-selected="true"] {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #FFF4F4;
+    }
+    .language-tab:focus-visible {
+      outline: 2px solid var(--primary-light);
+      outline-offset: 2px;
     }
 
     /* ── Language Section ── */
     .lang-section { margin-bottom: 12px; }
-    .lang-anchor { display: block; position: relative; top: -80px; visibility: hidden; }
-
-    .lang-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--primary);
-      background-color: rgba(163, 22, 33, 0.08);
-      border: 1px solid rgba(163, 22, 33, 0.2);
-      border-radius: 20px;
-      padding: 4px 12px;
-      margin-bottom: 20px;
-    }
+    .lang-section[hidden] { display: none; }
 
     /* ── Section Heading ── */
-    h2.section-title {
+h2.section-title {
       font-size: 18px;
       font-weight: 700;
       color: var(--text-main);
@@ -111,7 +115,18 @@
       margin-bottom: 10px;
       padding-bottom: 6px;
       border-bottom: 1px solid var(--border);
-    }
+}
+
+h3.section-subtitle {
+  margin-top: 28px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.5;
+}
 
     /* ── Paragraph ── */
     p.para {
@@ -124,13 +139,6 @@
     p.para strong {
       color: var(--text-main);
       font-weight: 600;
-    }
-
-    /* ── Divider ── */
-    .lang-divider {
-      height: 1px;
-      background: var(--divider);
-      margin: 40px 0;
     }
 
     /* ── Contact Link ── */
@@ -163,22 +171,20 @@
 
   <main>
     <h1 class="page-title">隐私政策 / Privacy Policy / Informativa sulla Privacy</h1>
-    <p class="page-subtitle">最后更新 / Last updated / Ultimo aggiornamento: 2026-06-24</p>
+    <p class="page-subtitle">最后更新 / Last updated / Ultimo aggiornamento: 2026-07-17</p>
 
-    <!-- Trilingual notice -->
-    <div class="notice-card">
-      The English version of this document is set forth below.<br>
-      La versione italiana è riportata nelle sezioni seguenti.
+    <div class="language-tabs" role="tablist" aria-label="选择语言 / Select language / Seleziona la lingua">
+      <button class="language-tab" type="button" role="tab" aria-selected="true" aria-controls="zh">中文</button>
+      <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="en">English</button>
+      <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="it">Italiano</button>
     </div>
 
     <!-- ═══════════════════════════════ 中文 ═══════════════════════════════ -->
-    <section class="lang-section" id="zh">
-      <a class="lang-anchor" id="zh-anchor"></a>
-      <div class="lang-badge">中文版</div>
+    <section class="lang-section" id="zh" role="tabpanel">
 
       <h2 class="section-title">引言与特别提示</h2>
       <p class="para">
-        本隐私政策已于 2026 年 6 月 24 日更新并生效。<br>
+        本隐私政策已于 2026 年 7 月 17 日更新并生效。<br>
         请花一些时间熟悉我们的隐私政策，如果您有任何问题，请联系我们。<br>
         本隐私政策适用于博洛尼亚大学中国学生学者联谊会（以下简称"学联"或"我们"）开发并运营的移动端应用"博学"（以下简称"本软件"或"本平台"）。我们非常重视您的隐私。本隐私政策在制定时充分考虑到您的需求，您全面了解我们对个人信息的收集和使用惯例，同时确保您最终能控制提供给我们的个人信息，这一点至关重要。本隐私政策规定我们如何收集、使用、披露、处理和存储您使用本软件提供给我们的信息。本隐私政策下"个人信息"指以电子或者其他方式记录的与已识别或者可识别的自然人有关的各种信息，不包括匿名化处理后的信息。我们将严格遵守本隐私政策来使用这些信息。为了向您提供本软件的各功能所对应的服务，我们会出于本隐私政策所述的以下目的，在您使用某些功能时，分别收集和使用您的以下各类信息。每项所对应的个人信息是否收集取决于您是否使用该项功能对应的服务，如果您不开启该项功能，则我们将不收集该项功能下对应的个人信息。但如果您不提供相关个人信息，我们可能无法向您提供该项个人信息对应功能的服务，也无法回应您遇到的问题。
       </p>
@@ -186,14 +192,25 @@
       <h2 class="section-title">一、 我们如何收集和使用您的个人信息与系统权限使用明示</h2>
       <p class="para">
         <strong>（一）您须授权我们收集和使用您个人信息的情形：</strong><br><br>
-        <strong>1. 账户注册服务与身份认证：</strong>当您选择注册并登录您的博学账户时，为了完成账户的创建、核实您的成员身份并维持账户的基本运行状态，我们需要您提供包括但不限于您的电子邮件地址、安全密码以及由您自愿填写的个性化昵称、自定义头像图片文件。在此过程中，我们会将该等数据传输至我们的安全云端服务器（Supabase）并作持久化存储。如您拒绝提供邮箱或设定密码，将无法完成注册流程并使用需要登录凭证的特权功能（例如活动在线报名系统等）。<br><br>
-        <strong>2. 设备识别、推送通知与触达服务：</strong>为了在学联发布重大公告、临时通知或动态文章时向您进行实时的精准推送，在您启动应用并取得您的系统推送授权后，我们会通过 Expo SDK 接口获取您的设备推送令牌（Expo Push Token）并将之安全存储至我们的数据库中。该推送令牌在且仅在接收云端消息发布请求时被用于识别接收目标，不会被用于任何商业营销或第三方广告画像。<br><br>
+        <strong>1. 账户注册服务与身份认证：</strong>当您选择注册并登录您的博学账户时，为了完成账户的创建、核实您的成员身份并维持账户的基本运行状态，我们需要您提供包括但不限于您的电子邮件地址、安全密码以及由您自愿填写的个性化昵称、自定义头像图片文件。在此过程中，我们会将该等数据传输至 Supabase 安全云端服务器并作持久化存储。如您拒绝提供邮箱或设定密码，将无法完成注册流程并使用需要登录凭证的特权功能（例如活动在线报名系统等）。<br><br>
+        <strong>2. 设备识别、推送通知与触达服务：</strong>为了在学联发布重大公告、临时通知或动态文章时向您进行实时的精准推送，在您启动应用并取得您的系统推送授权后，我们会通过 Expo SDK 接口获取设备的 Expo Push Token 并将之安全存储至我们的数据库中。该令牌在且仅在接收云端消息发布请求时被用于识别接收目标，不会被用于任何商业营销或第三方广告画像。<br><br>
         <strong>3. 匿名服务查询与缓存机制：</strong>当您在应用内使用"公交查询/公交定位"、"按车次/站台查询火车实时状态"以及"空教室占用情况查询"等便捷公共工具时，我们可能在设备本地生成并处理您的即时搜索请求。我们声明，除了设备本地运行所需的内存缓存外，我们绝不在云端服务器留存您的查询记录、浏览痕迹或建立任何能够关联至您个人身份的使用行为模型，您的该等查询行为在底层完全以去标识化的方式处理。<br><br>
-        <strong>4. 用户自主发布、图片上传及多媒体存储服务：</strong>针对被授权的学联管理员用户，为了支持其在发布通知或公告时附带直观的多媒体图文展示，或者普通用户在使用意见反馈系统、上传并修改个人头像时，我们会在经过您明确授权并打开系统相册或相机读写权限后，收集您选定的图像、视频等多媒体文件。该等文件将被安全上传并托管于 Supabase 存储空间（Storage Bucket）中以向您和相关用户进行下载分发。您有权随时删除您发布的内容，此时该等媒体文件将被彻底移除。<br><br>
-        <strong>5. 地理位置权限（GPS定位服务）明示：</strong>当您在公交查询模块中点击地图上的定位图示时，为了帮您定位当前所处的位置以展现最近的公交站点，本平台在获得您的显式系统级定位权限授权后，将在前端获取您当前设备的 GPS 经纬度位置信息。我们在此做出最严肃的承诺：该定位数据处理过程完全限制在您手机设备的本地沙盒中，仅用于地图上代表您当前坐标的蓝色图标记号的渲染和方向计算。我们绝不会将您的任何实时或历史地理位置坐标上传、共享或存储至任何云端服务器或第三方，亦不用于任何商业位置追踪。您可以通过系统"设置 - 权限管理"随时随地关闭定位授权，这不会影响您使用其他功能。<br><br>
-        <strong>6. 相册权限（Photo Library）与存储读写：</strong>为使您能够从设备本地相册选择图片作为您的头像、上传故障排查截图反馈，或者让管理员用户上传通知配图，本平台会向您申请相册读取及写入权限。我们只会在您显式点击从相册选取并上传的触发动作时，读取您主动选择并授权的那一张图片。我们绝不会在您不知情的情况下，以任何后台静默方式扫描、分析、抓取或读取您相册中的其他无关照片。<br><br>
-        <strong>7. 相机权限（Camera）相关免责声明：</strong>为了符合各大应用商店（如 Google Play、Apple App Store）的底层打包配置与权限合规声明，本平台的元配置文件中可能包含了对相机相关硬件调用的前置声明，以避免提交包体审核时因缺少配置文件配置而报错。我们在此向您明示：本平台的具体业务逻辑中不提供任何通过相机拍照、视频录制、条码扫描等实际操作入口。我们在任何场景下均绝不会、也无法以任何方式悄悄激活您的摄像头或收集任何源于相机的实时图像与视频流数据。<br><br>
-        <strong>8. 手机系统通知权限（Notifications）与默认通知类别：</strong>在您首次启动本平台，或在其需要通过通知中心通知您新消息时，系统将弹出通知授权框。经您授权后，我们将能向您的设备发送推送通知。需要特别声明的是，我们已在 Android 系统中针对本平台定制并注册了名为"常规通知"的通知类别（Notification Channel），其在系统级系统默认显示。您可随时通过手机的系统设置对该通知类别的优先级、声音、锁屏显示等进行完全定制或直接彻底关闭。
+        <strong>4. 用户自主发布、图片上传及多媒体存储服务：</strong>针对被授权的学联管理员用户，为了支持其在发布通知或公告时附带直观的多媒体图文展示，或者普通用户在使用意见反馈系统、上传并修改个人头像时，我们会在经过您明确授权并打开系统相册或相机读写权限后，收集您选定的图像、视频等多媒体文件。该等文件将被安全上传并托管于 Supabase 存储空间中以向您和相关用户进行下载分发。您有权随时删除您发布的内容，此时该等媒体文件将被彻底移除。<br><br>
+        <strong>5. 地理位置权限与 GPS 定位服务明示：</strong>当您在公交查询模块中主动点击地图上的定位图示时，为了在地图上显示当前位置并查询附近公交站点，本平台会在获得您的显式系统级定位授权后，于前端读取当前设备的 GPS 经纬度信息。该位置仅用于当次、前台且由您主动触发的地图定位和附近站点查询；为完成该功能，当前位置坐标或由其即时推导出的有限地图范围，可能被传输至公交地图、站点查询及其必要技术服务以返回附近站点结果。我们不会将精确 GPS 坐标写入您的账号资料或建立、出售、出租、共享历史位置轨迹，也不会将其用于广告画像或商业位置追踪。您可以通过系统“设置 - 权限管理”随时关闭定位授权；这不会影响其他功能，但将使地图定位与附近站点功能不可用。<br><br>
+        <strong>6. 相册权限与存储读写：</strong>为使您能够从设备本地相册选择图片作为您的头像、上传故障排查截图反馈，或者让管理员用户上传通知配图，本平台会向您申请相册读取及写入权限。我们只会在您显式点击从相册选取并上传的触发动作时，读取您主动选择并授权的那一张图片。我们绝不会在您不知情的情况下，以任何后台静默方式扫描、分析、抓取或读取您相册中的其他无关照片。<br><br>
+        <strong>7. 相机权限相关免责声明：</strong>为了符合各大应用商店的底层打包配置与权限合规声明，本平台的元配置文件中可能包含了对相机相关硬件调用的前置声明，以避免提交包体审核时因缺少配置文件配置而报错。我们在此向您明示：本平台的具体业务逻辑中不提供任何通过相机拍照、视频录制、条码扫描等实际操作入口。我们在任何场景下均绝不会、也无法以任何方式悄悄激活您的摄像头或收集任何源于相机的实时图像与视频流数据。<br><br>
+        <strong>8. 手机系统通知权限与默认通知类别：</strong>在您首次启动本平台，或在其需要通过通知中心通知您新消息时，系统将弹出通知授权框。经您授权后，我们将能向您的设备发送推送通知。需要特别声明的是，我们已在 Android 系统中针对本平台定制并注册了名为“常规通知”的通知渠道，其在系统级默认显示。您可随时通过手机的系统设置对该通知渠道的优先级、声音、锁屏显示等进行完全定制或直接彻底关闭。
+      </p>
+
+      <h3 class="section-subtitle">（二）与本平台功能相关的信息处理说明</h3>
+      <p class="para">
+        为了便于您在完整了解本平台的功能、权限、数据流转边界及相关风险后，自主决定是否继续使用相应服务，请您在使用本软件前及在每次主动开启新的功能、权限或服务前，花费必要时间认真阅读并理解本节内容。我们始终将个人信息安全、隐私保密和对用户合理期待的尊重视为平台设计、开发、维护及日常管理中的重要事项，并将遵循合法、正当、必要、诚信、目的明确和最小化处理的原则，仅在实现本平台已向您说明的服务所确有必要的范围内处理您授权或主动提交的信息。除法律法规另有明确要求、取得您有效同意，或为向您提供所请求服务而必须委托具备相应技术能力的服务商处理外，我们不会将您的个人信息出售、出租、交换，或以任何商业方式向无关第三方提供；更不会将其用于与本平台公益服务无关的广告画像、商业营销或任意目的的共享。<br><br>
+        <strong>1. 账户、反馈与本地数据：</strong>注册和账户功能会处理邮箱、认证凭据、昵称、头像、活动报名信息及必要的账户标识；密码由 Supabase Auth 处理，我们不会读取或保存明文密码。头像目前以资料记录中的 Base64 图像保存；反馈会处理您填写的邮箱、内容、可选附件、提交时间，以及您登录时的账户标识。主题、语言、收藏、最近查询、通知偏好和工具排序等通常保存在设备本地；我们不会将这些本地偏好作为广告画像出售或用于定向营销。<br><br>
+        <strong>2. 定位、交通与地图：</strong>公交定位仅在您主动点击定位功能并授予权限后读取前台位置。为在当次请求中显示当前位置并取得附近站点，精确位置坐标或其即时推导出的有限地图范围会传输至公交地图、站点查询及其必要技术服务；该处理不将精确 GPS 坐标写入账号资料，也不建立位置轨迹。火车、公交、空教室与罢工查询会直接向相应的公共或官方服务发送查询参数，例如车次、站名、站点编号、地图范围或所选地点，以返回结果。公交地图会加载 Google 地图瓦片、Leaflet 及其依赖资源；这些服务和您在应用内打开的外部网页可按其自身规则处理网络请求信息，例如 IP 地址、设备或浏览器信息和地图请求。<br><br>
+        <strong>3. 第三方服务、推送投递链路与必要传输：</strong>我们使用 Supabase 提供认证、数据库与文件服务。对于您已授权的推送通知，应用会取得 Expo Push Token；当我们向该设备发送通知时，该令牌以及通知标题、正文和为正确显示或跳转所必需的有限数据字段，会先传输至 Expo Push Service，由 Expo 作为技术中转服务，依设备所属平台将相应的投递请求交由 Apple Push Notification service（APNs）或 Google Firebase Cloud Messaging（FCM）完成最终系统级投递。Expo、APNs 和 FCM 均可能在其各自职责范围内处理为路由、防滥用、故障排查、投递确认、服务安全及合规所必需的技术性请求信息、时间信息或投递状态；它们并不因该等投递而取得对您账户资料的任意使用权，亦不应被理解为我方向其出售个人信息。通知能否、何时以及以何种形式到达，仍受网络、设备系统、通知权限、电量优化、运营商以及上述服务自身运行状态影响。铁路查询会连接 ViaggiaTreno/Trenitalia、Italo；罢工页连接意大利基础设施与交通部公开 RSS；公交查询连接 TPER 官方服务。点击铁路公告的“翻译”后，公告原文会发送至 MyMemory 翻译服务以获得机器翻译；请勿将个人信息填入或拼接到待翻译文本。上述服务仅在您使用相应功能时被调用，具体处理受其各自政策约束。<br><br>
+        <strong>4. 上传内容与公开链接：</strong>管理员公告封面及用户反馈附件会上传至 Supabase Storage。当前部分资产通过公开 URL 供应用展示，因此请勿上传身份证件、护照、银行卡、医疗资料、精确住址或其他敏感个人信息。您应确保对上传内容拥有必要权利，并可联系我方请求删除仍由我们控制的附件。<br><br>
+        <strong>5. 保存、删除与权利：</strong>账户和资料数据通常保存至账户删除或不再需要为止；推送令牌在退出登录、令牌失效或不再需要时删除或停用。反馈、活动记录或附件可能因处理、争议解决、合规或备份需要在合理期限内保留；账户删除不会当然删除所有历史反馈、公开资产或依法需保留的记录。您可通过应用内账户删除功能删除认证账户和关联资料，或联系下方邮箱提出访问、更正、删除、限制处理、数据可携带、反对处理或向主管数据保护机构投诉的请求。我们不进行用于法律或类似重大影响的自动化决策。<br><br>
+        <strong>6. 处理依据：</strong>我们依履行您请求的服务、遵守法律义务、经您同意（例如通知、定位和相册权限）或维护平台安全与运行的正当利益处理数据。拒绝非必要权限不会影响其他功能，但会使相应功能不可用。
       </p>
 
       <h2 class="section-title">二、 我们如何共享、转让、公开披露您的个人信息</h2>
@@ -218,7 +235,7 @@
         <strong>• 获得清晰知情权：</strong>就我们如何收集、使用、储存、处理您的个人信息以及您在隐私政策下所拥有的法定权利，您有权获得清晰、透明、公开且易于理解的信息与解释说明。这即是本隐私政策的主要宗旨与核心目的所在。<br><br>
         <strong>• 访问并获取记录：</strong>基于您的合法合规书面要求及相关适用法律的规定，我们可向您免费提供一份我们已收集并处理的关于您个人信息的相关信息副本及历史记录。如您频繁、重复或无正当理由地提出同类请求，我们可能在相关适用法律允许的范围内，合理拒绝响应该请求。<br><br>
         <strong>• 更正与完善：</strong>如果您认为我们所持久化持有的任何关于您的个人资料信息是不正确的、不完整的、或存在滞后失效的，您有权要求我们基于具体的使用目的与系统完整性进行及时的更正、补充与完善，您亦可通过相关设置菜单自行操作。<br><br>
-        <strong>• 账户注销与数据彻底抹除：</strong>您有权随时在「个人资料」设置页面中提交账户注销申请。一旦您确认注销并永久删除账户，我们将立即彻底抹除您在 Supabase 数据库中的所有登录凭证、注册邮箱、昵称、历史头像文件以及您报名的所有学联活动记录。该项操作在底层数据库中为硬删除（Hard Delete），一旦执行将绝对无法撤销或恢复。<br><br>
+        <strong>• 账户注销与数据彻底抹除：</strong>您有权随时在「个人资料」设置页面中提交账户注销申请。一旦您确认注销并永久删除账户，我们将立即彻底抹除您在 Supabase 数据库中的所有登录凭证、注册邮箱、昵称、历史头像文件以及您报名的所有学联活动记录。该项操作属于不可恢复的彻底删除，一旦执行将绝对无法撤销或恢复。有关如何删除账号、可删除数据范围及无法登录时申请删除的更多信息，请<a class="email-link" href="https://asscubo.it/delete-account">点击此处查看</a>。<br><br>
         <strong>• 撤回授权：</strong>您可以通过关闭手机系统的 GPS 定位、相册访问、通知或相机声明等权限来随时撤回您的授权。当您撤回授权后，我们无法继续为您提供撤回授权所对应的特定功能服务，但这不影响您在此之前基于您的授权而已开展的个人信息处理的合法性。
       </p>
 
@@ -240,16 +257,12 @@
       </p>
     </section>
 
-    <div class="lang-divider"></div>
-
     <!-- ═══════════════════════════════ ENGLISH ═══════════════════════════════ -->
-    <section class="lang-section" id="en">
-      <a class="lang-anchor" id="en-anchor"></a>
-      <div class="lang-badge">English Version</div>
+    <section class="lang-section" id="en" role="tabpanel" hidden>
 
       <h2 class="section-title">Introduction &amp; Special Notices</h2>
       <p class="para">
-        This Privacy Policy was last updated and became effective on June 24, 2026.<br>
+        This Privacy Policy was last updated and became effective on July 17, 2026.<br>
         Please take a few moments to thoroughly familiarize yourself with our Privacy Policy. If you have any questions, concerns, or feedback, please contact us immediately.<br>
         This Privacy Policy applies to the mobile application "Boxue" (hereinafter referred to as "the Software" or "Boxue") developed, operated, and maintained by the Chinese Students and Scholars Association of the University of Bologna (hereinafter referred to as "ASSCUBO", "the Association", "we", "us", or "our"). We take your personal privacy extremely seriously. In drafting this Privacy Policy, we have fully considered your privacy preferences, expectations, and requirements. It is of paramount importance that you achieve a comprehensive and transparent understanding of our personal data collection, processing, and usage practices, while ensuring that you ultimately retain absolute, granular control over the personal information you choose to provide to us. This policy outlines how we collect, use, disclose, process, transmit, and store the information you submit when using Boxue. Under this policy, "Personal Information" refers to any information recorded electronically or through other means that relates to an identified or identifiable natural person, excluding anonymized data. We strictly adhere to this Privacy Policy in processing and utilizing such information. To deliver the various features and services of Boxue, we will collect and use your personal information for the specific purposes described herein. Whether specific categories of personal information are collected depends entirely on whether you utilize the corresponding feature or service. If you do not enable or use a specific functionality, we will not collect any corresponding personal information. However, please be advised that if you choose not to provide the requested personal information, we may not be able to offer you the corresponding services, nor will we be able to respond to or resolve any technical or service issues you encounter.
       </p>
@@ -261,10 +274,21 @@
         <strong>2. Device Identification and Push Notifications:</strong> To deliver real-time, accurate, and vital announcements, notifications, or newsletters published by ASSCUBO, we will access your device's Expo Push Token via the Expo SDK interface after the app launches and you grant system-level notification permissions. This token is stored securely in our database and is used strictly for routing cloud message delivery requests. It will never be used for commercial marketing, advertising profiling, or shared with third-party tracking networks.<br><br>
         <strong>3. Anonymous Search Query and Caching Mechanisms:</strong> When you use the convenient public transit locator, train status tracker, or empty classroom queries within Boxue, we process your search requests locally on your device. We solemnly declare that, except for the temporary in-memory cache required for local execution, we do not log, track, or compile your search histories or build any behavioral profiles linked to your identity. All queries are handled in a strictly de-identified manner.<br><br>
         <strong>4. User-Generated Content &amp; Multimedia Uploads:</strong> For authorized ASSCUBO administrators to upload descriptive images/media alongside notices, or for regular users uploading bug report screenshots or editing profile photos, the platform will request system permissions to access your camera and photo library. Selected media files are securely uploaded and hosted in Supabase Storage buckets for distribution and download. You retain the right to delete your content at any time, which permanently removes the associated media files from our storage.<br><br>
-        <strong>5. Geolocation Permission (GPS) Notice:</strong> When you tap the positioning icon in the transit module to center the map and find the nearest bus stops, the platform will request system-level GPS location access. We make the most solemn pledge: this geolocation processing is restricted entirely to your local device sandbox for real-time map rendering. We never upload, store, or share your coordinates with our cloud servers or any third parties, and we do not track your movements. You can revoke this permission anytime via your system settings without affecting other features.<br><br>
+        <strong>5. Geolocation Permission (GPS) Notice:</strong> When you actively tap the positioning icon in the transit module to show your current position and find nearby bus stops, the Platform will read the device's GPS coordinates after you grant system-level location permission. Location is used only for that foreground action that you initiate. To display the position and return nearby-stop results, the current coordinates, or limited map bounds derived from them in real time, may be transmitted to the transit map, stop-query services, and necessary technical services, including Supabase. We do not write precise GPS coordinates to your account profile, create, sell, rent, or share a location history, or use location for advertising profiling or commercial tracking. You can revoke location permission at any time in your system settings; other functions will remain available, but map positioning and nearby-stop lookup will not.<br><br>
         <strong>6. Photo Library Access:</strong> Photo library read and write access is requested solely to allow you to select a profile avatar or upload screenshots for feedback. We only access the specific image you explicitly choose to upload. The platform will never scan, index, analyze, or retrieve other photos or media in your device library in the background.<br><br>
         <strong>7. Camera Permission Disclaimer:</strong> To comply with configurations and security requirements of major app stores (e.g., Apple App Store, Google Play Store), camera permission declarations may be included in our application metadata to prevent build deployment errors. However, we explicitly state that the actual app interface contains no active camera capturing logic. We do not, under any circumstance, activate your camera or record any real-time video/photo feeds.<br><br>
-        <strong>8. System Notifications Channel:</strong> When the app requests notification authorization, a custom notification channel named "常规通知" (General Notifications) is registered on Android. This channel operates under default system priorities. You have complete control to customize its priority, sound, lock-screen visibility, or disable it entirely via your phone's system settings.
+        <strong>8. System Notification Channel:</strong> When the app requests notification authorization, a custom notification channel named "General Notifications" is registered on Android. This channel operates under default system priorities. You have complete control to customize its priority, sound, lock-screen visibility, or disable it entirely via your phone's system settings.
+      </p>
+
+      <h3 class="section-subtitle">(B) Information Processing Connected with Platform Functions</h3>
+      <p class="para">
+        To allow you to make an informed and voluntary decision about whether to use a particular function, permission, or service after understanding its purpose, data flows, and foreseeable limitations, please take the time to read this section carefully before using the Software and before enabling any relevant feature. We regard the security and confidentiality of personal information, and respect for users' reasonable expectations, as material considerations in the design, development, maintenance, and ordinary administration of the Platform. We process information only in accordance with the principles of lawfulness, fairness, necessity, good faith, specified purpose, and data minimisation, and only to the extent genuinely required to provide the services described to you. Except where required by applicable law, supported by your valid consent, or necessary to engage an appropriately capable provider in order to deliver a service you request, we do not sell, rent, trade, or otherwise commercially provide your personal information to unrelated third parties, and we do not use it for advertising profiling, commercial marketing, or arbitrary sharing unrelated to the Platform's public-welfare services.<br><br>
+        <strong>1. Accounts, feedback, and local data:</strong> Account functions process your email, authentication credentials, nickname, avatar, event-registration information, and necessary account identifiers. Passwords are processed by Supabase Auth; we do not read or store plaintext passwords. Avatars are currently stored as Base64 image data in profile records. Feedback may include your email, message, optional attachment, submission time, and your account identifier when signed in. Theme, language, favourites, recent searches, notification preferences, and tool ordering are generally stored locally on your device and are not sold or used for advertising profiling.<br><br>
+        <strong>2. Location, transport, and maps:</strong> The bus locator reads foreground location only after you actively use it and grant permission. To display your position for that request and return nearby stops, precise coordinates, or limited map bounds derived from them in real time, are transmitted to the transit map, stop-query services, and necessary technical services, including Supabase; precise GPS coordinates are not written to account profiles and no location history is created. Train, bus, classroom, and strike tools send the query parameters needed for a response, such as train number, station, stop code, map bounds, or selected place, directly to the relevant public or official service. The bus map loads Google map tiles, Leaflet, and related resources; those services and external pages opened in the in-app browser may process network information, such as IP address, device/browser information, and map requests, under their own policies.<br><br>
+        <strong>3. Third-party services, push-delivery chain, and necessary transfers:</strong> We use Supabase for authentication, database, and file services. For push notifications you have authorized, the app obtains an Expo Push Token. When we send a notification to that device, that token, the notification title and body, and the limited data fields necessary for correct display or navigation are first transmitted to Expo Push Service. Expo acts as a technical relay and, according to the device platform, submits the relevant delivery request to Apple Push Notification service (APNs) or Google Firebase Cloud Messaging (FCM) for final system-level delivery. Within their respective roles, Expo, APNs, and FCM may process the technical request information, timing information, or delivery status necessary for routing, abuse prevention, diagnostics, delivery confirmation, service security, and compliance. Such delivery does not give those providers an unrestricted right to use your account data and must not be understood as a sale of personal information by us. Whether, when, and how a notification arrives remains subject to network conditions, device settings, notification permissions, battery optimisation, carriers, and the operation of the foregoing services. Rail queries connect to ViaggiaTreno/Trenitalia and Italo; the strike page connects to the Italian Ministry of Infrastructure and Transport public RSS; bus queries connect to TPER. When you tap Translate for a rail notice, the notice text is sent to MyMemory (Translated) for machine translation. Do not add personal data to text submitted for translation. These services are called only when the relevant feature is used and are governed by their own policies.<br><br>
+        <strong>4. Uploaded content and public links:</strong> Administrator announcement covers and user feedback attachments are uploaded to Supabase Storage. Some assets are currently served through public URLs for in-app display. Do not upload identity documents, passports, payment details, medical information, precise home addresses, or other sensitive personal data. You must have the necessary rights to uploaded content and may contact us to request deletion of attachments we control.<br><br>
+        <strong>5. Retention, deletion, and rights:</strong> Account and profile data are generally retained until account deletion or no longer needed; push tokens are deleted or disabled on sign-out, invalidation, or when no longer needed. Feedback, event records, or attachments may be retained for a reasonable period for handling, dispute resolution, compliance, or backups. Account deletion does not automatically erase every historical feedback record, public asset, or record that must be retained by law. You may use the in-app account deletion function to remove the authentication account and associated profile, or contact us to request access, correction, erasure, restriction, portability, objection, or to lodge a complaint with the competent data-protection authority. For further information about deleting an account, the scope of deletable data, and requests when you cannot sign in, <a class="email-link" href="https://asscubo.it/delete-account">click here</a>. We do not carry out automated decisions producing legal or similarly significant effects.<br><br>
+        <strong>6. Legal bases:</strong> We process data to provide requested services, comply with legal obligations, act on consent (for example notifications, location, and photo-library access), or pursue legitimate interests in keeping the platform secure and operational. Refusing a non-essential permission will not affect other functions, but will make the related feature unavailable.
       </p>
 
       <h2 class="section-title">2. How We Share, Transfer, and Disclose Your Personal Information</h2>
@@ -289,7 +313,7 @@
         <strong>• Right to be Informed:</strong> You have the right to receive clear, transparent, public, and easily understandable information and explanations regarding how we collect, use, store, process, and protect your personal information, and what statutory rights you possess. This is the primary objective of this Privacy Policy.<br><br>
         <strong>• Right of Access and Portability:</strong> Upon your written request, we will provide a copy and historical record of the personal data we have collected and processed concerning you, free of charge. If you make excessive, repetitive, or unreasonable requests, we reserve the right to decline based on applicable law.<br><br>
         <strong>• Right to Rectification:</strong> If you believe that any personal information we hold about you is inaccurate, incomplete, or outdated, you have the right to request that we correct, supplement, or update it immediately. You can also perform such corrections directly within the settings menu.<br><br>
-        <strong>• Account Cancellation and Permanent Erasure:</strong> You have the right to request the deletion of your account at any time via the "Profile" settings page. Once you confirm the permanent cancellation of your account, we will completely purge all your credentials, registration email, nickname, profile images, and event registrations from the Supabase database. This operation is executed as a database "Hard Delete" and is completely irreversible.<br><br>
+        <strong>• Account Cancellation and Permanent Erasure:</strong> You have the right to request the deletion of your account at any time via the "Profile" settings page. Once you confirm the permanent cancellation of your account, we will completely purge all your credentials, registration email, nickname, profile images, and event registrations from the Supabase database. This operation is a permanent and irreversible deletion.<br><br>
         <strong>• Right to Withdraw Consent:</strong> You can withdraw your consent at any time by disabling location services, photo library access, notifications, or camera declarations in your device settings. Once consent is withdrawn, we will cease providing the services linked to those permissions, but this will not affect the lawfulness of any processing carried out prior to the withdrawal.
       </p>
 
@@ -314,16 +338,12 @@
       </p>
     </section>
 
-    <div class="lang-divider"></div>
-
     <!-- ═══════════════════════════════ ITALIANO ═══════════════════════════════ -->
-    <section class="lang-section" id="it">
-      <a class="lang-anchor" id="it-anchor"></a>
-      <div class="lang-badge">Versione Italiana</div>
+    <section class="lang-section" id="it" role="tabpanel" hidden>
 
       <h2 class="section-title">Introduzione e Avvisi Speciali</h2>
       <p class="para">
-        La presente Informativa sulla Privacy è stata aggiornata ed è entrata in vigore il 24 giugno 2026. Si prega di dedicare il tempo necessario a familiarizzare con le nostre pratiche sulla privacy; in caso di domande, dubbi o feedback, non esitate a contattarci immediatamente.<br>
+        La presente Informativa sulla Privacy è stata aggiornata ed è entrata in vigore il 17 luglio 2026. Si prega di dedicare il tempo necessario a familiarizzare con le nostre pratiche sulla privacy; in caso di domande, dubbi o feedback, non esitate a contattarci immediatamente.<br>
         La presente Informativa si applica all'applicazione mobile "Boxue" (di seguito denominata "il Software" o "Boxue") sviluppata, gestita e mantenuta dall'Associazione di Studenti e Studiosi Cinesi dell'Università di Bologna (di seguito denominata "ASSCUBO", "l'Associazione", "noi", "ci" o "nostro"). Attribuiamo la massima importanza alla tutela della privacy dei nostri utenti. Questa informativa è stata redatta tenendo conto delle vostre esigenze ed aspettative; è essenziale che comprendiate appieno le modalità di raccolta, trattamento e utilizzo delle informazioni personali, garantendo al contempo il controllo finale sui dati forniti. Ai fini della presente informativa, per "Informazioni Personali" si intende qualsiasi dato registrato elettronicamente o con altri mezzi che riguardi una persona fisica identificata o identificabile, esclusi i dati resi anonimi.
       </p>
 
@@ -334,10 +354,21 @@
         <strong>2. Identificazione del Dispositivo e Notifiche Push:</strong> Per inviare comunicazioni importanti, annunci ufficiali o articoli in tempo reale pubblicati da ASSCUBO, acquisiremo l'Expo Push Token del vostro dispositivo tramite l'interfaccia Expo SDK previo vostro consenso alle notifiche di sistema. Questo token viene memorizzato in modo sicuro nel nostro database ed è utilizzato esclusivamente per l'instradamento degli avvisi. Non sarà mai impiegato per scopi di marketing commerciale, profilazione pubblicitaria o condiviso con reti di tracciamento di terze parti.<br><br>
         <strong>3. Query di Ricerca Anonime e Meccanismi di Caching:</strong> Quando utilizzate gli strumenti per il controllo dei trasporti pubblici locali, dello stato dei treni in tempo reale o delle aule libere all'interno di Boxue, le richieste vengono elaborate interamente sul vostro dispositivo locale. Dichiariamo solennemente che non registriamo, tracciamo o compiliamo la cronologia delle vostre ricerche e non costruiamo profili comportamentali. Tutte le query sono gestite in modo completamente anonimo.<br><br>
         <strong>4. Caricamento di Contenuti Generati dall'Utente e File Multimediali:</strong> Per consentire agli amministratori ASSCUBO di allegare immagini descrittive agli annunci o agli utenti comuni di caricare screenshot di feedback e modificare l'avatar del profilo, la piattaforma richiederà l'accesso alla fotocamera e alla galleria fotografica. I file selezionati verranno caricati e ospitati in modo sicuro nei bucket di archiviazione Supabase per la distribuzione. L'utente ha il diritto di eliminare i propri contenuti in qualsiasi momento.<br><br>
-        <strong>5. Autorizzazione alla Geolocalizzazione (GPS):</strong> Quando toccate l'icona di posizionamento nella mappa dei trasporti, il Software utilizzerà l'accesso GPS di sistema previa vostra autorizzazione. Promettiamo solennemente che l'elaborazione dei dati geografici avviene esclusivamente nella sandbox locale del vostro dispositivo per il rendering in tempo reale sulla mappa. Non carichiamo, memorizziamo o condividiamo le vostre coordinate con i nostri server cloud o con terze parti, né tracciamo i vostri spostamenti.<br><br>
+        <strong>5. Autorizzazione alla Geolocalizzazione (GPS):</strong> Quando toccate attivamente l'icona di posizionamento nel modulo bus per mostrare la posizione corrente e cercare le fermate vicine, la Piattaforma legge le coordinate GPS del dispositivo dopo la concessione del permesso di sistema. La posizione è utilizzata soltanto per tale azione in primo piano da voi avviata. Per mostrare la posizione e restituire le fermate vicine, le coordinate correnti, oppure i limitati confini cartografici da esse derivati in tempo reale, possono essere trasmessi alla mappa dei trasporti, ai servizi di ricerca delle fermate e ai necessari servizi tecnici, incluso Supabase. Non scriviamo le coordinate GPS precise nel profilo dell'account, non creiamo, vendiamo, noleggiamo o condividiamo una cronologia delle posizioni e non usiamo la posizione per profilazione pubblicitaria o tracciamento commerciale. Potete revocare il permesso di localizzazione nelle impostazioni di sistema; le altre funzioni resteranno disponibili, ma non il posizionamento sulla mappa e la ricerca delle fermate vicine.<br><br>
         <strong>6. Accesso alla Galleria Fotografica:</strong> L'autorizzazione di lettura/scrittura della galleria è richiesta solo quando selezionate esplicitamente un file da caricare (es. feedback, avatar). Non effettuiamo alcuna scansione, indicizzazione o recupero in background di altre immagini nella memoria del dispositivo.<br><br>
         <strong>7. Dichiarazione sull'Uso della Fotocamera:</strong> Per soddisfare i requisiti di configurazione e sicurezza degli app store (es. Google Play Store, Apple App Store), i file di configurazione potrebbero includere la dichiarazione di accesso alla fotocamera per evitare errori di compilazione. Specifichiamo tuttavia che l'applicazione non contiene codice attivo per l'attivazione della fotocamera o la registrazione di video/foto in nessun modulo operativo.<br><br>
-        <strong>8. Canali di Notifica di Sistema:</strong> Quando l'applicazione richiede l'autorizzazione alle notifiche, viene registrato su Android un canale personalizzato denominato "常规通知" (Notifiche Generali). Questo canale opera con le priorità di sistema standard. Potete personalizzarne la priorità, il suono, la visibilità sulla schermata di blocco o disattivarlo completamente tramite le impostazioni di sistema del dispositivo.
+        <strong>8. Canali di Notifica di Sistema:</strong> Quando l'applicazione richiede l'autorizzazione alle notifiche, viene registrato su Android un canale personalizzato denominato "Notifiche Generali". Questo canale opera con le priorità di sistema standard. Potete personalizzarne la priorità, il suono, la visibilità sulla schermata di blocco o disattivarlo completamente tramite le impostazioni di sistema del dispositivo.
+      </p>
+
+      <h3 class="section-subtitle">(B) Trattamento delle informazioni connesso alle funzioni della Piattaforma</h3>
+      <p class="para">
+        Per consentirvi di decidere in modo consapevole e volontario se utilizzare una determinata funzione, autorizzazione o servizio dopo averne compreso finalità, flussi di dati e limiti ragionevolmente prevedibili, vi invitiamo a dedicare il tempo necessario alla lettura attenta della presente sezione prima di usare il Software e prima di attivare la relativa funzione. Consideriamo la sicurezza e la riservatezza dei dati personali, nonché il rispetto delle ragionevoli aspettative degli utenti, elementi rilevanti nella progettazione, nello sviluppo, nella manutenzione e nell'ordinaria gestione della Piattaforma. Trattiamo le informazioni esclusivamente secondo i principi di liceità, correttezza, necessità, buona fede, finalità determinate e minimizzazione dei dati, e soltanto nella misura realmente necessaria a fornire i servizi descritti. Salvo obblighi di legge, vostro consenso valido o necessità di avvalerci di un fornitore tecnicamente idoneo per erogare un servizio da voi richiesto, non vendiamo, affittiamo, scambiamo né forniamo commercialmente i vostri dati personali a terzi estranei; non li utilizziamo inoltre per profilazione pubblicitaria, marketing commerciale o condivisioni arbitrarie estranee alle finalità di pubblica utilità della Piattaforma.<br><br>
+        <strong>1. Account, feedback e dati locali:</strong> Le funzioni di account trattano e-mail, credenziali di autenticazione, nickname, avatar, informazioni di iscrizione agli eventi e identificativi necessari. Le password sono trattate da Supabase Auth e non leggiamo né conserviamo password in chiaro. Gli avatar sono attualmente memorizzati come immagini Base64 nei record del profilo. Il feedback può includere e-mail, messaggio, allegato facoltativo, data di invio e identificativo dell'account quando l'utente è autenticato. Tema, lingua, preferiti, ricerche recenti, preferenze di notifica e ordine degli strumenti sono generalmente conservati sul dispositivo e non sono venduti né usati per profilazione pubblicitaria.<br><br>
+        <strong>2. Posizione, trasporti e mappe:</strong> La localizzazione per i bus legge la posizione in primo piano solo quando la attivate e concedete il permesso. Per mostrare la posizione nella singola richiesta e restituire le fermate vicine, le coordinate precise, oppure i limitati confini cartografici da esse derivati in tempo reale, vengono trasmessi alla mappa dei trasporti, ai servizi di ricerca delle fermate e ai necessari servizi tecnici, incluso Supabase; le coordinate GPS precise non sono scritte nel profilo dell'account e non viene creata una cronologia delle posizioni. Gli strumenti per treni, bus, aule e scioperi inviano direttamente ai servizi pubblici o ufficiali i parametri necessari, quali numero del treno, stazione, fermata, area della mappa o luogo selezionato. La mappa bus carica tile Google, Leaflet e risorse correlate; tali servizi e le pagine esterne aperte nell'app possono trattare informazioni di rete, quali indirizzo IP, dati del dispositivo/browser e richieste cartografiche, secondo le proprie informative.<br><br>
+        <strong>3. Servizi terzi, catena di consegna push e trasferimenti necessari:</strong> Utilizziamo Supabase per autenticazione, database e file. Per le notifiche push da voi autorizzate, l'app acquisisce un Expo Push Token. Quando inviamo una notifica al dispositivo, tale token, il titolo e il testo della notifica, nonché i limitati campi di dati necessari per la corretta visualizzazione o navigazione, sono dapprima trasmessi a Expo Push Service. Expo opera quale intermediario tecnico e, in funzione della piattaforma del dispositivo, inoltra la relativa richiesta di consegna ad Apple Push Notification service (APNs) o Google Firebase Cloud Messaging (FCM), che eseguono la consegna finale a livello di sistema. Nell'ambito delle rispettive funzioni, Expo, APNs e FCM possono trattare le informazioni tecniche della richiesta, le informazioni temporali o lo stato di consegna necessari per instradamento, prevenzione degli abusi, diagnostica, conferma di consegna, sicurezza del servizio e conformità. Tale consegna non attribuisce a tali fornitori un diritto indiscriminato di utilizzare i dati del vostro account e non costituisce vendita di dati personali da parte nostra. La ricezione, il momento e la forma di una notifica dipendono comunque dalla rete, dalle impostazioni del dispositivo, dai permessi di notifica, dall'ottimizzazione della batteria, dall'operatore e dal funzionamento dei servizi indicati. ViaggiaTreno/Trenitalia e Italo sono utilizzati per i treni; il feed RSS pubblico del Ministero delle Infrastrutture e dei Trasporti per gli scioperi; TPER per i bus. Quando toccate Traduci in un avviso ferroviario, il testo dell'avviso è inviato a MyMemory (Translated). Non aggiungete dati personali al testo da tradurre. I servizi sono chiamati solo usando la funzione corrispondente e sono soggetti alle rispettive informative.<br><br>
+        <strong>4. Contenuti caricati e link pubblici:</strong> Copertine degli avvisi e allegati del feedback sono caricati su Supabase Storage; alcune risorse sono servite tramite URL pubblici. Non caricate documenti d'identità, passaporti, dati di pagamento, dati sanitari, indirizzi precisi o altri dati sensibili. Dovete avere i diritti necessari sui contenuti caricati e potete contattarci per richiedere la cancellazione degli allegati sotto il nostro controllo.<br><br>
+        <strong>5. Conservazione, cancellazione e diritti:</strong> I dati di account e profilo sono normalmente conservati fino alla cancellazione dell'account o finché necessari; i token push sono eliminati o disattivati dopo logout, invalidazione o quando non più necessari. Feedback, registrazioni agli eventi o allegati possono essere conservati per un periodo ragionevole per gestione, controversie, conformità o backup. La cancellazione dell'account non elimina automaticamente ogni feedback storico, risorsa pubblica o dato da conservare per legge. Potete usare la funzione di cancellazione nell'app o contattarci per accesso, rettifica, cancellazione, limitazione, portabilità, opposizione o reclamo all'autorità competente. Non adottiamo decisioni automatizzate con effetti giuridici o analogamente significativi.<br><br>
+        <strong>6. Basi giuridiche:</strong> Trattiamo i dati per fornire i servizi richiesti, adempiere obblighi legali, sulla base del consenso (ad esempio notifiche, posizione e galleria) o del legittimo interesse a mantenere la piattaforma sicura e funzionante.
       </p>
 
       <h2 class="section-title">2. Condivisione, Trasferimento e Divulgazione delle Informazioni</h2>
@@ -361,7 +392,7 @@
         <strong>• Diritto all'Informazione:</strong> Avete il diritto di ricevere informazioni chiare, trasparenti e facilmente comprensibili sulle modalità di raccolta, utilizzo, conservazione e protezione dei vostri dati. Questo è l'obiettivo principale di questa informativa.<br><br>
         <strong>• Diritto di Accesso e Portabilità:</strong> Su vostra richiesta scritta, forniremo una copia e lo storico dei dati personali da noi raccolti, gratuitamente e nei limiti di legge.<br><br>
         <strong>• Diritto di Rettifica:</strong> Se ritenete che i dati da noi detenuti siano inesatti o incompleti, avete il diritto di richiedere la correzione o l'aggiornamento tramite le impostazioni del profilo.<br><br>
-        <strong>• Cancellazione dell'Account e Rimozione Definitiva dei Dati:</strong> Avete il diritto di richiedere la cancellazione del vostro account in qualsiasi momento tramite la pagina delle impostazioni "Profilo". Una volta confermata la cancellazione permanente, elimineremo definitivamente tutte le vostre credenziali, e-mail, nickname, immagini del profilo e le iscrizioni agli eventi dal database Supabase. Questa operazione è irreversibile (Hard Delete).<br><br>
+        <strong>• Cancellazione dell'Account e Rimozione Definitiva dei Dati:</strong> Avete il diritto di richiedere la cancellazione del vostro account in qualsiasi momento tramite la pagina delle impostazioni "Profilo". Una volta confermata la cancellazione permanente, elimineremo definitivamente tutte le vostre credenziali, e-mail, nickname, immagini del profilo e le iscrizioni agli eventi dal database Supabase. Questa operazione comporta un'eliminazione definitiva e irreversibile. Per ulteriori informazioni su come eliminare l'account, sui dati eliminabili e sulle richieste quando non potete accedere, <a class="email-link" href="https://asscubo.it/delete-account">fate clic qui</a>.<br><br>
         <strong>• Diritto di Revoca del Consenso:</strong> Potete revocare il consenso in qualsiasi momento disabilitando i servizi di localizzazione, l'accesso alla galleria, le notifiche o le dichiarazioni della fotocamera nelle impostazioni del dispositivo. La revoca non pregiudica la liceità del trattamento effettuato prima della stessa.
       </p>
 
@@ -392,6 +423,30 @@
     &copy; 2026 <a href="https://asscubo.it" target="_blank" rel="noopener">ASSCUBO</a> · 博洛尼亚大学中国学生学者联谊会 ·
     <a href="terms.html">用户协议 / Terms of Service</a>
   </footer>
+
+  <script>
+    (() => {
+      const tabs = [...document.querySelectorAll('.language-tab')];
+      const sections = new Map(
+        [...document.querySelectorAll('.lang-section')].map((section) => [section.id, section])
+      );
+
+      const selectLanguage = (language) => {
+        if (!sections.has(language)) return;
+        sections.forEach((section, id) => {
+          section.hidden = id !== language;
+        });
+        tabs.forEach((tab) => {
+          tab.setAttribute('aria-selected', String(tab.getAttribute('aria-controls') === language));
+        });
+        document.documentElement.lang = language === 'zh' ? 'zh-CN' : language;
+      };
+
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => selectLanguage(tab.getAttribute('aria-controls')));
+      });
+    })();
+  </script>
 
 </body>
 </html>

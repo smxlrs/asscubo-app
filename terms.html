@@ -69,41 +69,45 @@
       margin-bottom: 28px;
     }
 
-    /* ── Notice Card ── */
-    .notice-card {
-      background-color: var(--notice-bg);
+    /* ── Language Switcher ── */
+    .language-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 28px;
+    }
+    .language-tab {
+      appearance: none;
+      -webkit-tap-highlight-color: transparent;
       border: 1px solid var(--border);
-      border-left: 4px solid var(--primary);
-      border-radius: 10px;
-      padding: 14px 18px;
+      border-radius: 20px;
+      background: transparent;
+      color: var(--text-sub);
+      cursor: pointer;
+      font: inherit;
       font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.7;
-      margin-bottom: 36px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      padding: 8px 14px;
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .language-tab[aria-selected="true"] {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #FFF4F4;
+    }
+    .language-tab:focus-visible {
+      outline: 2px solid var(--primary-light);
+      outline-offset: 2px;
     }
 
     /* ── Language Section ── */
     .lang-section { margin-bottom: 12px; }
-    .lang-anchor { display: block; position: relative; top: -80px; visibility: hidden; }
-
-    .lang-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--primary);
-      background-color: rgba(163, 22, 33, 0.08);
-      border: 1px solid rgba(163, 22, 33, 0.2);
-      border-radius: 20px;
-      padding: 4px 12px;
-      margin-bottom: 20px;
-    }
+    .lang-section[hidden] { display: none; }
 
     /* ── Section Heading ── */
-    h2.section-title {
+h2.section-title {
       font-size: 18px;
       font-weight: 700;
       color: var(--text-main);
@@ -111,11 +115,20 @@
       margin-bottom: 10px;
       padding-bottom: 6px;
       border-bottom: 1px solid var(--border);
-    }
+}
+
+h3.section-subtitle {
+  margin-top: 28px;
+  margin-bottom: 14px;
+  color: var(--text-main);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.85;
+}
 
     /* ── Paragraph ── */
     p.para {
-      font-size: 17px;
+      font-size: 15.5px;
       line-height: 1.85;
       letter-spacing: 0.02em;
       color: var(--text-sub);
@@ -124,13 +137,6 @@
     p.para strong {
       color: var(--text-main);
       font-weight: 600;
-    }
-
-    /* ── Divider ── */
-    .lang-divider {
-      height: 1px;
-      background: var(--divider);
-      margin: 40px 0;
     }
 
     /* ── Contact / Email Link ── */
@@ -163,18 +169,16 @@
 
   <main>
     <h1 class="page-title">用户协议 / Terms of Service / Condizioni d'Uso</h1>
-    <p class="page-subtitle">最后更新 / Last updated / Ultimo aggiornamento: 2026-06-24</p>
+    <p class="page-subtitle">最后更新 / Last updated / Ultimo aggiornamento: 2026-07-17</p>
 
-    <!-- Trilingual notice -->
-    <div class="notice-card">
-      The English version of this document is set forth below.<br>
-      La versione italiana è riportata nelle sezioni seguenti.
+    <div class="language-tabs" role="tablist" aria-label="选择语言 / Select language / Seleziona la lingua">
+      <button class="language-tab" type="button" role="tab" aria-selected="true" aria-controls="zh">中文</button>
+      <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="en">English</button>
+      <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="it">Italiano</button>
     </div>
 
     <!-- ═══════════════════════════════ 中文 ═══════════════════════════════ -->
-    <section class="lang-section" id="zh">
-      <a class="lang-anchor" id="zh-anchor"></a>
-      <div class="lang-badge">中文版</div>
+    <section class="lang-section" id="zh" role="tabpanel">
 
       <h2 class="section-title">特别提示与引言</h2>
       <p class="para">
@@ -189,15 +193,28 @@
       </p>
 
       <h2 class="section-title">二、 平台服务内容及第三方数据使用限制明示与免责说明</h2>
+      <h3 class="section-subtitle">（一）数据来源与公益属性</h3>
+      <p class="para">本平台集成了多项用于便利日常校园生活的便捷小工具，包括但不限于"实时火车状态与站台查询"、"公交线路查询及定位"、"空教室占用情况查询"等。我们在此向您明示：该等小工具所展示的数据均实时、动态地检索自公共的第三方公开服务接口（例如意大利铁路系统公开数据源、博洛尼亚地方公共交通网络、学校官方排课与教室开放排表系统）。本平台仅基于方便学联成员的公益性原则提供数据的前端聚合展现，绝不代表我们对上述第三方数据的完整性、绝对准确性、绝对实时性或可用性做任何默示或明示的保证。</p>
+
+      <h3 class="section-subtitle">（二）物理核对优先原则</h3>
+      <p class="para">鉴于网络延迟、第三方接口中断、服务器故障等不可抗力技术因素，本软件展示的数据结果仅供您在普通出行、学习规划时作为一般性便利参考。您在面临重要出行、考试、选课、重要学术会议等关键决策时，必须以相关火车站的实体物理站牌、学校官方公布的布告栏或学校教务系统的实时通知为唯一的最终执行准则。我们对于您因依赖本软件的数据差错、延迟、中断而引发的任何形式的迟到、误车、考试缺席等间接或直接损失，不承担任何法律责任。</p>
+
+      <h3 class="section-subtitle">（三）外部链接之独立性</h3>
+      <p class="para">学联管理人员在发布学联通知、新闻或文章时，可能根据需要包含跳转至第三方网站的外部链接或图片媒体。这些链接和图片仅为方便参考而设。我们对任何第三方外部链接的安全状况、内容真实性、隐私政策或运营行为均无控制权，亦不承担任何法律责任。您访问该等链接的风险由您自身完全承担。</p>
+
+      <h3 class="section-subtitle">（四）实时数据、通知及外部服务的使用说明</h3>
       <p class="para">
-        <strong>1. 数据来源与公益属性：</strong>本平台集成了多项用于便利日常校园生活的便捷小工具，包括但不限于"实时火车状态与站台查询"、"公交线路查询及定位"、"空教室占用情况查询"等。我们在此向您明示：该等小工具所展示的数据均实时、动态地检索自公共的第三方公开服务接口（例如意大利铁路系统公开数据源、博洛尼亚地方公共交通网络、学校官方排课与教室开放排表系统）。本平台仅基于方便学联成员的公益性原则提供数据的前端聚合展现，绝不代表我们对上述第三方数据的完整性、绝对准确性、绝对实时性或可用性做任何默示或明示的保证。<br><br>
-        <strong>2. 物理核对优先原则：</strong>鉴于网络延迟、第三方接口中断、服务器故障等不可抗力技术因素，本软件展示的数据结果仅供您在普通出行、学习规划时作为一般性便利参考。您在面临重要出行、考试、选课、重要学术会议等关键决策时，必须以相关火车站的实体物理站牌、学校官方公布的布告栏或学校教务系统的实时通知为唯一的最终执行准则。我们对于您因依赖本软件的数据差错、延迟、中断而引发的任何形式的迟到、误车、考试缺席等间接或直接损失，不承担任何法律责任。<br><br>
-        <strong>3. 外部链接之独立性：</strong>学联管理人员在发布学联通知、新闻或文章时，可能根据需要包含跳转至第三方网站的外部链接或图片媒体。这些链接和图片仅为方便参考而设。我们对任何第三方外部链接的安全状况、内容真实性、隐私政策或运营行为均无控制权，亦不承担任何法律责任。您访问该等链接的风险由您自身完全承担。
+        为避免您将便利性工具、第三方数据、机器翻译结果或系统通知误解为本平台作出的独立承诺、专业意见、紧急通信或具有绝对时效的官方结论，特就与该等功能有关的使用边界、数据来源及注意事项作出如下完整说明。您在使用下列功能前，应结合自身出行、学习、报名、预约或其他实际需要，审慎判断其适用性，并始终保留通过相关主体正式渠道进行核验的责任；本平台基于公益便利目的提供的信息展示，并不当然替代运营商、学校、政府部门或其他服务提供方的正式通知、书面确认或现场安排。<br><br>
+        <strong>1. 实时交通与罢工信息：</strong>火车、公交、空教室和交通罢工信息由第三方或官方数据源提供，包括 Trenitalia/ViaggiaTreno、Italo、TPER、意大利基础设施与交通部公开 RSS、大学及相关服务商。我们仅作便利展示，不控制其数据、接口、更新频率或可用性。列车运行变动、罢工公告和时刻信息可能延迟、撤回、过期或与现场不一致；出行、考试、预约或其他重要决定前，您必须以运营商、车站、学校或服务提供方的最新官方公告为准。<br><br>
+        <strong>2. 机器翻译：</strong>铁路公告的翻译为按需调用的机器翻译，仅帮助理解，不构成官方译文、承诺或建议。翻译可能存在遗漏、错误或语境偏差；请以意大利语原文和运营商通知为准。请不要向翻译功能提交个人信息、证件号码、账户信息或其他敏感内容。<br><br>
+        <strong>3. 外部网站与地图：</strong>应用内可打开学联文章、Affluences、运营商、学校或其他外部网站，公交地图也依赖第三方地图资源。这些页面、地图和链接由相应第三方独立运营，适用其自身的服务条款和隐私政策；我们不对其内容、可用性、安全性或数据处理负责。<br><br>
+        <strong>4. 上传内容：</strong>您应只上传自己有权使用的内容，并确保不包含他人的敏感个人信息。公告封面和反馈附件可能通过公开 URL 展示；请勿上传身份证件、护照、支付信息、医疗资料、精确住址或其他不宜公开的材料。我们可为安全、合规或处理投诉而删除、限制访问或要求更正违法、不当或侵权内容。<br><br>
+        <strong>5. 推送通知的技术中转、最终投递与非保证性质：</strong>在您授予系统通知权限后，本平台可使用 Expo Push Service 将以 Expo Push Token 为接收标识的通知请求进行技术中转，并根据设备平台由 Apple Push Notification service（APNs）或 Google Firebase Cloud Messaging（FCM）完成最终系统级投递。该等第三方服务仅在其技术角色和各自政策范围内处理投递所必需的令牌、通知内容、有限附加字段、时间信息及投递状态。通知并非紧急通信、法律送达、考试变动确认、出行保障或具有时效保证的官方通知方式；我们不保证任何通知必然、即时、完整、无重复或以某一特定形式到达。您仍应自行维持正确的系统权限、网络连接和通知设置，并以学联、学校、运营商或其他有关主体的正式渠道和公告作为最终依据。
       </p>
 
       <h2 class="section-title">三、 版权、知识产权与内容合规</h2>
       <p class="para">
-        <strong>1. 原创知识产权归属：</strong>本软件的整体界面设计、页面布局、图标按钮、学联官方标志（LOGO）以及由学联组织人员整理编写的诸如"新生手册"、"办事指南"等原创图文内容的版权和全部知识产权，均独占性地归属于博洛尼亚大学中国学生学者联谊会。未经我们明确的、书面的前置授权许可，任何个人、团体或第三方机构不得擅自进行复制、传播、分发、镜像、反向工程、建立超链接或将其用于任何商业及盈利性目的。<br><br>
+        <strong>1. 原创知识产权归属：</strong>本软件的整体界面设计、页面布局、图标按钮、学联官方标志以及由学联组织人员整理编写的诸如“新生手册”、“办事指南”等原创图文内容的版权和全部知识产权，均独占性地归属于博洛尼亚大学中国学生学者联谊会。未经我们明确的、书面的前置授权许可，任何个人、团体或第三方机构不得擅自进行复制、传播、分发、镜像、反向工程、建立超链接或将其用于任何商业及盈利性目的。<br><br>
         <strong>2. 微信公众号文章同步：</strong>本软件中展示的部分关于文章与资讯内容系通过接口自动同步或手动转载自学联的微信官方公众号。该等文章中包含的图文知识产权归属于原作者或对应的学联官方号主体。本软件中该部分的展示仅限于学联内部非商业性的公益信息共享，任何第三方不得擅自抓取、倒卖或用作他途。
       </p>
 
@@ -213,24 +230,20 @@
 
       <h2 class="section-title">五、 平台免责声明与服务终止</h2>
       <p class="para">
-        <strong>1. 系统现状与可用性担保免除：</strong>本平台所提供的各项数字化信息及辅助性查询小工具均按"现状"（As Is）及"现有"（As Available）状态向您呈现。学联在此以最明确的方式免除对于本软件运行稳定性、完全无差错性、无间断性、无漏洞性、完全兼容性、或无毒无害性所做出的任何形式的口头或书面担保。由于设备硬件故障、通信网络波动、云服务提供商（Supabase 等）维护、不可抗力事件等外部因素导致的系统宕机、数据同步失效、报名记录丢失或通信延迟，学联不承担任何民事赔偿责任。<br><br>
+        <strong>1. 系统现状与可用性担保免除：</strong>本平台所提供的各项数字化信息及辅助性查询小工具均按“现状”和“可提供”的状态向您呈现。学联在此以最明确的方式免除对于本软件运行稳定性、完全无差错性、无间断性、无漏洞性、完全兼容性、或无毒无害性所做出的任何形式的口头或书面担保。由于设备硬件故障、通信网络波动、包括 Supabase 在内的云服务提供商维护、不可抗力事件等外部因素导致的系统宕机、数据同步失效、报名记录丢失或通信延迟，学联不承担任何民事赔偿责任。<br><br>
         <strong>2. 间接损失免除：</strong>在适用的法律法规允许的最大限度内，本平台及学联的所有管理人员、志愿开发者，对于您因下载、安装、使用或无法使用本平台而引发的任何形式的直接的、间接的、附带的、特别的或后果性的损害、损失或开支（包括但不限于利润损失、商业中断、设备损毁、数据被动丢失、因行程信息差错造成的交通退改签费、时间成本损失或商誉损害等），均不承担任何连带赔偿责任。<br><br>
-        <strong>3. 服务的暂停与终止：</strong>本平台作为纯公益性项目，我们保留在无需向您做出前置通知或说明的情况下，根据服务器成本、运营策略变动等随时暂停、限制、修改、升级、或永久性终止本软件全部或部分服务的权利。如果本平台检测到或有合理理由怀疑您的账户存在安全隐患、进行禁止性活动或违反本协议的任何规定，我们有权在后台单方面、即时、且永久性地冻结、封锁或完全注销您的个人账户，并彻底抹除与之关联的所有云端数据，而无需向您或任何第三方承担任何告知义务、赔偿责任或解释说明。
+        <strong>3. 服务的暂停与终止：</strong>本平台作为纯公益性项目，我们保留在无需向您做出前置通知或说明的情况下，根据服务器成本、运营策略变动等随时暂停、限制、修改、升级、或永久性终止本软件全部或部分服务的权利。如果本平台检测到或有合理理由怀疑您的账户存在安全隐患、进行禁止性活动或违反本协议的任何规定，我们有权在后台单方面、即时、且永久性地冻结、封锁或完全注销您的个人账户，并彻底抹除与之关联的所有云端数据，而无需向您或任何第三方承担任何告知义务、赔偿责任或解释说明。上述权利不影响您主动申请删除账户及相关数据的权利；有关删除路径、可删除数据范围及无法登录时的申请方式，请<a class="email-link" href="https://asscubo.it/delete-account">点击此处查看</a>。
       </p>
 
       <h2 class="section-title">六、 适用法律与争议管辖</h2>
       <p class="para">
         <strong>1. 适用法律：</strong>本使用协议的订立、执行、效力、解释、履行、变更、终止以及因使用本平台服务而引发的一切纠纷与争议解决，均完全适用意大利共和国的实体法律规范，并参考适用的欧洲联盟通用法律条例。本协议任何条款若因与适用的强制性法律相抵触而导致部分无效，不影响其他条款的效力与继续履行。<br><br>
-        <strong>2. 争议解决与管辖：</strong>凡因本协议的解释、效力或本软件服务的使用所引起的一切争议、矛盾或索赔，双方均应首先本着诚信、友好协商的原则沟通解决。若在争议发生之日起三十（30）天内双方无法通过协商解决该等争端，任何一方均有权将该等争议提交至本平台运营主体所在地，即意大利博洛尼亚地方有管辖权的人民法院（Tribunale di Bologna）通过正式法律诉讼渠道裁决解决。诉讼所产生的一切合理律师费、诉讼费、公证费和差旅成本将由败诉方全额承担。
+        <strong>2. 争议解决与管辖：</strong>凡因本协议的解释、效力或本软件服务的使用所引起的一切争议、矛盾或索赔，双方均应首先本着诚信、友好协商的原则沟通解决。若在争议发生之日起三十天内双方无法通过协商解决该等争端，任何一方均有权将该等争议提交至本平台运营主体所在地，即意大利博洛尼亚地方有管辖权的法院通过正式法律诉讼渠道裁决解决。诉讼所产生的一切合理律师费、诉讼费、公证费和差旅成本将由败诉方全额承担。
       </p>
     </section>
 
-    <div class="lang-divider"></div>
-
     <!-- ═══════════════════════════════ ENGLISH ═══════════════════════════════ -->
-    <section class="lang-section" id="en">
-      <a class="lang-anchor" id="en-anchor"></a>
-      <div class="lang-badge">English Version</div>
+    <section class="lang-section" id="en" role="tabpanel" hidden>
 
       <h2 class="section-title">Introduction &amp; Essential Notices</h2>
       <p class="para">
@@ -245,10 +258,23 @@
       </p>
 
       <h2 class="section-title">2. Platform Services, Third-Party Data Disclaimers, and Usage Restrictions</h2>
+      <h3 class="section-subtitle">(I) Data Sources and Public-Welfare Nature</h3>
+      <p class="para">The Platform integrates several utility tools designed to facilitate daily campus life, including "real-time train status and platform queries", "bus route searches and positioning", and "empty classroom occupancy checks". We explicitly inform you that the data displayed by these tools is retrieved dynamically and in real time from external public API feeds (such as Italian rail public datasets, Bologna local public transit networks, and official university scheduling systems). The Platform acts solely as a front-end aggregator for the convenience of our members, and we make no warranties, express or implied, regarding the completeness, absolute accuracy, timeliness, or availability of such third-party data.</p>
+
+      <h3 class="section-subtitle">(II) Priority of Physical Verification</h3>
+      <p class="para">Due to network latency, API disruptions, server downtime, or other force majeure factors, the data displayed in the Software is for general informational convenience only. For critical decisions (e.g., travel arrangements, exams, course registrations, or academic meetings), you must verify timetables and locations against physical station boards, official university bulletin boards, or real-time university portal notifications. ASSCUBO assumes no liability for any direct or indirect losses (including missed trains, exam absences, or lateness) resulting from reliance on the data.</p>
+
+      <h3 class="section-subtitle">(III) Independence of External Links</h3>
+      <p class="para">ASSCUBO administrators may include links or media leading to external third-party websites when publishing announcements or articles. These links are provided solely for reference. We have no control over, and assume no responsibility for, the safety, content, privacy policies, or business practices of any third-party websites. You access external links entirely at your own risk.</p>
+
+      <h3 class="section-subtitle">(IV) Use of Live Data, Notifications, and External Services</h3>
       <p class="para">
-        <strong>1. Data Sources and Public Welfare Nature:</strong> The Platform integrates several utility tools designed to facilitate daily campus life, including "real-time train status and platform queries", "bus route searches and positioning", and "empty classroom occupancy checks". We explicitly inform you that the data displayed by these tools is retrieved dynamically and in real time from external public API feeds (such as Italian rail public datasets, Bologna local public transit networks, and official university scheduling systems). The Platform acts solely as a front-end aggregator for the convenience of our members, and we make no warranties, express or implied, regarding the completeness, absolute accuracy, timeliness, or availability of such third-party data.<br><br>
-        <strong>2. Priority of Physical Verification:</strong> Due to network latency, API disruptions, server downtime, or other force majeure factors, the data displayed in the Software is for general informational convenience only. For critical decisions (e.g., travel arrangements, exams, course registrations, or academic meetings), you must verify timetables and locations against physical station boards, official university bulletin boards, or real-time university portal notifications. ASSCUBO assumes no liability for any direct or indirect losses (including missed trains, exam absences, or lateness) resulting from reliance on the data.<br><br>
-        <strong>3. Independence of External Links:</strong> ASSCUBO administrators may include links or media leading to external third-party websites when publishing announcements or articles. These links are provided solely for reference. We have no control over, and assume no responsibility for, the safety, content, privacy policies, or business practices of any third-party websites. You access external links entirely at your own risk.
+        To avoid any misunderstanding that convenience tools, third-party data, machine-translated results, or system notifications constitute an independent undertaking, professional advice, emergency communication, or officially guaranteed conclusion by the Platform, the following constitutes a full statement of the applicable boundaries, sources, and precautions. Before using any of these functions, you should assess their suitability in light of your own travel, study, registration, booking, or other practical needs and remain responsible for verifying material information through the relevant entity's formal channels. Information displayed by the Platform is provided for public-welfare convenience and does not replace an operator's, university's, public authority's, or other provider's formal notice, written confirmation, or on-site arrangement.<br><br>
+        <strong>1. Live transport and strike information:</strong> Train, bus, classroom, and transport-strike information is supplied by third-party or official sources, including Trenitalia/ViaggiaTreno, Italo, TPER, the public RSS of the Italian Ministry of Infrastructure and Transport, universities, and related providers. We display it for convenience only and do not control its data, interfaces, update frequency, or availability. Service changes, strike notices, and schedules may be delayed, withdrawn, outdated, or inconsistent with the situation on site. Before making travel, examination, booking, or other important decisions, you must rely on the latest official notice of the operator, station, university, or provider.<br><br>
+        <strong>2. Machine translation:</strong> Rail-notice translation is an on-demand machine translation provided solely to aid understanding. It is not an official translation, undertaking, or recommendation and may contain omissions, errors, or contextual inaccuracies. Refer to the Italian original and operator notice. Do not submit personal data, identity numbers, account information, or other sensitive content to the translation function.<br><br>
+        <strong>3. External websites and maps:</strong> The app may open ASSCUBO articles, Affluences, operator, university, and other external websites; the bus map also relies on third-party map resources. Those pages, maps, and links are independently operated and subject to their own terms and privacy policies. We are not responsible for their content, availability, security, or data practices.<br><br>
+        <strong>4. Uploaded content:</strong> Upload only content you are entitled to use and do not include another person's sensitive personal data. Announcement covers and feedback attachments may be displayed through public URLs. Do not upload identity documents, passports, payment data, medical information, precise home addresses, or other material unsuitable for public access. We may remove, restrict, or request correction of unlawful, inappropriate, or infringing content for security, compliance, or complaint handling.<br><br>
+        <strong>5. Technical relay, final delivery, and non-guaranteed nature of push notifications:</strong> After you grant system notification permission, the Platform may use Expo Push Service to relay, on a technical basis, notification requests identified by an Expo Push Token; depending on the device platform, Apple Push Notification service (APNs) or Google Firebase Cloud Messaging (FCM) then performs final system-level delivery. Those providers process the token, notification content, limited supplementary fields, timing information, and delivery status only to the extent necessary for their technical role and under their own policies. Push notifications are not emergency communications, legal service, confirmation of examination changes, travel assurance, or an official channel with any guarantee of timeliness. We do not guarantee that any notification will arrive, arrive immediately, arrive complete and without duplication, or arrive in a particular format. You remain responsible for maintaining appropriate system permissions, connectivity, and notification settings, and for relying on the formal channels and notices of ASSCUBO, the University, transport operators, or other relevant bodies as the final authority.
       </p>
 
       <h2 class="section-title">3. Copyright, Intellectual Property, and Content Compliance</h2>
@@ -271,7 +297,7 @@
       <p class="para">
         <strong>1. Disclaimer of System Warranties:</strong> The Platform and its utilities are provided on an "as is" and "as available" basis. ASSCUBO explicitly disclaims all warranties, oral or written, express or implied, regarding the stability, error-free operation, compatibility, safety, or uninterrupted service of the Software. ASSCUBO assumes no liability for system downtime, data synchronization failures, lost registration records, or transmission delays caused by hardware failures, network fluctuations, service provider maintenance (e.g., Supabase), or force majeure.<br><br>
         <strong>2. Limitation of Consequential Damages:</strong> To the maximum extent permitted by law, ASSCUBO and its administrators or volunteer developers shall not be liable for any direct, indirect, incidental, special, or consequential damages (including loss of profits, business interruption, device damage, loss of data, travel ticket refund fees, or loss of goodwill) arising from the use or inability to use the Platform.<br><br>
-        <strong>3. Service Modification and Termination:</strong> As a public welfare project, we reserve the right to suspend, restrict, modify, upgrade, or permanently terminate any or all services without prior notice. If we suspect your account is involved in prohibited activities or violates this Agreement, we reserve the right to freeze or terminate your account and erase all associated data immediately without warning or liability.
+        <strong>3. Service Modification and Termination:</strong> As a public welfare project, we reserve the right to suspend, restrict, modify, upgrade, or permanently terminate any or all services without prior notice. If we suspect your account is involved in prohibited activities or violates this Agreement, we reserve the right to freeze or terminate your account and erase all associated data immediately without warning or liability. This does not affect your right to request deletion of your account and associated data; for the deletion route, the scope of deletable data, and requests when you cannot sign in, <a class="email-link" href="https://asscubo.it/delete-account">click here</a>.
       </p>
 
       <h2 class="section-title">6. Governing Law and Jurisdiction</h2>
@@ -284,12 +310,8 @@
       </p>
     </section>
 
-    <div class="lang-divider"></div>
-
     <!-- ═══════════════════════════════ ITALIANO ═══════════════════════════════ -->
-    <section class="lang-section" id="it">
-      <a class="lang-anchor" id="it-anchor"></a>
-      <div class="lang-badge">Versione Italiana</div>
+    <section class="lang-section" id="it" role="tabpanel" hidden>
 
       <h2 class="section-title">Introduzione e Avviso Importante</h2>
       <p class="para">
@@ -304,10 +326,23 @@
       </p>
 
       <h2 class="section-title">2. Servizi della Piattaforma, Limitazione di Responsabilità dei Dati di Terze Parti e Restrizioni</h2>
+      <h3 class="section-subtitle">(I) Fonti dei dati e natura no-profit</h3>
+      <p class="para">La Piattaforma integra vari strumenti per facilitare la vita universitaria, come la ricerca dei treni, le linee dei bus e la disponibilità delle aule. Vi informiamo che tali dati sono recuperati in tempo reale da API pubbliche esterne (es. dataset ferroviari italiani, reti di trasporto locale di Bologna e sistemi universitari). La Piattaforma funge solo da aggregatore a scopo informativo no-profit e non rilascia alcuna garanzia circa l'accuratezza, completezza o tempestività dei dati.</p>
+
+      <h3 class="section-subtitle">(II) Priorità della verifica fisica</h3>
+      <p class="para">A causa di latenze di rete, interruzioni delle API o problemi ai server, i dati mostrati nel Software sono solo indicativi. Per decisioni critiche (es. esami, lezioni, viaggi), l'utente è tenuto a verificare le informazioni tramite i monitor fisici o i canali ufficiali dell'ateneo o delle stazioni. ASSCUBO non risponde di eventuali danni o ritardi.</p>
+
+      <h3 class="section-subtitle">(III) Indipendenza dei link esterni</h3>
+      <p class="para">Gli amministratori possono inserire link a siti esterni nei loro annunci. Tali link sono forniti solo per comodità. Non abbiamo alcun controllo sulla sicurezza, il contenuto o le politiche sulla privacy dei siti esterni, il cui accesso è a vostro esclusivo rischio.</p>
+
+      <h3 class="section-subtitle">(IV) Uso di dati in tempo reale, notifiche e servizi esterni</h3>
       <p class="para">
-        <strong>1. Fonti dei Dati e Natura No-Profit:</strong> La Piattaforma integra vari strumenti per facilitare la vita universitaria, come la ricerca dei treni, le linee dei bus e la disponibilità delle aule. Vi informiamo che tali dati sono recuperati in tempo reale da API pubbliche esterne (es. dataset ferroviari italiani, reti di trasporto locale di Bologna e sistemi universitari). La Piattaforma funge solo da aggregatore a scopo informativo no-profit e non rilascia alcuna garanzia circa l'accuratezza, completezza o tempestività dei dati.<br><br>
-        <strong>2. Priorità della Verifica Fisica:</strong> A causa di latenze di rete, interruzioni delle API o problemi ai server, i dati mostrati nel Software sono solo indicativi. Per decisioni critiche (es. esami, lezioni, viaggi), l'utente è tenuto a verificare le informazioni tramite i monitor fisici o i canali ufficiali dell'ateneo o delle stazioni. ASSCUBO non risponde di eventuali danni o ritardi.<br><br>
-        <strong>3. Indipendenza dei Link Esterni:</strong> Gli amministratori possono inserire link a siti esterni nei loro annunci. Tali link sono forniti solo per comodità. Non abbiamo alcun controllo sulla sicurezza, il contenuto o le politiche sulla privacy dei siti esterni, il cui accesso è a vostro esclusivo rischio.
+        Al fine di evitare che strumenti di comodità, dati di terzi, risultati di traduzione automatica o notifiche di sistema siano intesi come impegni autonomi della Piattaforma, pareri professionali, comunicazioni di emergenza o conclusioni ufficiali garantite, seguono le indicazioni complete su limiti di utilizzo, fonti e cautele applicabili. Prima di utilizzare tali funzioni, dovete valutarne con prudenza l'idoneità rispetto alle vostre esigenze di viaggio, studio, iscrizione, prenotazione o ad altre necessità concrete e rimanete responsabili della verifica delle informazioni rilevanti tramite i canali formali del soggetto competente. Le informazioni mostrate dalla Piattaforma sono offerte per finalità di pubblica utilità e comodità e non sostituiscono avvisi formali, conferme scritte o disposizioni sul posto di operatori, Università, autorità pubbliche o altri fornitori.<br><br>
+        <strong>1. Trasporti e scioperi in tempo reale:</strong> Le informazioni su treni, bus, aule e scioperi provengono da fonti ufficiali o terze, tra cui Trenitalia/ViaggiaTreno, Italo, TPER, il feed RSS pubblico del Ministero delle Infrastrutture e dei Trasporti, università e fornitori collegati. Le mostriamo solo per comodità e non controlliamo dati, interfacce, frequenza di aggiornamento o disponibilità. Variazioni di servizio, scioperi e orari possono essere ritardati, ritirati, obsoleti o diversi dalla situazione sul posto. Prima di viaggi, esami, prenotazioni o altre decisioni importanti, dovete fare riferimento all'ultimo avviso ufficiale dell'operatore, della stazione, dell'università o del fornitore.<br><br>
+        <strong>2. Traduzione automatica:</strong> La traduzione degli avvisi ferroviari è richiesta dall'utente ed è fornita solo per agevolare la comprensione. Non è una traduzione ufficiale, una garanzia o una raccomandazione e può contenere omissioni, errori o imprecisioni di contesto. Fate riferimento all'originale italiano e all'avviso dell'operatore. Non inviate alla funzione di traduzione dati personali, numeri di documento, dati dell'account o altri contenuti sensibili.<br><br>
+        <strong>3. Siti esterni e mappe:</strong> L'app può aprire articoli ASSCUBO, Affluences, siti di operatori, università e altri siti esterni; la mappa bus usa anche risorse cartografiche di terzi. Tali pagine, mappe e link sono gestiti in modo indipendente e soggetti alle rispettive condizioni e informative. Non rispondiamo del loro contenuto, disponibilità, sicurezza o trattamento dei dati.<br><br>
+        <strong>4. Contenuti caricati:</strong> Caricate solo contenuti che avete diritto di utilizzare e non includete dati personali sensibili di altre persone. Copertine degli avvisi e allegati del feedback possono essere mostrati tramite URL pubblici. Non caricate documenti d'identità, passaporti, dati di pagamento, dati sanitari, indirizzi precisi o altro materiale non idoneo alla pubblicazione. Possiamo rimuovere, limitare o richiedere la correzione di contenuti illeciti, inappropriati o lesivi per sicurezza, conformità o gestione di reclami.<br><br>
+        <strong>5. Inoltro tecnico, consegna finale e assenza di garanzia delle notifiche push:</strong> Dopo la concessione del permesso di sistema per le notifiche, la Piattaforma può utilizzare Expo Push Service per inoltrare tecnicamente richieste di notifica identificate da un Expo Push Token; in funzione della piattaforma del dispositivo, Apple Push Notification service (APNs) o Google Firebase Cloud Messaging (FCM) effettuano poi la consegna finale a livello di sistema. Tali fornitori trattano token, contenuto della notifica, limitati campi aggiuntivi, informazioni temporali e stato di consegna soltanto nella misura necessaria al loro ruolo tecnico e secondo le rispettive informative. Le notifiche push non sono comunicazioni di emergenza, notifiche legali, conferme di variazioni d'esame, garanzie di viaggio né un canale ufficiale con garanzia di tempestività. Non garantiamo che una notifica sia ricevuta, ricevuta immediatamente, completa, senza duplicazioni o in una particolare forma. Rimane vostra responsabilità mantenere permessi di sistema, connettività e impostazioni di notifica adeguati e fare affidamento, quale riferimento finale, sui canali e avvisi ufficiali di ASSCUBO, dell'Università, degli operatori di trasporto o di altri soggetti competenti.
       </p>
 
       <h2 class="section-title">3. Diritto d'Autore, Proprietà Intellettuale e Conformità dei Contenuti</h2>
@@ -330,7 +365,7 @@
       <p class="para">
         <strong>1. Esclusione di Garanzia sul Sistema:</strong> La Piattaforma e i suoi servizi sono forniti "così come sono". ASSCUBO esclude qualsiasi garanzia circa la stabilità, la compatibilità o l'assenza di interruzioni del Software. Non rispondiamo di perdite di dati o ritardi causati da guasti hardware, manutenzione dei provider (es. Supabase) o forza maggiore.<br><br>
         <strong>2. Limitazione dei Danni Indiretti:</strong> Nei limiti consentiti dalla legge, ASSCUBO, i suoi amministratori e gli sviluppatori volontari non saranno responsabili per danni diretti, indiretti o consequenziali (inclusi perdita di profitto, interruzione di attività, danni ai dispositivi o rimborso di biglietti di viaggio) derivanti dall'uso del Software.<br><br>
-        <strong>3. Modifica e Risoluzione del Servizio:</strong> Trattandosi di un progetto no-profit, ci riserviamo il diritto di modificare, sospendere o terminare i servizi in qualsiasi momento senza preavviso. In caso di violazioni di questo Contratto, possiamo bloccare l'account e rimuovere tutti i dati associati senza alcuna responsabilità.
+        <strong>3. Modifica e Risoluzione del Servizio:</strong> Trattandosi di un progetto no-profit, ci riserviamo il diritto di modificare, sospendere o terminare i servizi in qualsiasi momento senza preavviso. In caso di violazioni di questo Contratto, possiamo bloccare l'account e rimuovere tutti i dati associati senza alcuna responsabilità. Ciò non pregiudica il vostro diritto di richiedere l'eliminazione dell'account e dei dati associati; per la procedura, l'ambito dei dati eliminabili e le richieste quando non potete accedere, <a class="email-link" href="https://asscubo.it/delete-account">fate clic qui</a>.
       </p>
 
       <h2 class="section-title">6. Legge Applicabile e Foro Competente</h2>
@@ -349,6 +384,30 @@
     &copy; 2026 <a href="https://asscubo.it" target="_blank" rel="noopener">ASSCUBO</a> · 博洛尼亚大学中国学生学者联谊会 ·
     <a href="privacy.html">隐私政策 / Privacy Policy</a>
   </footer>
+
+  <script>
+    (() => {
+      const tabs = [...document.querySelectorAll('.language-tab')];
+      const sections = new Map(
+        [...document.querySelectorAll('.lang-section')].map((section) => [section.id, section])
+      );
+
+      const selectLanguage = (language) => {
+        if (!sections.has(language)) return;
+        sections.forEach((section, id) => {
+          section.hidden = id !== language;
+        });
+        tabs.forEach((tab) => {
+          tab.setAttribute('aria-selected', String(tab.getAttribute('aria-controls') === language));
+        });
+        document.documentElement.lang = language === 'zh' ? 'zh-CN' : language;
+      };
+
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => selectLanguage(tab.getAttribute('aria-controls')));
+      });
+    })();
+  </script>
 
 </body>
 </html>

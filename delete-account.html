@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>删除账号与相关数据 | 博学 · ASSCUBO</title>
+  <meta name="description" content="博学（ASSCUBO）App 的账号及相关数据删除说明与申请方式。">
+  <link rel="icon" href="https://asscubo.it/wp-content/uploads/2021/06/cropped-cropped-cropped-cropped-cropped-博洛尼亚大学中国学联logo-2-32x32.png" sizes="32x32">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --primary: #A31621;
+      --bg: #F5F7FA;
+      --card: #FFFFFF;
+      --text-main: #1D2939;
+      --text-sub: #475467;
+      --text-muted: #6B7280;
+      --border: #E4E7EC;
+      --notice-bg: #FEF9F9;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0A0A0A;
+        --card: #141414;
+        --text-main: #F5F5F5;
+        --text-sub: #A0A0A0;
+        --text-muted: #8B8B8B;
+        --border: #2A2A2A;
+        --notice-bg: #1A1010;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      line-height: 1.85;
+    }
+    main { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
+    h1 { color: var(--primary); font-size: 28px; line-height: 1.35; margin: 0 0 8px; }
+    .subtitle { color: var(--text-muted); font-size: 14px; margin: 0 0 28px; }
+    .notice {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: 10px;
+      background: var(--notice-bg);
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 16px 18px;
+      margin-bottom: 30px;
+      line-height: 1.7;
+    }
+    .language-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 28px;
+    }
+    .language-tab {
+      appearance: none;
+      -webkit-tap-highlight-color: transparent;
+      color: var(--text-sub);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      padding: 8px 14px;
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .language-tab[aria-selected="true"] {
+      color: #FFF4F4;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .language-tab:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    .lang-section[hidden] { display: none; }
+    h2 {
+      border-bottom: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 18px;
+      margin: 30px 0 12px;
+      padding-bottom: 7px;
+    }
+    p, li { color: var(--text-sub); font-size: 15.5px; }
+    p { margin: 0 0 14px; }
+    ol, ul { margin: 8px 0 16px; padding-left: 25px; }
+    strong { color: var(--text-main); font-weight: 600; }
+    .action-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin: 18px 0;
+      padding: 18px;
+    }
+    a { color: var(--primary); font-weight: 600; word-break: break-word; }
+    .divider { height: 1px; background: var(--border); margin: 42px 0; }
+    footer { border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; padding: 24px; text-align: center; }
+    @media (max-width: 600px) { main { padding: 28px 20px 64px; } h1 { font-size: 23px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>删除账号与相关数据 / Account Deletion and Data Request / Eliminazione dell'account e dei dati</h1>
+    <p class="subtitle">最后更新 / Last updated / Ultimo aggiornamento: 2026-07-18</p>
+
+    <div class="language-tabs" role="tablist" aria-label="选择语言 / Select language / Seleziona la lingua">
+      <button class="language-tab" type="button" role="tab" aria-selected="true" aria-controls="zh">中文</button>
+      <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="en">English</button>
+      <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="it">Italiano</button>
+    </div>
+
+    <section class="lang-section" id="zh" role="tabpanel">
+    <p>本页面适用于由博洛尼亚大学中国学生学者联谊会（ASSCUBO）开发和运营的“博学”移动应用。我们理解账号及个人数据删除是一项严肃且通常不可逆的请求；因此，您可以通过 App 内自助流程完成删除，也可以在无法使用 App 或无法登录时，通过本页所列联系方式提交删除申请。</p>
+
+    <h2>一、在 App 内删除账号（推荐方式）</h2>
+    <p>如您仍可登录“博学”App，请按以下步骤自行发起删除。该流程要求通过注册邮箱完成一次安全验证，以避免他人冒用您的身份删除账号：</p>
+    <div class="action-card">
+      <ol>
+        <li>打开“博学”App，进入底部导航栏的<strong>“我的”</strong>；</li>
+        <li>点击<strong>“个人资料”</strong>，进入<strong>“账号管理”</strong>区域；</li>
+        <li>选择<strong>“注销并删除账户”</strong>，阅读不可撤销提示并确认；</li>
+        <li>按照页面提示向注册邮箱发送 6 位安全验证码；</li>
+        <li>输入验证码并选择<strong>“确认注销”</strong>。验证通过后，系统将执行删除并退出登录。</li>
+      </ol>
+    </div>
+    <p>该方式为即时自助删除流程。若网络、邮件投递或系统维护等原因导致流程未能完成，请使用下方的网页申请方式。</p>
+
+    <h2>二、无法登录或无法使用 App 时的删除申请</h2>
+    <p>请使用您注册“博学”账号时所使用的邮箱，向 <a href="mailto:segreteria@asscubo.it?subject=博学账号删除申请">segreteria@asscubo.it</a> 发送邮件，邮件主题建议写为<strong>“博学账号删除申请”</strong>。为便于我们核验并避免误删，请在邮件中说明：</p>
+    <ul>
+      <li>您希望删除的注册邮箱；</li>
+      <li>您无法在 App 内自行完成删除的大致原因；</li>
+      <li>如适用，您希望同时处理的具体反馈、附件或其他数据请求。</li>
+    </ul>
+    <p>我们可能通过回复注册邮箱、发送验证码或采取其他合理且必要的身份核验方式确认申请人的身份。核验完成后，我们通常会在合理期限内处理该请求；如存在技术故障、争议处理、法律义务或需要进一步核验的情形，处理时间可能相应延长，我们会在适用范围内告知您。</p>
+
+    <h2>三、删除后会删除哪些数据</h2>
+    <p>在账号删除流程成功完成后，我们将删除或使其无法再与已删除账号关联的主要账号资料，包括：</p>
+    <ul>
+      <li>认证账号、注册邮箱及与登录相关的账号标识；</li>
+      <li>昵称、头像及个人资料中的相关信息；</li>
+      <li>与账号关联且由本平台控制的推送令牌、账号偏好及相应的服务记录；</li>
+      <li>在技术和业务上可随账号一并删除的活动报名与其他关联数据。</li>
+    </ul>
+    <p><strong>请注意：</strong>删除账号后通常无法恢复。请在提交删除前自行确认是否仍需要保留任何信息或服务记录。</p>
+
+    <h2>四、可能继续保留的数据及原因</h2>
+    <p>在合法、必要且范围最小化的前提下，部分数据可能不会因账号删除而在同一时刻被自动清除，包括为处理既有反馈、解决争议、防止滥用、履行法律义务、保护平台安全或完成常规备份恢复流程所必需的记录。此类记录仅会在相应目的所需的合理期限内保留，并不会被用于广告营销、出售、出租或向无关第三方提供。</p>
+    <p>如您曾主动提交反馈附件、公开链接或其他独立于账号资料的内容，且希望一并处理，请在删除申请中明确说明；我们会在确认权属、技术可行性及适用法律要求后处理。</p>
+
+    <h2>五、更多隐私信息与联系</h2>
+    <p>关于“博学”如何处理个人信息、第三方服务、推送通知、保留期限与您的其他数据权利，请同时参阅本平台的隐私政策。若您对账号删除、数据范围或处理进度有任何疑问，可通过 <a href="mailto:segreteria@asscubo.it">segreteria@asscubo.it</a> 联系 ASSCUBO。</p>
+
+    </section>
+
+    <section class="lang-section" id="en" role="tabpanel" hidden>
+    <p>This page applies to the Boxue mobile application developed and operated by the Chinese Students and Scholars Association of the University of Bologna (ASSCUBO). We understand that deleting an account and personal data is a serious request that is ordinarily irreversible; accordingly, you may complete deletion through the in-app self-service flow, or, if you cannot use the App or cannot sign in, submit a deletion request through the contact method listed on this page.</p>
+    <h2>1. Delete Your Account in the App (Recommended)</h2>
+    <p>If you can still sign in to the Boxue App, please use the in-app self-service route below. Because an account and its associated information may ordinarily not be recoverable after deletion, the process includes a registered-email security check intended to prevent a third party from deleting an account by impersonation:</p>
+    <div class="action-card">
+      <ol>
+        <li>Open the Boxue App and select <strong>Profile</strong> from the bottom navigation bar;</li>
+        <li>Open <strong>Profile Details</strong> and locate the <strong>Account Management</strong> section;</li>
+        <li>Select <strong>Delete Account</strong>, read the irreversible-deletion notice and confirm the request;</li>
+        <li>Request the six-digit security verification code sent to your registered email address; and</li>
+        <li>Enter the code and select <strong>Confirm Deletion</strong>. Once the verification succeeds, the system will complete deletion and sign you out.</li>
+      </ol>
+    </div>
+    <p>This is the immediate self-service deletion route. If the flow cannot be completed because of network availability, email delivery, maintenance, or another technical reason, please use the web request route below.</p>
+
+    <h2>2. Deletion Request When You Cannot Sign In or Use the App</h2>
+    <p>Send an email from the address registered with Boxue to <a href="mailto:segreteria@asscubo.it?subject=Boxue%20Account%20Deletion%20Request">segreteria@asscubo.it</a> with the suggested subject line <strong>“Boxue Account Deletion Request”</strong>. To enable us to verify the request and avoid an incorrect deletion, please state:</p>
+    <ul>
+      <li>the email address of the account you wish to delete;</li>
+      <li>the general reason you cannot complete the deletion in the App; and</li>
+      <li>where relevant, any specific feedback, attachment, or other data request you would like us to consider together with the account deletion.</li>
+    </ul>
+    <p>We may verify the request by replying to the registered address, sending a verification code, or using another reasonable and necessary identity-verification method. Once verification is complete, we will ordinarily process the request within a reasonable period. Where a technical issue, dispute, legal obligation, security concern, or further verification is necessary, the processing period may be extended and we will provide information where appropriate.</p>
+
+    <h2>3. Data Deleted Following a Successful Request</h2>
+    <p>After an account-deletion process has been successfully completed, we will delete, or make no longer capable of being associated with the deleted account, the principal account information under our control, including:</p>
+    <ul>
+      <li>the authentication account, registered email address, and account identifiers connected with sign-in;</li>
+      <li>profile information, including the nickname and avatar;</li>
+      <li>account-associated push token, preferences, and relevant service records; and</li>
+      <li>event registrations and other associated records that can technically and operationally be deleted with the account.</li>
+    </ul>
+    <p><strong>Please note:</strong> account deletion is normally irreversible. Before submitting a request, please decide whether you still require any information or service record connected with the account.</p>
+
+    <h2>4. Data That May Be Retained and Why</h2>
+    <p>Subject to the principles of lawfulness, necessity, and data minimisation, certain information may not be erased automatically at the same moment as an account. This may include records needed to handle existing feedback, resolve disputes, prevent abuse, comply with legal obligations, protect platform security, or complete ordinary backup and recovery processes. Such information will be retained only for the reasonable period required for the relevant purpose and will not be used for advertising, marketing, sale, rental, or disclosure to unrelated third parties.</p>
+    <p>If you have submitted feedback attachments, public links, or other material that is independent from profile information and you wish it to be considered for deletion as well, please identify it clearly in your request. We will address it after considering ownership, technical feasibility, and applicable legal requirements.</p>
+
+    <h2>5. Further Privacy Information and Contact</h2>
+    <p>For information on how Boxue processes personal data, uses third-party services and push notifications, applies retention periods, and handles your other data-protection rights, please also review the Platform Privacy Policy. If you have any question about account deletion, the scope of data, or the status of a request, contact ASSCUBO at <a href="mailto:segreteria@asscubo.it">segreteria@asscubo.it</a>.</p>
+
+    </section>
+
+    <section class="lang-section" id="it" role="tabpanel" hidden>
+    <p>Questa pagina si applica all'applicazione mobile Boxue sviluppata e gestita dall'Associazione degli Studenti e Studiosi Cinesi dell'Università di Bologna (ASSCUBO). Comprendiamo che l'eliminazione dell'account e dei dati personali costituisce una richiesta seria e normalmente irreversibile; pertanto, potete completare l'eliminazione tramite la procedura autonoma nell'app oppure, se non potete utilizzare l'app o accedere al vostro account, presentare una richiesta di eliminazione attraverso il contatto indicato in questa pagina.</p>
+    <h2>1. Eliminazione dell'account nell'app (modalità consigliata)</h2>
+    <p>Se puoi ancora accedere all'App Boxue, utilizza la procedura autonoma descritta di seguito. Poiché l'account e le informazioni a esso associate non sono normalmente recuperabili dopo l'eliminazione, la procedura include un controllo di sicurezza tramite l'e-mail registrata, volto a impedire che un terzo elimini un account fingendosi il titolare:</p>
+    <div class="action-card">
+      <ol>
+        <li>Apri l'App Boxue e seleziona <strong>Profilo</strong> dalla barra di navigazione inferiore;</li>
+        <li>Apri <strong>Dettagli Profilo</strong> e individua la sezione <strong>Gestione Account</strong>;</li>
+        <li>Seleziona <strong>Elimina Account</strong>, leggi l'avviso di irreversibilità e conferma la richiesta;</li>
+        <li>Richiedi il codice di verifica di sicurezza di sei cifre inviato all'indirizzo e-mail registrato; e</li>
+        <li>Inserisci il codice e seleziona <strong>Conferma Eliminazione</strong>. Dopo una verifica positiva, il sistema completerà l'eliminazione e terminerà la sessione.</li>
+      </ol>
+    </div>
+    <p>Questa è la procedura di eliminazione autonoma e immediata. Se non può essere completata per indisponibilità della rete, mancata consegna dell'e-mail, manutenzione o altra causa tecnica, utilizza la procedura di richiesta via web riportata di seguito.</p>
+
+    <h2>2. Richiesta di eliminazione se non puoi accedere o usare l'app</h2>
+    <p>Invia un'e-mail dall'indirizzo registrato su Boxue a <a href="mailto:segreteria@asscubo.it?subject=Richiesta%20di%20eliminazione%20account%20Boxue">segreteria@asscubo.it</a>, con oggetto consigliato <strong>“Richiesta di eliminazione account Boxue”</strong>. Per consentirci di verificare la richiesta ed evitare eliminazioni errate, indica:</p>
+    <ul>
+      <li>l'indirizzo e-mail dell'account che desideri eliminare;</li>
+      <li>il motivo generale per cui non puoi completare la procedura nell'app; e</li>
+      <li>se pertinente, eventuali allegati di feedback, collegamenti pubblici o altre richieste specifiche di dati da valutare insieme all'eliminazione dell'account.</li>
+    </ul>
+    <p>Potremmo verificare la richiesta rispondendo all'indirizzo registrato, inviando un codice di verifica o usando un'altra modalità di verifica dell'identità ragionevole e necessaria. Una volta completata la verifica, tratteremo normalmente la richiesta entro un periodo ragionevole. In caso di problema tecnico, controversia, obbligo legale, esigenza di sicurezza o ulteriore verifica, il termine può essere esteso e forniremo informazioni quando appropriato.</p>
+
+    <h2>3. Dati eliminati dopo una richiesta completata con successo</h2>
+    <p>Dopo il completamento della procedura di eliminazione, elimineremo, oppure renderemo non più associabili all'account eliminato, le principali informazioni sull'account sotto il nostro controllo, tra cui:</p>
+    <ul>
+      <li>l'account di autenticazione, l'e-mail registrata e gli identificativi collegati all'accesso;</li>
+      <li>le informazioni del profilo, inclusi nickname e avatar;</li>
+      <li>il token di notifica associato all'account, le preferenze e le pertinenti registrazioni del servizio; e</li>
+      <li>le iscrizioni agli eventi e gli altri dati associati che possono essere eliminati tecnicamente e operativamente insieme all'account.</li>
+    </ul>
+    <p><strong>Nota importante:</strong> l'eliminazione dell'account è normalmente irreversibile. Prima di inviare la richiesta, verifica se hai ancora necessità di informazioni o registrazioni di servizio collegate all'account.</p>
+
+    <h2>4. Dati che possono essere conservati e relative ragioni</h2>
+    <p>Nel rispetto dei principi di liceità, necessità e minimizzazione dei dati, alcune informazioni potrebbero non essere cancellate automaticamente nello stesso momento dell'account. Ciò può includere registrazioni necessarie per gestire feedback già inviati, risolvere controversie, prevenire abusi, adempiere obblighi di legge, proteggere la sicurezza della piattaforma o completare i normali processi di backup e recupero. Tali informazioni saranno conservate solo per il periodo ragionevole necessario alla relativa finalità e non saranno utilizzate per pubblicità, marketing, vendita, noleggio o comunicazione a terzi non collegati.</p>
+    <p>Se hai inviato allegati di feedback, collegamenti pubblici o altri materiali indipendenti dalle informazioni del profilo e desideri che siano considerati per l'eliminazione, identificali chiaramente nella richiesta. Li valuteremo considerando titolarità, fattibilità tecnica e requisiti legali applicabili.</p>
+
+    <h2>5. Ulteriori informazioni sulla privacy e contatti</h2>
+    <p>Per informazioni sul trattamento dei dati personali da parte di Boxue, sui servizi di terze parti, sulle notifiche push, sui periodi di conservazione e sugli altri diritti in materia di protezione dei dati, consulta anche l'Informativa sulla privacy della Piattaforma. Per qualsiasi domanda sull'eliminazione dell'account, sull'ambito dei dati o sullo stato della richiesta, contatta ASSCUBO a <a href="mailto:segreteria@asscubo.it">segreteria@asscubo.it</a>.</p>
+    </section>
+  </main>
+  <footer>© ASSCUBO · 博学 / Boxue</footer>
+  <script>
+    (() => {
+      const tabs = [...document.querySelectorAll('.language-tab')];
+      const sections = new Map(
+        [...document.querySelectorAll('.lang-section')].map((section) => [section.id, section])
+      );
+
+      const selectLanguage = (language) => {
+        if (!sections.has(language)) return;
+        sections.forEach((section, id) => {
+          section.hidden = id !== language;
+        });
+        tabs.forEach((tab) => {
+          tab.setAttribute('aria-selected', String(tab.getAttribute('aria-controls') === language));
+        });
+        document.documentElement.lang = language === 'zh' ? 'zh-CN' : language;
+      };
+
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => selectLanguage(tab.getAttribute('aria-controls')));
+      });
+    })();
+  </script>
+</body>
+</html>
