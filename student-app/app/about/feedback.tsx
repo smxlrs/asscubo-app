@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, Pressable, ScrollView, View, TextInput, ActivityIndicator, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
@@ -53,7 +53,7 @@ const decodeBase64 = (base64: string): ArrayBuffer => {
 
 export default function FeedbackScreen() {
   const { colors, t, language } = useTheme();
-  const { user, hasUnreadFeedbackReply } = useAuth();
+  const { user, loading: authLoading, hasUnreadFeedbackReply } = useAuth();
 
   const [email, setEmail] = useState(user?.email || '');
   const [wechat, setWechat] = useState('');
@@ -62,6 +62,22 @@ export default function FeedbackScreen() {
 
   // Media picker states
   const [mediaAssets, setMediaAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
+
+  const getLoginRequiredMessage = () => {
+    if (language === 'it') return 'Effettua l\'accesso per inviare un feedback.';
+    if (language === 'en') return 'Please log in before submitting feedback.';
+    if (language === 'zh-Hant') return '請在登入後進行反饋。';
+    return '请在登录后进行反馈';
+  };
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      Alert.alert(t('feedback'), getLoginRequiredMessage(), [
+        { text: t('cancel') || '取消', style: 'cancel' },
+        { text: t('goToLogin') || '前往登录', onPress: () => router.replace('/(auth)/login') },
+      ]);
+    }
+  }, [authLoading, user, language]);
 
   const getWechatLabel = () => {
     if (language === 'it') return 'WeChat (Opzionale)';
@@ -120,6 +136,14 @@ export default function FeedbackScreen() {
   };
 
   const handleSelectMedia = async () => {
+    if (!user) {
+      Alert.alert(t('feedback'), getLoginRequiredMessage(), [
+        { text: t('cancel') || '取消', style: 'cancel' },
+        { text: t('goToLogin') || '前往登录', onPress: () => router.replace('/(auth)/login') },
+      ]);
+      return;
+    }
+
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(t('feedback'), getUploadWarning());
@@ -146,6 +170,14 @@ export default function FeedbackScreen() {
   };
 
   const handleFeedbackSubmit = async () => {
+    if (!user) {
+      Alert.alert(t('feedback'), getLoginRequiredMessage(), [
+        { text: t('cancel') || '取消', style: 'cancel' },
+        { text: t('goToLogin') || '前往登录', onPress: () => router.replace('/(auth)/login') },
+      ]);
+      return;
+    }
+
     if (!email.trim() || !feedbackText.trim()) {
       Alert.alert(t('feedback'), getFillFieldsWarning());
       return;
@@ -154,6 +186,11 @@ export default function FeedbackScreen() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       Alert.alert(t('feedback'), getInvalidEmailWarning());
+      return;
+    }
+
+    if (mediaAssets.length > 4 || mediaAssets.some((asset) => (asset.fileSize || 0) > 20 * 1024 * 1024)) {
+      Alert.alert(t('feedback'), language === 'en' ? 'Please select up to 4 files, each no larger than 20 MB.' : '最多选择 4 个文件，且每个文件不得超过 20 MB。');
       return;
     }
 

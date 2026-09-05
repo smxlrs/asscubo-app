@@ -57,11 +57,11 @@ CREATE TABLE IF NOT EXISTS public.feedbacks (
 
 ALTER TABLE public.feedbacks ENABLE ROW LEVEL SECURITY;
 
--- 允许任何人（包括游客和登录用户）提交反馈
+-- 仅允许登录用户提交反馈，并且只能以自己的 user_id 提交
 DROP POLICY IF EXISTS "Allow anyone to insert feedback" ON public.feedbacks;
-CREATE POLICY "Allow anyone to insert feedback" ON public.feedbacks
-  FOR INSERT TO anon, authenticated
-  WITH CHECK (true);
+CREATE POLICY "Authenticated users can insert own feedback" ON public.feedbacks
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
 
 -- 仅允许管理员查看反馈
 DROP POLICY IF EXISTS "Only admins can view feedback" ON public.feedbacks;
@@ -75,10 +75,11 @@ CREATE POLICY "Only admins can update feedback" ON public.feedbacks
   FOR UPDATE TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
 
--- 7. 允许未登录用户上传反馈图片/视频到 covers 存储桶
+-- 7. 仅允许登录用户上传反馈图片/视频到 covers 存储桶
 DROP POLICY IF EXISTS "Allow anon upload to covers" ON storage.objects;
-CREATE POLICY "Allow anon upload to covers" ON storage.objects
-  FOR INSERT TO anon, authenticated
+DROP POLICY IF EXISTS "Authenticated users can upload to covers" ON storage.objects;
+CREATE POLICY "Authenticated users can upload to covers" ON storage.objects
+  FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'covers');
 
 -- 8. 修复并更新 profiles 昵称敏感词校验触发器 (具有智能防御性逻辑，避免空值和短 ASCII 词误杀)

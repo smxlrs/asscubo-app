@@ -221,9 +221,10 @@ export default function ArticleDetailScreen() {
           )}
           // Enable prefers-color-scheme media query handling on webviews
           forceDarkOn={isDark}
-          mixedContentMode="always"
+          mixedContentMode="never"
           domStorageEnabled={true}
           javaScriptEnabled={true}
+          onShouldStartLoadWithRequest={(request) => request.url.startsWith('https://')}
         />
       </SafeAreaView>
     );

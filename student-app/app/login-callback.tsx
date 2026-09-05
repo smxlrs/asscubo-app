@@ -98,7 +98,7 @@ export default function LoginCallback() {
           return;
         }
 
-        console.log('Starting background verification check for:', email);
+        console.log('Starting background verification check.');
         
         const checkVerification = async () => {
           if (!active || verificationFinished) {
@@ -140,7 +140,7 @@ export default function LoginCallback() {
 
     async function processUrl(url: string) {
       if (!url) return;
-      console.log('Processing deep link URL:', url);
+      console.log('Processing authentication deep link.');
       
       const parsed = Linking.parse(url);
       const { queryParams } = parsed;

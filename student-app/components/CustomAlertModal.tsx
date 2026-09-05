@@ -135,9 +135,10 @@ export function CustomAlertModal() {
 
               {/* Message Description */}
               {message ? (
-                <Text style={[styles.messageText, { color: colors.textSecondary, textAlign: messageAlign }]}>
-                  {message}
-                </Text>
+                <View style={styles.messageBlock}>
+                  <Text style={[styles.messageText, { color: colors.textSecondary, textAlign: messageAlign, marginBottom: renderedConfig.options?.messageLink ? 4 : 18 }]}>{message}</Text>
+                  {renderedConfig.options?.messageLink ? <TouchableOpacity onPress={() => { customAlertManager.hide(); setTimeout(() => renderedConfig.options.messageLink.onPress?.(), 0); }}><Text style={[styles.messageLink, { color: colors.primary }]}>{renderedConfig.options.messageLink.text}</Text></TouchableOpacity> : null}
+                </View>
               ) : null}
 
               {/* Buttons Area */}
@@ -230,6 +231,8 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     lineHeight: 23,
   },
+  messageBlock: { marginBottom: 4 },
+  messageLink: { fontSize: 13, textAlign: 'left', textDecorationLine: 'underline', marginBottom: 10 },
   buttonsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

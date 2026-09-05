@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -12,7 +12,7 @@ import {
   Keyboard,
   ScrollView
 } from 'react-native';
-import { Link, router } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { useOtpCooldown } from '../../hooks/useOtpCooldown';
 import { appAlert as Alert } from '../../lib/appAlert';
+import { getAllowedSignupDomains } from '../../lib/signupDomains';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -67,6 +68,14 @@ export default function RegisterScreen() {
   const { signUp } = useAuth();
   const { colors, t, language } = useTheme();
   const insets = useSafeAreaInsets();
+  const emailInputRef = useRef<TextInput>(null);
+  const reopenDomainAlertRef = useRef(false);
+  const [allowedDomains, setAllowedDomains] = useState<string[]>(['studio.unibo.it', 'unibo.it', 'esterni.unibo.it']);
+  useEffect(() => { getAllowedSignupDomains().then((items) => setAllowedDomains(items.map((item) => item.domain))); }, []);
+  const showDomainAlert = () => Alert.alert(t('tip'), '请使用您的大学邮箱！', [
+    { text: '重新输入', style: 'cancel', onPress: () => { setEmail(''); setTimeout(() => emailInputRef.current?.focus(), 80); } },
+  ], { messageAlign: 'left', buttonPresentation: 'text', messageLink: { text: '查看支持的邮箱域名', onPress: () => { reopenDomainAlertRef.current = true; router.push('/about/supported-email-domains'); } } });
+  useFocusEffect(React.useCallback(() => { if (reopenDomainAlertRef.current) { reopenDomainAlertRef.current = false; setTimeout(showDomainAlert, 120); } }, [language, allowedDomains]));
 
   const checkNicknameSensitive = async (nickname: string) => {
     try {
@@ -126,6 +135,13 @@ export default function RegisterScreen() {
 
     if (password !== confirmPassword) {
       setErrorMsg(t('passwordsDoNotMatch'));
+      return;
+    }
+
+    const allowedDomains = ['studio.unibo.it', 'unibo.it', 'esterni.unibo.it'];
+    const emailDomain = email.trim().toLowerCase().split('@')[1] || '';
+    if (!allowedDomains.includes(emailDomain)) {
+      showDomainAlert();
       return;
     }
 
@@ -281,6 +297,7 @@ export default function RegisterScreen() {
                     style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                     placeholder={t('emailRegPlaceholder')}
                     placeholderTextColor={colors.textMuted}
+                    ref={emailInputRef}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"

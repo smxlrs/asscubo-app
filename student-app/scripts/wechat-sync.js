@@ -2,11 +2,11 @@ const { createClient } = require('@supabase/supabase-js');
 
 // Parse command line arguments manually (no dependency required)
 const args = process.argv.slice(2);
-const appid = getArg('appid');
-const appsecret = getArg('appsecret');
-const supabaseUrl = getArg('supabase-url');
-const supabaseKey = getArg('supabase-key');
-const apiBase = getArg('api-base') || 'https://api.weixin.qq.com';
+const appid = getArg('appid') || process.env.WECHAT_APPID;
+const appsecret = getArg('appsecret') || process.env.WECHAT_APPSECRET;
+const supabaseUrl = getArg('supabase-url') || process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseKey = getArg('supabase-key') || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const apiBase = getArg('api-base') || process.env.WECHAT_API_BASE || 'https://api.weixin.qq.com';
 
 function getArg(name) {
   const arg = args.find(a => a.startsWith(`--${name}=`));

@@ -2,8 +2,8 @@ const { createClient } = require('@supabase/supabase-js');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const supabaseUrl = getArg('supabase-url');
-const supabaseKey = getArg('supabase-key');
+const supabaseUrl = getArg('supabase-url') || process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseKey = getArg('supabase-key') || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function getArg(name) {
   const arg = args.find(a => a.startsWith(`--${name}=`));

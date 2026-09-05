@@ -101,12 +101,10 @@ export default function MyFeedbacksScreen() {
 
   const markRepliesAsRead = async (ids: string[]) => {
     try {
-      const { error } = await supabase
-        .from('feedbacks')
-        .update({ user_viewed_reply: true })
-        .in('id', ids);
-
-      if (error) throw error;
+      for (const id of ids) {
+        const { error } = await supabase.rpc('mark_feedback_reply_viewed', { feedback_id: id });
+        if (error) throw error;
+      }
       
       // Update global context red dot state!
       await refreshUnreadFeedbackReplies();

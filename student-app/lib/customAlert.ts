@@ -13,6 +13,7 @@ export type AlertOptions = {
   messageAlign?: 'left' | 'center';
   buttonPresentation?: 'filled' | 'text';
   textButtonAlignment?: 'split' | 'end';
+  messageLink?: { text: string; onPress?: () => void };
 };
 
 type AlertConfig = {

@@ -52,7 +52,8 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
+          # Do not leave the GitHub token in the runner's .git/config.
+          persist-credentials: false
           fetch-depth: 1
           submodules: false
 

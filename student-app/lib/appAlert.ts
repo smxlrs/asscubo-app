@@ -1,4 +1,4 @@
-import { showCustomAlert } from './customAlert';
+import { showCustomAlert, AlertOptions } from './customAlert';
 
 type AppAlertButton = {
   text?: string;
@@ -11,11 +11,12 @@ type AppAlertButton = {
  * existing user flows share the app dialog treatment without changing actions.
  */
 export const appAlert = {
-  alert(title?: string, message?: string, buttons?: AppAlertButton[]) {
+  alert(title?: string, message?: string, buttons?: AppAlertButton[], options?: AlertOptions) {
     showCustomAlert(title || '', message, buttons, {
       messageAlign: 'left',
       buttonPresentation: 'text',
       textButtonAlignment: buttons && buttons.length > 1 ? 'end' : 'end',
+      ...options,
     });
   },
 };
