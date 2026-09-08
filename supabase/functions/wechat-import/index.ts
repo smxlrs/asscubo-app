@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as cheerio from "https://esm.sh/cheerio@1.0.0-rc.12";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { getSupabaseAdminKey } from "../_shared/supabase-keys.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabaseAdminKey = getSupabaseAdminKey();
 
 // HTML decoding helper
 function decodeHtmlEntities(str: string): string {
@@ -48,7 +49,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseAdminKey);
 
     // Get user from token
     const token = authHeader.replace("Bearer ", "");

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { getSupabaseAdminKey, isInternalSupabaseRequest } from "../_shared/supabase-keys.ts";
 
 const TPER_RSS_URL = "https://www.tper.it/taxonomy/term/33/all/rss.xml";
 const TPER_TELEGRAM_URL = "https://t.me/s/TperInfoViabilita";
@@ -176,14 +177,20 @@ function parseTelegramChannel(html: string): ParsedAlert[] {
 
 serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (!isInternalSupabaseRequest(request)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceRoleKey) {
+  const adminKey = getSupabaseAdminKey();
+  if (!supabaseUrl) {
     return new Response(JSON.stringify({ error: "Supabase server configuration is missing." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = createClient(supabaseUrl, adminKey);
   const now = new Date();
   const { data: state } = await supabase.from("tper_alert_sync_state").select("last_success_at").eq("id", 1).maybeSingle();
   if (state?.last_success_at && now.getTime() - new Date(state.last_success_at).getTime() < MIN_SYNC_INTERVAL_MS) {

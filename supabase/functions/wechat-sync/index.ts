@@ -1,16 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { getSupabaseAdminKey, isInternalSupabaseRequest } from "../_shared/supabase-keys.ts";
 
 const WECHAT_APPID = Deno.env.get("WECHAT_APPID");
 const WECHAT_APPSECRET = Deno.env.get("WECHAT_APPSECRET");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_ADMIN_KEY = getSupabaseAdminKey();
 const DEFAULT_WECHAT_API_BASE = "https://api.weixin.qq.com";
 const CONFIGURED_WECHAT_API_BASE = Deno.env.get("WECHAT_API_BASE")?.replace(/\/$/, "");
 const WECHAT_PROXY_TOKEN = Deno.env.get("WECHAT_PROXY_TOKEN");
 const WECHAT_API_BASES = [...new Set([CONFIGURED_WECHAT_API_BASE, DEFAULT_WECHAT_API_BASE].filter(Boolean))] as string[];
 const PUBLICATIONS_PER_RUN = clampNumber(Deno.env.get("WECHAT_SYNC_COUNT"), 20, 1, 20);
-const INTERNAL_REQUEST_TIMEOUT_MS = 10_000;
 const PUSH_REQUEST_TIMEOUT_MS = 15_000;
 const CONFIGURED_API_TIMEOUT_MS = 12_000;
 const DEFAULT_API_TIMEOUT_MS = 25_000;
@@ -151,30 +151,11 @@ function headersForApiBase(apiBase: string, headers?: HeadersInit): Headers {
   return requestHeaders;
 }
 
-async function isValidServiceRoleToken(authHeader: string): Promise<boolean> {
-  try {
-    const probeUrl = new URL(`${SUPABASE_URL}/rest/v1/wechat_sync_state`);
-    probeUrl.searchParams.set("select", "singleton");
-    probeUrl.searchParams.set("limit", "1");
-    const response = await fetch(probeUrl, {
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: authHeader,
-      },
-      signal: AbortSignal.timeout(INTERNAL_REQUEST_TIMEOUT_MS),
-    });
-    return response.ok;
-  } catch (error) {
-    console.warn("Unable to validate internal scheduler token:", error);
-    return false;
-  }
-}
-
 async function isAuthorized(req: Request, supabase: any): Promise<boolean> {
+  if (isInternalSupabaseRequest(req)) return true;
+
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return false;
-  if (authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) return true;
-  if (await isValidServiceRoleToken(authHeader)) return true;
 
   const token = authHeader.replace(/^Bearer\s+/i, "");
   const { data: authData, error: userError } = await supabase.auth.getUser(token);
@@ -414,7 +395,7 @@ async function sendPushNotifications(supabase: any, articles: InsertedArticle[])
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY);
   if (!(await isAuthorized(req, supabase))) return jsonResponse({ status: "error", message: "Unauthorized" }, 401);
   if (!WECHAT_APPID || !WECHAT_APPSECRET) {
     return jsonResponse({ status: "error", message: "Missing WeChat credentials." }, 500);

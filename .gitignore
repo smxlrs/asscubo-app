@@ -3,7 +3,17 @@ handbook_source/
 
 # qr code files
 qrcode.png
-generate-qr.js
+/generate-qr.js
+
+# Root-only local helpers and legacy one-off migration scripts
+/package.json
+/package-lock.json
+/clean-install.js
+/fix-files.js
+/rebuild-app.js
+/write-app.js
+/update-*.js
+/supabase_*.sql
 
 # Build artifacts & temp files
 android-release.apk
@@ -11,3 +21,34 @@ wxsync.2.8.2.zip
 wxsync-extracted/
 supabase/.temp/
 
+# Local dependencies and tool state
+/node_modules/
+/.agents/
+/__pycache__/
+*.py[cod]
+/.codex-tmp/
+/.gradle_home/
+/.tmp/
+/.tmp_*/
+
+# Local backups, logs, and generated previews
+/backups/
+/video_frames/
+*.log
+*.bak
+*.tmp
+/asscubo-play-*.png
+/play-source-*.png
+/play-window.xml
+/liquid_glass_*.md
+/scratch_*.html
+*.before-logo-opt.png
+**/splash-mark.png
+
+# Only root-level workflows are executed by GitHub Actions
+/student-app/.github/
+
+# Root-level environment files must never be committed
+/.env
+/.env.*
+!/.env.example
