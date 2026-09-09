@@ -115,25 +115,42 @@ jobs:
             echo "profile=${{ inputs.profile }}"   >> $GITHUB_OUTPUT
             VER="${{ inputs.version }}"
             if [ -z "$VER" ]; then
-              # Auto-generate version from app.json base + run_number
-              BASE_VER=$(node -p "
-                const v = require('./student-app/app.json').expo.version;
-                const parts = v.split('.');
-                parts.slice(0, 3).join('.');
-              ")
-              VER="${BASE_VER}.${{ github.run_number }}"
-              # Update app.json locally for the build
-              node -e "
+              # Auto-increment the semantic patch from the last persisted app.json version.
+              # Examples: 2.0 -> 2.0.1, 2.0.1 -> 2.0.2, 1.0.0.71 -> 1.0.1.
+              VER=$(node -e "
                 const fs = require('fs');
-                const appJson = JSON.parse(fs.readFileSync('student-app/app.json', 'utf8'));
-                appJson.expo.version = '${VER}';
-                if (!appJson.expo.android) appJson.expo.android = {};
-                appJson.expo.android.versionCode = ${{ github.run_number }};
-                fs.writeFileSync('student-app/app.json', JSON.stringify(appJson, null, 2) + '\n');
-              "
+                const current = JSON.parse(fs.readFileSync('student-app/app.json', 'utf8')).expo.version;
+                const parts = current.split('.').map((part) => Number.parseInt(part, 10));
+                if (parts.some((part) => !Number.isInteger(part) || part < 0)) process.exit(1);
+                while (parts.length < 3) parts.push(0);
+                parts[2] += 1;
+                console.log(parts.slice(0, 3).join('.'));
+              ")
             fi
+            # The selected version must be the version used by the build, not only the Release label.
+            node -e "
+              const fs = require('fs');
+              const appJson = JSON.parse(fs.readFileSync('student-app/app.json', 'utf8'));
+              appJson.expo.version = '${VER}';
+              fs.writeFileSync('student-app/app.json', JSON.stringify(appJson, null, 2) + '\n');
+            "
             echo "version=${VER}" >> $GITHUB_OUTPUT
             echo "create_release=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 💾 Persist selected app version
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add student-app/app.json
+          if git diff --cached --quiet; then
+            echo "app.json already contains the selected version"
+          else
+            git commit -m "chore: set app version ${{ steps.vars.outputs.version }}"
+            git -c http.extraheader="AUTHORIZATION: bearer ${GITHUB_TOKEN}" push origin "HEAD:${GITHUB_REF_NAME}"
           fi
 
       - name: ☕ Setup JDK 17
