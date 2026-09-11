@@ -20,7 +20,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   const locked = useRef(false);
   const [tableVisible, setTableVisible] = useState(false);
   const tableAnchor = useRef(0);
-  const [linkMode, setLinkMode] = useState<'web' | 'chapter' | null>(null);
+  const [linkMode, setLinkMode] = useState<'web' | 'chapter' | 'map' | 'email' | 'phone' | null>(null);
   const [linkLabel, setLinkLabel] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [query, setQuery] = useState('');
@@ -30,21 +30,48 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
     setLinkLabel(value.slice(selection.current.start, selection.current.end));
     setLinkUrl(''); setQuery(''); setLinkError(''); setLinkMode('web');
   };
-  const insertLink = (url: string, fallback: string) => {
-    try {
-      if (!url.startsWith('handbook://')) {
-        const parsed = new URL(url.trim());
-        if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error();
-        url = parsed.href;
-      }
-    } catch {
-      setLinkError('请输入以 https:// 或 http:// 开头的完整网址。'); return;
-    }
+  const commitLink = (url: string, fallback: string) => {
     const label = (linkLabel.trim() || fallback).replace(/[\[\]\n\r]/g, ' ');
     const text = `[${label}](${url.replace(/\(/g, '%28').replace(/\)/g, '%29')})`;
     const { start, end } = selection.current;
     replace(start, end, text, start + text.length, start + text.length);
     setLinkMode(null);
+  };
+  const insertWebLink = () => {
+    let url = linkUrl.trim();
+    try {
+      const parsed = new URL(url);
+      if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error();
+      url = parsed.href;
+    } catch {
+      setLinkError('请输入以 https:// 或 http:// 开头的完整网址。'); return;
+    }
+    commitLink(url, url);
+  };
+  const insertMapLink = () => {
+    const location = (linkUrl.trim() || linkLabel.trim()).replace(/[\n\r]/g, ' ');
+    if (!location) {
+      setLinkError('请输入地图搜索词，或先选择要设置为地图链接的文字。');
+      return;
+    }
+    commitLink(`map://${encodeURIComponent(location)}`, location);
+  };
+  const insertEmailLink = () => {
+    const email = linkUrl.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setLinkError('请输入完整的邮箱地址。');
+      return;
+    }
+    commitLink(`mailto:${email}`, email);
+  };
+  const insertPhoneLink = () => {
+    const displayPhone = linkUrl.trim();
+    const phone = displayPhone.replace(/[()\s-]/g, '');
+    if (!/^\+?\d{5,15}$/.test(phone)) {
+      setLinkError('请输入完整的电话号码，可包含国家区号。');
+      return;
+    }
+    commitLink(`tel:${phone}`, displayPhone);
   };
   const blockFormat = (kind: 'bullet' | 'number' | 'quote' | 'divider') => {
     if (disabled) return;
@@ -62,6 +89,15 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
       (kind === 'bullet' ? '- ' : kind === 'number' ? `${i + 1}. ` : '> ') + line.replace(/^(?:- |\d+\. |> )/, '')).join('\n');
     const text = '\n\n' + body + '\n\n';
     replace(first, stop, text, first + 2, first + 2 + body.length);
+  };
+
+  const insertDetails = () => {
+    if (disabled) return;
+    const start = Math.min(selection.current.start, value.length);
+    const end = Math.min(selection.current.end, value.length);
+    const selected = value.slice(start, end).trim() || '- 列表内容';
+    const text = `<details>\n<summary>点击展开</summary>\n\n${selected}\n\n</details>`;
+    replace(start, end, text, start + 19, start + 23);
   };
 
   const replace = (start: number, end: number, text: string, selectedStart: number, selectedEnd: number) => {
@@ -149,12 +185,16 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
         }} style={{ padding: 12, backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
           <Text style={{ color: colors.primaryLight }}>插入表格</Text>
         </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="插入收起区块" disabled={busy} onPress={insertDetails}
+          style={{ padding: 12, backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
+          <Text style={{ color: colors.primaryLight }}>收起区块</Text>
+        </Pressable>
         <Pressable accessibilityRole="button" disabled={busy} onPress={upload}
           style={{ padding: 12, borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
           {busy ? <ActivityIndicator color={colors.primary} /> : <Text style={{ color: colors.primaryLight }}>上传图片</Text>}
         </Pressable>
       </View>
-      <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>选中文字设置格式，或在光标处插入。H1–H3 为一至三级标题，图片上传后自动插入链接。</Text>
+      <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>选中文字设置格式，或在光标处插入。收起区块会把选中内容放入可展开区域。</Text>
       <TextInput ref={input} value={value} editable={!busy && !disabled} multiline textAlignVertical="top"
         selection={cursor} onSelectionChange={({ nativeEvent }) => { selection.current = nativeEvent.selection; setCursor(undefined); }}
         onChangeText={onChange} placeholder="输入手册正文" placeholderTextColor={colors.textMuted}
@@ -171,9 +211,13 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.45)' }}>
           <View style={{ maxHeight: '85%', padding: 18, borderRadius: 12, backgroundColor: colors.surface }}>
             <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>添加链接</Text>
-            <View style={{ flexDirection: 'row', marginVertical: 12, gap: 20 }}>
-              {(['web', 'chapter'] as const).map(mode => <Pressable key={mode} onPress={() => setLinkMode(mode)} style={{ paddingVertical: 10 }}>
-                <Text style={{ color: linkMode === mode ? colors.primaryLight : colors.textSecondary }}>{mode === 'web' ? '网址链接' : '手册章节'}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 12, columnGap: 20 }}>
+              {(['web', 'chapter', 'map', 'email', 'phone'] as const).map(mode => <Pressable key={mode} onPress={() => {
+                setLinkMode(mode); setLinkUrl(''); setLinkError('');
+              }} style={{ paddingVertical: 10 }}>
+                <Text style={{ color: linkMode === mode ? colors.primaryLight : colors.textSecondary }}>
+                  {mode === 'web' ? '网址' : mode === 'chapter' ? '手册章节' : mode === 'map' ? '地图地点' : mode === 'email' ? '邮箱' : '电话'}
+                </Text>
               </Pressable>)}
             </View>
             <TextInput value={linkLabel} onChangeText={setLinkLabel} placeholder="显示文字（可选）" placeholderTextColor={colors.textMuted}
@@ -182,16 +226,31 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
               {linkError !== '' && <Text accessibilityRole="alert" style={{ color: '#EF4444', marginBottom: 8 }}>{linkError}</Text>}
               <TextInput value={linkUrl} onChangeText={setLinkUrl} placeholder="https://..." placeholderTextColor={colors.textMuted}
                 autoCapitalize="none" autoCorrect={false} keyboardType="url" style={{ color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, padding: 12 }} />
-              <Pressable onPress={() => insertLink(linkUrl, linkUrl.trim())} style={{ padding: 14 }}><Text style={{ color: colors.primaryLight }}>插入网址链接</Text></Pressable>
-            </> : <>
+              <Pressable onPress={insertWebLink} style={{ padding: 14 }}><Text style={{ color: colors.primaryLight }}>插入网址链接</Text></Pressable>
+            </> : linkMode === 'chapter' ? <>
               <TextInput value={query} onChangeText={setQuery} placeholder="搜索章节" placeholderTextColor={colors.textMuted} style={{ color: colors.textPrimary, padding: 12 }} />
               <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 280 }}>
                 {chapters.filter(chapter => chapter.title.includes(query.trim())).map(chapter => <Pressable key={chapter.id}
-                  onPress={() => insertLink(`handbook://${chapter.id}`, chapter.title)} style={{ paddingVertical: 14, borderBottomWidth: 1, borderColor: colors.border }}>
+                  onPress={() => commitLink(`handbook://${chapter.id}`, chapter.title)} style={{ paddingVertical: 14, borderBottomWidth: 1, borderColor: colors.border }}>
                   <Text style={{ color: colors.textPrimary }}>{chapter.title}{chapter.is_published ? '' : '（未发布）'}</Text>
                 </Pressable>)}
                 {!chapters.some(chapter => chapter.title.includes(query.trim())) && <Text style={{ color: colors.textSecondary }}>没有匹配的章节</Text>}
               </ScrollView>
+            </> : linkMode === 'map' ? <>
+              {linkError !== '' && <Text accessibilityRole="alert" style={{ color: '#EF4444', marginBottom: 8 }}>{linkError}</Text>}
+              <TextInput value={linkUrl} onChangeText={setLinkUrl} placeholder="地图搜索词（不填则使用显示文字）" placeholderTextColor={colors.textMuted}
+                autoCorrect={false} style={{ color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, padding: 12 }} />
+              <Pressable onPress={insertMapLink} style={{ padding: 14 }}><Text style={{ color: colors.primaryLight }}>插入地图链接</Text></Pressable>
+            </> : linkMode === 'email' ? <>
+              {linkError !== '' && <Text accessibilityRole="alert" style={{ color: '#EF4444', marginBottom: 8 }}>{linkError}</Text>}
+              <TextInput value={linkUrl} onChangeText={setLinkUrl} placeholder="name@example.com" placeholderTextColor={colors.textMuted}
+                autoCapitalize="none" autoCorrect={false} keyboardType="email-address" style={{ color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, padding: 12 }} />
+              <Pressable onPress={insertEmailLink} style={{ padding: 14 }}><Text style={{ color: colors.primaryLight }}>插入邮箱链接</Text></Pressable>
+            </> : <>
+              {linkError !== '' && <Text accessibilityRole="alert" style={{ color: '#EF4444', marginBottom: 8 }}>{linkError}</Text>}
+              <TextInput value={linkUrl} onChangeText={setLinkUrl} placeholder="+39 051 1234567" placeholderTextColor={colors.textMuted}
+                autoCapitalize="none" autoCorrect={false} keyboardType="phone-pad" style={{ color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, padding: 12 }} />
+              <Pressable onPress={insertPhoneLink} style={{ padding: 14 }}><Text style={{ color: colors.primaryLight }}>插入电话链接</Text></Pressable>
             </>}
             <Pressable onPress={() => setLinkMode(null)} style={{ padding: 14 }}><Text style={{ color: colors.textSecondary }}>取消</Text></Pressable>
           </View>

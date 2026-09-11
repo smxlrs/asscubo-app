@@ -192,7 +192,7 @@ const isInternalLink = (url: string): boolean => {
   if (url.startsWith('handbook://') || url.startsWith('#')) {
     return true;
   }
-  if (/^https?:\/\//i.test(url) || url.startsWith('mailto:') || url.includes('@')) {
+  if (/^(?:https?|mailto|tel|map):/i.test(url) || url.includes('@')) {
     return false;
   }
   if (/\b(?:com|org|net|it|edu|cn)\b/i.test(url) && !/^\d+(\.\d+)*$/.test(url)) {
@@ -202,29 +202,50 @@ const isInternalLink = (url: string): boolean => {
 };
 
 const handleOpenLink = (url: string, onLinkPress?: (url: string) => void) => {
+  if (/^map:\/\//i.test(url)) {
+    const encodedLocation = url.replace(/^map:\/\//i, '');
+    let location = encodedLocation;
+    try {
+      location = decodeURIComponent(encodedLocation);
+    } catch {
+      // Keep manually authored legacy targets usable even if percent encoding is incomplete.
+    }
+    handleOpenMapLocation(location);
+    return;
+  }
+  if (/^tel:/i.test(url)) {
+    handleMakeCall(url.replace(/^tel:/i, ''));
+    return;
+  }
   if (isInternalLink(url)) {
     if (onLinkPress) {
       onLinkPress(url);
     }
     return;
   }
-  const isMail = url.startsWith('mailto:') || (url.includes('@') && !url.startsWith('http'));
+  const isMail = /^mailto:/i.test(url) || (url.includes('@') && !/^https?:/i.test(url));
   let targetUrl = url;
   if (isMail) {
-    targetUrl = url.startsWith('mailto:') ? url : `mailto:${url}`;
+    targetUrl = /^mailto:/i.test(url) ? url : `mailto:${url}`;
   } else {
     // If it's a website and doesn't start with http/https, prepend https://
     if (!/^https?:\/\//i.test(url)) {
       targetUrl = `https://${url}`;
     }
   }
-  const displayUrl = isMail ? targetUrl.replace('mailto:', '') : targetUrl;
+  const displayUrl = isMail ? targetUrl.replace(/^mailto:/i, '') : targetUrl;
+
+  if (isMail) {
+    Linking.openURL(targetUrl).catch(err => {
+      console.error("Couldn't open email composer", err);
+      Alert.alert('提示', '无法打开邮件应用，请确认设备已安装邮件客户端。');
+    });
+    return;
+  }
 
   Alert.alert(
-    isMail ? '发送电子邮件' : '打开外部链接',
-    isMail 
-      ? `确认要使用邮件客户端向以下邮箱发送邮件吗？\n\n${displayUrl}` 
-      : `确认要在浏览器中打开以下网址吗？\n\n${displayUrl}`,
+    '打开外部链接',
+    `确认要在浏览器中打开以下网址吗？\n\n${displayUrl}`,
     [
       { text: '取消', style: 'cancel' },
       { 
@@ -240,38 +261,21 @@ const handleOpenLink = (url: string, onLinkPress?: (url: string) => void) => {
   );
 };
 
-const handleOpenAddress = (address: string) => {
-  const cleanAddress = address.trim();
-  const query = `${cleanAddress}, Italy`;
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+const handleOpenMapLocation = (location: string) => {
+  const cleanLocation = location.trim();
+  if (!cleanLocation) return;
+  const query = encodeURIComponent(`${cleanLocation}, Italy`);
   const systemMapsUrl = Platform.OS === 'ios'
-    ? `http://maps.apple.com/?q=${encodeURIComponent(query)}`
-    : `geo:0,0?q=${encodeURIComponent(query)}`;
+    ? `http://maps.apple.com/?q=${query}`
+    : `geo:0,0?q=${query}`;
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
 
-  Alert.alert(
-    '地址导航',
-    `您想要使用哪个地图应用导航至以下地址？\n\n${cleanAddress}`,
-    [
-      { text: '取消', style: 'cancel' },
-      { 
-        text: '系统地图', 
-        onPress: () => {
-          Linking.openURL(systemMapsUrl).catch(() => {
-            Linking.openURL(googleMapsUrl);
-          });
-        } 
-      },
-      { 
-        text: '谷歌地图', 
-        onPress: () => {
-          Linking.openURL(googleMapsUrl).catch(err => {
-            console.error("Couldn't open Google Maps", err);
-            Alert.alert('提示', '无法打开谷歌地图。');
-          });
-        } 
-      }
-    ]
-  );
+  Linking.openURL(systemMapsUrl).catch(() => {
+    Linking.openURL(googleMapsUrl).catch(err => {
+      console.error("Couldn't open map location", err);
+      Alert.alert('提示', '无法打开地图应用。');
+    });
+  });
 };
 
 const handleMakeCall = (phone: string) => {
@@ -325,8 +329,8 @@ const parseInlineStyles = (text: string, fontSize: number, onLinkPress?: (url: s
 const parseInlineBase = (text: string, fontSize: number, onLinkPress?: (url: string) => void) => {
   const elements: React.ReactNode[] = [];
   let currentIndex = 0;
-  
-  const regex = /\*\*(.*?)\*\*|\[(.*?)\]\((.*?)\)|(https?:\/\/[^\s\)\],，。；;]+)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|\b((?:[a-zA-Z0-9-]+\.)+(?:com|org|net|it|edu|cn)(?:\/[^\s\)\],，。；;]*)?)\b|\b((?:Via|Piazza|Viale|Corso|Largo|Galleria)\s+[A-Za-z][a-zA-Z0-9\s'’\u2019,.-]{2,40}(?:,\s*\d+(?:\/[a-zA-Z]+|[a-zA-Z])?|\s+\d+(?:\/[a-zA-Z]+|[a-zA-Z])?)?(?:,\s*\d{5})?(?:\s+[A-Za-z\s]+)?)\b|((?:\+39\s*|\b)(?:051|3\d{2})[\s-]?\d{3,4}(?:[\s-]?\d{2,4})?)\b/g;
+  // Links are opt-in: only explicit Markdown [label](target) syntax is interactive.
+  const regex = /\[([^\]\n]+)\]\(([^)\n]+)\)/g;
   let match;
   let keyCount = 0;
   
@@ -341,76 +345,15 @@ const parseInlineBase = (text: string, fontSize: number, onLinkPress?: (url: str
       );
     }
     
-    if (match[1] !== undefined) {
-      elements.push(
-        <Text key={`bold-${keyCount++}`} style={{ fontWeight: 'bold' }}>
-          {hyphenateItalianText(match[1])}
-        </Text>
-      );
-    } else if (match[2] !== undefined && match[3] !== undefined) {
-      const url = match[3];
+    if (match[1] !== undefined && match[2] !== undefined) {
+      const url = match[2];
       elements.push(
         <Text 
           key={`link-${keyCount++}`} 
           style={{ color: '#3B82F6', textDecorationLine: 'underline', fontWeight: '500' }}
           onPress={() => handleOpenLink(url, onLinkPress)}
         >
-          {hyphenateItalianText(match[2])}
-        </Text>
-      );
-    } else if (match[4] !== undefined) {
-      const url = match[4];
-      elements.push(
-        <Text 
-          key={`rawlink-${keyCount++}`} 
-          style={{ color: '#3B82F6', textDecorationLine: 'underline', fontWeight: '500' }}
-          onPress={() => handleOpenLink(url, onLinkPress)}
-        >
-          {url}
-        </Text>
-      );
-    } else if (match[5] !== undefined) {
-      const email = match[5];
-      elements.push(
-        <Text 
-          key={`email-${keyCount++}`} 
-          style={{ color: '#3B82F6', textDecorationLine: 'underline', fontWeight: '500' }}
-          onPress={() => handleOpenLink(email, onLinkPress)}
-        >
-          {email}
-        </Text>
-      );
-    } else if (match[6] !== undefined) {
-      const url = match[6];
-      elements.push(
-        <Text 
-          key={`website-${keyCount++}`} 
-          style={{ color: '#3B82F6', textDecorationLine: 'underline', fontWeight: '500' }}
-          onPress={() => handleOpenLink(url, onLinkPress)}
-        >
-          {url}
-        </Text>
-      );
-    } else if (match[7] !== undefined) {
-      const address = match[7];
-      elements.push(
-        <Text 
-          key={`address-${keyCount++}`} 
-          style={{ color: '#059669', textDecorationLine: 'underline', fontWeight: '500' }}
-          onPress={() => handleOpenAddress(address)}
-        >
-          {address}
-        </Text>
-      );
-    } else if (match[8] !== undefined) {
-      const phone = match[8];
-      elements.push(
-        <Text 
-          key={`phone-${keyCount++}`} 
-          style={{ color: '#D97706', textDecorationLine: 'underline', fontWeight: '500' }}
-          onPress={() => handleMakeCall(phone)}
-        >
-          {phone}
+          {hyphenateItalianText(match[1])}
         </Text>
       );
     }
@@ -732,6 +675,7 @@ export default function HandbookReaderScreen() {
   const lastChapterId = useRef<string>('');
 
   const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({});
+  const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
 
   const toggleGroup = (parentId: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -739,6 +683,11 @@ export default function HandbookReaderScreen() {
       ...prev,
       [parentId]: prev[parentId] === false ? true : false
     }));
+  };
+
+  const toggleDetails = (blockId: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedDetails(previous => ({ ...previous, [blockId]: !previous[blockId] }));
   };
 
   useEffect(() => {
@@ -964,8 +913,11 @@ export default function HandbookReaderScreen() {
   // Helper to extract clean plain text preview from chapter content body
   const getChapterPreview = (body?: string) => {
     if (!body) return '查看本章节的详细指引。';
+    // Keep collapsible content readable in chapter previews without exposing tags.
+    let clean = body.replace(/<summary>([\s\S]*?)<\/summary>/gi, '$1： ');
+    clean = clean.replace(/<\/?details(?:\s+open)?>/gi, '');
     // Strip markdown images: ![alt](url)
-    let clean = body.replace(/!\[.*?\]\(.*?\)/g, '');
+    clean = clean.replace(/!\[.*?\]\(.*?\)/g, '');
     // Strip markdown links: [text](url) -> text
     clean = clean.replace(/\[(.*?)\]\(.*?\)/g, '$1');
     // Strip headers: #, ##, ###
@@ -1145,11 +1097,9 @@ export default function HandbookReaderScreen() {
     }
 
     const fontSize = FONT_SIZES[fontSizeIndex];
-    // Normalize carriage returns and split using regex to handle Windows newlines and spacing variations
+    // Normalize carriage returns before parsing Markdown blocks.
     const normalizedBody = currentChapter.content_body.replace(/\r\n/g, '\n');
-    const blocks = normalizedBody.split(/\n\s*\n/);
-
-    return blocks.map((block, idx) => {
+    const renderStandardBlocks = (markdown: string) => markdown.split(/\n\s*\n/).map((block, idx) => {
       const trimmedBlock = block.trim();
       if (!trimmedBlock) {
         return null;
@@ -1263,6 +1213,66 @@ export default function HandbookReaderScreen() {
         </View>
       );
     });
+
+    const sections: React.ReactNode[] = [];
+    const detailsRegex = /<details(\s+open)?>\s*<summary>([\s\S]*?)<\/summary>\s*([\s\S]*?)<\/details>/gi;
+    let lastIndex = 0;
+    let detailsMatch: RegExpExecArray | null;
+    let sectionIndex = 0;
+
+    while ((detailsMatch = detailsRegex.exec(normalizedBody)) !== null) {
+      const before = normalizedBody.slice(lastIndex, detailsMatch.index);
+      if (before.trim()) {
+        sections.push(<React.Fragment key={`content-${sectionIndex++}`}>{renderStandardBlocks(before)}</React.Fragment>);
+      }
+
+      const blockId = `${currentChapter.id}-${detailsMatch.index}`;
+      const defaultOpen = Boolean(detailsMatch[1]);
+      const isExpanded = expandedDetails[blockId] ?? defaultOpen;
+      const summary = detailsMatch[2].trim() || '点击展开';
+      const detailsBody = detailsMatch[3].trim();
+
+      sections.push(
+        <View
+          key={blockId}
+          style={[
+            styles.detailsContainer,
+            { borderColor: selectedTheme.borderColor, backgroundColor: selectedTheme.surfaceColor },
+          ]}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isExpanded }}
+            accessibilityLabel={`${summary}，${isExpanded ? '收起' : '展开'}`}
+            onPress={() => toggleDetails(blockId)}
+            style={({ pressed }) => [styles.detailsHeader, pressed && { opacity: 0.65 }]}
+          >
+            <Text style={[styles.detailsTitle, { color: selectedTheme.textColor, fontSize }]}>
+              {parseInlineStyles(summary, fontSize, handleInternalLinkPress)}
+            </Text>
+            <MaterialIcons
+              name={isExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+              size={Math.max(24, fontSize * 1.4)}
+              color={selectedTheme.textColor}
+            />
+          </Pressable>
+          {isExpanded && detailsBody ? (
+            <View style={[styles.detailsBody, { borderTopColor: selectedTheme.borderColor }]}>
+              {renderStandardBlocks(detailsBody)}
+            </View>
+          ) : null}
+        </View>
+      );
+
+      lastIndex = detailsRegex.lastIndex;
+    }
+
+    const remaining = normalizedBody.slice(lastIndex);
+    if (remaining.trim()) {
+      sections.push(<React.Fragment key={`content-${sectionIndex}`}>{renderStandardBlocks(remaining)}</React.Fragment>);
+    }
+
+    return sections;
   };
 
   const getParentChapterTitle = () => {
@@ -1945,6 +1955,31 @@ const styles = StyleSheet.create({
   },
   listText: {
     flex: 1,
+  },
+  detailsContainer: {
+    borderWidth: 1,
+    borderRadius: 7,
+    marginVertical: 10,
+    overflow: 'hidden',
+  },
+  detailsHeader: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  detailsTitle: {
+    flex: 1,
+    fontWeight: '700',
+  },
+  detailsBody: {
+    borderTopWidth: 1,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 6,
   },
   // TOC Drawer Styles
   drawerOverlay: {
