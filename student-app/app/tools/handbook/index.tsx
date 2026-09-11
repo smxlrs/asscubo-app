@@ -27,6 +27,8 @@ import { useAndroidBackHandler } from '../../../hooks/useAndroidBackHandler';
 import { appAlert as Alert } from '../../../lib/appAlert';
 
 import { supabase } from '../../../lib/supabase';
+import { parseHandbookTable } from '../../../lib/handbookTable';
+import { HandbookTableView } from '../../../components/HandbookTableView';
 
 const { width, height } = Dimensions.get('window');
 const DRAWER_WIDTH = width * 0.75;
@@ -294,7 +296,33 @@ const handleMakeCall = (phone: string) => {
   );
 };
 
-const parseInlineStyles = (text: string, fontSize: number, onLinkPress?: (url: string) => void) => {
+const parseInlineStyles = (text: string, fontSize: number, onLinkPress?: (url: string) => void): React.ReactNode => {
+  // Keep complete links/URLs intact; formatting markers inside their targets are literal.
+  const tokens = /\[[^\]]*\]\([^)]*\)|https?:\/\/[^\s]+|\*\*\*([^*\n]+)\*\*\*|\*\*([^\n]+?)\*\*|\*([^*\n]+)\*|~~([^\n]+?)~~|`([^`\n]+)`/g;
+  const result: React.ReactNode[] = [];
+  let offset = 0;
+  let match: RegExpExecArray | null;
+  while ((match = tokens.exec(text))) {
+    const key = match.index;
+    if (key > offset) result.push(<React.Fragment key={`plain-${key}`}>{parseInlineBase(text.slice(offset, key), fontSize, onLinkPress)}</React.Fragment>);
+    const [, both, bold, italic, strike, code] = match;
+    if (both !== undefined || bold !== undefined || italic !== undefined || strike !== undefined || code !== undefined) {
+      result.push(<Text key={key} style={{ fontWeight: both !== undefined || bold !== undefined ? 'bold' : undefined,
+        fontStyle: both !== undefined || italic !== undefined ? 'italic' : undefined,
+        textDecorationLine: strike !== undefined ? 'line-through' : undefined,
+        fontFamily: code !== undefined ? (Platform.OS === 'ios' ? 'Menlo' : 'monospace') : undefined }}>
+        {code !== undefined ? code : parseInlineStyles(both ?? bold ?? italic ?? strike ?? '', fontSize, onLinkPress)}
+      </Text>);
+    } else {
+      result.push(<React.Fragment key={key}>{parseInlineBase(match[0], fontSize, onLinkPress)}</React.Fragment>);
+    }
+    offset = tokens.lastIndex;
+  }
+  if (offset < text.length) result.push(<React.Fragment key="tail">{parseInlineBase(text.slice(offset), fontSize, onLinkPress)}</React.Fragment>);
+  return result;
+};
+
+const parseInlineBase = (text: string, fontSize: number, onLinkPress?: (url: string) => void) => {
   const elements: React.ReactNode[] = [];
   let currentIndex = 0;
   
@@ -525,6 +553,10 @@ const findChapterByTarget = (target: string, allChapters: Chapter[]): Chapter | 
       });
     }
   });
+
+  // Stable chapter links survive renaming and reordering.
+  const byId = allNodes.find(node => node.id.toLowerCase() === cleanTarget);
+  if (byId) return byId;
 
   // 1. Match by index string exactly (e.g. "2.2")
   for (const node of allNodes) {
@@ -1124,6 +1156,20 @@ export default function HandbookReaderScreen() {
       }
 
       // Headers (might be followed immediately by text on subsequent lines)
+      const table = parseHandbookTable(trimmedBlock);
+      if (table) {
+        return <HandbookTableView key={idx} table={table} fontSize={fontSize}
+          color={selectedTheme.textColor} borderColor={selectedTheme.borderColor} surfaceColor={selectedTheme.surfaceColor}
+          renderInline={text => parseInlineStyles(text, fontSize, handleInternalLinkPress)} />;
+      }
+      if (/^---+$/.test(trimmedBlock)) {
+        return <View key={idx} style={{ height: 1, backgroundColor: selectedTheme.borderColor, marginVertical: fontSize }} />;
+      }
+      if (trimmedBlock.split('\n').every(line => line.startsWith('> '))) {
+        return <View key={idx} style={{ borderLeftWidth: 3, borderColor: selectedTheme.borderColor, paddingLeft: 12, marginVertical: 10 }}>
+          {renderBlock(trimmedBlock.replace(/^> /gm, ''), idx, fontSize)}
+        </View>;
+      }
       if (trimmedBlock.startsWith('### ')) {
         const lines = trimmedBlock.split('\n');
         const headerText = lines[0].substring(4);

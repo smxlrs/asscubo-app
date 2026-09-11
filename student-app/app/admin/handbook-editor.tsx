@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import { TypedDeleteConfirmationModal } from '../../components/TypedDeleteConfirmationModal';
+import { HandbookMarkdownEditor } from '../../components/HandbookMarkdownEditor';
 
 type Chapter = {
   id: string;
@@ -29,8 +30,9 @@ export default function HandbookEditorScreen() {
   const [allChapters, setAllChapters] = useState<Chapter[]>([]);
   const [title, setTitle] = useState('');
   const [orderIndex, setOrderIndex] = useState('1');
-  const [contentType, setContentType] = useState<'pdf' | 'richtext'>('richtext');
-  const [contentUrl, setContentUrl] = useState('');
+  const contentType = 'richtext';
+  const contentUrl = '';
+  const [uploading, setUploading] = useState(false);
   const [contentBody, setContentBody] = useState('');
   const [parentId, setParentId] = useState<string | null>(initialParentId);
   const [published, setPublished] = useState(true);
@@ -65,17 +67,16 @@ export default function HandbookEditorScreen() {
           if (!chapter) throw new Error('章节不存在或已被删除。');
           setTitle(chapter.title);
           setOrderIndex(String(chapter.order_index));
-          setContentType(chapter.content_type);
-          setContentUrl(chapter.content_url || '');
-          setContentBody(chapter.content_body || '');
+          const markdown = chapter.content_body || (chapter.content_url ? `[原章节文件](${chapter.content_url})` : '');
+          setContentBody(markdown);
           setParentId(chapter.parent_id);
           setPublished(chapter.is_published);
           setInitialSnapshot(JSON.stringify({
             title: chapter.title,
             orderIndex: String(chapter.order_index),
-            contentType: chapter.content_type,
-            contentUrl: chapter.content_url || '',
-            contentBody: chapter.content_body || '',
+            contentType: 'richtext',
+            contentUrl: '',
+            contentBody: markdown,
             parentId: chapter.parent_id,
             published: chapter.is_published,
           }));
@@ -101,6 +102,7 @@ export default function HandbookEditorScreen() {
   const isDirty = initialSnapshot !== '' && currentSnapshot !== initialSnapshot;
 
   const cancelEditing = () => {
+    if (uploading) return;
     if (!isDirty) {
       router.back();
       return;
@@ -131,10 +133,7 @@ export default function HandbookEditorScreen() {
       Alert.alert('排序号无效', '排序号必须是大于或等于 0 的整数。');
       return;
     }
-    if (contentType === 'pdf' && !contentUrl.trim()) {
-      Alert.alert('请填写 PDF 地址', 'PDF 类型章节需要有效的文件地址。');
-      return;
-    }
+    if (uploading || saving) return;
 
     setSaving(true);
     try {
@@ -142,8 +141,8 @@ export default function HandbookEditorScreen() {
         title: normalizedTitle,
         order_index: normalizedOrder,
         content_type: contentType,
-        content_url: contentType === 'pdf' ? contentUrl.trim() : null,
-        content_body: contentType === 'richtext' ? contentBody : null,
+        content_url: null,
+        content_body: contentBody,
         parent_id: parentId,
         is_published: published,
         updated_at: new Date().toISOString(),
@@ -250,42 +249,8 @@ export default function HandbookEditorScreen() {
           </View>
         </View>
 
-        <FieldLabel label="内容类型" colors={colors} />
-        <View style={[styles.segmented, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-          <SegmentButton label="Markdown" selected={contentType === 'richtext'} onPress={() => setContentType('richtext')} colors={colors} />
-          <SegmentButton label="PDF" selected={contentType === 'pdf'} onPress={() => setContentType('pdf')} colors={colors} />
-        </View>
-
-        {contentType === 'richtext' ? (
-          <>
-            <FieldLabel label="Markdown 正文" colors={colors} />
-            <TextInput
-              style={[styles.bodyInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
-              value={contentBody}
-              onChangeText={setContentBody}
-              placeholder="输入手册正文"
-              placeholderTextColor={colors.textMuted}
-              multiline
-              textAlignVertical="top"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </>
-        ) : (
-          <>
-            <FieldLabel label="PDF 文件地址" colors={colors} />
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
-              value={contentUrl}
-              onChangeText={setContentUrl}
-              placeholder="https://..."
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
-          </>
-        )}
+        <FieldLabel label="Markdown 正文" colors={colors} />
+        <HandbookMarkdownEditor value={contentBody} onChange={setContentBody} onBusyChange={setUploading} chapters={allChapters} disabled={saving} />
 
         <View style={[styles.publishRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.publishCopy}>
@@ -305,7 +270,7 @@ export default function HandbookEditorScreen() {
           <Pressable style={[styles.cancelButton, { borderColor: colors.border }]} disabled={saving} onPress={cancelEditing}>
             <Text style={[styles.cancelText, { color: colors.textPrimary }]}>取消</Text>
           </Pressable>
-          <Pressable style={[styles.saveButton, { backgroundColor: colors.primary }]} disabled={saving} onPress={saveChapter}>
+          <Pressable style={[styles.saveButton, { backgroundColor: colors.primary, opacity: uploading ? 0.5 : 1 }]} disabled={saving || uploading} onPress={saveChapter}>
             {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : (
               <><MaterialCommunityIcons name="content-save-outline" size={20} color="#FFFFFF" /><Text style={styles.saveText}>保存</Text></>
             )}
@@ -313,7 +278,7 @@ export default function HandbookEditorScreen() {
         </View>
 
         {chapterId && (
-          <Pressable style={[styles.deleteButton, { borderColor: '#EF4444' }]} disabled={saving} onPress={deleteChapter}>
+          <Pressable style={[styles.deleteButton, { borderColor: '#EF4444' }]} disabled={saving || uploading} onPress={deleteChapter}>
             <MaterialCommunityIcons name="delete-outline" size={20} color="#EF4444" />
             <Text style={styles.deleteText}>删除章节</Text>
           </Pressable>
@@ -357,14 +322,6 @@ function FieldLabel({ label, colors }: { label: string; colors: any }) {
   return <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>;
 }
 
-function SegmentButton({ label, selected, onPress, colors }: { label: string; selected: boolean; onPress: () => void; colors: any }) {
-  return (
-    <Pressable style={[styles.segmentButton, selected && { backgroundColor: colors.surface }]} onPress={onPress}>
-      <Text style={[styles.segmentText, { color: selected ? colors.primaryLight : colors.textSecondary }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
@@ -379,10 +336,6 @@ const styles = StyleSheet.create({
   orderColumn: { width: 92 },
   select: { height: 44, borderWidth: 1, borderRadius: 7, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center' },
   selectText: { flex: 1, fontSize: 14 },
-  segmented: { height: 42, borderWidth: 1, borderRadius: 7, padding: 3, flexDirection: 'row' },
-  segmentButton: { flex: 1, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
-  segmentText: { fontSize: 14, fontWeight: '700' },
-  bodyInput: { minHeight: 360, borderWidth: 1, borderRadius: 7, padding: 12, fontSize: 14, lineHeight: 21 },
   publishRow: { minHeight: 64, borderWidth: 1, borderRadius: 7, paddingHorizontal: 12, marginTop: 18, flexDirection: 'row', alignItems: 'center' },
   publishCopy: { flex: 1 },
   publishTitle: { fontSize: 15, fontWeight: '700' },
