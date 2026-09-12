@@ -47,18 +47,18 @@ export function HandbookMarkdownPreview({ value }: { value: string }) {
         {renderInline(heading[2], colors.textPrimary)}</Text>{heading[3] ? renderBlocks(heading[3], `${key}-rest`) : null}</View>;
     }
     if (block.split('\n').every(line => line.startsWith('> '))) return <View key={key} style={{ borderLeftWidth: 3, borderColor: colors.border, paddingLeft: 12, marginVertical: 8 }}>
-      <Text {...HANDBOOK_TEXT_BREAK_PROPS} style={{ color: colors.textPrimary, fontSize, lineHeight: 31, textAlign: 'justify' }}>{renderInline(normalizeHandbookSoftBreaks(block.replace(/^> /gm, '')), colors.textPrimary)}</Text></View>;
+      <Text {...HANDBOOK_TEXT_BREAK_PROPS} style={{ color: colors.textPrimary, fontSize, lineHeight: 31, textAlign: 'left' }}>{renderInline(normalizeHandbookSoftBreaks(block.replace(/^> /gm, '')), colors.textPrimary)}</Text></View>;
     const lines = block.split('\n');
     if (lines.every(line => /^\s*(?:- |\d+\.\s)/.test(line))) return <View key={key} style={{ marginVertical: 5 }}>{lines.map((line, lineIndex) => {
       const ordered = line.trim().match(/^(\d+\.)\s+(.*)$/);
       const content = ordered ? ordered[2] : line.trim().replace(/^-\s+/, '');
       return <View key={lineIndex} style={{ flexDirection: 'row', marginBottom: 5 }}><Text style={{ width: 28, color: colors.textPrimary, fontSize }}>{ordered?.[1] || '•'}</Text>
-        <Text {...HANDBOOK_TEXT_BREAK_PROPS} style={{ flex: 1, color: colors.textPrimary, fontSize, lineHeight: 31, textAlign: 'justify' }}>{renderInline(content, colors.textPrimary)}</Text></View>;
+        <Text {...HANDBOOK_TEXT_BREAK_PROPS} style={{ flex: 1, color: colors.textPrimary, fontSize, lineHeight: 31, textAlign: 'left' }}>{renderInline(content, colors.textPrimary)}</Text></View>;
     })}</View>;
     const image = block.match(/^!\[(.*?)\]\((.*?)\)$/);
     if (image) return <View key={key} style={{ marginVertical: 10 }}><Image source={{ uri: image[2] }} resizeMode="contain" style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 7 }} />
       {image[1] ? <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 5 }}>{image[1]}</Text> : null}</View>;
-    return <Text {...HANDBOOK_TEXT_BREAK_PROPS} key={key} style={{ color: colors.textPrimary, fontSize, lineHeight: 31, marginBottom: 10, textAlign: 'justify' }}>{renderInline(normalizeHandbookSoftBreaks(block), colors.textPrimary)}</Text>;
+    return <Text {...HANDBOOK_TEXT_BREAK_PROPS} key={key} style={{ color: colors.textPrimary, fontSize, lineHeight: 31, marginBottom: 10, textAlign: 'left' }}>{renderInline(normalizeHandbookSoftBreaks(block), colors.textPrimary)}</Text>;
   });
 
   const sections: React.ReactNode[] = [];

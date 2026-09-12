@@ -898,9 +898,8 @@ export default function HandbookReaderScreen() {
   // Helper to split a block by markdown images and render them as actual components
   const renderBlock = (blockText: string, blockIdx: number, fontSize: number) => {
     const reflowedText = normalizeHandbookSoftBreaks(blockText);
-    const isWestern = !/[\u4e00-\u9fa5]/.test(reflowedText);
-    const textLetterSpacing = isWestern ? 0 : LETTER_SPACINGS[letterSpacingIndex].val;
-    const textAlignStyle = 'justify';
+    const textLetterSpacing = 0;
+    const textAlignStyle = 'left';
 
     const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
     const parts: React.ReactNode[] = [];
@@ -1087,9 +1086,8 @@ export default function HandbookReaderScreen() {
               if (!t) return null;
               if (t.startsWith('- ')) {
                 const text = t.substring(2);
-                const isWesternList = !/[\u4e00-\u9fa5]/.test(text);
-                const listLetterSpacing = isWesternList ? 0 : LETTER_SPACINGS[letterSpacingIndex].val;
-                const listAlign = 'justify';
+                const listLetterSpacing = 0;
+                const listAlign = 'left';
                 return (
                   <View key={lIdx} style={[styles.listItem, { marginBottom: fontSize * 0.25 }]}>
                     <Text style={[styles.bullet, { fontSize: fontSize, color: selectedTheme.textColor }]}>•</Text>
@@ -1102,9 +1100,8 @@ export default function HandbookReaderScreen() {
               const dotIdx = t.indexOf('.');
               const num = t.substring(0, dotIdx + 1);
               const text = t.substring(dotIdx + 1).trim();
-              const isWesternList = !/[\u4e00-\u9fa5]/.test(text);
-              const listLetterSpacing = isWesternList ? 0 : LETTER_SPACINGS[letterSpacingIndex].val;
-              const listAlign = 'justify';
+              const listLetterSpacing = 0;
+              const listAlign = 'left';
               return (
                 <View key={lIdx} style={[styles.listItem, { marginBottom: fontSize * 0.25 }]}>
                   <Text style={[styles.bullet, { fontSize: fontSize, color: selectedTheme.textColor, fontWeight: 'bold' }]}>{num}</Text>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
@@ -66,6 +66,38 @@ const getActiveToolbarFormats = (markdown: string, selection: { start: number; e
   return active;
 };
 
+const normalizeWebUrl = (text: string): string | null => {
+  const candidate = text.trim();
+  if (!candidate || /\s/.test(candidate)) return null;
+  const hasProtocol = /^https?:\/\//i.test(candidate);
+  const looksLikeDomain = /^(?:www\.)?(?:[a-z\d](?:[a-z\d-]{0,62}[a-z\d])?\.)+[a-z]{2,}(?::\d{1,5})?(?:[/?#].*)?$/i.test(candidate);
+  if (!hasProtocol && !looksLikeDomain) return null;
+  try {
+    const parsed = new URL(hasProtocol ? candidate : `https://${candidate}`);
+    return ['https:', 'http:'].includes(parsed.protocol) ? parsed.href : null;
+  } catch {
+    return null;
+  }
+};
+
+const findLinkAtSelection = (markdown: string, start: number, end: number) => {
+  const links = /\[([^\]\n]+)\]\(([^)\n]+)\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = links.exec(markdown))) {
+    const labelStart = match.index + 1;
+    const labelEnd = labelStart + match[1].length;
+    const linkEnd = links.lastIndex;
+    const insideLabel = start === end
+      ? start >= labelStart && start <= labelEnd
+      : start >= labelStart && end <= labelEnd;
+    const coversLink = start <= match.index && end >= linkEnd;
+    if (insideLabel || coversLink) {
+      return { start: match.index, end: linkEnd, label: match[1], url: match[2] };
+    }
+  }
+  return null;
+};
+
 export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters, disabled = false, preview = false, onEditorFocus, onEditorBlur }: {
   value: string; onChange: (value: string) => void; onBusyChange: (busy: boolean) => void;
   chapters: { id: string; title: string; is_published: boolean }[];
@@ -80,6 +112,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   const scrollY = useRef(0);
   const restoreScroll = useRef(false);
   const selection = useRef({ start: 0, end: 0 });
+  const linkRange = useRef({ start: 0, end: 0 });
   const [activeSelection, setActiveSelection] = useState({ start: 0, end: 0 });
   const [cursor, setCursor] = useState<{ start: number; end: number }>();
   const [busy, setBusy] = useState(false);
@@ -105,24 +138,44 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   }, [preview]);
   const openLink = () => {
     if (disabled) return;
-    setLinkLabel(value.slice(selection.current.start, selection.current.end));
-    setLinkUrl(''); setQuery(''); setLinkError(''); setLinkMode('web');
+    const rawStart = Math.min(selection.current.start, value.length);
+    const rawEnd = Math.min(selection.current.end, value.length);
+    const rawSelected = value.slice(rawStart, rawEnd);
+    const leadingWhitespace = rawSelected.search(/\S|$/);
+    const trailingWhitespace = rawSelected.length - rawSelected.replace(/\s+$/, '').length;
+    const trimmedStart = rawStart + leadingWhitespace;
+    const trimmedEnd = Math.max(trimmedStart, rawEnd - trailingWhitespace);
+    const existingLink = findLinkAtSelection(value, trimmedStart, trimmedEnd);
+    linkRange.current = existingLink
+      ? { start: existingLink.start, end: existingLink.end }
+      : { start: trimmedStart, end: trimmedEnd };
+    const selected = existingLink ? value.slice(existingLink.start, existingLink.end) : value.slice(trimmedStart, trimmedEnd);
+    const label = existingLink?.label ?? selected;
+    const detectedUrl = normalizeWebUrl(existingLink?.url ?? selected);
+    setLinkLabel(label);
+    setLinkUrl(detectedUrl ?? '');
+    setQuery(''); setLinkError('');
+    Keyboard.dismiss();
+    requestAnimationFrame(() => setLinkMode('web'));
+  };
+  const closeLink = () => {
+    setLinkMode(null);
+    requestAnimationFrame(() => {
+      setCursor({ ...selection.current });
+      input.current?.focus();
+    });
   };
   const commitLink = (url: string, fallback: string) => {
     const label = (linkLabel.trim() || fallback).replace(/[\[\]\n\r]/g, ' ');
     const text = `[${label}](${url.replace(/\(/g, '%28').replace(/\)/g, '%29')})`;
-    const { start, end } = selection.current;
+    const { start, end } = linkRange.current;
     replace(start, end, text, start + text.length, start + text.length);
     setLinkMode(null);
   };
   const insertWebLink = () => {
-    let url = linkUrl.trim();
-    try {
-      const parsed = new URL(url);
-      if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error();
-      url = parsed.href;
-    } catch {
-      setLinkError('请输入以 https:// 或 http:// 开头的完整网址。'); return;
+    const url = normalizeWebUrl(linkUrl);
+    if (!url) {
+      setLinkError('请输入完整网址或域名。'); return;
     }
     commitLink(url, url);
   };
@@ -329,7 +382,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
         setTableInitial(null);
         setTableVisible(false);
       }} />}
-      <Modal visible={linkMode !== null} transparent animationType="slide" onRequestClose={() => setLinkMode(null)}>
+      <Modal visible={linkMode !== null} transparent animationType="fade" onRequestClose={closeLink}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.45)' }}>
           <View style={{ maxHeight: '85%', padding: 18, borderRadius: 12, backgroundColor: colors.surface }}>
             <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>添加链接</Text>
@@ -374,7 +427,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
                 autoCapitalize="none" autoCorrect={false} keyboardType="phone-pad" style={{ color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, padding: 12 }} />
               <Pressable onPress={insertPhoneLink} style={{ padding: 14 }}><Text style={{ color: colors.primaryLight }}>插入电话链接</Text></Pressable>
             </>}
-            <Pressable onPress={() => setLinkMode(null)} style={{ padding: 14 }}><Text style={{ color: colors.textSecondary }}>取消</Text></Pressable>
+            <Pressable onPress={closeLink} style={{ padding: 14 }}><Text style={{ color: colors.textSecondary }}>取消</Text></Pressable>
           </View>
         </KeyboardAvoidingView>
       </Modal>

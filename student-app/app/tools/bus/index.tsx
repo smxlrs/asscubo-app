@@ -47,7 +47,7 @@ const LOCALIZED = {
   zh: {
     title: '博洛尼亚公交查询',
     searchTab: '搜索查询',
-    mapTab: '地图选点',
+    mapTab: '地图查询',
     searchTitle: '查询车辆到站',
     fermataLabel: '数字站牌号',
     fermataPlaceholder: '如: 4306',
@@ -100,7 +100,7 @@ const LOCALIZED = {
   'zh-Hant': {
     title: '博洛尼亞公交查詢',
     searchTab: '搜索查詢',
-    mapTab: '地圖選點',
+    mapTab: '地圖查詢',
     searchTitle: '查詢車輛到站',
     fermataLabel: '數字站牌號',
     fermataPlaceholder: '如: 4306',
@@ -153,7 +153,7 @@ const LOCALIZED = {
   en: {
     title: 'Bologna Bus Tracker',
     searchTab: 'Search',
-    mapTab: 'Map',
+    mapTab: 'Map Query',
     searchTitle: 'Bus Arrivals',
     fermataLabel: 'Stop Code',
     fermataPlaceholder: 'e.g., 4306',
@@ -206,7 +206,7 @@ const LOCALIZED = {
   it: {
     title: 'Orari Bus Bologna',
     searchTab: 'Cerca',
-    mapTab: 'Mappa',
+    mapTab: 'Ricerca sulla mappa',
     searchTitle: 'Arrivi Bus',
     fermataLabel: 'Codice Fermata',
     fermataPlaceholder: 'es: 4306',
@@ -489,6 +489,14 @@ const getMapHtml = (isDark: boolean, localized: any) => `
       iconAnchor: [14, 14],
       popupAnchor: [0, -14]
     });
+    var selectedBusIcon = L.divIcon({
+      html: '<div style="background-color:#A31621;width:34px;height:34px;border-radius:50%;display:flex;justify-content:center;align-items:center;border:3px solid white;box-shadow:0 0 0 4px rgba(227,6,19,0.28),0 3px 8px rgba(0,0,0,0.42);"><svg viewBox="0 0 24 24" width="18" height="18" fill="white"><path d="M18 11H6V6h12m-1.5 11a1.5 1.5 0 11-1.5-1.5 1.5 1.5 0 011.5 1.5M7.5 17a1.5 1.5 0 11-1.5-1.5 1.5 1.5 0 011.5 1.5M4 16c0 .88.39 1.67 1 2.22V20a1 1 0 001 1h1a1 1 0 001-1v-1h8v1a1 1 0 001 1h1a1 1 0 001-1v-1.78c.61-.55 1-1.34 1-2.22V9a4 4 0 00-4-4H8a4 4 0 00-4 4v7z"/></svg></div>',
+      className: 'custom-bus-icon selected',
+      iconSize: [34, 34],
+      iconAnchor: [17, 17]
+    });
+    var selectedStopCode = null;
+    var stopMarkers = [];
 
     function sendMapState() {
       if (window.ReactNativeWebView) {
@@ -522,22 +530,35 @@ const getMapHtml = (isDark: boolean, localized: any) => `
     // Update stops markers in batch
     window.updateStops = function(stopsJson) {
       markersGroup.clearLayers();
-      var stops = JSON.parse(stopsJson);
+      stopMarkers = [];
+      var stops = typeof stopsJson === 'string' ? JSON.parse(stopsJson) : stopsJson;
       var markersArray = [];
       stops.forEach(function(stop) {
         if (stop.latitude && stop.longitude) {
-          var marker = L.marker([stop.latitude, stop.longitude], { icon: busIcon });
-          
-          var escapedName = stop.stop_name.replace(/'/g, "\\\\'");
-          var popupContent = "<b>" + stop.stop_name + "</b><br>" + 
-                             "${localized.stopCode}: <b>" + stop.stop_code + "</b><br>" +
-                             "<button onclick=\\"selectStop('" + stop.stop_code + "', '" + escapedName + "')\\" style='margin-top:8px;width:100%;padding:6px;background:#E30613;color:white;border:none;border-radius:6px;font-weight:bold;font-size:12px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);'>${localized.queryAtStop}</button>";
-          
-          marker.bindPopup(popupContent);
+          var stopCode = String(stop.stop_code);
+          var marker = L.marker([stop.latitude, stop.longitude], {
+            icon: stopCode === String(selectedStopCode) ? selectedBusIcon : busIcon
+          });
+
+          marker.on('click', function() {
+            selectedStopCode = stopCode;
+            stopMarkers.forEach(function(otherMarker) {
+              if (otherMarker.setIcon) otherMarker.setIcon(otherMarker === marker ? selectedBusIcon : busIcon);
+            });
+            selectStop(stop.stop_code, stop.stop_name);
+          });
           markersArray.push(marker);
+          stopMarkers.push(marker);
         }
       });
       markersGroup.addLayers(markersArray);
+    };
+
+    window.clearSelectedStop = function() {
+      selectedStopCode = null;
+      stopMarkers.forEach(function(marker) {
+        if (marker.setIcon) marker.setIcon(busIcon);
+      });
     };
 
     window.panTo = function(lat, lon) {
@@ -655,7 +676,7 @@ export default function BusBoardScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return Math.abs(gestureState.dy) > 5;
+        return Math.abs(gestureState.dy) > 3 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
       },
       onPanResponderGrant: () => {
         translateY.setOffset(lastTranslatedY.current);
@@ -671,17 +692,22 @@ export default function BusBoardScreen() {
       onPanResponderRelease: (evt, gestureState) => {
         translateY.flattenOffset();
         const finalY = lastTranslatedY.current + gestureState.dy;
-        
-        let nearestSnap = snapPoints.collapsed;
-        let minDiff = Infinity;
-        
-        Object.values(snapPoints).forEach(val => {
-          const diff = Math.abs(finalY - val);
-          if (diff < minDiff) {
-            minDiff = diff;
-            nearestSnap = val;
-          }
-        });
+        const orderedSnapPoints = [snapPoints.expanded, snapPoints.collapsed, snapPoints.minimized];
+        const currentIndex = orderedSnapPoints.reduce((bestIndex, point, index) =>
+          Math.abs(point - lastTranslatedY.current) < Math.abs(orderedSnapPoints[bestIndex] - lastTranslatedY.current) ? index : bestIndex, 0);
+        const passedSwipeThreshold = Math.abs(gestureState.dy) >= 24 || Math.abs(gestureState.vy) >= 0.12;
+        let targetIndex = currentIndex;
+
+        if (passedSwipeThreshold) {
+          targetIndex = gestureState.dy < 0
+            ? Math.max(0, currentIndex - 1)
+            : Math.min(orderedSnapPoints.length - 1, currentIndex + 1);
+        } else {
+          targetIndex = orderedSnapPoints.reduce((bestIndex, point, index) =>
+            Math.abs(point - finalY) < Math.abs(orderedSnapPoints[bestIndex] - finalY) ? index : bestIndex, currentIndex);
+        }
+
+        const nearestSnap = orderedSnapPoints[targetIndex];
         
         lastTranslatedY.current = nearestSnap;
         
@@ -974,6 +1000,7 @@ export default function BusBoardScreen() {
   };
 
   const handleCloseCard = () => {
+    webViewRef.current?.injectJavaScript('window.clearSelectedStop && window.clearSelectedStop(); true;');
     setActiveStopCode(null);
     setActiveStopName(null);
     setArrivals([]);
@@ -1054,7 +1081,7 @@ export default function BusBoardScreen() {
             1000 // Query more stops to support clustering over visible bounds
           );
         }
-        webViewRef.current?.injectJavaScript(`window.updateStops('${JSON.stringify(stops)}')`);
+        webViewRef.current?.injectJavaScript(`window.updateStops(${JSON.stringify(stops)}); true;`);
       } else if (message.type === 'SELECT_STOP') {
         const { code, name } = message;
         setStopCodeInput(code);

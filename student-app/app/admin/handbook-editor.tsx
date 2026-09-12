@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, findNodeHandle, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -44,23 +44,12 @@ export default function HandbookEditorScreen() {
   const [previewing, setPreviewing] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [markdownFocused, setMarkdownFocused] = useState(false);
-  const pageScroll = useRef<ScrollView>(null);
-  const editorInput = useRef<TextInput | null>(null);
-  const editorFocused = useRef(false);
-
-  const revealEditor = () => {
-    const handle = editorInput.current ? findNodeHandle(editorInput.current) : null;
-    if (handle !== null) {
-      pageScroll.current?.scrollResponderScrollNativeHandleToKeyboard(handle, 24, true);
-    }
-  };
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const showSubscription = Keyboard.addListener(showEvent, () => {
       setKeyboardVisible(true);
-      if (editorFocused.current) setTimeout(revealEditor, Platform.OS === 'ios' ? 80 : 30);
     });
     const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
     return () => {
@@ -263,7 +252,7 @@ export default function HandbookEditorScreen() {
       </View>
 
       <KeyboardAvoidingView style={styles.contentArea} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView ref={pageScroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
         <FieldLabel label="章节标题" colors={colors} />
         <TextInput
@@ -298,13 +287,9 @@ export default function HandbookEditorScreen() {
         <FieldLabel label="Markdown 正文" colors={colors} />
         <HandbookMarkdownEditor value={contentBody} onChange={setContentBody} onBusyChange={setUploading} chapters={allChapters} disabled={saving} preview={previewing}
           onEditorFocus={node => {
-            editorInput.current = node;
-            editorFocused.current = true;
             setMarkdownFocused(true);
-            if (keyboardVisible) setTimeout(revealEditor, 30);
           }}
           onEditorBlur={() => {
-            editorFocused.current = false;
             setMarkdownFocused(false);
           }} />
 

@@ -1,6 +1,6 @@
 export const HANDBOOK_TEXT_BREAK_PROPS = {
-  textBreakStrategy: 'highQuality' as const,
-  android_hyphenationFrequency: 'full' as const,
+  textBreakStrategy: 'simple' as const,
+  android_hyphenationFrequency: 'none' as const,
   lineBreakStrategyIOS: 'standard' as const,
 };
 
@@ -70,15 +70,8 @@ const hyphenateLatinWord = (word: string): string => {
   return result.join('');
 };
 
-export const hyphenateHandbookText = (text: string): string => text.replace(
-  /(?:https?:\/\/|www\.)[^\s]+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|[a-zA-ZàèéìòùÀÈÉÌÒÙ']{3,}/g,
-  token => {
-    if (/^(?:https?:\/\/|www\.)/i.test(token) || token.includes('@')) return token;
-    return token.includes("'")
-      ? token.split("'").map(part => hyphenateLatinWord(part)).join("'")
-      : hyphenateLatinWord(token);
-  },
-);
+// Keep selectable/copyable text identical to the Markdown source.
+export const hyphenateHandbookText = (text: string): string => text;
 
 // A single newline is a soft break in Markdown. Keep deliberate paragraph indentation fixed.
 export const normalizeHandbookSoftBreaks = (text: string): string => {
