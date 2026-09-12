@@ -195,7 +195,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   };
   return (
     <View style={{ height: 520, position: 'relative', paddingBottom: preview ? 0 : 76 }}>
-      <ScrollView ref={contentScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}
+      <ScrollView ref={contentScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: preview ? 12 : 180 }}
         onScroll={event => { scrollY.current = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={16}
         onContentSizeChange={() => {
           if (!restoreScroll.current) return;
@@ -207,7 +207,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
         selection={cursor} onSelectionChange={({ nativeEvent }) => { selection.current = nativeEvent.selection; setCursor(undefined); }}
         onChangeText={onChange} placeholder="输入手册正文" placeholderTextColor={colors.textMuted}
         autoCapitalize="none" autoCorrect={false}
-        style={{ minHeight: 430, borderWidth: 1, borderRadius: 7, padding: 12, fontSize: 14, lineHeight: 21,
+        style={{ minHeight: 430, borderWidth: 1, borderRadius: 7, padding: 12, paddingBottom: 140, fontSize: 14, lineHeight: 21,
           backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }} />
       </>}
       </ScrollView>
