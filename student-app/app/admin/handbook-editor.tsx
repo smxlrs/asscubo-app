@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, findNodeHandle, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -42,6 +42,32 @@ export default function HandbookEditorScreen() {
   const [deleteConfirmationVisible, setDeleteConfirmationVisible] = useState(false);
   const [initialSnapshot, setInitialSnapshot] = useState('');
   const [previewing, setPreviewing] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [markdownFocused, setMarkdownFocused] = useState(false);
+  const pageScroll = useRef<ScrollView>(null);
+  const editorInput = useRef<TextInput | null>(null);
+  const editorFocused = useRef(false);
+
+  const revealEditor = () => {
+    const handle = editorInput.current ? findNodeHandle(editorInput.current) : null;
+    if (handle !== null) {
+      pageScroll.current?.scrollResponderScrollNativeHandleToKeyboard(handle, 24, true);
+    }
+  };
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, () => {
+      setKeyboardVisible(true);
+      if (editorFocused.current) setTimeout(revealEditor, Platform.OS === 'ios' ? 80 : 30);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const roots = useMemo(() => allChapters
     .filter((chapter) => !chapter.parent_id && chapter.id !== chapterId)
@@ -236,7 +262,9 @@ export default function HandbookEditorScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView style={styles.contentArea} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView ref={pageScroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
         <FieldLabel label="章节标题" colors={colors} />
         <TextInput
           style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
@@ -268,7 +296,17 @@ export default function HandbookEditorScreen() {
         </View>
 
         <FieldLabel label="Markdown 正文" colors={colors} />
-        <HandbookMarkdownEditor value={contentBody} onChange={setContentBody} onBusyChange={setUploading} chapters={allChapters} disabled={saving} preview={previewing} />
+        <HandbookMarkdownEditor value={contentBody} onChange={setContentBody} onBusyChange={setUploading} chapters={allChapters} disabled={saving} preview={previewing}
+          onEditorFocus={node => {
+            editorInput.current = node;
+            editorFocused.current = true;
+            setMarkdownFocused(true);
+            if (keyboardVisible) setTimeout(revealEditor, 30);
+          }}
+          onEditorBlur={() => {
+            editorFocused.current = false;
+            setMarkdownFocused(false);
+          }} />
 
         <View style={[styles.publishRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.publishCopy}>
@@ -291,7 +329,9 @@ export default function HandbookEditorScreen() {
             <Text style={styles.deleteText}>删除章节</Text>
           </Pressable>
         )}
+        {keyboardVisible && markdownFocused && !previewing && <View style={styles.keyboardSpacer} />}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal visible={parentModalVisible} transparent animationType="fade" onRequestClose={() => setParentModalVisible(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setParentModalVisible(false)}>
@@ -332,6 +372,7 @@ function FieldLabel({ label, colors }: { label: string; colors: any }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  contentArea: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   header: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1 },
   headerButton: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
@@ -351,6 +392,7 @@ const styles = StyleSheet.create({
   publishDescription: { fontSize: 11, marginTop: 3 },
   deleteButton: { height: 46, borderWidth: 1, borderRadius: 7, marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   deleteText: { color: '#EF4444', fontSize: 15, fontWeight: '700' },
+  keyboardSpacer: { height: 140 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalSheet: { maxHeight: '75%', borderTopLeftRadius: 8, borderTopRightRadius: 8, paddingBottom: 24 },
   modalTitle: { fontSize: 17, fontWeight: '700', padding: 16 },

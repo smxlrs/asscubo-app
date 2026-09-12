@@ -3,6 +3,7 @@ import { Image, Pressable, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { parseHandbookTable } from '../lib/handbookTable';
+import { HANDBOOK_TEXT_BREAK_PROPS, hyphenateHandbookText, normalizeHandbookSoftBreaks } from '../lib/handbookTypography';
 import { HandbookTableView } from './HandbookTableView';
 
 function renderInline(text: string, color: string): React.ReactNode {
@@ -11,7 +12,7 @@ function renderInline(text: string, color: string): React.ReactNode {
   let offset = 0;
   let match: RegExpExecArray | null;
   while ((match = tokens.exec(text))) {
-    if (match.index > offset) nodes.push(text.slice(offset, match.index));
+    if (match.index > offset) nodes.push(hyphenateHandbookText(text.slice(offset, match.index)));
     const [, both, bold, italic, strike, code, label] = match;
     nodes.push(<Text key={match.index} style={{
       color: label !== undefined ? '#3B82F6' : color,
@@ -19,11 +20,11 @@ function renderInline(text: string, color: string): React.ReactNode {
       fontStyle: both !== undefined || italic !== undefined ? 'italic' : undefined,
       textDecorationLine: label !== undefined ? 'underline' : strike !== undefined ? 'line-through' : undefined,
       fontFamily: code !== undefined ? 'monospace' : undefined,
-    }}>{code ?? label ?? both ?? bold ?? italic ?? strike}</Text>);
+    }}>{code ?? hyphenateHandbookText(label ?? both ?? bold ?? italic ?? strike ?? '')}</Text>);
     offset = tokens.lastIndex;
   }
-  if (offset < text.length) nodes.push(text.slice(offset));
-  return nodes.length ? nodes : text;
+  if (offset < text.length) nodes.push(hyphenateHandbookText(text.slice(offset)));
+  return nodes.length ? nodes : hyphenateHandbookText(text);
 }
 
 export function HandbookMarkdownPreview({ value }: { value: string }) {
@@ -32,8 +33,8 @@ export function HandbookMarkdownPreview({ value }: { value: string }) {
   const fontSize = 18;
 
   const renderBlocks = (markdown: string, keyPrefix: string) => markdown.split(/\n\s*\n/).map((raw, index) => {
-    const block = raw.trim();
-    if (!block) return null;
+    const block = raw.trimEnd();
+    if (!block.trim()) return null;
     const key = `${keyPrefix}-${index}`;
     const table = parseHandbookTable(block);
     if (table) return <HandbookTableView key={key} table={table} fontSize={fontSize} color={colors.textPrimary}
@@ -46,18 +47,18 @@ export function HandbookMarkdownPreview({ value }: { value: string }) {
         {renderInline(heading[2], colors.textPrimary)}</Text>{heading[3] ? renderBlocks(heading[3], `${key}-rest`) : null}</View>;
     }
     if (block.split('\n').every(line => line.startsWith('> '))) return <View key={key} style={{ borderLeftWidth: 3, borderColor: colors.border, paddingLeft: 12, marginVertical: 8 }}>
-      <Text style={{ color: colors.textPrimary, fontSize, lineHeight: 31 }}>{renderInline(block.replace(/^> /gm, ''), colors.textPrimary)}</Text></View>;
+      <Text {...HANDBOOK_TEXT_BREAK_PROPS} style={{ color: colors.textPrimary, fontSize, lineHeight: 31, textAlign: 'justify' }}>{renderInline(normalizeHandbookSoftBreaks(block.replace(/^> /gm, '')), colors.textPrimary)}</Text></View>;
     const lines = block.split('\n');
     if (lines.every(line => /^\s*(?:- |\d+\.\s)/.test(line))) return <View key={key} style={{ marginVertical: 5 }}>{lines.map((line, lineIndex) => {
       const ordered = line.trim().match(/^(\d+\.)\s+(.*)$/);
       const content = ordered ? ordered[2] : line.trim().replace(/^-\s+/, '');
       return <View key={lineIndex} style={{ flexDirection: 'row', marginBottom: 5 }}><Text style={{ width: 28, color: colors.textPrimary, fontSize }}>{ordered?.[1] || '•'}</Text>
-        <Text style={{ flex: 1, color: colors.textPrimary, fontSize, lineHeight: 31 }}>{renderInline(content, colors.textPrimary)}</Text></View>;
+        <Text {...HANDBOOK_TEXT_BREAK_PROPS} style={{ flex: 1, color: colors.textPrimary, fontSize, lineHeight: 31, textAlign: 'justify' }}>{renderInline(content, colors.textPrimary)}</Text></View>;
     })}</View>;
     const image = block.match(/^!\[(.*?)\]\((.*?)\)$/);
     if (image) return <View key={key} style={{ marginVertical: 10 }}><Image source={{ uri: image[2] }} resizeMode="contain" style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 7 }} />
       {image[1] ? <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 5 }}>{image[1]}</Text> : null}</View>;
-    return <Text key={key} style={{ color: colors.textPrimary, fontSize, lineHeight: 31, marginBottom: 10 }}>{renderInline(block, colors.textPrimary)}</Text>;
+    return <Text {...HANDBOOK_TEXT_BREAK_PROPS} key={key} style={{ color: colors.textPrimary, fontSize, lineHeight: 31, marginBottom: 10, textAlign: 'justify' }}>{renderInline(normalizeHandbookSoftBreaks(block), colors.textPrimary)}</Text>;
   });
 
   const sections: React.ReactNode[] = [];

@@ -10,11 +10,69 @@ import { HandbookTableComposer } from './HandbookTableComposer';
 import { HandbookTable, parseHandbookTable } from '../lib/handbookTable';
 import { HandbookMarkdownPreview } from './HandbookMarkdownPreview';
 
-export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters, disabled = false, preview = false }: {
+type ToolbarFormat = 'bold' | 'italic' | 'strike' | 'code' | 'h1' | 'h2' | 'h3'
+  | 'bullet' | 'number' | 'quote' | 'divider' | 'link' | 'table' | 'details' | 'image';
+
+const getActiveToolbarFormats = (markdown: string, selection: { start: number; end: number }): Set<ToolbarFormat> => {
+  const active = new Set<ToolbarFormat>();
+  const start = Math.min(selection.start, markdown.length);
+  const end = Math.min(selection.end, markdown.length);
+  const containsSelection = (contentStart: number, contentEnd: number, tokenStart: number, tokenEnd: number) => start === end
+    ? start >= contentStart && start <= contentEnd
+    : (start >= contentStart && end <= contentEnd) || (start <= tokenStart && end >= tokenEnd);
+
+  const inline = /`([^`\n]+)`|~~([^\n]+?)~~|\*\*\*([^*\n]+?)\*\*\*|\*\*([^\n]+?)\*\*|\*([^*\n]+?)\*/g;
+  let match: RegExpExecArray | null;
+  while ((match = inline.exec(markdown))) {
+    const markerLength = match[1] !== undefined ? 1 : match[2] !== undefined ? 2 : match[3] !== undefined ? 3 : match[4] !== undefined ? 2 : 1;
+    const contentStart = match.index + markerLength;
+    const contentEnd = inline.lastIndex - markerLength;
+    if (!containsSelection(contentStart, contentEnd, match.index, inline.lastIndex)) continue;
+    if (match[1] !== undefined) active.add('code');
+    if (match[2] !== undefined) active.add('strike');
+    if (match[3] !== undefined) { active.add('bold'); active.add('italic'); }
+    if (match[4] !== undefined) active.add('bold');
+    if (match[5] !== undefined) active.add('italic');
+  }
+
+  const links = /\[([^\]\n]+)\]\(([^)\n]+)\)/g;
+  while ((match = links.exec(markdown))) {
+    const labelEnd = match.index + 1 + match[1].length;
+    if (containsSelection(match.index + 1, labelEnd, match.index, links.lastIndex)) active.add('link');
+  }
+
+  const lineStart = start === 0 ? 0 : markdown.lastIndexOf('\n', start - 1) + 1;
+  const lineEndMarker = markdown.indexOf('\n', end);
+  const lineEnd = lineEndMarker < 0 ? markdown.length : lineEndMarker;
+  const line = markdown.slice(lineStart, lineEnd).trimStart();
+  const heading = line.match(/^(#{1,3})\s/);
+  if (heading) active.add(`h${heading[1].length}` as ToolbarFormat);
+  if (/^-\s/.test(line)) active.add('bullet');
+  if (/^\d+\.\s/.test(line)) active.add('number');
+  if (/^>\s/.test(line)) active.add('quote');
+  if (/^---+$/.test(line.trim())) active.add('divider');
+
+  const blockStartMarker = markdown.lastIndexOf('\n\n', Math.max(0, start - 1));
+  const blockStart = blockStartMarker < 0 ? 0 : blockStartMarker + 2;
+  const blockEndMarker = markdown.indexOf('\n\n', end);
+  const blockEnd = blockEndMarker < 0 ? markdown.length : blockEndMarker;
+  const block = markdown.slice(blockStart, blockEnd).trim();
+  if (parseHandbookTable(block)) active.add('table');
+  if (/^!\[[^\]]*\]\([^)]+\)$/.test(block)) active.add('image');
+
+  const detailsStart = markdown.lastIndexOf('<details', start);
+  const detailsEnd = detailsStart >= 0 ? markdown.indexOf('</details>', detailsStart) : -1;
+  if (detailsStart >= 0 && detailsEnd >= end) active.add('details');
+  return active;
+};
+
+export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters, disabled = false, preview = false, onEditorFocus, onEditorBlur }: {
   value: string; onChange: (value: string) => void; onBusyChange: (busy: boolean) => void;
   chapters: { id: string; title: string; is_published: boolean }[];
   disabled?: boolean;
   preview?: boolean;
+  onEditorFocus?: (input: TextInput | null) => void;
+  onEditorBlur?: () => void;
 }) {
   const { colors } = useTheme();
   const input = useRef<TextInput>(null);
@@ -22,6 +80,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   const scrollY = useRef(0);
   const restoreScroll = useRef(false);
   const selection = useRef({ start: 0, end: 0 });
+  const [activeSelection, setActiveSelection] = useState({ start: 0, end: 0 });
   const [cursor, setCursor] = useState<{ start: number; end: number }>();
   const [busy, setBusy] = useState(false);
   const locked = useRef(false);
@@ -34,6 +93,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   const [linkUrl, setLinkUrl] = useState('');
   const [query, setQuery] = useState('');
   const [linkError, setLinkError] = useState('');
+  const activeFormats = getActiveToolbarFormats(value, activeSelection);
   useEffect(() => {
     restoreScroll.current = true;
     const timer = setTimeout(() => contentScroll.current?.scrollTo({ y: scrollY.current, animated: false }), 30);
@@ -137,6 +197,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
     onChange(value.slice(0, start) + text + value.slice(end));
     const next = { start: selectedStart, end: selectedEnd };
     selection.current = next;
+    setActiveSelection(next);
     setCursor(next);
     input.current?.focus();
   };
@@ -195,7 +256,8 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   };
   return (
     <View style={{ height: 520, position: 'relative', paddingBottom: preview ? 0 : 76 }}>
-      <ScrollView ref={contentScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: preview ? 12 : 180 }}
+      <ScrollView ref={contentScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 12 }}
         onScroll={event => { scrollY.current = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={16}
         onContentSizeChange={() => {
           if (!restoreScroll.current) return;
@@ -204,44 +266,53 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
         }}>
       {preview ? <HandbookMarkdownPreview value={value} /> : <>
       <TextInput ref={input} value={value} editable={!busy && !disabled} multiline textAlignVertical="top"
-        selection={cursor} onSelectionChange={({ nativeEvent }) => { selection.current = nativeEvent.selection; setCursor(undefined); }}
+        onFocus={() => onEditorFocus?.(input.current)} onBlur={onEditorBlur}
+        selection={cursor} onSelectionChange={({ nativeEvent }) => {
+          selection.current = nativeEvent.selection;
+          setActiveSelection(nativeEvent.selection);
+          setCursor(undefined);
+        }}
         onChangeText={onChange} placeholder="输入手册正文" placeholderTextColor={colors.textMuted}
         autoCapitalize="none" autoCorrect={false}
-        style={{ minHeight: 430, borderWidth: 1, borderRadius: 7, padding: 12, paddingBottom: 140, fontSize: 14, lineHeight: 21,
+        style={{ minHeight: 430, borderWidth: 1, borderRadius: 7, padding: 12, fontSize: 14, lineHeight: 21,
           backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }} />
       </>}
       </ScrollView>
       {!preview && <View pointerEvents={disabled ? 'none' : 'auto'} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 68, opacity: disabled ? 0.5 : 1,
         backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 8 }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, gap: 7 }} keyboardShouldPersistTaps="handled">
-        {[['加粗', '**', 'format-bold'], ['斜体', '*', 'format-italic'], ['删除线', '~~', 'format-strikethrough'], ['行内代码', '`', 'code-tags'], ['H1', '# ', 'format-header-1'], ['H2', '## ', 'format-header-2'], ['H3', '### ', 'format-header-3']].map(([label, marker, icon]) => (
+        {([['加粗', '**', 'format-bold', 'bold'], ['斜体', '*', 'format-italic', 'italic'], ['删除线', '~~', 'format-strikethrough', 'strike'], ['行内代码', '`', 'code-tags', 'code'], ['H1', '# ', 'format-header-1', 'h1'], ['H2', '## ', 'format-header-2', 'h2'], ['H3', '### ', 'format-header-3', 'h3']] as const).map(([label, marker, icon, formatKey]) => (
           <Pressable key={label} accessibilityRole="button" accessibilityLabel={label} disabled={busy}
+            accessibilityState={{ selected: activeFormats.has(formatKey) }}
             onPress={() => format(marker, marker.startsWith('#'))}
-            style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
-            <MaterialCommunityIcons name={icon as any} size={22} color={colors.textPrimary} />
+            style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: activeFormats.has(formatKey) ? colors.primary : colors.surfaceElevated }}>
+            <MaterialCommunityIcons name={icon as any} size={22} color={activeFormats.has(formatKey) ? '#FFFFFF' : colors.textPrimary} />
           </Pressable>
         ))}
         {([['无序列表', 'bullet', 'format-list-bulleted'], ['有序列表', 'number', 'format-list-numbered'], ['引用', 'quote', 'format-quote-close'], ['分隔线', 'divider', 'minus']] as const).map(([label, kind, icon]) => (
           <Pressable key={kind} accessibilityRole="button" disabled={busy} onPress={() => blockFormat(kind)}
-            accessibilityLabel={label}
-            style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
-            <MaterialCommunityIcons name={icon} size={22} color={colors.textPrimary} />
+            accessibilityLabel={label} accessibilityState={{ selected: activeFormats.has(kind) }}
+            style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: activeFormats.has(kind) ? colors.primary : colors.surfaceElevated }}>
+            <MaterialCommunityIcons name={icon} size={22} color={activeFormats.has(kind) ? '#FFFFFF' : colors.textPrimary} />
           </Pressable>
         ))}
-        <Pressable accessibilityRole="button" accessibilityLabel="添加链接" disabled={busy} onPress={openLink} style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
-          <MaterialCommunityIcons name="link-variant" size={22} color={colors.primaryLight} />
+        <Pressable accessibilityRole="button" accessibilityLabel="添加链接" accessibilityState={{ selected: activeFormats.has('link') }} disabled={busy} onPress={openLink} style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: activeFormats.has('link') ? colors.primary : colors.surfaceElevated, borderRadius: 7 }}>
+          <MaterialCommunityIcons name="link-variant" size={22} color={activeFormats.has('link') ? '#FFFFFF' : colors.primaryLight} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="插入或编辑表格" disabled={busy || disabled} onPress={openTable}
-          style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
-          <MaterialCommunityIcons name="table" size={22} color={colors.primaryLight} />
+          accessibilityState={{ selected: activeFormats.has('table') }}
+          style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: activeFormats.has('table') ? colors.primary : colors.surfaceElevated, borderRadius: 7 }}>
+          <MaterialCommunityIcons name="table" size={22} color={activeFormats.has('table') ? '#FFFFFF' : colors.primaryLight} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="插入收起区块" disabled={busy} onPress={insertDetails}
-          style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
-          <MaterialCommunityIcons name="chevron-down-box" size={22} color={colors.primaryLight} />
+          accessibilityState={{ selected: activeFormats.has('details') }}
+          style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: activeFormats.has('details') ? colors.primary : colors.surfaceElevated, borderRadius: 7 }}>
+          <MaterialCommunityIcons name="chevron-down-box" size={22} color={activeFormats.has('details') ? '#FFFFFF' : colors.primaryLight} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="上传图片" disabled={busy} onPress={upload}
-          style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
-          {busy ? <ActivityIndicator color={colors.primary} /> : <MaterialCommunityIcons name="image-plus" size={22} color={colors.primaryLight} />}
+          accessibilityState={{ selected: activeFormats.has('image') }}
+          style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: activeFormats.has('image') ? colors.primary : colors.surfaceElevated }}>
+          {busy ? <ActivityIndicator color={colors.primary} /> : <MaterialCommunityIcons name="image-plus" size={22} color={activeFormats.has('image') ? '#FFFFFF' : colors.primaryLight} />}
         </Pressable>
       </ScrollView></View>}
       {!preview && <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 8 }}>选中文字设置格式，或在光标处插入。工具栏可左右滑动。</Text>}

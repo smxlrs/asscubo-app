@@ -28,6 +28,7 @@ import { appAlert as Alert } from '../../../lib/appAlert';
 
 import { supabase } from '../../../lib/supabase';
 import { parseHandbookTable } from '../../../lib/handbookTable';
+import { HANDBOOK_TEXT_BREAK_PROPS, hyphenateHandbookText, normalizeHandbookSoftBreaks } from '../../../lib/handbookTypography';
 import { HandbookTableView } from '../../../components/HandbookTableView';
 
 const { width, height } = Dimensions.get('window');
@@ -94,98 +95,6 @@ const LETTER_SPACINGS = [
 const getChineseNumber = (num: number) => {
   const chineseNums = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六'];
   return chineseNums[num] || num.toString();
-};
-
-const hyphenateItalianWord = (word: string): string => {
-  if (word.length <= 4) return word;
-  
-  const isVowel = (c: string) => /[aeiouyàèéìòùAEIOUYÀÈÉÌÒÙ]/.test(c);
-  const isConsonant = (c: string) => /[a-zA-Z]/.test(c) && !isVowel(c);
-  
-  const chars = word.split('');
-  const result: string[] = [];
-  
-  for (let i = 0; i < chars.length; i++) {
-    result.push(chars[i]);
-    
-    if (i < chars.length - 2) {
-      const curr = chars[i];
-      const next1 = chars[i + 1];
-      const next2 = chars[i + 2];
-      
-      // Rule 1: Split double consonants (e.g., t-t, l-l, c-q)
-      if (isConsonant(curr) && isConsonant(next1) && curr.toLowerCase() === next1.toLowerCase()) {
-        result.push('\u00AD');
-        continue;
-      }
-      if (curr.toLowerCase() === 'c' && next1.toLowerCase() === 'q') {
-        result.push('\u00AD');
-        continue;
-      }
-      
-      // Rule 2: Split consonant groups, but NOT digraphs or consonant + l/r
-      if (isConsonant(curr) && isConsonant(next1)) {
-        const c1 = curr.toLowerCase();
-        const c2 = next1.toLowerCase();
-        
-        const isDigraph = (c1 === 'c' && c2 === 'h') || 
-                          (c1 === 'g' && c2 === 'h') || 
-                          (c1 === 'g' && c2 === 'n') || 
-                          (c1 === 'g' && c2 === 'l') || 
-                          (c1 === 's' && c2 === 'c');
-                          
-        const isConsonantLR = 'bcdfghpqrtv'.includes(c1) && 'lr'.includes(c2);
-        const isSGroup = (c2 === 's' && isConsonant(next2));
-        const isFirstS = (c1 === 's' && isConsonant(c2));
-        
-        if (!isDigraph && !isConsonantLR && !isSGroup && !isFirstS) {
-          result.push('\u00AD');
-          continue;
-        }
-      }
-      
-      // Rule 3: Syllable boundary before consonant + vowel (e.g. V-CV, like a-mi-co)
-      if (isVowel(curr) && isConsonant(next1) && isVowel(next2)) {
-        result.push('\u00AD');
-        continue;
-      }
-      
-      // Rule 3b: Syllable boundary before digraph + vowel (e.g. V-CCV, like lo-gna)
-      const next1_2_isDigraph = (
-        (next1.toLowerCase() === 'c' && next2.toLowerCase() === 'h') ||
-        (next1.toLowerCase() === 'g' && next2.toLowerCase() === 'h') ||
-        (next1.toLowerCase() === 'g' && next2.toLowerCase() === 'n') ||
-        (next1.toLowerCase() === 'g' && next2.toLowerCase() === 'l') ||
-        (next1.toLowerCase() === 's' && next2.toLowerCase() === 'c')
-      );
-      if (isVowel(curr) && next1_2_isDigraph && i < chars.length - 3 && isVowel(chars[i + 3])) {
-        result.push('\u00AD');
-        continue;
-      }
-      
-      // Rule 4: Vowel-Vowel break (hiatus, e.g. e-o, a-o, but not common diphthongs)
-      if (isVowel(curr) && isVowel(next1)) {
-        const v1 = curr.toLowerCase();
-        const v2 = next1.toLowerCase();
-        const isDiphthong = ['i', 'u'].includes(v1) || ['i', 'u'].includes(v2);
-        if (!isDiphthong && v1 !== v2) {
-          result.push('\u00AD');
-          continue;
-        }
-      }
-    }
-  }
-  
-  return result.join('');
-};
-
-const hyphenateItalianText = (text: string): string => {
-  return text.replace(/[a-zA-ZàèéìòùÀÈÉÌÒÙ']{3,}/g, (word) => {
-    if (word.includes("'")) {
-      return word.split("'").map(part => hyphenateItalianWord(part)).join("'");
-    }
-    return hyphenateItalianWord(word);
-  });
 };
 
 const isInternalLink = (url: string): boolean => {
@@ -340,7 +249,7 @@ const parseInlineBase = (text: string, fontSize: number, onLinkPress?: (url: str
     if (matchIndex > currentIndex) {
       elements.push(
         <Text key={`plain-${keyCount++}`}>
-          {hyphenateItalianText(text.substring(currentIndex, matchIndex))}
+          {hyphenateHandbookText(text.substring(currentIndex, matchIndex))}
         </Text>
       );
     }
@@ -353,7 +262,7 @@ const parseInlineBase = (text: string, fontSize: number, onLinkPress?: (url: str
           style={{ color: '#3B82F6', textDecorationLine: 'underline', fontWeight: '500' }}
           onPress={() => handleOpenLink(url, onLinkPress)}
         >
-          {hyphenateItalianText(match[1])}
+          {hyphenateHandbookText(match[1])}
         </Text>
       );
     }
@@ -364,12 +273,12 @@ const parseInlineBase = (text: string, fontSize: number, onLinkPress?: (url: str
   if (currentIndex < text.length) {
     elements.push(
       <Text key={`plain-${keyCount++}`}>
-        {hyphenateItalianText(text.substring(currentIndex))}
+        {hyphenateHandbookText(text.substring(currentIndex))}
       </Text>
     );
   }
   
-  return elements.length > 0 ? elements : hyphenateItalianText(text);
+  return elements.length > 0 ? elements : hyphenateHandbookText(text);
 };
 
 const LOCAL_IMAGES: { [key: string]: any } = {
@@ -988,9 +897,10 @@ export default function HandbookReaderScreen() {
 
   // Helper to split a block by markdown images and render them as actual components
   const renderBlock = (blockText: string, blockIdx: number, fontSize: number) => {
-    const isWestern = !/[\u4e00-\u9fa5]/.test(blockText);
+    const reflowedText = normalizeHandbookSoftBreaks(blockText);
+    const isWestern = !/[\u4e00-\u9fa5]/.test(reflowedText);
     const textLetterSpacing = isWestern ? 0 : LETTER_SPACINGS[letterSpacingIndex].val;
-    const textAlignStyle = isWestern ? 'left' : 'justify';
+    const textAlignStyle = 'justify';
 
     const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
     const parts: React.ReactNode[] = [];
@@ -998,15 +908,16 @@ export default function HandbookReaderScreen() {
     let match;
     let subIdx = 0;
     
-    while ((match = imageRegex.exec(blockText)) !== null) {
+    while ((match = imageRegex.exec(reflowedText)) !== null) {
       const matchIndex = match.index;
       
       // 1. Add text before the image
       if (matchIndex > lastIndex) {
-        const textBefore = blockText.substring(lastIndex, matchIndex).trim();
+        const fragment = reflowedText.substring(lastIndex, matchIndex);
+        const textBefore = lastIndex === 0 ? fragment.trimEnd() : fragment.trim();
         if (textBefore) {
           parts.push(
-            <Text key={`text-${blockIdx}-${subIdx++}`} selectable={true} style={[styles.paragraph, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].val, letterSpacing: textLetterSpacing, textAlign: textAlignStyle, marginBottom: fontSize * 0.6 }]}>
+            <Text {...HANDBOOK_TEXT_BREAK_PROPS} key={`text-${blockIdx}-${subIdx++}`} selectable={true} style={[styles.paragraph, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].val, letterSpacing: textLetterSpacing, textAlign: textAlignStyle, marginBottom: fontSize * 0.6 }]}>
               {parseInlineStyles(textBefore, fontSize, handleInternalLinkPress)}
             </Text>
           );
@@ -1044,11 +955,12 @@ export default function HandbookReaderScreen() {
     }
     
     // 3. Add remaining text after the last image
-    if (lastIndex < blockText.length) {
-      const textAfter = blockText.substring(lastIndex).trim();
+    if (lastIndex < reflowedText.length) {
+      const fragment = reflowedText.substring(lastIndex);
+      const textAfter = lastIndex === 0 ? fragment.trimEnd() : fragment.trim();
       if (textAfter) {
         parts.push(
-          <Text key={`text-${blockIdx}-${subIdx++}`} selectable={true} style={[styles.paragraph, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].val, letterSpacing: textLetterSpacing, textAlign: textAlignStyle, marginBottom: fontSize * 0.6 }]}>
+          <Text {...HANDBOOK_TEXT_BREAK_PROPS} key={`text-${blockIdx}-${subIdx++}`} selectable={true} style={[styles.paragraph, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].val, letterSpacing: textLetterSpacing, textAlign: textAlignStyle, marginBottom: fontSize * 0.6 }]}>
             {parseInlineStyles(textAfter, fontSize, handleInternalLinkPress)}
           </Text>
         );
@@ -1100,8 +1012,8 @@ export default function HandbookReaderScreen() {
     // Normalize carriage returns before parsing Markdown blocks.
     const normalizedBody = currentChapter.content_body.replace(/\r\n/g, '\n');
     const renderStandardBlocks = (markdown: string) => markdown.split(/\n\s*\n/).map((block, idx) => {
-      const trimmedBlock = block.trim();
-      if (!trimmedBlock) {
+      const trimmedBlock = block.trimEnd();
+      if (!trimmedBlock.trim()) {
         return null;
       }
 
@@ -1177,11 +1089,11 @@ export default function HandbookReaderScreen() {
                 const text = t.substring(2);
                 const isWesternList = !/[\u4e00-\u9fa5]/.test(text);
                 const listLetterSpacing = isWesternList ? 0 : LETTER_SPACINGS[letterSpacingIndex].val;
-                const listAlign = isWesternList ? 'left' : 'justify';
+                const listAlign = 'justify';
                 return (
                   <View key={lIdx} style={[styles.listItem, { marginBottom: fontSize * 0.25 }]}>
                     <Text style={[styles.bullet, { fontSize: fontSize, color: selectedTheme.textColor }]}>•</Text>
-                    <Text selectable={true} style={[styles.listText, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].listValue, letterSpacing: listLetterSpacing, textAlign: listAlign }]}>
+                    <Text {...HANDBOOK_TEXT_BREAK_PROPS} selectable={true} style={[styles.listText, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].listValue, letterSpacing: listLetterSpacing, textAlign: listAlign }]}>
                       {parseInlineStyles(text, fontSize, handleInternalLinkPress)}
                     </Text>
                   </View>
@@ -1192,11 +1104,11 @@ export default function HandbookReaderScreen() {
               const text = t.substring(dotIdx + 1).trim();
               const isWesternList = !/[\u4e00-\u9fa5]/.test(text);
               const listLetterSpacing = isWesternList ? 0 : LETTER_SPACINGS[letterSpacingIndex].val;
-              const listAlign = isWesternList ? 'left' : 'justify';
+              const listAlign = 'justify';
               return (
                 <View key={lIdx} style={[styles.listItem, { marginBottom: fontSize * 0.25 }]}>
                   <Text style={[styles.bullet, { fontSize: fontSize, color: selectedTheme.textColor, fontWeight: 'bold' }]}>{num}</Text>
-                  <Text selectable={true} style={[styles.listText, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].listValue, letterSpacing: listLetterSpacing, textAlign: listAlign }]}>
+                  <Text {...HANDBOOK_TEXT_BREAK_PROPS} selectable={true} style={[styles.listText, { fontSize: fontSize, color: selectedTheme.textColor, lineHeight: fontSize * LINE_SPACINGS[lineSpacingIndex].listValue, letterSpacing: listLetterSpacing, textAlign: listAlign }]}>
                     {parseInlineStyles(text, fontSize, handleInternalLinkPress)}
                   </Text>
                 </View>
