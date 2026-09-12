@@ -1,0 +1,7 @@
+{
+  "project_dir": "G:\\学联\\UnibostudetsC-main",
+  "env_file": "I:\\PARTTIME\\AG\\student-app\\.env",
+  "asset_overrides": {
+    "https://avxzgaozbfeqttmhmlld.supabase.co/storage/v1/object/public/handbook_assets/figures/asscubo.png.png": "bundled-assets/asscubo.png"
+  }
+}
