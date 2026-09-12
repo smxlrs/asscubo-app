@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { serializeHandbookTable } from '../lib/handbookTable';
+import { HandbookTable, serializeHandbookTable } from '../lib/handbookTable';
 
-export function HandbookTableComposer({ onCancel, onInsert }: { onCancel: () => void; onInsert: (markdown: string) => void }) {
+export function HandbookTableComposer({ onCancel, onInsert, initialTable }: {
+  onCancel: () => void;
+  onInsert: (markdown: string) => void;
+  initialTable?: HandbookTable | null;
+}) {
   const { colors } = useTheme();
-  const [columns, setColumns] = useState(3);
-  const [rows, setRows] = useState(3);
-  const [cells, setCells] = useState<string[][]>([]);
+  const [columns, setColumns] = useState(initialTable?.headers.length || 3);
+  const [rows, setRows] = useState(initialTable?.rows.length || 3);
+  const [cells, setCells] = useState<string[][]>(() => initialTable ? [initialTable.headers, ...initialTable.rows] : []);
   const update = (r: number, c: number, text: string) => setCells(previous => {
     const next = previous.map(row => [...row]);
     next[r] ||= []; next[r][c] = text; return next;
@@ -16,7 +20,7 @@ export function HandbookTableComposer({ onCancel, onInsert }: { onCancel: () => 
   return <Modal visible transparent animationType="slide" onRequestClose={onCancel}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'center', padding: 18, backgroundColor: 'rgba(0,0,0,0.45)' }}>
       <View style={{ maxHeight: '90%', backgroundColor: colors.surface, borderRadius: 12, padding: 16 }}>
-        <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>插入表格</Text>
+        <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>{initialTable ? '编辑表格' : '插入表格'}</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginVertical: 12 }}>
           {([{ label: '列数', count: columns, set: setColumns, max: 6 }, { label: '内容行数', count: rows, set: setRows, max: 20 }]).map(control =>
             <View key={control.label} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -39,7 +43,7 @@ export function HandbookTableComposer({ onCancel, onInsert }: { onCancel: () => 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <Pressable onPress={onCancel} style={{ padding: 14 }}><Text style={{ color: colors.textSecondary }}>取消</Text></Pressable>
           <Pressable onPress={() => onInsert(serializeHandbookTable(rowValues(0), Array.from({ length: rows }, (_, r) => rowValues(r + 1))))} style={{ padding: 14 }}>
-            <Text style={{ color: colors.primaryLight }}>插入正文</Text>
+            <Text style={{ color: colors.primaryLight }}>{initialTable ? '保存表格' : '插入正文'}</Text>
           </Pressable>
         </View>
       </View>

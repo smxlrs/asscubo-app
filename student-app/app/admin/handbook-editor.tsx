@@ -41,6 +41,7 @@ export default function HandbookEditorScreen() {
   const [parentModalVisible, setParentModalVisible] = useState(false);
   const [deleteConfirmationVisible, setDeleteConfirmationVisible] = useState(false);
   const [initialSnapshot, setInitialSnapshot] = useState('');
+  const [previewing, setPreviewing] = useState(false);
 
   const roots = useMemo(() => allChapters
     .filter((chapter) => !chapter.parent_id && chapter.id !== chapterId)
@@ -107,9 +108,17 @@ export default function HandbookEditorScreen() {
       router.back();
       return;
     }
-    Alert.alert('放弃修改', '尚未保存的修改将会丢失。', [
-      { text: '继续编辑', style: 'cancel' },
-      { text: '放弃修改', style: 'destructive', onPress: () => router.back() },
+    Alert.alert('改动未保存，是否确认退出？', undefined, [
+      { text: '返回编辑', style: 'cancel' },
+      { text: '退出', style: 'destructive', onPress: () => router.back() },
+    ]);
+  };
+
+  const confirmSave = () => {
+    if (!isDirty || saving || uploading) return;
+    Alert.alert('确认保存', '是否保存当前改动？', [
+      { text: '取消', style: 'cancel' },
+      { text: '保存', onPress: saveChapter },
     ]);
   };
 
@@ -216,8 +225,15 @@ export default function HandbookEditorScreen() {
         <Pressable style={styles.headerButton} onPress={cancelEditing}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.primaryLight} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{chapterId ? '编辑手册章节' : '新增手册章节'}</Text>
-        <View style={styles.headerButton} />
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{chapterId ? '编辑' : '新增手册章节'}</Text>
+        <View style={styles.headerActions}>
+          <Pressable accessibilityRole="button" accessibilityLabel={previewing ? '返回编辑' : '预览'} onPress={() => setPreviewing(value => !value)} style={styles.headerButton}>
+            <MaterialCommunityIcons name="swap-horizontal" size={27} color={previewing ? colors.primaryLight : colors.textSecondary} />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={isDirty ? '保存改动' : '没有待保存改动'} disabled={!isDirty || saving || uploading} onPress={confirmSave} style={styles.headerButton}>
+            <MaterialCommunityIcons name="content-save-outline" size={24} color={isDirty ? colors.primaryLight : colors.textMuted} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -226,6 +242,7 @@ export default function HandbookEditorScreen() {
           style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
           value={title}
           onChangeText={setTitle}
+          editable={!previewing}
           placeholder="输入章节标题"
           placeholderTextColor={colors.textMuted}
         />
@@ -233,7 +250,7 @@ export default function HandbookEditorScreen() {
         <View style={styles.twoColumns}>
           <View style={styles.column}>
             <FieldLabel label="所属目录" colors={colors} />
-            <Pressable style={[styles.select, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => setParentModalVisible(true)}>
+            <Pressable disabled={previewing} style={[styles.select, { backgroundColor: colors.surface, borderColor: colors.border, opacity: previewing ? 0.65 : 1 }]} onPress={() => setParentModalVisible(true)}>
               <Text style={[styles.selectText, { color: colors.textPrimary }]} numberOfLines={1}>{parentTitle}</Text>
               <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textSecondary} />
             </Pressable>
@@ -244,13 +261,14 @@ export default function HandbookEditorScreen() {
               style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
               value={orderIndex}
               onChangeText={setOrderIndex}
+              editable={!previewing}
               keyboardType="number-pad"
             />
           </View>
         </View>
 
         <FieldLabel label="Markdown 正文" colors={colors} />
-        <HandbookMarkdownEditor value={contentBody} onChange={setContentBody} onBusyChange={setUploading} chapters={allChapters} disabled={saving} />
+        <HandbookMarkdownEditor value={contentBody} onChange={setContentBody} onBusyChange={setUploading} chapters={allChapters} disabled={saving} preview={previewing} />
 
         <View style={[styles.publishRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.publishCopy}>
@@ -260,25 +278,15 @@ export default function HandbookEditorScreen() {
           <Switch
             value={published}
             onValueChange={setPublished}
+            disabled={previewing}
             trackColor={{ false: colors.border, true: activeSwitchColor }}
             thumbColor={published ? '#FFFFFF' : inactiveSwitchThumb}
             ios_backgroundColor={colors.border}
           />
         </View>
 
-        <View style={styles.formActions}>
-          <Pressable style={[styles.cancelButton, { borderColor: colors.border }]} disabled={saving} onPress={cancelEditing}>
-            <Text style={[styles.cancelText, { color: colors.textPrimary }]}>取消</Text>
-          </Pressable>
-          <Pressable style={[styles.saveButton, { backgroundColor: colors.primary, opacity: uploading ? 0.5 : 1 }]} disabled={saving || uploading} onPress={saveChapter}>
-            {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : (
-              <><MaterialCommunityIcons name="content-save-outline" size={20} color="#FFFFFF" /><Text style={styles.saveText}>保存</Text></>
-            )}
-          </Pressable>
-        </View>
-
         {chapterId && (
-          <Pressable style={[styles.deleteButton, { borderColor: '#EF4444' }]} disabled={saving || uploading} onPress={deleteChapter}>
+          <Pressable style={[styles.deleteButton, { borderColor: '#EF4444', opacity: previewing ? 0.5 : 1 }]} disabled={saving || uploading || previewing} onPress={deleteChapter}>
             <MaterialCommunityIcons name="delete-outline" size={20} color="#EF4444" />
             <Text style={styles.deleteText}>删除章节</Text>
           </Pressable>
@@ -327,7 +335,8 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   header: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1 },
   headerButton: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700' },
+  headerTitle: { position: 'absolute', left: 62, right: 110, fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  headerActions: { flexDirection: 'row' },
   content: { padding: 16, paddingBottom: 40 },
   label: { fontSize: 13, fontWeight: '700', marginTop: 15, marginBottom: 7 },
   input: { height: 44, borderWidth: 1, borderRadius: 7, paddingHorizontal: 12, fontSize: 15 },
@@ -340,11 +349,6 @@ const styles = StyleSheet.create({
   publishCopy: { flex: 1 },
   publishTitle: { fontSize: 15, fontWeight: '700' },
   publishDescription: { fontSize: 11, marginTop: 3 },
-  formActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
-  cancelButton: { flex: 1, height: 46, borderWidth: 1, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { fontSize: 15, fontWeight: '700' },
-  saveButton: { flex: 1, height: 46, borderRadius: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  saveText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   deleteButton: { height: 46, borderWidth: 1, borderRadius: 7, marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   deleteText: { color: '#EF4444', fontSize: 15, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },

@@ -1,30 +1,48 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { showCustomAlert } from '../lib/customAlert';
 import { HandbookTableComposer } from './HandbookTableComposer';
+import { HandbookTable, parseHandbookTable } from '../lib/handbookTable';
+import { HandbookMarkdownPreview } from './HandbookMarkdownPreview';
 
-export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters, disabled = false }: {
+export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters, disabled = false, preview = false }: {
   value: string; onChange: (value: string) => void; onBusyChange: (busy: boolean) => void;
   chapters: { id: string; title: string; is_published: boolean }[];
   disabled?: boolean;
+  preview?: boolean;
 }) {
   const { colors } = useTheme();
   const input = useRef<TextInput>(null);
+  const contentScroll = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const restoreScroll = useRef(false);
   const selection = useRef({ start: 0, end: 0 });
   const [cursor, setCursor] = useState<{ start: number; end: number }>();
   const [busy, setBusy] = useState(false);
   const locked = useRef(false);
   const [tableVisible, setTableVisible] = useState(false);
   const tableAnchor = useRef(0);
+  const tableRange = useRef<{ start: number; end: number } | null>(null);
+  const [tableInitial, setTableInitial] = useState<HandbookTable | null>(null);
   const [linkMode, setLinkMode] = useState<'web' | 'chapter' | 'map' | 'email' | 'phone' | null>(null);
   const [linkLabel, setLinkLabel] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [query, setQuery] = useState('');
   const [linkError, setLinkError] = useState('');
+  useEffect(() => {
+    restoreScroll.current = true;
+    const timer = setTimeout(() => contentScroll.current?.scrollTo({ y: scrollY.current, animated: false }), 30);
+    if (!preview) {
+      setCursor({ ...selection.current });
+      setTimeout(() => input.current?.focus(), 0);
+    }
+    return () => clearTimeout(timer);
+  }, [preview]);
   const openLink = () => {
     if (disabled) return;
     setLinkLabel(value.slice(selection.current.start, selection.current.end));
@@ -100,6 +118,21 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
     replace(start, end, text, start + 19, start + 23);
   };
 
+  const openTable = () => {
+    if (disabled) return;
+    const { start, end } = selection.current;
+    const blockStartMarker = value.lastIndexOf('\n\n', Math.max(0, start - 1));
+    const blockStart = blockStartMarker < 0 ? 0 : blockStartMarker + 2;
+    const blockEndMarker = value.indexOf('\n\n', end);
+    const blockEnd = blockEndMarker < 0 ? value.length : blockEndMarker;
+    const parsed = parseHandbookTable(value.slice(blockStart, blockEnd));
+
+    tableAnchor.current = start;
+    tableRange.current = parsed ? { start: blockStart, end: blockEnd } : null;
+    setTableInitial(parsed);
+    setTableVisible(true);
+  };
+
   const replace = (start: number, end: number, text: string, selectedStart: number, selectedEnd: number) => {
     onChange(value.slice(0, start) + text + value.slice(end));
     const next = { start: selectedStart, end: selectedEnd };
@@ -161,50 +194,68 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
     }
   };
   return (
-    <View>
-      <View pointerEvents={disabled ? 'none' : 'auto'} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8, opacity: disabled ? 0.5 : 1 }}>
-        {[['加粗', '**'], ['斜体', '*'], ['删除线', '~~'], ['行内代码', '`'], ['H1', '# '], ['H2', '## '], ['H3', '### ']].map(([label, marker]) => (
-          <Pressable key={label} accessibilityRole="button" accessibilityLabel={label} disabled={busy}
-            onPress={() => format(marker, marker.startsWith('#'))}
-            style={{ padding: 12, borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
-            <Text style={{ color: colors.textPrimary }}>{label}</Text>
-          </Pressable>
-        ))}
-        {([['无序列表', 'bullet'], ['有序列表', 'number'], ['引用', 'quote'], ['分隔线', 'divider']] as const).map(([label, kind]) => (
-          <Pressable key={kind} accessibilityRole="button" disabled={busy} onPress={() => blockFormat(kind)}
-            style={{ padding: 12, borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
-            <Text style={{ color: colors.textPrimary }}>{label}</Text>
-          </Pressable>
-        ))}
-        <Pressable accessibilityRole="button" disabled={busy} onPress={openLink} style={{ padding: 12, backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
-          <Text style={{ color: colors.primaryLight }}>添加链接</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" disabled={busy || disabled} onPress={() => {
-          tableAnchor.current = Math.min(selection.current.start, value.length);
-          setTableVisible(true);
-        }} style={{ padding: 12, backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
-          <Text style={{ color: colors.primaryLight }}>插入表格</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="插入收起区块" disabled={busy} onPress={insertDetails}
-          style={{ padding: 12, backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
-          <Text style={{ color: colors.primaryLight }}>收起区块</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" disabled={busy} onPress={upload}
-          style={{ padding: 12, borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
-          {busy ? <ActivityIndicator color={colors.primary} /> : <Text style={{ color: colors.primaryLight }}>上传图片</Text>}
-        </Pressable>
-      </View>
-      <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>选中文字设置格式，或在光标处插入。收起区块会把选中内容放入可展开区域。</Text>
+    <View style={{ height: 520, position: 'relative', paddingBottom: preview ? 0 : 76 }}>
+      <ScrollView ref={contentScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}
+        onScroll={event => { scrollY.current = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={16}
+        onContentSizeChange={() => {
+          if (!restoreScroll.current) return;
+          restoreScroll.current = false;
+          contentScroll.current?.scrollTo({ y: scrollY.current, animated: false });
+        }}>
+      {preview ? <HandbookMarkdownPreview value={value} /> : <>
       <TextInput ref={input} value={value} editable={!busy && !disabled} multiline textAlignVertical="top"
         selection={cursor} onSelectionChange={({ nativeEvent }) => { selection.current = nativeEvent.selection; setCursor(undefined); }}
         onChangeText={onChange} placeholder="输入手册正文" placeholderTextColor={colors.textMuted}
         autoCapitalize="none" autoCorrect={false}
-        style={{ minHeight: 360, borderWidth: 1, borderRadius: 7, padding: 12, fontSize: 14, lineHeight: 21,
+        style={{ minHeight: 430, borderWidth: 1, borderRadius: 7, padding: 12, fontSize: 14, lineHeight: 21,
           backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }} />
-      {tableVisible && <HandbookTableComposer onCancel={() => setTableVisible(false)} onInsert={markdown => {
-        const start = tableAnchor.current;
-        const text = `\n\n${markdown}\n\n`;
-        replace(start, start, text, start + text.length, start + text.length);
+      </>}
+      </ScrollView>
+      {!preview && <View pointerEvents={disabled ? 'none' : 'auto'} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 68, opacity: disabled ? 0.5 : 1,
+        backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 8 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, gap: 7 }} keyboardShouldPersistTaps="handled">
+        {[['加粗', '**', 'format-bold'], ['斜体', '*', 'format-italic'], ['删除线', '~~', 'format-strikethrough'], ['行内代码', '`', 'code-tags'], ['H1', '# ', 'format-header-1'], ['H2', '## ', 'format-header-2'], ['H3', '### ', 'format-header-3']].map(([label, marker, icon]) => (
+          <Pressable key={label} accessibilityRole="button" accessibilityLabel={label} disabled={busy}
+            onPress={() => format(marker, marker.startsWith('#'))}
+            style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
+            <MaterialCommunityIcons name={icon as any} size={22} color={colors.textPrimary} />
+          </Pressable>
+        ))}
+        {([['无序列表', 'bullet', 'format-list-bulleted'], ['有序列表', 'number', 'format-list-numbered'], ['引用', 'quote', 'format-quote-close'], ['分隔线', 'divider', 'minus']] as const).map(([label, kind, icon]) => (
+          <Pressable key={kind} accessibilityRole="button" disabled={busy} onPress={() => blockFormat(kind)}
+            accessibilityLabel={label}
+            style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
+            <MaterialCommunityIcons name={icon} size={22} color={colors.textPrimary} />
+          </Pressable>
+        ))}
+        <Pressable accessibilityRole="button" accessibilityLabel="添加链接" disabled={busy} onPress={openLink} style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
+          <MaterialCommunityIcons name="link-variant" size={22} color={colors.primaryLight} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="插入或编辑表格" disabled={busy || disabled} onPress={openTable}
+          style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
+          <MaterialCommunityIcons name="table" size={22} color={colors.primaryLight} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="插入收起区块" disabled={busy} onPress={insertDetails}
+          style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated, borderRadius: 7 }}>
+          <MaterialCommunityIcons name="chevron-down-box" size={22} color={colors.primaryLight} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="上传图片" disabled={busy} onPress={upload}
+          style={{ width: 48, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: colors.surfaceElevated }}>
+          {busy ? <ActivityIndicator color={colors.primary} /> : <MaterialCommunityIcons name="image-plus" size={22} color={colors.primaryLight} />}
+        </Pressable>
+      </ScrollView></View>}
+      {!preview && <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 8 }}>选中文字设置格式，或在光标处插入。工具栏可左右滑动。</Text>}
+      {tableVisible && <HandbookTableComposer initialTable={tableInitial} onCancel={() => setTableVisible(false)} onInsert={markdown => {
+        const range = tableRange.current;
+        if (range) {
+          replace(range.start, range.end, markdown, range.start, range.start + markdown.length);
+        } else {
+          const start = tableAnchor.current;
+          const text = `\n\n${markdown}\n\n`;
+          replace(start, start, text, start + text.length, start + text.length);
+        }
+        tableRange.current = null;
+        setTableInitial(null);
         setTableVisible(false);
       }} />}
       <Modal visible={linkMode !== null} transparent animationType="slide" onRequestClose={() => setLinkMode(null)}>
