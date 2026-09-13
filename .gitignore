@@ -23,6 +23,7 @@ supabase/.temp/
 
 # Local dependencies and tool state
 /node_modules/
+/tools/handbook-sync/
 /.agents/
 /__pycache__/
 *.py[cod]
