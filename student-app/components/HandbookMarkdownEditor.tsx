@@ -80,6 +80,63 @@ const normalizeWebUrl = (text: string): string | null => {
   }
 };
 
+type LinkMode = 'web' | 'chapter' | 'map' | 'email' | 'phone';
+
+const normalizeEmail = (text: string): string | null => {
+  const candidate = text.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate) ? candidate : null;
+};
+
+const normalizePhone = (text: string): string | null => {
+  const candidate = text.trim();
+  const compact = candidate.replace(/[()\s-]/g, '');
+  return /^[+]?\d{5,15}$/.test(compact) && /\d/.test(candidate) ? candidate : null;
+};
+
+const extractMapSearchText = (text: string): string | null => {
+  const candidate = text.trim();
+  if (!candidate) return null;
+  if (/^map:\/\//i.test(candidate)) {
+    try { return decodeURIComponent(candidate.slice(6)); } catch { return candidate.slice(6); }
+  }
+  try {
+    const parsed = new URL(candidate);
+    const host = parsed.hostname.toLowerCase();
+    const isMapUrl = host.includes('google.') && (parsed.pathname.includes('/maps') || parsed.hostname.startsWith('maps.'))
+      || host.includes('apple.') && parsed.pathname.includes('maps')
+      || host === 'maps.apple.com' || host.includes('waze.com');
+    if (!isMapUrl) return null;
+    for (const key of ['q', 'query', 'destination', 'daddr', 'll']) {
+      const value = parsed.searchParams.get(key);
+      if (value) return value;
+    }
+    return decodeURIComponent(parsed.pathname.replace(/^\/maps?\/?/i, '').replace(/^\/+/, '').replace(/\+/g, ' ')) || candidate;
+  } catch {
+    return null;
+  }
+};
+
+const looksLikeMapLocation = (text: string): boolean => {
+  const candidate = text.trim();
+  if (!candidate || candidate.length < 3 || /\n/.test(candidate)) return false;
+  if (/[\u8def\u8857\u53f7\u5df7\u5927\u5b66\u8f66\u7ad9\u673a\u573a]/.test(candidate)) return true;
+  return /\b(via|viale|piazza|corso|strada|street|road|avenue|square|station|airport)\b/i.test(candidate)
+    || (/\d/.test(candidate) && /[,،]/.test(candidate));
+};
+
+const detectLinkInput = (text: string): { mode: LinkMode; value: string } | null => {
+  const candidate = text.trim();
+  const email = normalizeEmail(candidate);
+  if (email) return { mode: 'email', value: email };
+  const phone = normalizePhone(candidate);
+  if (phone) return { mode: 'phone', value: phone };
+  const mapSearch = extractMapSearchText(candidate);
+  if (mapSearch) return { mode: 'map', value: mapSearch };
+  if (looksLikeMapLocation(candidate)) return { mode: 'map', value: candidate };
+  const web = normalizeWebUrl(candidate);
+  return web ? { mode: 'web', value: web } : null;
+};
+
 const findLinkAtSelection = (markdown: string, start: number, end: number) => {
   const links = /\[([^\]\n]+)\]\(([^)\n]+)\)/g;
   let match: RegExpExecArray | null;
@@ -121,7 +178,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   const tableAnchor = useRef(0);
   const tableRange = useRef<{ start: number; end: number } | null>(null);
   const [tableInitial, setTableInitial] = useState<HandbookTable | null>(null);
-  const [linkMode, setLinkMode] = useState<'web' | 'chapter' | 'map' | 'email' | 'phone' | null>(null);
+  const [linkMode, setLinkMode] = useState<LinkMode | null>(null);
   const [linkLabel, setLinkLabel] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [query, setQuery] = useState('');
@@ -151,12 +208,12 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
       : { start: trimmedStart, end: trimmedEnd };
     const selected = existingLink ? value.slice(existingLink.start, existingLink.end) : value.slice(trimmedStart, trimmedEnd);
     const label = existingLink?.label ?? selected;
-    const detectedUrl = normalizeWebUrl(existingLink?.url ?? selected);
+    const detected = detectLinkInput(existingLink?.url ?? selected);
     setLinkLabel(label);
-    setLinkUrl(detectedUrl ?? '');
+    setLinkUrl(detected?.value ?? '');
     setQuery(''); setLinkError('');
     Keyboard.dismiss();
-    requestAnimationFrame(() => setLinkMode('web'));
+    requestAnimationFrame(() => setLinkMode(detected?.mode ?? 'web'));
   };
   const closeLink = () => {
     setLinkMode(null);
