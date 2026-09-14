@@ -1,0 +1,320 @@
+name: 正式发布 (iOS + Android)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: '打包平台'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+      profile:
+        description: '打包配置'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+      version:
+        description: '版本号（如 1.0.1，填写后自动创建 GitHub Release）'
+        required: false
+        default: ''
+
+  workflow_call:
+    inputs:
+      platform:
+        required: true
+        type: string
+      profile:
+        required: true
+        type: string
+      version:
+        required: false
+        type: string
+
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    name: EAS Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 需要 write 权限才能创建 Release
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v5
+        with:
+          # Required by the version persistence step. checkout removes the
+          # temporary credential again in its post-job cleanup.
+          persist-credentials: true
+          fetch-depth: 1
+          submodules: false
+
+      - name: 🔍 Debug git & environment
+        run: |
+          echo "=== git version ==="
+          git --version
+          echo "=== workspace ==="
+          ls -la $GITHUB_WORKSPACE
+
+      - name: 🟢 Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: student-app/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: student-app
+        run: npm ci --legacy-peer-deps
+
+      - name: 🔧 Install EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: 🔑 Verify Expo login
+        working-directory: student-app
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas whoami
+
+      - name: 🌍 Create .env
+        working-directory: student-app
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" > .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+
+      - name: 🎯 Set platform, profile & version
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "platform=all"       >> $GITHUB_OUTPUT
+            echo "profile=production" >> $GITHUB_OUTPUT
+            # 从 tag 提取版本号，如 refs/tags/v1.0.1 → 1.0.1
+            TAG="${{ github.ref_name }}"
+            VER="${TAG#v}"
+          else
+            echo "platform=${{ inputs.platform }}" >> $GITHUB_OUTPUT
+            echo "profile=${{ inputs.profile }}"   >> $GITHUB_OUTPUT
+            VER="${{ inputs.version }}"
+            if [ -z "$VER" ]; then
+              # Increment the final component while preserving four-part versions.
+              # Examples: 2.0 -> 2.0.1, 2.0.1 -> 2.0.2, 1.0.0.73 -> 1.0.0.74.
+              VER=$(node -e "
+                const fs = require('fs');
+                const current = JSON.parse(fs.readFileSync('student-app/app.json', 'utf8')).expo.version;
+                if (!/^\\d+(\\.\\d+)+$/.test(current)) process.exit(1);
+                const parts = current.split('.').map(Number);
+                while (parts.length < 3) parts.push(0);
+                parts[parts.length - 1] += 1;
+                console.log(parts.join('.'));
+              ")
+            fi
+          fi
+
+          if ! printf '%s' "$VER" | grep -Eq '^[0-9]+(\.[0-9]+){1,3}$'; then
+            echo "Invalid version: $VER (expected 2 to 4 numeric components)" >&2
+            exit 1
+          fi
+
+          # Keep app metadata aligned and ensure the selected version is the one built.
+          SELECTED_VERSION="$VER" BUILD_EVENT="${{ github.event_name }}" BUILD_NUMBER="${{ github.run_number }}" node -e "
+            const fs = require('fs');
+            const version = process.env.SELECTED_VERSION;
+            const appJson = JSON.parse(fs.readFileSync('student-app/app.json', 'utf8'));
+            const packageJson = JSON.parse(fs.readFileSync('student-app/package.json', 'utf8'));
+            const packageLock = JSON.parse(fs.readFileSync('student-app/package-lock.json', 'utf8'));
+            appJson.expo.version = version;
+            if (process.env.BUILD_EVENT === 'push') {
+              appJson.expo.android ??= {};
+              appJson.expo.android.versionCode = Number(process.env.BUILD_NUMBER);
+            }
+            packageJson.version = version;
+            packageLock.version = version;
+            packageLock.packages[''].version = version;
+            fs.writeFileSync('student-app/app.json', JSON.stringify(appJson, null, 2) + '\n');
+            fs.writeFileSync('student-app/package.json', JSON.stringify(packageJson, null, 2) + '\n');
+            fs.writeFileSync('student-app/package-lock.json', JSON.stringify(packageLock, null, 2) + '\n');
+          "
+          echo "version=${VER}" >> $GITHUB_OUTPUT
+          echo "create_release=true" >> $GITHUB_OUTPUT
+
+      - name: ☕ Setup JDK 17
+        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: 🔧 Configure Gradle Memory
+        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+UseG1GC" > ~/.gradle/gradle.properties
+
+      # ── Android ──────────────────────────────────────────────
+      - name: 🤖 Build Android on EAS
+        if: (steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all') && github.event_name != 'workflow_call'
+        working-directory: student-app
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          # EAS 在 Expo 的云端构建；GitHub 只发起、等待并下载构建产物。
+          eas build \
+            --platform android \
+            --profile ${{ steps.vars.outputs.profile }} \
+            --non-interactive \
+            --wait \
+            --json > /tmp/android_build.json
+
+          BUILD_URL=$(node -e "
+            const build = JSON.parse(require('fs').readFileSync('/tmp/android_build.json', 'utf8'));
+            const result = Array.isArray(build) ? build[0] : build;
+            console.log(result?.artifacts?.buildUrl || '');
+          ")
+
+          if [ -z "$BUILD_URL" ]; then
+            echo "EAS build completed without an Android artifact URL"
+            cat /tmp/android_build.json
+            exit 1
+          fi
+
+          if [ "${{ steps.vars.outputs.profile }}" = "production" ]; then
+            ARTIFACT_NAME="boxue.aab"
+          else
+            ARTIFACT_NAME="boxue.apk"
+          fi
+
+          curl --fail --location --retry 3 --output "$ARTIFACT_NAME" "$BUILD_URL"
+          echo "Android artifact downloaded from EAS: $ARTIFACT_NAME"
+
+      - name: 🤖 Build Android on GitHub runner
+        if: steps.vars.outputs.platform == 'android' && github.event_name == 'workflow_call'
+        working-directory: student-app
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_LOCAL_BUILD_ARTIFACTS_DIR: build-artifacts
+        run: |
+          # Keep this branch identical to the original GitHub Runner build.
+          eas build \
+            --platform android \
+            --profile ${{ steps.vars.outputs.profile }} \
+            --local \
+            --non-interactive
+
+          echo "=== Local Build Artifacts ==="
+          ls -la build-artifacts/
+
+          APK_FILE=$(find build-artifacts -name "*.apk" | head -n 1)
+          AAB_FILE=$(find build-artifacts -name "*.aab" | head -n 1)
+
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" boxue.apk
+            echo "Android APK created: boxue.apk"
+          elif [ -n "$AAB_FILE" ]; then
+            cp "$AAB_FILE" boxue.aab
+            echo "Android AAB created: boxue.aab"
+          else
+            echo "No build artifact (.apk or .aab) found!"
+            exit 1
+          fi
+
+      - name: 📤 Upload APK/AAB Artifact
+        if: steps.vars.outputs.platform == 'android' || steps.vars.outputs.platform == 'all'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-${{ steps.vars.outputs.profile }}-build${{ github.run_number }}
+          path: |
+            student-app/boxue.apk
+            student-app/boxue.aab
+          if-no-files-found: warn
+          retention-days: 30
+
+      # ── iOS ──────────────────────────────────────────────────
+      - name: 🍎 Build iOS
+        if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
+        working-directory: student-app
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build \
+            --platform ios \
+            --profile ${{ steps.vars.outputs.profile }} \
+            --non-interactive \
+            --wait \
+            --json > /tmp/ios_build.json
+
+          BUILD_URL=$(python3 << 'PYEOF'
+          import json, sys
+          try:
+              data = json.load(open('/tmp/ios_build.json'))
+              item = data[0] if isinstance(data, list) else data
+              url = (item.get('artifacts') or {}).get('buildUrl') or item.get('url', '')
+              if url: print(url)
+          except Exception as e:
+              print(f"error: {e}", file=sys.stderr)
+          PYEOF
+          )
+
+          if [ -n "$BUILD_URL" ] && [ "$BUILD_URL" != "None" ]; then
+            curl -L -f -o ios-release.ipa "$BUILD_URL"
+          fi
+
+      - name: 📤 Upload IPA Artifact
+        if: steps.vars.outputs.platform == 'ios' || steps.vars.outputs.platform == 'all'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-${{ steps.vars.outputs.profile }}-build${{ github.run_number }}
+          path: student-app/ios-release.ipa
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: 💾 Persist selected app version
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add student-app/app.json student-app/package.json student-app/package-lock.json
+          if git diff --cached --quiet; then
+            echo "Version files already contain the selected version"
+          else
+            git commit -m "chore: set app version ${{ steps.vars.outputs.version }}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      # ── GitHub Release（有版本号时自动发布）────────────────
+      - name: 🚀 Create GitHub Release
+        if: steps.vars.outputs.create_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.vars.outputs.version }}"
+          TAG="v${VERSION}"
+
+          # 整理要附加的文件
+          ASSETS=""
+          [ -f student-app/boxue.apk ]           && ASSETS="$ASSETS student-app/boxue.apk"
+          [ -f student-app/boxue.aab ]           && ASSETS="$ASSETS student-app/boxue.aab"
+          [ -f student-app/ios-release.ipa ]     && ASSETS="$ASSETS student-app/ios-release.ipa"
+
+          # 创建 Release（如果 tag 不存在则自动创建）
+          gh release create "$TAG" \
+            --title "博学 v${VERSION}" \
+            --notes "## 版本 ${VERSION}
+
+          **下载方式：**
+          - **Android** 用户：下载 \`boxue.apk\` 文件进行安装。如果是上架 Google Play，请使用 \`boxue.aab\`。
+          - **iOS** 用户：下载 \`ios-release.ipa\` 安装。
+
+          > 在 App 内「关于」页面检查更新即可。" \
+            $ASSETS \
+            2>&1 || echo "Release creation failed (tag may already exist)"
+
