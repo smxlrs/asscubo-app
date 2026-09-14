@@ -48,7 +48,11 @@ const LOCALIZED = {
     title: '博洛尼亚公交查询',
     searchTab: '搜索查询',
     mapTab: '地图查询',
-    searchTitle: '查询车辆到站',
+    searchTitle: '查询车辆',
+    nearbyTitle: '附近车站',
+    locateNearby: '点击此处获取定位权限',
+    nearbyEmpty: '附近暂无车站',
+    nearbyLoading: '正在查找附近车站...',
     fermataLabel: '数字站牌号',
     fermataPlaceholder: '如: 4306',
     filterLabel: '指定线路 (可选)',
@@ -101,7 +105,11 @@ const LOCALIZED = {
     title: '博洛尼亞公交查詢',
     searchTab: '搜索查詢',
     mapTab: '地圖查詢',
-    searchTitle: '查詢車輛到站',
+    searchTitle: '查詢車輛',
+    nearbyTitle: '附近車站',
+    locateNearby: '點擊此處獲取定位權限',
+    nearbyEmpty: '附近暫無車站',
+    nearbyLoading: '正在查找附近車站...',
     fermataLabel: '數字站牌號',
     fermataPlaceholder: '如: 4306',
     filterLabel: '指定線路 (可選)',
@@ -154,7 +162,11 @@ const LOCALIZED = {
     title: 'Bologna Bus Tracker',
     searchTab: 'Search',
     mapTab: 'Map Query',
-    searchTitle: 'Bus Arrivals',
+    searchTitle: 'Bus Search',
+    nearbyTitle: 'Nearby Stops',
+    locateNearby: 'Tap here to allow location access',
+    nearbyEmpty: 'No nearby stops found',
+    nearbyLoading: 'Finding nearby stops...',
     fermataLabel: 'Stop Code',
     fermataPlaceholder: 'e.g., 4306',
     filterLabel: 'Specific Line (Optional)',
@@ -207,7 +219,11 @@ const LOCALIZED = {
     title: 'Orari Bus Bologna',
     searchTab: 'Cerca',
     mapTab: 'Ricerca sulla mappa',
-    searchTitle: 'Arrivi Bus',
+    searchTitle: 'Cerca Bus',
+    nearbyTitle: 'Fermate vicine',
+    locateNearby: 'Tocca qui per consentire la posizione',
+    nearbyEmpty: 'Nessuna fermata nelle vicinanze',
+    nearbyLoading: 'Ricerca delle fermate vicine...',
     fermataLabel: 'Codice Fermata',
     fermataPlaceholder: 'es: 4306',
     filterLabel: 'Linea Specifica (Opzionale)',
@@ -605,6 +621,9 @@ export default function BusBoardScreen() {
   // Suggestions state
   const [suggestions, setSuggestions] = useState<BusStop[]>([]);
   const [searchingStops, setSearchingStops] = useState(false);
+  const [nearbyStops, setNearbyStops] = useState<BusStop[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'undetermined'>('undetermined');
 
   // Active stop query states
   const [activeStopCode, setActiveStopCode] = useState<string | null>(null);
@@ -737,14 +756,14 @@ export default function BusBoardScreen() {
 
   // Close Bottom Sheet smooth animation
   const closeBottomSheet = () => {
-    Animated.spring(translateY, {
+    translateY.stopAnimation();
+    lastTranslatedY.current = SHEET_HEIGHT;
+    handleCloseCard();
+    Animated.timing(translateY, {
       toValue: SHEET_HEIGHT,
-      damping: 26,
-      stiffness: 150,
+      duration: 180,
       useNativeDriver: true,
-    }).start(() => {
-      handleCloseCard();
-    });
+    }).start();
   };
 
   // Automatically reset to collapsed state when a new stop code is selected
@@ -1032,6 +1051,66 @@ export default function BusBoardScreen() {
       .map((value) => value.trim().toUpperCase().replace(/\s+/g, '')));
     return serviceAlerts.filter((alert) => alert.affected_lines.some((line) => queriedLines.has(line.trim().toUpperCase().replace(/\s+/g, ''))));
   }, [activeStopLines, allArrivals, serviceAlerts]);
+
+  const loadNearbyStops = async (latitude: number, longitude: number) => {
+    setNearbyLoading(true);
+    try {
+      // A roughly 2 km box is enough for a compact nearby-stop list; sort by
+      // actual distance so the result remains useful near the box edges.
+      const latitudeDelta = 0.02;
+      const longitudeDelta = 0.03;
+      const stops = await fetchStopsInBoundingBox(
+        latitude - latitudeDelta,
+        latitude + latitudeDelta,
+        longitude - longitudeDelta,
+        longitude + longitudeDelta,
+        200,
+      );
+      const toRadians = (value: number) => value * Math.PI / 180;
+      const distance = (stop: BusStop) => {
+        if (stop.latitude === null || stop.longitude === null) return Number.POSITIVE_INFINITY;
+        const dLat = toRadians(stop.latitude - latitude);
+        const dLon = toRadians(stop.longitude - longitude);
+        const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(toRadians(latitude)) * Math.cos(toRadians(stop.latitude)) * Math.sin(dLon / 2) ** 2;
+        return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      };
+      setNearbyStops(stops
+        .filter(stop => stop.latitude !== null && stop.longitude !== null)
+        .sort((a, b) => distance(a) - distance(b))
+        .slice(0, 3));
+    } catch (error) {
+      console.warn('Nearby stop lookup error:', error);
+      setNearbyStops([]);
+    } finally {
+      setNearbyLoading(false);
+    }
+  };
+
+  const refreshNearbyStops = async (requestPermission = false) => {
+    try {
+      let { status } = await Location.getForegroundPermissionsAsync();
+      if (requestPermission && status !== 'granted') {
+        const result = await Location.requestForegroundPermissionsAsync();
+        status = result.status;
+      }
+      setLocationPermission(status === 'granted' ? 'granted' : 'denied');
+      if (status !== 'granted') {
+        setNearbyStops([]);
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      await loadNearbyStops(location.coords.latitude, location.coords.longitude);
+    } catch (error) {
+      console.warn('Nearby location error:', error);
+      setLocationPermission('denied');
+      setNearbyStops([]);
+    }
+  };
+
+  useEffect(() => {
+    refreshNearbyStops();
+  }, []);
 
   const handleLocateUser = async () => {
     try {
@@ -1629,43 +1708,6 @@ export default function BusBoardScreen() {
               </View>
             </View>
 
-            {/* Autocomplete Dropdown */}
-            {searchingStops && (
-              <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 12 }} />
-            )}
-
-            {suggestions.length > 0 && (
-              <View style={[styles.suggestionsBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-                {suggestions.map((item) => (
-                  <Pressable
-                    key={item.stop_code}
-                    style={({ pressed }) => [
-                      styles.suggestionItem,
-                      { 
-                        borderBottomColor: colors.border,
-                        backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7') : 'transparent'
-                      }
-                    ]}
-                    onPress={() => {
-                      setStopCodeInput(item.stop_code);
-                      setStopNameInput('');
-                      setSuggestions([]);
-                      executeQuery(item.stop_code, item.stop_name);
-                    }}
-                  >
-                    <Ionicons name="bus-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.suggestionName, { color: colors.textPrimary }]} numberOfLines={1}>
-                        {item.stop_name}
-                      </Text>
-                      <Text style={{ fontSize: 11, color: colors.textMuted }}>{localized.stopCodeLabel}{item.stop_code} {item.lines ? `(${item.lines})` : ''}</Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={18} color={colors.textMuted} />
-                  </Pressable>
-                ))}
-              </View>
-            )}
-
             <View style={{ marginTop: 16 }}>
               <Pressable
                 style={({ pressed }) => [
@@ -1681,6 +1723,54 @@ export default function BusBoardScreen() {
                 <Text style={styles.actionButtonText}>{localized.searchBtn}</Text>
               </Pressable>
             </View>
+          </View>
+
+          {/* Search results stay between the query form and nearby stops. */}
+          {(searchingStops || suggestions.length > 0) && (
+            <View style={[styles.section, { paddingTop: 0 }]}>
+              {searchingStops && <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: 8 }} />}
+              {suggestions.length > 0 && (
+                <View style={[styles.suggestionsBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                  {suggestions.map((item) => (
+                    <Pressable key={item.stop_code}
+                      style={({ pressed }) => [styles.suggestionItem, { borderBottomColor: colors.border, backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.06)' : '#F2F4F7') : 'transparent' }]}
+                      onPress={() => { setStopCodeInput(item.stop_code); setStopNameInput(''); setSuggestions([]); executeQuery(item.stop_code, item.stop_name); }}>
+                      <Ionicons name="bus-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.suggestionName, { color: colors.textPrimary }]} numberOfLines={1}>{item.stop_name}</Text>
+                        <Text style={{ fontSize: 11, color: colors.textMuted }}>{localized.stopCodeLabel}{item.stop_code} {item.lines ? `(${item.lines})` : ''}</Text>
+                      </View>
+                      <MaterialIcons name="chevron-right" size={18} color={colors.textMuted} />
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Nearby stops */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{localized.nearbyTitle}</Text>
+            {locationPermission !== 'granted' ? (
+              <Pressable onPress={() => refreshNearbyStops(true)} style={[styles.nearbyPermissionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <MaterialIcons name="my-location" size={20} color={colors.primary} />
+                <Text style={[styles.nearbyPermissionText, { color: colors.primary }]}>{localized.locateNearby}</Text>
+              </Pressable>
+            ) : nearbyLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 16 }} />
+            ) : nearbyStops.length === 0 ? (
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{localized.nearbyEmpty}</Text>
+            ) : (
+              nearbyStops.map(item => (
+                <Pressable key={item.stop_code} onPress={() => executeQuery(item.stop_code, item.stop_name)} style={({ pressed }) => [styles.nearbyStopCard, { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.78 : 1 }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.suggestionName, { color: colors.textPrimary }]} numberOfLines={1}>{item.stop_name}</Text>
+                    <Text style={{ fontSize: 11, color: colors.textMuted }}>{localized.stopCodeLabel}{item.stop_code} {item.lines ? `(${item.lines})` : ''}</Text>
+                  </View>
+                  <MaterialIcons name="expand-more" size={24} color={colors.textSecondary} />
+                </Pressable>
+              ))
+            )}
           </View>
 
           {/* Live Arrivals Board */}
@@ -2147,6 +2237,28 @@ const styles = StyleSheet.create({
   suggestionName: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  nearbyPermissionCard: {
+    minHeight: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  nearbyPermissionText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  nearbyStopCard: {
+    minHeight: 68,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    marginTop: 8,
   },
   mapCard: {
     borderRadius: 16,
