@@ -280,23 +280,19 @@ jobs:
         run: |
           set -euo pipefail
           cp eas.json /tmp/eas.json.backup
-          trap 'cp /tmp/eas.json.backup eas.json; rm -f /tmp/asc-auth-key.p8 /tmp/asc-auth-key.json' EXIT
+          trap 'cp /tmp/eas.json.backup eas.json; rm -f /tmp/asc-auth-key.p8' EXIT
           printf '%s' "$ASC_PRIVATE_KEY_BASE64" | base64 --decode > /tmp/asc-auth-key.p8
           node - <<'NODE'
             const fs = require('fs');
             const eas = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
-            const key = fs.readFileSync('/tmp/asc-auth-key.p8', 'utf8');
             eas.submit ??= {};
             eas.submit.production ??= {};
             eas.submit.production.ios = {
               ascAppId: process.env.ASC_APP_ID,
-              ascApiKeyPath: '/tmp/asc-auth-key.json'
+              ascApiKeyPath: '/tmp/asc-auth-key.p8',
+              ascApiKeyIssuerId: process.env.ASC_ISSUER_ID,
+              ascApiKeyId: process.env.ASC_KEY_ID
             };
-            fs.writeFileSync('/tmp/asc-auth-key.json', JSON.stringify({
-              keyId: process.env.ASC_KEY_ID,
-              issuerId: process.env.ASC_ISSUER_ID,
-              key
-            }));
             fs.writeFileSync('eas.json', JSON.stringify(eas, null, 2) + '\n');
           NODE
           eas submit --platform ios --profile production --latest --non-interactive --wait
