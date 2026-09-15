@@ -784,44 +784,6 @@ export default function HomeScreen() {
           colors={isDark ? ['#0A0A0A', '#0A0A0A'] : ['#FFFFFF', '#FFFFFF']}
           style={styles.container}
         >
-          {/* Top Gradient Blur Mask (Status Bar Protection with Smooth Feathered Transition) */}
-          <View 
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: insets.top + 35,
-              zIndex: 100,
-              overflow: 'hidden',
-            }}
-            pointerEvents="none"
-          >
-            <LinearGradient
-              colors={
-                isDark 
-                  ? [
-                      'rgba(92, 13, 18, 0.85)', 
-                      'rgba(92, 13, 18, 0.75)', 
-                      'rgba(92, 13, 18, 0.45)', 
-                      'rgba(92, 13, 18, 0.15)', 
-                      'transparent'
-                    ] 
-                  : [
-                      'rgba(242, 226, 227, 0.85)', 
-                      'rgba(242, 226, 227, 0.75)', 
-                      'rgba(242, 226, 227, 0.45)', 
-                      'rgba(242, 226, 227, 0.15)', 
-                      'transparent'
-                    ]
-              }
-              locations={[0.0, 0.45, 0.65, 0.85, 1.0]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
-
           <StatusBar style={isDark ? "light" : "dark"} />
           <ScrollView
         showsVerticalScrollIndicator={false}
@@ -830,8 +792,9 @@ export default function HomeScreen() {
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh} 
-            tintColor={colors.primary} 
-            progressViewOffset={Platform.OS === 'android' ? insets.top + 80 : undefined}
+            tintColor={Platform.OS === 'ios' ? (isDark ? '#C98289' : '#D8A8AD') : colors.primary}
+            colors={[colors.primary]}
+            progressViewOffset={Platform.OS === 'ios' ? insets.top + 20 : insets.top + 80}
           />
         }
       >

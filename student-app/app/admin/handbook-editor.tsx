@@ -253,6 +253,7 @@ export default function HandbookEditorScreen() {
 
       <KeyboardAvoidingView style={styles.contentArea} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
         <FieldLabel label="章节标题" colors={colors} />
         <TextInput

@@ -132,7 +132,6 @@ export function registerQuickActions(ids: string[], t: (key: string) => string):
         return {
           id: config.id,
           title: t(config.titleKey),
-          subtitle: t(config.subtitleKey),
           icon: Platform.OS === 'ios' ? config.iosIcon : config.androidIcon,
           params: { href: config.href },
         };

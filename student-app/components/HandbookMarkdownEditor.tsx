@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, InputAccessoryView, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
@@ -166,6 +166,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   const { colors } = useTheme();
   const input = useRef<TextInput>(null);
   const contentScroll = useRef<ScrollView>(null);
+  const previousPreview = useRef(preview);
   const scrollY = useRef(0);
   const restoreScroll = useRef(false);
   const selection = useRef({ start: 0, end: 0 });
@@ -187,10 +188,13 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   useEffect(() => {
     restoreScroll.current = true;
     const timer = setTimeout(() => contentScroll.current?.scrollTo({ y: scrollY.current, animated: false }), 30);
-    if (!preview) {
+    // Do not open the keyboard when the editor screen is first shown. Restore
+    // focus only when returning from preview mode.
+    if (!preview && previousPreview.current) {
       setCursor({ ...selection.current });
       setTimeout(() => input.current?.focus(), 0);
     }
+    previousPreview.current = preview;
     return () => clearTimeout(timer);
   }, [preview]);
   const openLink = () => {
@@ -367,6 +371,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   return (
     <View style={{ height: 520, position: 'relative', paddingBottom: preview ? 0 : 76 }}>
       <ScrollView ref={contentScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         contentContainerStyle={{ paddingBottom: 12 }}
         onScroll={event => { scrollY.current = event.nativeEvent.contentOffset.y; }} scrollEventThrottle={16}
         onContentSizeChange={() => {
@@ -376,6 +381,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
         }}>
       {preview ? <HandbookMarkdownPreview value={value} /> : <>
       <TextInput ref={input} value={value} editable={!busy && !disabled} multiline textAlignVertical="top"
+        inputAccessoryViewID={Platform.OS === 'ios' ? 'handbook-markdown-keyboard' : undefined}
         onFocus={() => onEditorFocus?.(input.current)} onBlur={onEditorBlur}
         selection={cursor} onSelectionChange={({ nativeEvent }) => {
           selection.current = nativeEvent.selection;
@@ -388,6 +394,15 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
           backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }} />
       </>}
       </ScrollView>
+      {!preview && Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID="handbook-markdown-keyboard">
+          <View style={{ height: 42, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'flex-end', justifyContent: 'center', paddingHorizontal: 12 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel="收起键盘" onPress={() => { input.current?.blur(); Keyboard.dismiss(); }} hitSlop={8}>
+              <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '600' }}>收起键盘</Text>
+            </Pressable>
+          </View>
+        </InputAccessoryView>
+      )}
       {!preview && <View pointerEvents={disabled ? 'none' : 'auto'} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 68, opacity: disabled ? 0.5 : 1,
         backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 8 }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, gap: 7 }} keyboardShouldPersistTaps="handled">
