@@ -4,6 +4,18 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LiquidGlassAndroidView } from './LiquidGlassAndroidView';
 
+// expo-glass-effect is optional at runtime on older iOS versions and in Expo Go.
+// Resolve it lazily so Android keeps using its existing native implementation.
+let GlassView: any = null;
+let isGlassEffectAPIAvailable: (() => boolean) | null = null;
+try {
+  const glassModule = require('expo-glass-effect');
+  GlassView = glassModule.GlassView;
+  isGlassEffectAPIAvailable = glassModule.isGlassEffectAPIAvailable;
+} catch {
+  // Unsupported runtime: use the software fallback below.
+}
+
 interface GlassBackgroundProps {
   borderRadius?: number;
   isDark?: boolean;
@@ -17,6 +29,15 @@ interface GlassBackgroundProps {
 interface GlassFallbackProps {
   borderRadius: number;
   isDark: boolean;
+}
+
+export function isNativeLiquidGlassAvailable(): boolean {
+  if (Platform.OS !== 'ios' || !GlassView || !isGlassEffectAPIAvailable) return false;
+  try {
+    return isGlassEffectAPIAvailable();
+  } catch {
+    return false;
+  }
 }
 
 // Expo Go's Android BlurView can retain an invalid backdrop after a system
@@ -71,6 +92,16 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
             backgroundColor: isDark ? 'rgba(20, 20, 22, 0.76)' : 'rgba(255, 255, 255, 0.92)',
           },
         ]}
+      />
+    );
+  }
+
+  if (isNativeLiquidGlassAvailable()) {
+    return (
+      <GlassView
+        style={[StyleSheet.absoluteFill, { borderRadius, overflow: 'hidden' }]}
+        glassEffectStyle="regular"
+        colorScheme={isDark ? 'dark' : 'light'}
       />
     );
   }

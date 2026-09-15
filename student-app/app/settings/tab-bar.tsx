@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, PanResponder } from 'rea
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GlassBackground } from '../../components/GlassBackground';
+import { GlassBackground, isNativeLiquidGlassAvailable } from '../../components/GlassBackground';
 
 const OPACITY_LEVELS = [1, 2, 3, 4];
 const THUMB_SIZE = 16;
@@ -184,6 +184,7 @@ function GlassOpacityPreview({
 
 export default function TabBarSettingsScreen() {
   const { colors, t, isDark, tabBarStyle, setTabBarStyle, glassOpacityLevel, setGlassOpacityLevel } = useTheme();
+  const nativeLiquidGlass = isNativeLiquidGlassAvailable();
   const [draftGlassOpacityLevel, setDraftGlassOpacityLevel] = React.useState(glassOpacityLevel);
 
   React.useEffect(() => {
@@ -238,7 +239,7 @@ export default function TabBarSettingsScreen() {
           ))}
         </View>
 
-        {tabBarStyle === 'glassmorphism' && (
+        {tabBarStyle === 'glassmorphism' && !nativeLiquidGlass && (
           <>
             <View style={styles.sectionHeaderContainer}>
               <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>透明度</Text>

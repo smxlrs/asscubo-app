@@ -12,6 +12,7 @@ type UserProfile = {
   avatar_url: string | null;
   email: string;
   role: 'student' | 'admin' | 'super_admin';
+  push_token: string | null;
   is_banned: boolean;
   created_at: string;
 };
@@ -89,6 +90,11 @@ export default function ManageUsersScreen() {
                 <Text style={[styles.roleText, { color: '#EF4444' }]}>已封禁</Text>
               </View>
             )}
+            <View style={[styles.roleBadge, { backgroundColor: item.push_token ? colors.primary + '18' : colors.surfaceElevated }]}>
+              <Text style={[styles.roleText, { color: item.push_token ? colors.primary : colors.textMuted }]}>
+                推送{item.push_token ? '已开启' : '未开启'}
+              </Text>
+            </View>
           </View>
         </View>
         <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} />
