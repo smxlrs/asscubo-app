@@ -12,6 +12,64 @@ import { showCustomAlert } from '../../lib/customAlert';
 
 const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.asscuboxue.app';
 const APP_STORE_ID = Constants.expoConfig?.extra?.appStoreId as string | undefined;
+const IOS_BUNDLE_ID = Constants.expoConfig?.ios?.bundleIdentifier ?? 'com.asscuboxue.app';
+
+type AppStoreLookupResult = {
+  trackId?: number;
+  version?: string;
+  trackViewUrl?: string;
+};
+
+const compareVersions = (left: string, right: string): number => {
+  const a = left.split(/[.-]/).map(part => Number.parseInt(part, 10) || 0);
+  const b = right.split(/[.-]/).map(part => Number.parseInt(part, 10) || 0);
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = (a[index] || 0) - (b[index] || 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
+};
+
+const fetchAppStoreVersion = async (): Promise<AppStoreLookupResult | null> => {
+  const query = APP_STORE_ID
+    ? `id=${encodeURIComponent(APP_STORE_ID)}`
+    : `bundleId=${encodeURIComponent(IOS_BUNDLE_ID)}`;
+  const countries = ['it', 'us'];
+  for (const country of countries) {
+    const response = await fetch(`https://itunes.apple.com/lookup?${query}&country=${country}`);
+    if (!response.ok) continue;
+    const payload = await response.json() as { resultCount?: number; results?: AppStoreLookupResult[] };
+    const result = payload.results?.[0];
+    if (payload.resultCount && result?.version) return result;
+  }
+  return null;
+};
+
+const openAppStoreListing = async (listing: AppStoreLookupResult): Promise<boolean> => {
+  const webUrl = listing.trackViewUrl
+    || (listing.trackId ? `https://apps.apple.com/app/id${listing.trackId}` : null)
+    || (APP_STORE_ID ? `https://apps.apple.com/app/id${APP_STORE_ID}` : null);
+  const numericId = listing.trackId || (APP_STORE_ID ? Number(APP_STORE_ID) : 0);
+  try {
+    if (numericId) {
+      await Linking.openURL(`itms-apps://apps.apple.com/app/id${numericId}`);
+      return true;
+    }
+    if (webUrl) {
+      await Linking.openURL(webUrl);
+      return true;
+    }
+  } catch {
+    if (webUrl) {
+      try {
+        await Linking.openURL(webUrl);
+        return true;
+      } catch {}
+    }
+  }
+  return false;
+};
 
 const UPDATE_TEXTS: Record<string, {
   storeTitle: string; storeDescription: string; openStore: string;
@@ -234,9 +292,57 @@ export default function AboutIndexScreen() {
       return;
     }
 
-    const storeUrl = Platform.OS === 'ios'
-      ? (APP_STORE_ID ? `https://apps.apple.com/app/id${APP_STORE_ID}` : null)
-      : GOOGLE_PLAY_URL;
+    if (Platform.OS === 'ios') {
+      const startedAt = Date.now();
+      setIsCheckingUpdate(true);
+      try {
+        const listing = await fetchAppStoreVersion();
+        const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
+        if (remainingDelay) await new Promise(resolve => setTimeout(resolve, remainingDelay));
+        setIsCheckingUpdate(false);
+
+        if (!listing?.version) {
+          recordDebugEvent('update', 'App Store update check unavailable', { bundleId: IOS_BUNDLE_ID }, 'warn');
+          showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
+          return;
+        }
+
+        const updateAvailable = compareVersions(listing.version, currentVersion) > 0;
+        recordDebugEvent('update', 'App Store update check completed', {
+          currentVersion,
+          storeVersion: listing.version,
+          updateAvailable,
+        });
+
+        if (!updateAvailable) {
+          showCustomAlert(ut.upToDate, undefined, [{ text: ut.confirm }], { buttonPresentation: 'text' });
+          return;
+        }
+
+        showCustomAlert(ut.updateAvailable, undefined, [
+          { text: ut.cancel, style: 'cancel' },
+          {
+            text: ut.updateNow,
+            onPress: async () => {
+              const opened = await openAppStoreListing(listing);
+              recordDebugEvent('update', 'Attempted to open App Store listing', { opened, trackId: listing.trackId });
+              if (!opened) {
+                showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
+              }
+            },
+          },
+        ], { buttonPresentation: 'text', textButtonAlignment: 'end' });
+      } catch (error) {
+        const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
+        if (remainingDelay) await new Promise(resolve => setTimeout(resolve, remainingDelay));
+        setIsCheckingUpdate(false);
+        recordDebugEvent('update', 'App Store update check failed', error, 'warn');
+        showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
+      }
+      return;
+    }
+
+    const storeUrl = GOOGLE_PLAY_URL;
 
     if (!storeUrl) {
       showCustomAlert(ut.storeTitle, ut.storeUnavailable, [{ text: ut.confirm }], { messageAlign: 'left' });

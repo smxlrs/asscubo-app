@@ -131,7 +131,7 @@ export default function ResetPasswordScreen() {
         </Pressable>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+      <KeyboardAvoidingView behavior="height" style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.content}>
             <View style={[styles.iconWrap, { backgroundColor: colors.primarySoft }]}>

@@ -82,13 +82,39 @@ const normalizeWebUrl = (text: string): string | null => {
 
 type LinkMode = 'web' | 'chapter' | 'map' | 'email' | 'phone';
 
+type HandbookLinkChapter = { id: string; title: string; is_published: boolean; content_body?: string | null; order_index?: number; parent_id?: string | null };
+
+type HandbookHeading = { level: number; title: string; index: number };
+
+const cleanDetectedText = (text: string): string => text
+  .normalize('NFKC')
+  .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
+  .replace(/\u00A0/g, ' ')
+  .trim();
+
+const extractHandbookHeadings = (markdown: string): HandbookHeading[] => {
+  const counts = new Map<string, number>();
+  const headings: HandbookHeading[] = [];
+  for (const line of (markdown || '').replace(/\r\n/g, '\n').split('\n')) {
+    const match = line.match(/^(#{1,3})\s+(.+?)\s*$/);
+    if (!match) continue;
+    const level = match[1].length;
+    const title = match[2].trim();
+    const key = `${level}:${title}`;
+    const index = counts.get(key) || 0;
+    counts.set(key, index + 1);
+    headings.push({ level, title, index });
+  }
+  return headings;
+};
+
 const normalizeEmail = (text: string): string | null => {
-  const candidate = text.trim();
+  const candidate = cleanDetectedText(text);
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate) ? candidate : null;
 };
 
 const normalizePhone = (text: string): string | null => {
-  const candidate = text.trim();
+  const candidate = cleanDetectedText(text);
   const compact = candidate.replace(/[()\s-]/g, '');
   return /^[+]?\d{5,15}$/.test(compact) && /\d/.test(candidate) ? candidate : null;
 };
@@ -125,7 +151,15 @@ const looksLikeMapLocation = (text: string): boolean => {
 };
 
 const detectLinkInput = (text: string): { mode: LinkMode; value: string } | null => {
-  const candidate = text.trim();
+  const candidate = cleanDetectedText(text);
+  if (/^mailto:/i.test(candidate)) {
+    const email = normalizeEmail(candidate.replace(/^mailto:/i, ''));
+    return email ? { mode: 'email', value: email } : null;
+  }
+  if (/^tel:/i.test(candidate)) {
+    const phone = normalizePhone(candidate.replace(/^tel:/i, ''));
+    return phone ? { mode: 'phone', value: phone } : null;
+  }
   const email = normalizeEmail(candidate);
   if (email) return { mode: 'email', value: email };
   const phone = normalizePhone(candidate);
@@ -135,6 +169,32 @@ const detectLinkInput = (text: string): { mode: LinkMode; value: string } | null
   if (looksLikeMapLocation(candidate)) return { mode: 'map', value: candidate };
   const web = normalizeWebUrl(candidate);
   return web ? { mode: 'web', value: web } : null;
+};
+
+const detectLinkAtCursor = (markdown: string, cursor: number): { mode: LinkMode; value: string; start: number; end: number } | null => {
+  const lineStart = markdown.lastIndexOf('\n', Math.max(0, cursor - 1)) + 1;
+  const lineEndIndex = markdown.indexOf('\n', cursor);
+  const lineEnd = lineEndIndex === -1 ? markdown.length : lineEndIndex;
+  const line = markdown.slice(lineStart, lineEnd);
+  const localCursor = Math.max(0, Math.min(cursor - lineStart, line.length));
+  const candidates = [
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig,
+    /(?:https?:\/\/|www\.)[^\s<>()[\]{}]+/ig,
+    /(?:^|\s)(\+?\d[\d\s().-]{4,}\d)(?=\s|$)/g,
+  ];
+  for (const pattern of candidates) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(line))) {
+      const raw = match[1] && /^\+?\d/.test(match[1]) ? match[1] : match[0];
+      const offset = match[1] && raw !== match[0] ? match.index + match[0].indexOf(raw) : match.index;
+      const start = lineStart + offset;
+      const end = start + raw.length;
+      if (cursor < start || cursor > end) continue;
+      const detected = detectLinkInput(raw.replace(/[.,;:!?]+$/, ''));
+      if (detected) return { ...detected, start, end };
+    }
+  }
+  return null;
 };
 
 const findLinkAtSelection = (markdown: string, start: number, end: number) => {
@@ -157,7 +217,7 @@ const findLinkAtSelection = (markdown: string, start: number, end: number) => {
 
 export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters, disabled = false, preview = false, onEditorFocus, onEditorBlur }: {
   value: string; onChange: (value: string) => void; onBusyChange: (busy: boolean) => void;
-  chapters: { id: string; title: string; is_published: boolean }[];
+  chapters: HandbookLinkChapter[];
   disabled?: boolean;
   preview?: boolean;
   onEditorFocus?: (input: TextInput | null) => void;
@@ -183,6 +243,8 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
   const [linkLabel, setLinkLabel] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [query, setQuery] = useState('');
+  const [selectedChapter, setSelectedChapter] = useState<HandbookLinkChapter | null>(null);
+  const [chapterFolderId, setChapterFolderId] = useState<string | null>(null);
   const [linkError, setLinkError] = useState('');
   const activeFormats = getActiveToolbarFormats(value, activeSelection);
   useEffect(() => {
@@ -202,6 +264,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
     const rawStart = Math.min(selection.current.start, value.length);
     const rawEnd = Math.min(selection.current.end, value.length);
     const rawSelected = value.slice(rawStart, rawEnd);
+    const cursorDetected = rawStart === rawEnd ? detectLinkAtCursor(value, rawStart) : null;
     const leadingWhitespace = rawSelected.search(/\S|$/);
     const trailingWhitespace = rawSelected.length - rawSelected.replace(/\s+$/, '').length;
     const trimmedStart = rawStart + leadingWhitespace;
@@ -209,18 +272,26 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
     const existingLink = findLinkAtSelection(value, trimmedStart, trimmedEnd);
     linkRange.current = existingLink
       ? { start: existingLink.start, end: existingLink.end }
-      : { start: trimmedStart, end: trimmedEnd };
-    const selected = existingLink ? value.slice(existingLink.start, existingLink.end) : value.slice(trimmedStart, trimmedEnd);
+      : cursorDetected
+        ? { start: cursorDetected.start, end: cursorDetected.end }
+        : { start: trimmedStart, end: trimmedEnd };
+    const selected = existingLink
+      ? value.slice(existingLink.start, existingLink.end)
+      : cursorDetected
+        ? value.slice(cursorDetected.start, cursorDetected.end)
+        : value.slice(trimmedStart, trimmedEnd);
     const label = existingLink?.label ?? selected;
-    const detected = detectLinkInput(existingLink?.url ?? selected);
+    const detected = existingLink ? detectLinkInput(existingLink.url) : cursorDetected ?? detectLinkInput(selected);
     setLinkLabel(label);
     setLinkUrl(detected?.value ?? '');
-    setQuery(''); setLinkError('');
+    setQuery(''); setSelectedChapter(null); setChapterFolderId(null); setLinkError('');
     Keyboard.dismiss();
     requestAnimationFrame(() => setLinkMode(detected?.mode ?? 'web'));
   };
   const closeLink = () => {
     setLinkMode(null);
+    setSelectedChapter(null);
+    setChapterFolderId(null);
     requestAnimationFrame(() => {
       setCursor({ ...selection.current });
       input.current?.focus();
@@ -460,7 +531,10 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
             <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>添加链接</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 12, columnGap: 20 }}>
               {(['web', 'chapter', 'map', 'email', 'phone'] as const).map(mode => <Pressable key={mode} onPress={() => {
-                setLinkMode(mode); setLinkUrl(''); setLinkError('');
+                const detected = detectLinkInput(linkLabel);
+                setLinkMode(mode);
+                setLinkUrl(detected?.mode === mode ? detected.value : '');
+                setSelectedChapter(null); setChapterFolderId(null); setLinkError('');
               }} style={{ paddingVertical: 10 }}>
                 <Text style={{ color: linkMode === mode ? colors.primaryLight : colors.textSecondary }}>
                   {mode === 'web' ? '网址' : mode === 'chapter' ? '手册章节' : mode === 'map' ? '地图地点' : mode === 'email' ? '邮箱' : '电话'}
@@ -475,14 +549,48 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
                 autoCapitalize="none" autoCorrect={false} keyboardType="url" style={{ color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, padding: 12 }} />
               <Pressable onPress={insertWebLink} style={{ padding: 14 }}><Text style={{ color: colors.primaryLight }}>插入网址链接</Text></Pressable>
             </> : linkMode === 'chapter' ? <>
-              <TextInput value={query} onChangeText={setQuery} placeholder="搜索章节" placeholderTextColor={colors.textMuted} style={{ color: colors.textPrimary, padding: 12 }} />
-              <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 280 }}>
-                {chapters.filter(chapter => chapter.title.includes(query.trim())).map(chapter => <Pressable key={chapter.id}
-                  onPress={() => commitLink(`handbook://${chapter.id}`, chapter.title)} style={{ paddingVertical: 14, borderBottomWidth: 1, borderColor: colors.border }}>
-                  <Text style={{ color: colors.textPrimary }}>{chapter.title}{chapter.is_published ? '' : '（未发布）'}</Text>
-                </Pressable>)}
-                {!chapters.some(chapter => chapter.title.includes(query.trim())) && <Text style={{ color: colors.textSecondary }}>没有匹配的章节</Text>}
-              </ScrollView>
+              {!selectedChapter ? <>
+                <TextInput value={query} onChangeText={setQuery} placeholder="搜索章节（可直接查找）" placeholderTextColor={colors.textMuted} style={{ color: colors.textPrimary, padding: 12 }} />
+                <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 280 }}>
+                  {query.trim() ? chapters.filter(chapter => chapter.title.includes(query.trim())).map(chapter => <Pressable key={chapter.id}
+                    onPress={() => setSelectedChapter(chapter)} style={{ paddingVertical: 14, borderBottomWidth: 1, borderColor: colors.border }}>
+                    <Text style={{ color: colors.textPrimary }}>{chapter.title}{chapter.is_published ? '' : '（未发布）'}</Text>
+                  </Pressable>) : chapters
+                    .filter(chapter => (chapter.parent_id || null) === chapterFolderId)
+                    .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+                    .map(chapter => {
+                      const hasChildren = chapters.some(child => child.parent_id === chapter.id);
+                      return <Pressable key={chapter.id}
+                        onPress={() => hasChildren ? setChapterFolderId(chapter.id) : setSelectedChapter(chapter)} style={{ paddingVertical: 14, borderBottomWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialCommunityIcons name={hasChildren ? 'folder-outline' : 'file-document-outline'} size={21} color={hasChildren ? colors.primaryLight : colors.textSecondary} style={{ marginRight: 10 }} />
+                        <Text style={{ flex: 1, color: colors.textPrimary }}>{chapter.title}{chapter.is_published ? '' : '（未发布）'}</Text>
+                        {hasChildren && <MaterialCommunityIcons name="chevron-right" size={21} color={colors.textMuted} />}
+                      </Pressable>;
+                    })}
+                  {query.trim() && !chapters.some(chapter => chapter.title.includes(query.trim())) && <Text style={{ color: colors.textSecondary }}>没有匹配的章节</Text>}
+                  {!query.trim() && !chapters.some(chapter => (chapter.parent_id || null) === chapterFolderId) && <Text style={{ color: colors.textSecondary, paddingVertical: 14 }}>当前目录没有章节</Text>}
+                </ScrollView>
+                {chapterFolderId && !query.trim() && <Pressable onPress={() => {
+                  const parent = chapters.find(chapter => chapter.id === chapterFolderId)?.parent_id || null;
+                  setChapterFolderId(parent);
+                }} style={{ paddingVertical: 8 }}><Text style={{ color: colors.primaryLight }}>‹ 返回上一级目录</Text></Pressable>}
+              </> : <>
+                <Pressable onPress={() => setSelectedChapter(null)} style={{ paddingVertical: 8 }}>
+                  <Text style={{ color: colors.primaryLight }}>‹ 返回章节列表</Text>
+                </Pressable>
+                <Text style={{ color: colors.textPrimary, fontWeight: '700', paddingVertical: 8 }}>{selectedChapter.title}</Text>
+                <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 280 }}>
+                  <Pressable onPress={() => commitLink(`handbook://${selectedChapter.id}`, selectedChapter.title)} style={{ paddingVertical: 14, borderBottomWidth: 1, borderColor: colors.border }}>
+                    <Text style={{ color: colors.textPrimary }}>章节顶部</Text>
+                  </Pressable>
+                  {extractHandbookHeadings(selectedChapter.content_body || '').map((heading) => (
+                    <Pressable key={`${heading.level}-${heading.title}-${heading.index}`} onPress={() => commitLink(`handbook://${selectedChapter.id}?heading=${encodeURIComponent(heading.title)}&level=${heading.level}&index=${heading.index}`, heading.title)} style={{ paddingVertical: 14, borderBottomWidth: 1, borderColor: colors.border }}>
+                      <Text style={{ color: colors.textPrimary, paddingLeft: (heading.level - 1) * 12 }}>{`${'#'.repeat(heading.level)} ${heading.title}`}</Text>
+                    </Pressable>
+                  ))}
+                  {extractHandbookHeadings(selectedChapter.content_body || '').length === 0 && <Text style={{ color: colors.textSecondary, paddingVertical: 14 }}>本章节没有可跳转的标题</Text>}
+                </ScrollView>
+              </>}
             </> : linkMode === 'map' ? <>
               {linkError !== '' && <Text accessibilityRole="alert" style={{ color: '#EF4444', marginBottom: 8 }}>{linkError}</Text>}
               <TextInput value={linkUrl} onChangeText={setLinkUrl} placeholder="地图搜索词（不填则使用显示文字）" placeholderTextColor={colors.textMuted}

@@ -785,6 +785,62 @@ export default function HomeScreen() {
           style={styles.container}
         >
           <StatusBar style={isDark ? "light" : "dark"} />
+          {/* Feathered status-bar protection keeps text readable as content scrolls beneath it. */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: insets.top + 35,
+              zIndex: 100,
+              overflow: 'hidden',
+            }}
+          >
+            <LinearGradient
+              colors={isDark
+                ? [
+                    'rgba(92, 13, 18, 0.85)',
+                    'rgba(92, 13, 18, 0.75)',
+                    'rgba(92, 13, 18, 0.45)',
+                    'rgba(92, 13, 18, 0.15)',
+                    'transparent',
+                  ]
+                : [
+                    'rgba(242, 226, 227, 0.85)',
+                    'rgba(242, 226, 227, 0.75)',
+                    'rgba(242, 226, 227, 0.45)',
+                    'rgba(242, 226, 227, 0.15)',
+                    'transparent',
+                  ]}
+              locations={[0, 0.45, 0.65, 0.85, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+          {/* A separate, subtle native blur layer covers only the status-bar inset. */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: insets.top,
+              zIndex: 101,
+              backgroundColor: isDark ? 'rgba(10, 10, 10, 0.18)' : 'rgba(245, 247, 250, 0.16)',
+            }}
+          >
+            {Platform.OS === 'ios' ? (
+              <BlurView
+                tint={isDark ? 'dark' : 'extraLight'}
+                intensity={45}
+                style={StyleSheet.absoluteFill}
+              />
+            ) : null}
+          </View>
           <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: tabBarStyle === 'glassmorphism' ? 110 : 24 }}

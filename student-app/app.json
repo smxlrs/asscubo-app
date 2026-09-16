@@ -81,7 +81,7 @@
           "NSExceptionDomains": {
             "viaggiatreno.it": {
               "NSIncludesSubdomains": true,
-              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true
+              "NSExceptionAllowsInsecureHTTPLoads": true
             }
           }
         },

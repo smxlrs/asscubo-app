@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, PanResponder } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet, Pressable, ScrollView, PanResponder, Platform } from 'react-native';
+import { router, useNavigation } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassBackground, isNativeLiquidGlassAvailable } from '../../components/GlassBackground';
@@ -16,11 +16,13 @@ function OpacityLevelSlider({
   level,
   onLevelPreview,
   onLevelChange,
+  onDraggingChange,
   colors,
 }: {
   level: number;
   onLevelPreview: (level: number) => void;
   onLevelChange: (level: number) => void;
+  onDraggingChange?: (dragging: boolean) => void;
   colors: any;
 }) {
   const [trackWidth, setTrackWidth] = React.useState(0);
@@ -59,6 +61,7 @@ function OpacityLevelSlider({
     onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: () => {
       draggingRef.current = true;
+      onDraggingChange?.(true);
       startXRef.current = xRef.current;
       draftLevelRef.current = levelRef.current;
     },
@@ -71,6 +74,7 @@ function OpacityLevelSlider({
     },
     onPanResponderRelease: () => {
       draggingRef.current = false;
+      onDraggingChange?.(false);
       const snappedLevel = clamp(Math.round(draftLevelRef.current), 1, 4);
       draftLevelRef.current = snappedLevel;
       onLevelPreviewRef.current(snappedLevel);
@@ -78,6 +82,7 @@ function OpacityLevelSlider({
     },
     onPanResponderTerminate: () => {
       draggingRef.current = false;
+      onDraggingChange?.(false);
       const snappedLevel = clamp(Math.round(draftLevelRef.current), 1, 4);
       draftLevelRef.current = snappedLevel;
       onLevelPreviewRef.current(snappedLevel);
@@ -183,6 +188,7 @@ function GlassOpacityPreview({
 }
 
 export default function TabBarSettingsScreen() {
+  const navigation = useNavigation();
   const { colors, t, isDark, tabBarStyle, setTabBarStyle, glassOpacityLevel, setGlassOpacityLevel } = useTheme();
   const nativeLiquidGlass = isNativeLiquidGlassAvailable();
   const [draftGlassOpacityLevel, setDraftGlassOpacityLevel] = React.useState(glassOpacityLevel);
@@ -190,6 +196,10 @@ export default function TabBarSettingsScreen() {
   React.useEffect(() => {
     setDraftGlassOpacityLevel(glassOpacityLevel);
   }, [glassOpacityLevel]);
+
+  React.useEffect(() => () => {
+    if (Platform.OS === 'ios') navigation.setOptions({ gestureEnabled: true });
+  }, [navigation]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -257,6 +267,9 @@ export default function TabBarSettingsScreen() {
                 level={draftGlassOpacityLevel}
                 onLevelPreview={setDraftGlassOpacityLevel}
                 onLevelChange={setGlassOpacityLevel}
+                onDraggingChange={(dragging) => {
+                  if (Platform.OS === 'ios') navigation.setOptions({ gestureEnabled: !dragging });
+                }}
                 colors={colors}
               />
             </View>

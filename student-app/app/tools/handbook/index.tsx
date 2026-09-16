@@ -585,6 +585,21 @@ export default function HandbookReaderScreen() {
 
   const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({});
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const headingYPositions = useRef<Record<string, number>>({});
+  const [pendingHeading, setPendingHeading] = useState<{ title: string; level: number; index: number } | null>(null);
+
+  useEffect(() => {
+    if (!currentChapter || !pendingHeading) return;
+    const key = `${pendingHeading.level}:${pendingHeading.title}:${pendingHeading.index}`;
+    const timer = setTimeout(() => {
+      const y = headingYPositions.current[key];
+      if (typeof y === 'number') {
+        scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 72), animated: true });
+        setPendingHeading(null);
+      }
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [currentChapter, pendingHeading, fontSizeIndex, lineSpacingIndex]);
 
   const toggleGroup = (parentId: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -886,9 +901,15 @@ export default function HandbookReaderScreen() {
   };
 
   const handleInternalLinkPress = (targetUrl: string) => {
-    const target = targetUrl.replace(/^handbook:\/\//, '').replace(/^#/, '');
+    const rawTarget = targetUrl.replace(/^handbook:\/\//, '').replace(/^#/, '');
+    const [target, queryString] = rawTarget.split('?');
+    const params = new URLSearchParams(queryString || '');
+    const heading = params.get('heading');
+    const level = Number(params.get('level') || 0);
+    const index = Number(params.get('index') || 0);
     const found = findChapterByTarget(target, chapters);
     if (found) {
+      setPendingHeading(heading && level >= 1 && level <= 3 ? { title: heading, level, index: Number.isFinite(index) ? index : 0 } : null);
       handleSelectChapter(found);
     } else {
       Alert.alert('提示', `未找到章节 "${target}"`);
@@ -1008,6 +1029,7 @@ export default function HandbookReaderScreen() {
     }
 
     const fontSize = FONT_SIZES[fontSizeIndex];
+    const headingOccurrences = new Map<string, number>();
     // Normalize carriage returns before parsing Markdown blocks.
     const normalizedBody = currentChapter.content_body.replace(/\r\n/g, '\n');
     const renderStandardBlocks = (markdown: string) => markdown.split(/\n\s*\n/).map((block, idx) => {
@@ -1035,9 +1057,12 @@ export default function HandbookReaderScreen() {
         const lines = trimmedBlock.split('\n');
         const headerText = lines[0].substring(4);
         const restText = lines.slice(1).join('\n').trim();
+        const headingKey = `3:${headerText.trim()}`;
+        const headingIndex = headingOccurrences.get(headingKey) || 0;
+        headingOccurrences.set(headingKey, headingIndex + 1);
         return (
           <React.Fragment key={idx}>
-            <Text selectable={true} style={[styles.h3, { fontSize: fontSize * 1.25, color: selectedTheme.textColor, marginTop: fontSize, marginBottom: fontSize * 0.4 }]}>
+            <Text selectable={true} onLayout={(event) => { headingYPositions.current[`${headingKey}:${headingIndex}`] = event.nativeEvent.layout.y; }} style={[styles.h3, { fontSize: fontSize * 1.25, color: selectedTheme.textColor, marginTop: fontSize, marginBottom: fontSize * 0.4 }]}>
               {parseInlineStyles(headerText, fontSize * 1.25, handleInternalLinkPress)}
             </Text>
             {restText ? renderBlock(restText, idx, fontSize) : null}
@@ -1048,9 +1073,12 @@ export default function HandbookReaderScreen() {
         const lines = trimmedBlock.split('\n');
         const headerText = lines[0].substring(3);
         const restText = lines.slice(1).join('\n').trim();
+        const headingKey = `2:${headerText.trim()}`;
+        const headingIndex = headingOccurrences.get(headingKey) || 0;
+        headingOccurrences.set(headingKey, headingIndex + 1);
         return (
           <React.Fragment key={idx}>
-            <Text selectable={true} style={[styles.h2, { fontSize: fontSize * 1.4, color: selectedTheme.textColor, marginTop: fontSize * 1.2, marginBottom: fontSize * 0.5 }]}>
+            <Text selectable={true} onLayout={(event) => { headingYPositions.current[`${headingKey}:${headingIndex}`] = event.nativeEvent.layout.y; }} style={[styles.h2, { fontSize: fontSize * 1.4, color: selectedTheme.textColor, marginTop: fontSize * 1.2, marginBottom: fontSize * 0.5 }]}>
               {parseInlineStyles(headerText, fontSize * 1.4, handleInternalLinkPress)}
             </Text>
             {restText ? renderBlock(restText, idx, fontSize) : null}
@@ -1061,9 +1089,12 @@ export default function HandbookReaderScreen() {
         const lines = trimmedBlock.split('\n');
         const headerText = lines[0].substring(2);
         const restText = lines.slice(1).join('\n').trim();
+        const headingKey = `1:${headerText.trim()}`;
+        const headingIndex = headingOccurrences.get(headingKey) || 0;
+        headingOccurrences.set(headingKey, headingIndex + 1);
         return (
           <React.Fragment key={idx}>
-            <Text selectable={true} style={[styles.h1, { fontSize: fontSize * 1.6, color: selectedTheme.textColor, marginTop: fontSize * 1.5, marginBottom: fontSize * 0.6 }]}>
+            <Text selectable={true} onLayout={(event) => { headingYPositions.current[`${headingKey}:${headingIndex}`] = event.nativeEvent.layout.y; }} style={[styles.h1, { fontSize: fontSize * 1.6, color: selectedTheme.textColor, marginTop: fontSize * 1.5, marginBottom: fontSize * 0.6 }]}>
               {parseInlineStyles(headerText, fontSize * 1.6, handleInternalLinkPress)}
             </Text>
             {restText ? renderBlock(restText, idx, fontSize) : null}

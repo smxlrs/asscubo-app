@@ -6,7 +6,7 @@ import { useQuickActionRouting } from 'expo-quick-actions/router';
 import Reanimated, { runOnJS, useSharedValue, useAnimatedStyle, withSpring, interpolateColor } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import { GlassBackground } from '../../components/GlassBackground';
+import { GlassBackground, isNativeLiquidGlassAvailable } from '../../components/GlassBackground';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
@@ -362,6 +362,7 @@ export default function TabsLayout() {
   useQuickActionRouting();
 
   const USE_GLASSMORPHISM = tabBarStyle === 'glassmorphism';
+  const USE_NATIVE_IOS_GLASS = Platform.OS === 'ios' && isNativeLiquidGlassAvailable();
   const ExpoTabs = Tabs as any;
 
   // Liquid glass animations state
@@ -704,7 +705,7 @@ export default function TabsLayout() {
                 </View>
               </View>
 
-              {sliderBoostActive ? (
+              {sliderBoostActive && !USE_NATIVE_IOS_GLASS ? (
                 <>
                   {/* These remain optical sources for the pressed lens. */}
                   <View
@@ -766,7 +767,7 @@ export default function TabsLayout() {
                 <Reanimated.View style={[StyleSheet.absoluteFill, innerSliderStyle]} />
               </Reanimated.View>
 
-              {!sliderBoostActive ? (
+              {!sliderBoostActive && !USE_NATIVE_IOS_GLASS ? (
                 <>
                   <View
                     pointerEvents="none"
@@ -829,22 +830,24 @@ export default function TabsLayout() {
                 ))}
               </View>
 
-              {/* Foreground rim keeps the slider visually above the controls without re-sampling them. */}
-              <Reanimated.View
-                pointerEvents="none"
-                style={[
-                  styles.sliderPill,
-                  { backgroundColor: 'transparent', overflow: 'hidden' },
-                  sliderStyle,
-                ]}
-              >
-                <GlassRimHighlight
-                  borderRadius={TAB_BAR_HEIGHT}
-                  isDark={isDark}
-                  compact
-                  activeBoost={sliderBoostActive}
-                />
-              </Reanimated.View>
+              {/* The native iOS material supplies its own rim and reflection. */}
+              {!USE_NATIVE_IOS_GLASS ? (
+                <Reanimated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.sliderPill,
+                    { backgroundColor: 'transparent', overflow: 'hidden' },
+                    sliderStyle,
+                  ]}
+                >
+                  <GlassRimHighlight
+                    borderRadius={TAB_BAR_HEIGHT}
+                    isDark={isDark}
+                    compact
+                    activeBoost={sliderBoostActive}
+                  />
+                </Reanimated.View>
+              ) : null}
               </View>
             </View>
           ) : undefined,
