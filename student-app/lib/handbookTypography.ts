@@ -73,9 +73,9 @@ const hyphenateLatinWord = (word: string): string => {
 // Keep selectable/copyable text identical to the Markdown source.
 export const hyphenateHandbookText = (text: string): string => text;
 
-// A single newline is a soft break in Markdown. Keep deliberate paragraph indentation fixed.
+// Keep deliberate paragraph indentation fixed while preserving line breaks from the source.
 export const normalizeHandbookSoftBreaks = (text: string): string => {
   const leading = text.match(/^[ \t\u3000]+/)?.[0] ?? '';
   const fixedLeading = leading.replace(/\t/g, '    ').replace(/ /g, '\u00A0');
-  return fixedLeading + text.slice(leading.length).replace(/[ \t]*\n[ \t]*/g, ' ');
+  return fixedLeading + text.slice(leading.length).replace(/[ \t]*\n[ \t]*/g, '\n');
 };
