@@ -173,6 +173,7 @@ export default function EventsToolScreen() {
   const [activeView, setActiveView] = useState<'events' | 'mine'>('events');
   const [selectedEvent, setSelectedEvent] = useState<EventRow | null>(null);
   const [showEventDetail, setShowEventDetail] = useState(false);
+  const [showRegistrationDetail, setShowRegistrationDetail] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [editingRegistration, setEditingRegistration] = useState<Registration | null>(null);
   const [formValues, setFormValues] = useState<FieldValues>({});
@@ -325,6 +326,7 @@ export default function EventsToolScreen() {
 
       const defaultName = profile?.name || '';
       setEditingRegistration(registration);
+      setShowRegistrationDetail(Boolean(registration));
       setFormValues(registration?.registration_kind === 'proxy'
         ? registration?.attendees?.[0]?.answers || {}
         : registration?.answers || {});
@@ -357,6 +359,7 @@ export default function EventsToolScreen() {
     setSelectedEvent(null);
     setEditingRegistration(null);
     setShowEventDetail(false);
+    setShowRegistrationDetail(false);
     router.replace('/tools/events');
   };
 
@@ -383,6 +386,8 @@ export default function EventsToolScreen() {
   const startRegistration = (event: EventRow) => {
     openNewRegistration(event);
   };
+
+  const beginRegistrationEdit = () => setShowRegistrationDetail(false);
 
   const openRegistration = (registration: Registration) => {
     const event = events.find((item) => item.id === registration.event_id);
@@ -839,6 +844,48 @@ export default function EventsToolScreen() {
     );
   };
 
+  const renderRegistrationDetails = () => {
+    if (!selectedEvent || !editingRegistration) return null;
+    const registration = editingRegistration;
+    const fields = (selectedEvent.registration_form || DEFAULT_FIELDS).filter((field) => !field.system);
+    const answerValues = registration.registration_kind === 'proxy'
+      ? registration.attendees?.[0]?.answers || registration.answers || {}
+      : registration.answers || {};
+    const hasAnswer = (value: any) => value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && value.length === 0);
+    const displayAnswer = (value: any) => {
+      if (value && typeof value === 'object' && !Array.isArray(value)) return value.name || value.path || '已上传文件';
+      if (Array.isArray(value)) return value.join('、');
+      return String(value);
+    };
+    return (
+      <>
+        <View style={styles.header}>
+          <Pressable onPress={goBackToList} style={styles.headerButton}><MaterialCommunityIcons name="arrow-left" size={23} color="#A31621" /></Pressable>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]} numberOfLines={1}>报名详情</Text>
+          <View style={styles.headerButton} />
+        </View>
+        <View style={styles.eventDetails}>
+          <Text style={[styles.detailTitle, { color: colors.textPrimary }]}>{selectedEvent.title}</Text>
+          {formatEventTime(selectedEvent) ? <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatEventTime(selectedEvent)}</Text> : null}
+          {selectedEvent.location ? <Text style={[styles.metaText, { color: colors.textSecondary, marginTop: 6 }]}>地点：{selectedEvent.location}</Text> : null}
+        </View>
+        <View style={[styles.detailPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>报名状态</Text><Text style={[styles.detailValue, { color: registration.status === 'waitlist' ? '#B7791F' : registration.status === 'cancelled' ? colors.textMuted : colors.success }]}>{registration.status === 'waitlist' ? '候补' : registration.status === 'cancelled' ? '已取消' : '已确认'}</Text></View>
+          <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>报名编号</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{registration.registration_number || registration.id.slice(0, 8)}</Text></View>
+          <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>报名时间</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{formatDateTime(registration.registered_at)}</Text></View>
+          {registration.attendees?.map((attendee, index) => <View key={`${attendee.name}-${index}`} style={styles.attendeeDetailBlock}><Text style={[styles.detailSectionTitle, { color: colors.textPrimary }]}>报名人 {index + 1}{index === 0 ? '（本人）' : ''}</Text><View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>姓名</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.name || '未填写'}</Text></View>{attendee.phone ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>电话</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.phone}</Text></View> : null}{attendee.email ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>邮箱</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.email}</Text></View> : null}{index > 0 && attendee.proxy_note ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>备注</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.proxy_note}</Text></View> : null}</View>)}
+          {fields.map((field) => {
+            const value = answerValues[field.key];
+            if (!hasAnswer(value) && !field.required) return null;
+            return <View key={field.key} style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{field.label}</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{hasAnswer(value) ? displayAnswer(value) : '未填写'}</Text></View>;
+          })}
+          {registration.vehicle_id ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>车辆</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{vehicles.find((vehicle) => vehicle.id === registration.vehicle_id)?.name || '待确认'}</Text></View> : null}
+        </View>
+        {registration.status !== 'cancelled' ? <View style={styles.detailActions}><Pressable style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={beginRegistrationEdit}><Text style={styles.primaryButtonText}>修改信息</Text></Pressable><Pressable style={[styles.cancelButton, { borderColor: colors.error }]} onPress={cancelRegistration}><Text style={[styles.cancelButtonText, { color: colors.error }]}>取消报名</Text></Pressable></View> : null}
+      </>
+    );
+  };
+
   const renderEditor = () => {
     if (!selectedEvent) return null;
     const fields = (selectedEvent.registration_form || DEFAULT_FIELDS).filter((field) => !field.system);
@@ -939,7 +986,7 @@ export default function EventsToolScreen() {
           />
         )}
       >
-        {selectedEvent ? (showEventDetail ? renderEventDetails() : renderEditor()) : renderEventList()}
+        {selectedEvent ? (showRegistrationDetail ? renderRegistrationDetails() : showEventDetail ? renderEventDetails() : renderEditor()) : renderEventList()}
       </ScrollView>
       {toastMsg ? <Animated.View style={[styles.checkmarkBubble, { opacity: toastFade, backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface, borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary }]}>
         {toastMsg === '刷新成功' ? <MaterialCommunityIcons name="check" size={24} color={colors.primary} /> : <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>}
@@ -973,6 +1020,13 @@ const styles = StyleSheet.create({
   registrationCard: { borderWidth: 1, borderRadius: 12, padding: 15, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
   registrationTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
   eventDetails: { marginBottom: 12 },
+  detailPanel: { borderWidth: 1, borderRadius: 12, padding: 15, marginBottom: 14 },
+  detailRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, paddingVertical: 7 },
+  detailLabel: { fontSize: 13, minWidth: 72 },
+  detailValue: { flex: 1, fontSize: 14, textAlign: 'right', lineHeight: 20 },
+  detailSectionTitle: { fontSize: 15, fontWeight: '700', marginTop: 10, marginBottom: 2 },
+  attendeeDetailBlock: { borderTopWidth: 1, borderTopColor: '#E5E7EB', marginTop: 9, paddingTop: 4 },
+  detailActions: { gap: 10, marginBottom: 20 },
   proxyPanel: { borderWidth: 1, borderRadius: 12, padding: 15, marginBottom: 12 },
   sectionPanel: { borderWidth: 1, borderRadius: 12, padding: 15, marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
