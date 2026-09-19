@@ -537,7 +537,7 @@ export default function StationBoardScreen() {
     return formatRomeTimeStr(timestamp);
   };
 
-  const renderTrainItem = ({ item }: { item: VtBoardEntry }) => {
+  const renderTrainItem = ({ item, listMode }: { item: VtBoardEntry; listMode: 'departures' | 'arrivals' }) => {
     const timeStr = formatTimeStr(item.scheduledTime);
     
     // Delay text color & content
@@ -590,7 +590,7 @@ export default function StationBoardScreen() {
             {/* Structured timeline routes origin/destination */}
             <View style={styles.boardTimeline}>
               {(() => {
-                return boardMode === 'departures' ? (
+                return listMode === 'departures' ? (
                   <>
                     <View style={styles.boardTimelineStep}>
                       <View style={[styles.timelineMiniDot, { backgroundColor: op.color }]} />
@@ -835,7 +835,7 @@ export default function StationBoardScreen() {
             <FlatList
               data={departures}
               keyExtractor={(item, index) => `${item.trainNumber}_${index}`}
-              renderItem={renderTrainItem}
+              renderItem={({ item }) => renderTrainItem({ item, listMode: 'departures' })}
               contentContainerStyle={styles.listContent}
               refreshControl={
                 <RefreshControl 
@@ -878,7 +878,7 @@ export default function StationBoardScreen() {
             <FlatList
               data={arrivals}
               keyExtractor={(item, index) => `${item.trainNumber}_${index}`}
-              renderItem={renderTrainItem}
+              renderItem={({ item }) => renderTrainItem({ item, listMode: 'arrivals' })}
               contentContainerStyle={styles.listContent}
               refreshControl={
                 <RefreshControl 

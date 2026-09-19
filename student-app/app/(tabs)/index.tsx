@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { BlurView } from 'expo-blur';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, Image, ActivityIndicator, Animated, Easing, Modal, TextInput, Platform,
@@ -808,41 +807,20 @@ export default function HomeScreen() {
                     'rgba(92, 13, 18, 0.75)',
                     'rgba(92, 13, 18, 0.45)',
                     'rgba(92, 13, 18, 0.15)',
-                    'transparent',
+                    'rgba(92, 13, 18, 0)',
                   ]
                 : [
                     'rgba(242, 226, 227, 0.85)',
                     'rgba(242, 226, 227, 0.75)',
                     'rgba(242, 226, 227, 0.45)',
                     'rgba(242, 226, 227, 0.15)',
-                    'transparent',
+                    'rgba(242, 226, 227, 0)',
                   ]}
               locations={[0, 0.45, 0.65, 0.85, 1]}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-          </View>
-          {/* A separate, subtle native blur layer covers only the status-bar inset. */}
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: insets.top,
-              zIndex: 101,
-              backgroundColor: isDark ? 'rgba(10, 10, 10, 0.18)' : 'rgba(245, 247, 250, 0.16)',
-            }}
-          >
-            {Platform.OS === 'ios' ? (
-              <BlurView
-                tint={isDark ? 'dark' : 'extraLight'}
-                intensity={45}
-                style={StyleSheet.absoluteFill}
-              />
-            ) : null}
           </View>
           <ScrollView
         showsVerticalScrollIndicator={false}
