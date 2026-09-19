@@ -157,10 +157,6 @@ function errorMessage(error: any, fallback: string, fields: EventFormField[] = [
   return message || fallback;
 }
 
-function fieldLabel(field: EventFormField) {
-  return `${field.label}${field.required ? ' *' : ''}`;
-}
-
 export default function EventsToolScreen() {
   const { colors, language } = useTheme();
   const { user, profile } = useAuth();
@@ -651,7 +647,10 @@ export default function EventsToolScreen() {
 
     return (
       <View key={field.key} style={styles.fieldBlock}>
-        <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>{fieldLabel(field)}</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
+          {field.label}
+          {field.required ? <Text style={[styles.requiredHint, { color: colors.textMuted }]}> 必填</Text> : null}
+        </Text>
         {field.description ? <Text style={[styles.fieldDescription, { color: colors.textSecondary }]}>{field.description}</Text> : null}
         {field.type === 'textarea' ? (
           <TextInput
@@ -978,6 +977,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
   fieldBlock: { marginBottom: 16 },
   fieldLabel: { fontSize: 14, fontWeight: '600', marginBottom: 7 },
+  requiredHint: { fontSize: 11, fontWeight: '400' },
   fieldDescription: { fontSize: 12, lineHeight: 18, marginBottom: 6 },
   input: { minHeight: 46, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, fontSize: 15 },
   textarea: { minHeight: 110, paddingTop: 12, textAlignVertical: 'top' },

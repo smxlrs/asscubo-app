@@ -445,7 +445,7 @@ BEGIN
     CASE WHEN p_registration_kind = 'proxy' THEN NULLIF(btrim(p_proxy_note), '') ELSE NULL END,
     p_participant_count, COALESCE(p_answers, '{}'::jsonb),
     event_row.registration_form_version, selected_vehicle, COALESCE(NULLIF(p_source, ''), 'app'),
-    upper(substr(replace(uuid_generate_v4()::TEXT, '-', ''), 1, 10)), now()
+    upper(substr(replace(gen_random_uuid()::TEXT, '-', ''), 1, 10)), now()
   )
   RETURNING id INTO new_registration_id;
 
