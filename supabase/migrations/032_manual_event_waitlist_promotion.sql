@@ -1,6 +1,78 @@
 -- Stop automatic waitlist promotion after registration closes and provide an
 -- explicit admin action for promoting an individual waitlisted registration.
 
+CREATE OR REPLACE FUNCTION public.promote_event_waitlist(p_event_id UUID)
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  event_row public.events%ROWTYPE;
+  reg_row public.event_registrations%ROWTYPE;
+  vehicle_row public.event_vehicles%ROWTYPE;
+  assigned_vehicle UUID;
+  confirmed_count INTEGER;
+  used_seats INTEGER;
+  promoted INTEGER := 0;
+BEGIN
+  SELECT * INTO event_row FROM public.events WHERE id = p_event_id FOR UPDATE;
+  IF event_row.id IS NULL THEN RETURN 0; END IF;
+  IF event_row.registration_status <> 'open'
+     OR (event_row.registration_deadline IS NOT NULL AND now() > event_row.registration_deadline)
+     OR now() > event_row.end_time THEN
+    RETURN 0;
+  END IF;
+  FOR reg_row IN
+    SELECT * FROM public.event_registrations
+    WHERE event_id = p_event_id AND status = 'waitlist'
+    ORDER BY registered_at ASC, id ASC FOR UPDATE
+  LOOP
+    assigned_vehicle := NULL;
+    SELECT COALESCE(sum(participant_count), 0)::INTEGER INTO confirmed_count
+    FROM public.event_registrations WHERE event_id = p_event_id AND status = 'confirmed';
+    IF event_row.max_participants IS NOT NULL
+       AND confirmed_count + reg_row.participant_count > event_row.max_participants THEN CONTINUE; END IF;
+    IF event_row.vehicle_selection_mode = 'admin' THEN
+      CONTINUE;
+    ELSIF event_row.vehicle_selection_mode IN ('auto', 'self_select') THEN
+      IF reg_row.vehicle_id IS NOT NULL THEN
+        SELECT * INTO vehicle_row FROM public.event_vehicles
+        WHERE id = reg_row.vehicle_id AND event_id = p_event_id AND is_active = TRUE FOR UPDATE;
+        IF vehicle_row.id IS NOT NULL THEN
+          SELECT COALESCE(sum(participant_count), 0)::INTEGER INTO used_seats
+          FROM public.event_registrations WHERE vehicle_id = vehicle_row.id AND status = 'confirmed';
+          IF used_seats + reg_row.participant_count <= vehicle_row.capacity - vehicle_row.reserved_seats THEN
+            assigned_vehicle := vehicle_row.id;
+          END IF;
+        END IF;
+      END IF;
+      IF assigned_vehicle IS NULL THEN
+        FOR vehicle_row IN SELECT * FROM public.event_vehicles
+          WHERE event_id = p_event_id AND is_active = TRUE ORDER BY sort_order, name, id FOR UPDATE
+        LOOP
+          SELECT COALESCE(sum(participant_count), 0)::INTEGER INTO used_seats
+          FROM public.event_registrations WHERE vehicle_id = vehicle_row.id AND status = 'confirmed';
+          IF used_seats + reg_row.participant_count <= vehicle_row.capacity - vehicle_row.reserved_seats THEN
+            assigned_vehicle := vehicle_row.id; EXIT;
+          END IF;
+        END LOOP;
+      END IF;
+      IF assigned_vehicle IS NULL THEN CONTINUE; END IF;
+    END IF;
+    UPDATE public.event_registrations SET status = 'confirmed', vehicle_id = assigned_vehicle, updated_at = now()
+    WHERE id = reg_row.id;
+    INSERT INTO public.event_registration_audit_logs (event_id, registration_id, action, details)
+    VALUES (p_event_id, reg_row.id, 'waitlist_promoted', jsonb_build_object('vehicle_id', assigned_vehicle));
+    promoted := promoted + 1;
+  END LOOP;
+  RETURN promoted;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.promote_event_waitlist(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.promote_event_waitlist(UUID) TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.admin_promote_event_registration(
   p_registration_id UUID
 )
