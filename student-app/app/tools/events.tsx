@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
@@ -119,8 +120,34 @@ function formatEventTime(event: Pick<EventRow, 'start_time' | 'end_time' | 'has_
   return `活动时间：${start} - ${end}`;
 }
 
-function errorMessage(error: any, fallback: string) {
+function dateFieldValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function dateFieldDate(value: unknown) {
+  const match = typeof value === 'string' ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null;
+  if (!match) return new Date();
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
+function dateFieldLabel(value: unknown) {
+  const date = dateFieldDate(value);
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function errorMessage(error: any, fallback: string, fields: EventFormField[] = []) {
   const message = String(error?.message || '');
+  const fieldKey = message.match(/field:\s*([^\s]+)/i)?.[1];
+  const fieldName = fields.find((field) => field.key === fieldKey)?.label;
+  if (message.includes('Invalid email value')) return `“${fieldName || '邮箱'}”的邮箱格式不正确，请检查后重新填写。`;
+  if (message.includes('Required registration field is missing')) {
+    return `“${fieldName || '该字段'}”为必填项，请填写后再提交。`;
+  }
   if (message.includes('already have an active')) return '你已经报名过这个活动了。';
   if (message.includes('Authentication is required')) return '请先登录后再报名。';
   if (message.includes('full') || message.includes('enough seats')) return '名额或车辆座位已满，请重新选择。';
@@ -162,6 +189,8 @@ export default function EventsToolScreen() {
   const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [datePickerTarget, setDatePickerTarget] = useState<{ key: string; value: string } | null>(null);
+  const datePickerSetterRef = useRef<((value: string) => void) | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastFade = useRef(new Animated.Value(0)).current;
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -471,6 +500,26 @@ export default function EventsToolScreen() {
         Alert.alert('请补充报名信息', `请填写报名对象 ${index + 1} 的“${missing.label}”。`);
         return;
       }
+      const invalidEmail = registrationFields.find((field) => {
+        if (field.type !== 'email') return false;
+        const value = answerSets[index][field.key];
+        return value !== undefined && value !== null && String(value).trim() !== ''
+          && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(value));
+      });
+      if (invalidEmail) {
+        Alert.alert('邮箱格式不正确', `报名对象 ${index + 1} 的“${invalidEmail.label}”不是有效的邮箱地址。`);
+        return;
+      }
+      const invalidNumber = registrationFields.find((field) => {
+        if (field.type !== 'number') return false;
+        const value = answerSets[index][field.key];
+        return value !== undefined && value !== null && value !== ''
+          && (typeof value !== 'number' || !Number.isFinite(value));
+      });
+      if (invalidNumber) {
+        Alert.alert('数字格式不正确', `报名对象 ${index + 1} 的“${invalidNumber.label}”需要填写有效数字。`);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -554,7 +603,7 @@ export default function EventsToolScreen() {
         [{ text: '好的', onPress: () => { loadAll(); goBackToList(); } }]
       );
     } catch (error: any) {
-      Alert.alert('提交失败', errorMessage(error, '报名暂时无法提交，请稍后重试。'));
+      Alert.alert('提交失败', errorMessage(error, '报名暂时无法提交，请稍后重试。', registrationFields));
     } finally {
       setSubmitting(false);
     }
@@ -589,6 +638,16 @@ export default function EventsToolScreen() {
     const value = values[field.key];
     const setValue = (next: any) => setAnswers((current) => ({ ...current, [field.key]: next }));
     const inputKeyboard = field.type === 'email' ? 'email-address' : field.type === 'phone' ? 'phone-pad' : field.type === 'number' ? 'numeric' : 'default';
+    const openDatePicker = () => {
+      datePickerSetterRef.current = setValue;
+      setDatePickerTarget({ key: uploadKey, value: typeof value === 'string' ? value : '' });
+    };
+    const handleDateChange = (_event: DateTimePickerChangeEvent, selectedDate: Date) => {
+      if (!selectedDate) return;
+      datePickerSetterRef.current?.(dateFieldValue(selectedDate));
+      datePickerSetterRef.current = null;
+      setDatePickerTarget(null);
+    };
 
     return (
       <View key={field.key} style={styles.fieldBlock}>
@@ -640,6 +699,32 @@ export default function EventsToolScreen() {
             {uploadingField === uploadKey ? <ActivityIndicator color={colors.primary} /> : <MaterialCommunityIcons name="paperclip" size={20} color={colors.primary} />}
             <Text style={[styles.fileButtonText, { color: colors.textPrimary }]}>{value?.name || '选择文件'}</Text>
           </Pressable>
+        ) : field.type === 'date' ? (
+          <>
+            <Pressable
+              onPress={openDatePicker}
+              style={[styles.dateButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
+            >
+              <MaterialCommunityIcons name="calendar-month-outline" size={19} color={colors.primary} />
+              <Text style={{ color: value ? colors.textPrimary : colors.textMuted }}>
+                {dateFieldLabel(value) || field.placeholder || '选择日期'}
+              </Text>
+            </Pressable>
+            {datePickerTarget?.key === uploadKey ? (
+              <View style={styles.pickerPanel}>
+                <DateTimePicker
+                  value={dateFieldDate(datePickerTarget.value)}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onValueChange={handleDateChange}
+                  onDismiss={() => {
+                    datePickerSetterRef.current = null;
+                    setDatePickerTarget(null);
+                  }}
+                />
+              </View>
+            ) : null}
+          </>
         ) : (
           <TextInput
             value={value === undefined || value === null ? '' : String(value)}
@@ -903,6 +988,8 @@ const styles = StyleSheet.create({
   checkboxText: { flex: 1, fontSize: 13, lineHeight: 19 },
   fileButton: { minHeight: 46, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   fileButtonText: { flex: 1, fontSize: 14 },
+  dateButton: { minHeight: 46, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pickerPanel: { alignItems: 'center', paddingVertical: 8 },
   switchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   counterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 13 },
   counterControls: { flexDirection: 'row', alignItems: 'center', gap: 14 },
