@@ -76,6 +76,7 @@ type RegistrationEditorState = {
   phone: string;
   email: string;
   answers: Record<string, any>;
+  vehicle_id: string | null;
 };
 
 const FIELD_TYPES: Array<{ type: EventFormFieldType; label: string }> = [
@@ -196,10 +197,12 @@ export default function ManageEventsScreen() {
   const [vehicleLookup, setVehicleLookup] = useState<Record<string, string>>({});
   const [busyRegistration, setBusyRegistration] = useState<string | null>(null);
   const [registrationEditor, setRegistrationEditor] = useState<RegistrationEditorState | null>(null);
+  const [registrationDetail, setRegistrationDetail] = useState<RegistrationRow | null>(null);
   const [registrationDateField, setRegistrationDateField] = useState<string | null>(null);
   const [registrationSearch, setRegistrationSearch] = useState('');
   const [registrationSort, setRegistrationSort] = useState<'registered_asc' | 'registered_desc' | 'name_asc' | 'name_desc' | 'status'>('registered_asc');
-  const [expandedRegistrationId, setExpandedRegistrationId] = useState<string | null>(null);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [selectedExportKeys, setSelectedExportKeys] = useState<string[]>([]);
 
   const currentDraftSignature = useMemo(() => JSON.stringify({
     title, description, location, startTime, endTime, hasEndDate, startHasTime, endHasTime,
@@ -707,6 +710,28 @@ export default function ManageEventsScreen() {
     ]);
   };
 
+  const deleteCancelledRegistration = (registrationId: string) => {
+    Alert.alert('彻底删除报名', '这会永久删除报名信息及报名人明细，删除后无法恢复。确定继续吗？', [
+      { text: '返回', style: 'cancel' },
+      { text: '确认删除', style: 'destructive', onPress: () => {
+        setBusyRegistration(registrationId);
+        void (async () => {
+          try {
+            const { error } = await supabase.rpc('admin_delete_cancelled_event_registration', { p_registration_id: registrationId });
+            if (error) throw error;
+            setRegistrationDetail(null);
+            if (selectedId) await loadRegistrations(selectedId);
+            Alert.alert('已删除', '这条已取消的报名信息已永久删除。');
+          } catch (error: any) {
+            Alert.alert('删除失败', error?.message || '无法彻底删除这条报名信息。');
+          } finally {
+            setBusyRegistration(null);
+          }
+        })();
+      } },
+    ]);
+  };
+
   const openRegistrationEditor = (registration: RegistrationRow) => {
     const attendee = registration.attendees?.[0];
     setRegistrationEditor({
@@ -715,12 +740,15 @@ export default function ManageEventsScreen() {
       phone: attendee?.phone || '',
       email: attendee?.email || '',
       answers: { ...(attendee?.answers || registration.answers || {}) },
+      vehicle_id: registration.vehicle_id || null,
     });
   };
 
+  const openRegistrationDetail = (registration: RegistrationRow) => setRegistrationDetail(registration);
+
   const saveRegistrationEdit = (notify: boolean) => {
     if (!registrationEditor) return;
-    const { registration, name, phone, email, answers } = registrationEditor;
+    const { registration, name, phone, email, answers, vehicle_id } = registrationEditor;
     setBusyRegistration(registration.id);
     void (async () => {
       try {
@@ -733,6 +761,13 @@ export default function ManageEventsScreen() {
           p_notify: notify,
         });
         if (error) throw error;
+        if (vehicle_id !== registration.vehicle_id) {
+          const { error: vehicleError } = await supabase.rpc('admin_assign_event_registration', {
+            p_registration_id: registration.id,
+            p_vehicle_id: vehicle_id,
+          });
+          if (vehicleError) throw vehicleError;
+        }
         setRegistrationEditor(null);
         if (selectedId) await loadRegistrations(selectedId);
         Alert.alert('已保存', notify ? '报名信息已修改，并已通知报名者。' : '报名信息已修改。');
@@ -781,7 +816,33 @@ export default function ManageEventsScreen() {
     ]);
   };
 
-  const exportCsv = async (rosterOnly: boolean) => {
+  const exportOptions = useMemo(() => {
+    const formFields = (event?.registration_form || []) as EventFormField[];
+    return [
+      { key: 'name', label: '昵称' },
+      { key: 'email', label: '邮箱' },
+      { key: 'phone', label: '电话' },
+      { key: 'vehicle', label: '车辆' },
+      { key: 'registration_number', label: '报名编号' },
+      { key: 'registered_at', label: '报名时间' },
+      { key: 'status', label: '状态' },
+      { key: 'registration_kind', label: '报名类型' },
+      { key: 'proxy_note', label: '备注' },
+      { key: 'participant_count', label: '报名人数' },
+      ...formFields.map((field) => ({ key: `field:${field.key}`, label: field.label })),
+    ];
+  }, [event?.registration_form]);
+
+  const openExportSelector = () => {
+    if (!event || registrations.length === 0) {
+      Alert.alert('暂无报名', '当前活动还没有可导出的报名记录。');
+      return;
+    }
+    setSelectedExportKeys(exportOptions.map((option) => option.key));
+    setExportModalVisible(true);
+  };
+
+  const exportCsv = async () => {
     if (!event || registrations.length === 0) {
       Alert.alert('暂无报名', '当前活动还没有可导出的报名记录。');
       return;
@@ -789,42 +850,34 @@ export default function ManageEventsScreen() {
     try {
       const formFields = (event.registration_form || []) as EventFormField[];
       const rows: string[][] = [];
-      if (rosterOnly) {
-        rows.push(['姓名', '车辆']);
-        const originalOrder = new Map(registrations.map((row, index) => [row.id, index]));
-        const vehicleOrder = new Map(vehicles.map((vehicle, index) => [vehicle.id, index]));
-        const rosterRegistrations = registrations
-          .filter((row) => row.status !== 'cancelled')
-          .sort((left, right) => {
-            const leftRank = left.vehicle_id && vehicleOrder.has(left.vehicle_id) ? vehicleOrder.get(left.vehicle_id)! : Number.MAX_SAFE_INTEGER;
-            const rightRank = right.vehicle_id && vehicleOrder.has(right.vehicle_id) ? vehicleOrder.get(right.vehicle_id)! : Number.MAX_SAFE_INTEGER;
-            return leftRank - rightRank || (originalOrder.get(left.id)! - originalOrder.get(right.id)!);
-          });
-        rosterRegistrations.forEach((row) => {
-          const names = row.attendees?.map((item) => item.name).filter(Boolean) || [];
-          const vehicle = row.vehicle_id ? (vehicleLookup[row.vehicle_id] || '待确认') : '待分配';
-          if (names.length === 0) rows.push([`报名编号 ${row.registration_number || row.id.slice(0, 8)}`, vehicle]);
-          names.forEach((name) => rows.push([name, vehicle]));
-        });
-      } else {
-        rows.push(['报名编号', '报名时间', '状态', '报名类型', '代报名备注', '车辆', '报名人数', ...formFields.map((field) => field.label)]);
-        registrations.forEach((row) => rows.push([
-          row.registration_number || row.id.slice(0, 8),
-          formatDate(row.registered_at),
-          row.status,
-          row.registration_kind === 'proxy' ? '代他人报名' : '本人报名',
-          row.proxy_note || '',
-          row.vehicle_id ? (vehicleLookup[row.vehicle_id] || '') : '',
-          String(row.participant_count),
-          ...formFields.map((field) => {
-            const value = row.answers?.[field.key];
-            return Array.isArray(value) ? value.join('、') : typeof value === 'object' && value ? value.name || value.path || '' : value ?? '';
-          }),
-        ]));
-      }
+      const activeKeys = selectedExportKeys.length ? selectedExportKeys : exportOptions.map((option) => option.key);
+      rows.push(activeKeys.map((key) => exportOptions.find((option) => option.key === key)?.label || key));
+      const originalOrder = new Map(registrations.map((row, index) => [row.id, index]));
+      const vehicleOrder = new Map(vehicles.map((vehicle, index) => [vehicle.id, index]));
+      const orderedRegistrations = [...registrations].sort((left, right) => {
+        if (!activeKeys.includes('vehicle')) return originalOrder.get(left.id)! - originalOrder.get(right.id)!;
+        const leftRank = left.vehicle_id && vehicleOrder.has(left.vehicle_id) ? vehicleOrder.get(left.vehicle_id)! : Number.MAX_SAFE_INTEGER;
+        const rightRank = right.vehicle_id && vehicleOrder.has(right.vehicle_id) ? vehicleOrder.get(right.vehicle_id)! : Number.MAX_SAFE_INTEGER;
+        return leftRank - rightRank || originalOrder.get(left.id)! - originalOrder.get(right.id)!;
+      });
+      orderedRegistrations.filter((row) => row.status !== 'cancelled').forEach((row) => {
+        const attendees = row.attendees?.length ? row.attendees : [{ name: '', phone: null, email: null, answers: row.answers }];
+        attendees.forEach((attendee) => rows.push(activeKeys.map((key) => {
+          const value = key === 'name' ? attendee.name : key === 'email' ? attendee.email || '' : key === 'phone' ? attendee.phone || ''
+            : key === 'vehicle' ? (row.vehicle_id ? (vehicleLookup[row.vehicle_id] || '待确认') : '待分配')
+            : key === 'registration_number' ? row.registration_number || row.id.slice(0, 8)
+            : key === 'registered_at' ? `\t${formatDate(row.registered_at)}`
+            : key === 'status' ? row.status
+            : key === 'registration_kind' ? (row.registration_kind === 'proxy' ? '代他人报名' : '本人报名')
+            : key === 'proxy_note' ? row.proxy_note || ''
+            : key === 'participant_count' ? String(row.participant_count)
+            : (attendee.answers || row.answers)?.[key.slice(6)];
+          return Array.isArray(value) ? value.join('、') : typeof value === 'object' && value ? value.name || value.path || '' : value ?? '';
+        })));
+      });
       const csv = `\uFEFF${rows.map((row) => row.map(csvCell).join(',')).join('\n')}`;
       const safeTitle = event.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5_-]/g, '_').slice(0, 50);
-      const fileName = `${safeTitle}-${rosterOnly ? '分车名单' : '报名详情'}-${Date.now()}.csv`;
+      const fileName = `${safeTitle}-导出表单-${Date.now()}.csv`;
       if (Platform.OS === 'web') {
         Alert.alert('网页端提示', '当前先提供 App 导出；网页管理端下载将在网页登录流程完成后接入。');
         return;
@@ -835,7 +888,7 @@ export default function ManageEventsScreen() {
         Alert.alert('无法分享', '当前设备不支持文件分享。');
         return;
       }
-      await Sharing.shareAsync(fileUri, { dialogTitle: rosterOnly ? '导出分车名单' : '导出报名详情', mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
+      await Sharing.shareAsync(fileUri, { dialogTitle: '导出表单', mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
     } catch (error: any) {
       Alert.alert('导出失败', error?.message || '报名文件生成失败。');
     }
@@ -957,13 +1010,21 @@ export default function ManageEventsScreen() {
         <ScrollView contentContainerStyle={styles.editorContent}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>报名人信息</Text>
           {[
-            ['姓名', 'name', registrationEditor.name],
-            ['电话', 'phone', registrationEditor.phone],
+            ['昵称', 'name', registrationEditor.name],
             ['邮箱', 'email', registrationEditor.email],
-          ].map(([label, key, value]) => <View key={key as string} style={styles.registrationEditField}>
+          ].map(([label, _key, value]) => <View key={label as string} style={styles.registrationEditField}>
             <Text style={[styles.dateButtonLabel, { color: colors.textSecondary }]}>{label}</Text>
-            <TextInput value={value as string} onChangeText={(next) => setRegistrationEditor((current) => current ? { ...current, [key as 'name' | 'phone' | 'email']: next } : current)} style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface }]} />
+            <Text style={[styles.registrationInfoValue, { color: colors.textPrimary }]}>{(value as string) || '未填写'}</Text>
           </View>)}
+          {event?.vehicle_selection_mode !== 'none' ? <View style={styles.registrationEditField}>
+            <Text style={[styles.dateButtonLabel, { color: colors.textSecondary }]}>分车</Text>
+            <View style={styles.adminAnswerOptions}>
+              {[{ id: null, name: '待分配' }, ...Object.entries(vehicleLookup).map(([id, name]) => ({ id, name }))].map((vehicle) => {
+                const selected = registrationEditor.vehicle_id === vehicle.id;
+                return <Pressable key={vehicle.id || 'none'} onPress={() => setRegistrationEditor((current) => current ? { ...current, vehicle_id: vehicle.id } : current)} style={[styles.adminAnswerOption, { borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.primary + '12' : colors.surface }]}><MaterialCommunityIcons name={selected ? 'radiobox-marked' : 'radiobox-blank'} size={18} color={selected ? colors.primary : colors.textMuted} /><Text style={{ color: colors.textPrimary }}>{vehicle.name}</Text></Pressable>;
+              })}
+            </View>
+          </View> : null}
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginTop: 12 }]}>报名表答案</Text>
           {(event?.registration_form || []).filter((field) => !field.system).map((field) => {
             const value = registrationEditor.answers[field.key];
@@ -977,6 +1038,46 @@ export default function ManageEventsScreen() {
             </View>;
           })}
           <Pressable onPress={confirmRegistrationEdit} disabled={busyRegistration === registrationEditor.registration.id} style={[styles.saveButton, { backgroundColor: colors.primary }]}><Text style={styles.saveButtonText}>{busyRegistration === registrationEditor.registration.id ? '保存中…' : '保存修改'}</Text></Pressable>
+          {registrationEditor.registration.status === 'waitlist' ? <Pressable onPress={() => { setRegistrationEditor(null); promoteRegistration(registrationEditor.registration.id); }} disabled={busyRegistration === registrationEditor.registration.id} style={styles.editorActionButton}><Text style={{ color: colors.primary, fontSize: 14 }}>转为正式报名</Text></Pressable> : null}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  ) : null;
+
+  const registrationDetailModal = registrationDetail ? (
+    <Modal visible animationType="slide" onRequestClose={() => setRegistrationDetail(null)}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={[styles.previewHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Pressable onPress={() => setRegistrationDetail(null)} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable>
+          <Text style={[styles.previewHeaderTitle, { color: colors.textPrimary }]}>报名详情</Text>
+          <View style={styles.headerButtonSpacer} />
+        </View>
+        <ScrollView contentContainerStyle={styles.editorContent}>
+          <Text style={[styles.registrationDetailTitle, { color: colors.textPrimary }]}>{registrationDetail.attendees?.map((item) => item.name).filter(Boolean).join('、') || registrationDetail.registration_number || '报名详情'}</Text>
+          <View style={[styles.detailPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.detailSectionHeading, { color: colors.textPrimary }]}>报名概况</Text>
+            <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>报名状态</Text><Text style={[styles.detailValue, { color: registrationDetail.status === 'waitlist' ? '#B7791F' : registrationDetail.status === 'cancelled' ? colors.textMuted : colors.success }]}>{registrationDetail.status === 'waitlist' ? '候补' : registrationDetail.status === 'cancelled' ? '已取消' : '已确认'}</Text></View>
+            <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>报名时间</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{formatDate(registrationDetail.registered_at)}</Text></View>
+            <Text style={[styles.detailSectionHeading, styles.detailSectionHeadingSpaced, { color: colors.textPrimary }]}>报名人信息</Text>
+            {registrationDetail.attendees?.map((attendee, index) => <View key={`${attendee.name}-${index}`} style={styles.attendeeDetailBlock}>
+              <Text style={[styles.detailSectionTitle, { color: colors.textPrimary }]}>报名人 {index + 1}</Text>
+              <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>昵称</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.name || '未填写'}</Text></View>
+              {attendee.email ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>邮箱</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.email}</Text></View> : null}
+              {attendee.phone ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>电话</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.phone}</Text></View> : null}
+            </View>)}
+            <Text style={[styles.detailSectionHeading, styles.detailSectionHeadingSpaced, { color: colors.textPrimary }]}>报名表答案</Text>
+            {((event?.registration_form || []) as EventFormField[]).filter((field) => !field.system).map((field) => {
+              const value = registrationDetail.answers?.[field.key];
+              if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) return null;
+              const display = Array.isArray(value) ? value.join('、') : typeof value === 'object' ? value.name || value.path || '已上传文件' : String(value);
+              return <View key={field.key} style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{field.label}</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{display}</Text></View>;
+            })}
+            {event?.vehicle_selection_mode !== 'none' ? <><Text style={[styles.detailSectionHeading, styles.detailSectionHeadingSpaced, { color: colors.textPrimary }]}>分车信息</Text><View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>车辆</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{registrationDetail.vehicle_id ? vehicleLookup[registrationDetail.vehicle_id] || '待确认' : '待分配'}</Text></View></> : null}
+          </View>
+          {registrationDetail.status !== 'cancelled' ? <View style={styles.detailActionsRow}>
+            <Pressable onPress={() => { const current = registrationDetail; setRegistrationDetail(null); openRegistrationEditor(current); }} style={[styles.detailActionButton, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontSize: 14, fontWeight: '600' }}>编辑信息</Text></Pressable>
+            <Pressable onPress={() => { const id = registrationDetail.id; setRegistrationDetail(null); cancelRegistration(id); }} style={[styles.detailActionButton, { borderColor: colors.error }]}><Text style={{ color: colors.error, fontSize: 14, fontWeight: '600' }}>取消报名</Text></Pressable>
+          </View> : registrationDetail.status === 'cancelled' ? <Pressable onPress={() => deleteCancelledRegistration(registrationDetail.id)} disabled={busyRegistration === registrationDetail.id} style={[styles.deleteRegistrationButton, { borderColor: colors.error }]}><MaterialCommunityIcons name="delete-forever-outline" size={18} color={colors.error} /><Text style={{ color: colors.error, fontSize: 14, fontWeight: '600' }}>彻底删除这条报名</Text></Pressable> : null}
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -1009,34 +1110,25 @@ export default function ManageEventsScreen() {
   };
 
   const renderRegistrationCard = (registration: RegistrationRow) => {
-    const expanded = expandedRegistrationId === registration.id;
     const firstAnswer = registrationFirstAnswer(registration);
-    return <View key={registration.id} style={[styles.registrationPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Pressable onPress={() => setExpandedRegistrationId(expanded ? null : registration.id)} style={styles.registrationHeader}>
+    const showFirstAnswer = firstAnswer;
+    return <Pressable key={registration.id} onPress={() => openRegistrationDetail(registration)} style={[styles.registrationPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={styles.registrationHeader}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.registrationTitle, { color: colors.textPrimary }]}>{registration.attendees?.map((item) => item.name).join('、') || registration.registration_number || registration.id.slice(0, 8)}</Text>
-          {firstRegistrationField && firstAnswer ? <Text style={[styles.hint, { color: colors.textSecondary }]} numberOfLines={1}>{firstRegistrationField.label}：{firstAnswer}</Text> : null}
+          {showFirstAnswer ? <Text style={[styles.hint, { color: colors.textSecondary }]} numberOfLines={1}>{firstRegistrationField?.label}：{firstAnswer}</Text> : null}
           <Text style={[styles.hint, { color: colors.textSecondary }]}>{registration.registration_kind === 'proxy' ? `代报名：${registration.proxy_note || '未填写备注'}` : '本人报名'} · {registration.participant_count} 人 · {formatDate(registration.registered_at)}</Text>
         </View>
         <Text style={{ color: registration.status === 'waitlist' ? '#B7791F' : registration.status === 'cancelled' ? colors.textMuted : colors.success, fontSize: 13, fontWeight: '700' }}>{registration.status === 'waitlist' ? '候补' : registration.status === 'cancelled' ? '已取消' : '已确认'}</Text>
-        <MaterialCommunityIcons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
-      </Pressable>
-      {expanded ? <>
-        {event?.vehicle_selection_mode !== 'none' ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, marginTop: 9 }}>{[{ id: null, name: '待分配' }, ...Object.entries(vehicleLookup).map(([id, name]) => ({ id, name }))].map((vehicle) => <Pressable key={vehicle.id || 'none'} onPress={() => assignVehicle(registration.id, vehicle.id)} disabled={busyRegistration === registration.id} style={[styles.smallChoice, { borderColor: registration.vehicle_id === vehicle.id ? colors.primary : colors.border, backgroundColor: registration.vehicle_id === vehicle.id ? colors.primary + '12' : colors.surface }]}><Text style={{ color: registration.vehicle_id === vehicle.id ? colors.primary : colors.textSecondary, fontSize: 12 }}>{vehicle.name}</Text></Pressable>)}</ScrollView> : null}
-        <View style={styles.registrationActions}>
-          {registration.status === 'waitlist' ? <Pressable onPress={() => promoteRegistration(registration.id)} disabled={busyRegistration === registration.id}><Text style={{ color: colors.primary, fontSize: 13 }}>转为正式</Text></Pressable> : null}
-          <Pressable onPress={() => openRegistrationEditor(registration)} disabled={busyRegistration === registration.id}><Text style={{ color: colors.primary, fontSize: 13 }}>修改信息</Text></Pressable>
-          <Pressable onPress={() => cancelRegistration(registration.id)} disabled={busyRegistration === registration.id}><Text style={{ color: colors.error, fontSize: 13 }}>取消报名</Text></Pressable>
-          <Text style={[styles.hint, { color: colors.textMuted }]}>{registration.registration_number || registration.id.slice(0, 8)}</Text>
-        </View>
-      </> : null}
-    </View>;
+        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+      </View>
+    </Pressable>;
   };
 
   const selectedEventPanel = event && !editing ? (
     <>
       <View style={styles.headerRow}><Pressable onPress={() => { setEvent(null); setSelectedId(null); }} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable><View style={{ flex: 1 }}><Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>{event.title}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>报名管理</Text></View><Pressable onPress={() => setEditing(true)} style={styles.addTextButton}><MaterialCommunityIcons name="pencil-outline" size={18} color={colors.primary} /><Text style={{ color: colors.primary }}>编辑</Text></Pressable><Pressable onPress={deleteEvent} style={styles.deleteIconButton} disabled={saving}><MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} /></Pressable></View>
-      <View style={[styles.summaryPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.summaryText, { color: colors.textPrimary }]}>当前报名：{registrations.filter((row) => row.status === 'confirmed').length} 条确认，{registrations.filter((row) => row.status === 'waitlist').length} 条候补</Text><View style={styles.exportRow}><Pressable onPress={() => exportCsv(true)} style={[styles.outlineButton, { borderColor: colors.primary }]}><MaterialCommunityIcons name="bus" size={17} color={colors.primary} /><Text style={{ color: colors.primary, fontSize: 13 }}>分车名单</Text></Pressable><Pressable onPress={() => exportCsv(false)} style={[styles.outlineButton, { borderColor: colors.border }]}><MaterialCommunityIcons name="download-outline" size={17} color={colors.textPrimary} /><Text style={{ color: colors.textPrimary, fontSize: 13 }}>报名详情</Text></Pressable></View></View>
+      <View style={[styles.summaryPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.summaryText, { color: colors.textPrimary }]}>当前报名：{registrations.filter((row) => row.status === 'confirmed').length} 条确认，{registrations.filter((row) => row.status === 'waitlist').length} 条候补</Text><View style={styles.exportRow}><Pressable onPress={openExportSelector} style={[styles.outlineButton, { borderColor: colors.primary }]}><MaterialCommunityIcons name="download-outline" size={17} color={colors.primary} /><Text style={{ color: colors.primary, fontSize: 13 }}>导出表单</Text></Pressable></View></View>
       <View style={styles.registrationToolbar}>
         <TextInput value={registrationSearch} onChangeText={setRegistrationSearch} placeholder="搜索姓名、邮箱、电话或报名答案" placeholderTextColor={colors.textMuted} style={[styles.searchInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface }]} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
@@ -1055,7 +1147,28 @@ export default function ManageEventsScreen() {
     </View> : null}
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{editing ? editor : event ? selectedEventPanel : <><View style={styles.headerRow}><Pressable onPress={() => router.back()} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable><Text style={[styles.title, { color: colors.textPrimary }]}>活动发布与管理</Text><Pressable onPress={startCreate} style={styles.addTextButton}><MaterialCommunityIcons name="plus" size={18} color={colors.primary} /><Text style={{ color: colors.primary }}>新建</Text></Pressable></View>{loading ? <ActivityIndicator style={{ marginTop: 50 }} color={colors.primary} /> : events.length === 0 ? <View style={styles.empty}><MaterialCommunityIcons name="calendar-plus" size={44} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>还没有活动</Text><Pressable onPress={startCreate} style={[styles.saveButton, { backgroundColor: colors.primary, marginTop: 14 }]}><Text style={styles.saveButtonText}>创建第一个活动</Text></Pressable></View> : events.map((item) => <Pressable key={item.id} onPress={() => openEvent(item.id)} style={[styles.eventListRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={{ flex: 1 }}><Text style={[styles.eventListTitle, { color: colors.textPrimary }]}>{item.title}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>{localDateInput(item.start_time)} · {statusOptions.find((option) => option.value === item.registration_status)?.label || item.registration_status} · {item.allow_proxy_registration ? '允许代报名' : '仅本人报名'}</Text></View><MaterialCommunityIcons name="chevron-right" size={22} color={colors.textMuted} /></Pressable>)}</>}</ScrollView>
     {eventPreview}
-  </SafeAreaView>{registrationEditorModal}</>;
+    <Modal visible={exportModalVisible} animationType="slide" transparent onRequestClose={() => setExportModalVisible(false)}>
+      <View style={styles.exportModalBackdrop}>
+        <View style={[styles.exportModal, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>选择导出字段</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary, marginBottom: 10 }]}>选择“昵称 + 车辆”即可导出分车名单。导出文件为 Excel 可直接打开的 CSV。</Text>
+          <ScrollView style={{ maxHeight: 430 }}>
+            {exportOptions.map((option) => {
+              const selected = selectedExportKeys.includes(option.key);
+              return <Pressable key={option.key} onPress={() => setSelectedExportKeys((current) => selected ? current.filter((key) => key !== option.key) : [...current, option.key])} style={styles.exportOptionRow}>
+                <MaterialCommunityIcons name={selected ? 'checkbox-marked' : 'checkbox-blank-outline'} size={22} color={selected ? colors.primary : colors.textMuted} />
+                <Text style={{ color: colors.textPrimary, fontSize: 14 }}>{option.label}</Text>
+              </Pressable>;
+            })}
+          </ScrollView>
+          <View style={styles.exportModalActions}>
+            <Pressable onPress={() => setExportModalVisible(false)} style={[styles.outlineButton, { borderColor: colors.border }]}><Text style={{ color: colors.textSecondary }}>取消</Text></Pressable>
+            <Pressable onPress={() => { setExportModalVisible(false); void exportCsv(); }} disabled={selectedExportKeys.length === 0} style={[styles.saveButton, { backgroundColor: colors.primary, opacity: selectedExportKeys.length === 0 ? 0.5 : 1 }]}><Text style={styles.saveButtonText}>导出</Text></Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  </SafeAreaView>{registrationDetailModal}{registrationEditorModal}</>;
 }
 
 const styles = StyleSheet.create({
@@ -1081,6 +1194,8 @@ const styles = StyleSheet.create({
   previewOption: { fontSize: 13, marginTop: 5 },
   previewInputLine: { borderBottomWidth: 1, height: 26 },
   registrationEditField: { marginBottom: 12 },
+  registrationInfoValue: { minHeight: 45, paddingHorizontal: 11, paddingVertical: 12, fontSize: 14 },
+  editorActionButton: { alignItems: 'center', paddingVertical: 11 },
   textareaInput: { minHeight: 100, paddingTop: 11, textAlignVertical: 'top' },
   adminAnswerOptions: { gap: 7 },
   adminAnswerOption: { minHeight: 42, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
@@ -1137,9 +1252,25 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 80 },
   emptyTitle: { fontSize: 17, fontWeight: '700', marginTop: 12 },
   exportRow: { flexDirection: 'row', gap: 8, marginTop: 13 },
+  exportModalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  exportModal: { borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 18, paddingBottom: 28 },
+  exportOptionRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  exportModalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16 },
   outlineButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
   registrationPanel: { borderWidth: 1, borderRadius: 11, padding: 13, marginBottom: 9 },
   registrationHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  registrationDetailTitle: { fontSize: 21, fontWeight: '700', lineHeight: 28, marginBottom: 14 },
+  detailPanel: { borderWidth: 1, borderRadius: 11, padding: 16, marginBottom: 16 },
+  detailSectionHeading: { fontSize: 16, fontWeight: '700', lineHeight: 22, marginBottom: 8 },
+  detailSectionHeadingSpaced: { marginTop: 18 },
+  detailSectionTitle: { fontSize: 14, fontWeight: '600', lineHeight: 20, marginBottom: 3 },
+  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 8 },
+  detailLabel: { width: 68, fontSize: 12, lineHeight: 20 },
+  detailValue: { flex: 1, fontSize: 14, lineHeight: 21 },
+  attendeeDetailBlock: { borderTopWidth: 1, borderTopColor: '#E5E7EB', marginTop: 7, paddingTop: 9 },
+  detailActionsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  detailActionButton: { flex: 1, minHeight: 44, borderWidth: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  deleteRegistrationButton: { minHeight: 44, borderWidth: 1, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 20 },
   registrationTitle: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
   registrationActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
 });
