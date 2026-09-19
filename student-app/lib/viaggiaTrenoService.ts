@@ -1,6 +1,9 @@
 import { stations, Station } from '../assets/stations';
 
-const BASE_URL = 'http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const BASE_URL = `${SUPABASE_URL}/functions/v1/viaggia-treno-proxy`;
+
+const isViaggiaProxyUrl = (url: string) => url.startsWith(BASE_URL);
 
 export const fetchWithTimeout = async (url: string, options?: RequestInit, timeoutMs = 3000): Promise<Response> => {
   const controller = new AbortController();
@@ -8,6 +11,9 @@ export const fetchWithTimeout = async (url: string, options?: RequestInit, timeo
   try {
     const response = await fetch(url, {
       ...options,
+      headers: isViaggiaProxyUrl(url)
+        ? { apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '', ...(options?.headers || {}) }
+        : options?.headers,
       signal: controller.signal
     });
     clearTimeout(id);
@@ -20,8 +26,6 @@ export const fetchWithTimeout = async (url: string, options?: RequestInit, timeo
 
 export const getCleanStationName = (apiName: string, id?: string): string => {
   let name = String(apiName || '').trim();
-  if (!name) return '';
-
   const cleanId = String(id || '').trim();
   if (cleanId) {
     const found = stations.find(s => s.id === cleanId || s.id === 'S' + cleanId || 'S' + s.id === cleanId);
@@ -29,6 +33,8 @@ export const getCleanStationName = (apiName: string, id?: string): string => {
       return found.n;
     }
   }
+
+  if (!name) return '';
 
   if (name.endsWith('...')) {
     const prefix = name.slice(0, -3).toLowerCase();
@@ -484,44 +490,19 @@ export const getOperatorInfo = (codiceCliente: string | number | null, category:
  * "Day Mon DD YYYY HH:MM:SS" (e.g. "Wed Jun 17 2026 19:15:00")
  */
 function formatVtDateTime(date: Date): string {
-  try {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Europe/Rome',
-      weekday: 'short',
-      month: 'short',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-    const parts = formatter.formatToParts(date);
-    
-    const pVal = (type: string) => parts.find(p => p.type === type)?.value || '';
-    const weekday = pVal('weekday');
-    const month = pVal('month');
-    const day = pVal('day');
-    const year = pVal('year');
-    const hour = pVal('hour') === '24' ? '00' : pVal('hour').padStart(2, '0');
-    const minute = pVal('minute').padStart(2, '0');
-    const second = pVal('second').padStart(2, '0');
-    
-    return `${weekday} ${month} ${day} ${year} ${hour}:${minute}:${second}`;
-  } catch (e) {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    const dayName = days[date.getDay()];
-    const monthName = months[date.getMonth()];
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    
-    return `${dayName} ${monthName} ${day} ${year} ${hours}:${minutes}:${seconds}`;
-  }
+  // The app is used with Europe/Rome device time. Building this string from
+  // Date components avoids an iOS Intl.DateTimeFormat edge case that can turn
+  // a valid afternoon time into 00:00:00.
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dayName = days[date.getDay()];
+  const monthName = months[date.getMonth()];
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${dayName} ${monthName} ${day} ${year} ${hours}:${minutes}:${seconds}`;
 }
 
 /**
@@ -693,7 +674,7 @@ export async function searchStations(query: string): Promise<VtStation[]> {
   // 2. Fall back to ViaggiaTreno autocompletaStazione API
   try {
     const encoded = encodeURIComponent(query);
-    const response = await fetch(`${BASE_URL}/autocompletaStazione/${encoded}`);
+    const response = await fetchWithTimeout(`${BASE_URL}/autocompletaStazione/${encoded}`, undefined, 5000);
     if (!response.ok) return [];
     
     const text = await response.text();
@@ -822,7 +803,7 @@ export async function getTrainStatus(
       ? `${BASE_URL}/andamentoTreno/${cleanStation}/${cleanNum}/${timestamp}`
       : `${BASE_URL}/andamentoTreno/${cleanStation}/${cleanNum}`;
       
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, undefined, 8000);
     if (response.status === 204) {
       // Train not started or cancelled, no details
       return null;
@@ -910,11 +891,26 @@ export async function getStationBoard(
       const path = mode === 'departures' ? 'partenze' : 'arrivi';
       const url = `${BASE_URL}/${path}/${cleanId}/${encodeURIComponent(formattedTime)}`;
       
-      const response = await fetch(url);
+      const response = await fetchWithTimeout(url, undefined, 20000);
+      if (__DEV__) {
+        console.log(`[Train][ViaggiaTreno] ${mode} date=${dateTime.toString()} iso=${dateTime.toISOString()} status=${response.status} url=${url}`);
+      }
       if (!response.ok) return [];
 
-      const data = await response.json();
+      const body = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(body.replace(/^\uFEFF/, '').trim());
+      } catch (parseError) {
+        if (__DEV__) {
+          console.warn(`[Train][ViaggiaTreno] JSON parse failed length=${body.length}`, parseError);
+        }
+        return [];
+      }
       if (!Array.isArray(data)) return [];
+      if (__DEV__) {
+        console.log(`[Train][ViaggiaTreno] ${mode} entries=${data.length}`);
+      }
 
       return data.map((entry: any) => {
         const isCancelled = entry.provvedimento === 1 || entry.compProvvedimento === 1;
@@ -1155,7 +1151,7 @@ export async function getTrainAlerts(
   destination: string
 ): Promise<VtAlertResult> {
   try {
-    const response = await fetch(`${BASE_URL}/news/0/it`);
+    const response = await fetchWithTimeout(`${BASE_URL}/news/0/it`, undefined, 8000);
     if (!response.ok) return { alerts: [], available: false };
     const data = await response.json();
     if (!Array.isArray(data)) return { alerts: [], available: false };

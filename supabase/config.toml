@@ -1,0 +1,2 @@
+[functions.viaggia-treno-proxy]
+verify_jwt = false

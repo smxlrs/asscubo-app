@@ -24,6 +24,7 @@ interface GlassBackgroundProps {
   refractionEnabled?: boolean;
   edgeReflection?: boolean;
   excludeNestedGlass?: boolean;
+  nativeTintColor?: string;
 }
 
 interface GlassFallbackProps {
@@ -74,6 +75,7 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
   refractionEnabled = true,
   edgeReflection = false,
   excludeNestedGlass = false,
+  nativeTintColor,
 }) => {
   const [reduceTransparency, setReduceTransparency] = React.useState(false);
 
@@ -101,6 +103,7 @@ export const GlassBackground: React.FC<GlassBackgroundProps> = ({
       <GlassView
         style={[StyleSheet.absoluteFill, { borderRadius, overflow: 'hidden' }]}
         glassEffectStyle="regular"
+        tintColor={nativeTintColor}
         colorScheme={isDark ? 'dark' : 'light'}
       />
     );

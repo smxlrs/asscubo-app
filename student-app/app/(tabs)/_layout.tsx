@@ -1,4 +1,5 @@
 import { Tabs, router } from 'expo-router';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { View, Text, Animated, StyleSheet, Easing, Pressable, Platform, Dimensions, LayoutChangeEvent } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import React, { useRef, useEffect, useState } from 'react';
@@ -354,6 +355,43 @@ function DockMorphTabItem({
   );
 }
 
+function NativeIOSTabs({
+  labels,
+  isDark,
+}: {
+  labels: { home: string; notifications: string; tools: string; profile: string };
+  isDark: boolean;
+}) {
+  const inactiveColor = isDark ? '#D1D1D6' : '#6E6E73';
+  const activeColor = isDark ? '#FFFFFF' : '#000000';
+
+  return (
+    <NativeTabs
+      minimizeBehavior="never"
+      iconColor={{ default: inactiveColor, selected: activeColor }}
+      labelStyle={{ default: { color: inactiveColor }, selected: { color: activeColor } }}
+      disableTransparentOnScrollEdge={false}
+    >
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} />
+        <NativeTabs.Trigger.Label>{labels.home}</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="notifications">
+        <NativeTabs.Trigger.Icon sf={{ default: 'newspaper', selected: 'newspaper.fill' }} />
+        <NativeTabs.Trigger.Label>{labels.notifications}</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="tools">
+        <NativeTabs.Trigger.Icon sf={{ default: 'square.grid.2x2', selected: 'square.grid.2x2.fill' }} />
+        <NativeTabs.Trigger.Label>{labels.tools}</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="profile">
+        <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} />
+        <NativeTabs.Trigger.Label>{labels.profile}</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
+  );
+}
+
 export default function TabsLayout() {
   const { colors, t, isDark, tabBarStyle, glassOpacityLevel, tabOpacities, setTabGestureActive } = useTheme();
   const insets = useSafeAreaInsets();
@@ -664,6 +702,20 @@ export default function TabsLayout() {
     { label: t('profile'), iconName: 'profile' },
   ];
 
+  if (USE_GLASSMORPHISM && USE_NATIVE_IOS_GLASS) {
+    return (
+      <NativeIOSTabs
+        isDark={isDark}
+        labels={{
+          home: t('home'),
+          notifications: t('notifications'),
+          tools: t('tools'),
+          profile: t('profile'),
+        }}
+      />
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ExpoTabs
@@ -759,6 +811,7 @@ export default function TabsLayout() {
                   borderRadius={TAB_BAR_HEIGHT}
                   isDark={isDark}
                   blurStep={sliderGlassBlurStep}
+                  nativeTintColor={isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.24)'}
                   chromaticBoost={sliderBoostActive}
                   refractionEnabled
                   edgeReflection={!sliderBoostActive}
@@ -797,8 +850,22 @@ export default function TabsLayout() {
                 </>
               ) : null}
 
+              {USE_NATIVE_IOS_GLASS ? (
+                <View pointerEvents="none" style={styles.dockOpticalLayer}>
+                  {dockTabs.map((item, index) => (
+                    <DockMorphTabItem
+                      key={`native-dock-item-${item.iconName}`}
+                      label={item.label}
+                      iconName={item.iconName}
+                      isDark={isDark}
+                      focused={activeIndex === index}
+                    />
+                  ))}
+                </View>
+              ) : null}
+
               {/* Filled icons use the slider's complete capsule as one continuous mask. */}
-              <Reanimated.View
+              {!USE_NATIVE_IOS_GLASS ? <Reanimated.View
                 pointerEvents="none"
                 style={[styles.dockFocusedIconClip, focusedIconClipStyle]}
               >
@@ -814,10 +881,10 @@ export default function TabsLayout() {
                     />
                   ))}
                 </Reanimated.View>
-              </Reanimated.View>
+              </Reanimated.View> : null}
 
               {/* Labels stay crisp and single-sourced; only icons participate in optical morphing. */}
-              <View pointerEvents="none" style={styles.dockOpticalLayer}>
+              {!USE_NATIVE_IOS_GLASS ? <View pointerEvents="none" style={styles.dockOpticalLayer}>
                 {dockTabs.map((item) => (
                   <DockMorphTabItem
                     key={`dock-label-${item.iconName}`}
@@ -828,7 +895,7 @@ export default function TabsLayout() {
                     hideIcon
                   />
                 ))}
-              </View>
+              </View> : null}
 
               {/* The native iOS material supplies its own rim and reflection. */}
               {!USE_NATIVE_IOS_GLASS ? (
