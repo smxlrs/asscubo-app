@@ -1,6 +1,11 @@
 -- Allow event managers to edit or cancel an individual registration and,
 -- optionally, create a targeted notification for the owning account.
 
+ALTER TABLE public.notifications
+  ADD COLUMN IF NOT EXISTS target_type TEXT NOT NULL DEFAULT 'all',
+  ADD COLUMN IF NOT EXISTS target_value TEXT,
+  ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES public.events(id) ON DELETE SET NULL;
+
 DO $$
 DECLARE
   constraint_row RECORD;
