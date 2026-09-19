@@ -136,8 +136,8 @@ export default function AdminDashboardScreen() {
       onPress: () => undefined, disabled: true,
     },
     hasAdminPermission('events.manage') && {
-      key: 'manage-events', icon: 'calendar-edit', label: '活动发布与管理', value: '未上线',
-      onPress: () => undefined, disabled: true,
+      key: 'manage-events', icon: 'calendar-edit', label: '活动发布与管理', value: '活动、表单、车辆与报名',
+      onPress: () => router.push('/admin/manage-events'), disabled: false,
     },
   ].filter(Boolean) as Array<{
     key: string; icon: string; label: string; value: string; onPress: () => void; disabled: boolean;
@@ -264,19 +264,31 @@ export default function AdminDashboardScreen() {
         {futureItems.length > 0 && (
           <>
             <View style={styles.sectionHeaderContainer}>
-              <Text style={styles.sectionHeader}>未来管理功能</Text>
+              <Text style={styles.sectionHeader}>活动与其他管理</Text>
             </View>
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              {futureItems.map((item, index) => (
-                <View
-                  key={item.key}
-                  style={[styles.rowView, { borderBottomColor: colors.border }, index === futureItems.length - 1 && { borderBottomWidth: 0 }]}
-                >
-                  <MaterialCommunityIcons name={item.icon as any} size={20} color={colors.textMuted} style={styles.rowIcon} />
-                  <Text style={[styles.rowLabel, styles.futureRowLabel, { color: colors.textMuted }]}>{item.label}</Text>
-                  <Text style={[styles.statusText, { color: colors.textMuted }]}>{item.value}</Text>
-                </View>
-              ))}
+              {futureItems.map((item, index) => {
+                const rowStyle = [
+                  styles.rowView,
+                  { borderBottomColor: colors.border },
+                  index === futureItems.length - 1 && { borderBottomWidth: 0 },
+                ];
+                const content = (
+                  <>
+                    <MaterialCommunityIcons name={item.icon as any} size={20} color={item.disabled ? colors.textMuted : colors.primaryLight} style={styles.rowIcon} />
+                    <Text style={[styles.rowLabel, item.disabled && styles.futureRowLabel, { color: item.disabled ? colors.textMuted : colors.textPrimary }]}>{item.label}</Text>
+                    <View style={styles.rowRight}>
+                      <Text style={[styles.statusText, { color: item.disabled ? colors.textMuted : colors.textSecondary }]}>{item.value}</Text>
+                      {!item.disabled && <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>}
+                    </View>
+                  </>
+                );
+                return item.disabled ? (
+                  <View key={item.key} style={rowStyle}>{content}</View>
+                ) : (
+                  <Pressable key={item.key} style={rowStyle} onPress={item.onPress}>{content}</Pressable>
+                );
+              })}
             </View>
           </>
         )}

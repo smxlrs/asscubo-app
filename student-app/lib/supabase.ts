@@ -177,13 +177,24 @@ export type Database = {
           id: string;
           title: string;
           description: string;
-          location: string;
+          location: string | null;
           start_time: string;
           end_time: string;
           max_participants: number | null;
           cover_image: string | null;
           is_published: boolean;
+          registration_deadline: string | null;
+          registration_status: 'draft' | 'open' | 'closed' | 'archived';
+          registration_mode: 'authenticated' | 'public';
+          registration_start_at: string | null;
+          registration_form: EventFormField[];
+          registration_form_version: number;
+          vehicle_selection_mode: 'none' | 'auto' | 'self_select' | 'admin';
+          allow_proxy_registration: boolean;
+          allow_waitlist: boolean;
+          deleted_at: string | null;
           created_at: string;
+          updated_at: string;
         };
       };
       event_registrations: {
@@ -193,6 +204,45 @@ export type Database = {
           user_id: string;
           registered_at: string;
           status: 'confirmed' | 'cancelled' | 'waitlist';
+          registration_kind: 'self' | 'proxy';
+          proxy_note: string | null;
+          participant_count: number;
+          answers: Record<string, any>;
+          form_version: number;
+          vehicle_id: string | null;
+          source: string;
+          registration_number: string | null;
+          updated_at: string;
+          cancelled_at: string | null;
+        };
+      };
+      event_vehicles: {
+        Row: {
+          id: string;
+          event_id: string;
+          name: string;
+          capacity: number;
+          reserved_seats: number;
+          boarding_stop: string | null;
+          departure_time: string | null;
+          notes: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+      };
+      event_registration_attendees: {
+        Row: {
+          id: string;
+          registration_id: string;
+          name: string;
+          phone: string | null;
+          email: string | null;
+          answers: Record<string, any>;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
         };
       };
       handbook_chapters: {
@@ -261,4 +311,29 @@ export type Database = {
       };
     };
   };
+};
+
+export type EventFormFieldType =
+  | 'text'
+  | 'textarea'
+  | 'email'
+  | 'phone'
+  | 'select'
+  | 'multiselect'
+  | 'checkbox'
+  | 'number'
+  | 'date'
+  | 'file';
+
+export type EventFormField = {
+  key: string;
+  type: EventFormFieldType;
+  label: string;
+  description?: string;
+  placeholder?: string;
+  required?: boolean;
+  options?: string[];
+  system?: boolean;
+  accept?: string[];
+  maxFileSizeMb?: number;
 };

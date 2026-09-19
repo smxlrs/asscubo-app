@@ -15,6 +15,7 @@ const ROUTE_PERMISSIONS: Record<string, AdminPermission | AdminPermission[]> = {
   '/admin/handbook-editor': 'handbook.manage',
   '/admin/manage-feedbacks': 'feedback.manage',
   '/admin/manage-users': ['users.moderate', 'users.delete'],
+  '/admin/manage-events': 'events.manage',
 };
 
 export default function AdminLayout() {

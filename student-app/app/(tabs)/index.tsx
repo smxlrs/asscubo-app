@@ -47,6 +47,8 @@ type Event = {
   title: string;
   location: string | null;
   start_time: string;
+  end_time: string;
+  registration_status: 'draft' | 'open' | 'closed' | 'ended' | 'archived';
   cover_image: string | null;
 };
 
@@ -649,9 +651,10 @@ export default function HomeScreen() {
           .limit(5),
         supabase
           .from('events')
-          .select('id, title, location, start_time, cover_image')
+          .select('id, title, location, start_time, end_time, registration_status, cover_image')
           .eq('is_published', true)
-          .gte('start_time', new Date().toISOString())
+          .in('registration_status', ['open', 'closed'])
+          .gte('end_time', new Date().toISOString())
           .order('start_time', { ascending: true })
           .limit(3),
       ]);
@@ -1032,10 +1035,7 @@ export default function HomeScreen() {
         {upcomingEvents.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialCommunityIcons name="calendar-month-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('recentEvents')}</Text>
-              </View>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('recentEvents')}</Text>
               <TouchableOpacity 
                 onPress={() => router.push('/(tabs)/events')}
                 style={{ flexDirection: 'row', alignItems: 'center' }}
@@ -1044,29 +1044,22 @@ export default function HomeScreen() {
                 <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+            <View>
               {upcomingEvents.map((event) => (
                 <TouchableOpacity
                   key={event.id}
-                  style={[styles.eventCard, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(163,22,33,0.06)', elevation: tabGestureActive ? 0 : 2 }]}
-                  onPress={() => router.push(`/event/${event.id}` as any)}
+                  style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(163,22,33,0.06)', elevation: tabGestureActive ? 0 : 2 }]}
+                  onPress={() => router.push({ pathname: '/tools/events', params: { eventId: event.id, detail: '1' } } as any)}
                   activeOpacity={0.85}
                 >
-                  <LinearGradient
-                    colors={[colors.surface, colors.surfaceElevated]}
-                    style={styles.eventCardGradient}
-                  >
-                    <View style={[styles.eventDateBadge, { backgroundColor: colors.primary }]}>
-                      <Text style={styles.eventDateText}>{formatDate(event.start_time)}</Text>
-                    </View>
+                  <View style={{ flex: 1 }}>
                     <Text style={[styles.eventTitle, { color: colors.textPrimary }]} numberOfLines={2}>{event.title}</Text>
-                    {event.location && (
-                      <Text style={[styles.eventLocation, { color: colors.textSecondary }]} numberOfLines={1}>📍 {event.location}</Text>
-                    )}
-                  </LinearGradient>
+                    <Text style={[styles.eventDateText, { color: colors.textSecondary }]}>{formatDate(event.start_time)}</Text>
+                  </View>
+                  <MaterialIcons name="chevron-right" size={20} color={colors.textMuted} />
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
           </View>
         )}
 
@@ -1530,19 +1523,19 @@ const styles = StyleSheet.create({
   },
   horizontalScroll: { marginHorizontal: -SPACING.lg, paddingHorizontal: SPACING.lg },
   eventCard: {
-    width: 200,
-    marginRight: SPACING.md,
+    width: '100%',
+    marginBottom: SPACING.sm,
     borderRadius: RADIUS.lg,
-    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    padding: SPACING.base,
+    flexDirection: 'row',
+    alignItems: 'center',
     shadowColor: '#0A101D',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
   },
-  eventCardGradient: { padding: SPACING.base },
   eventDateBadge: {
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.sm,
@@ -1553,8 +1546,8 @@ const styles = StyleSheet.create({
   },
   eventDateText: {
     fontSize: SIZES.xs,
-    fontFamily: FONTS.bold,
-    color: '#FFFFFF',
+    fontFamily: FONTS.regular,
+    marginTop: 3,
   },
   eventTitle: {
     fontSize: SIZES.md,

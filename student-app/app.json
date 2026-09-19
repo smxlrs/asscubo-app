@@ -67,7 +67,8 @@
       "./plugins/withLiquidGlassAndroid",
       "./plugins/withPlayStoreUpdateAndroid",
       "./plugins/withAndroidReleaseOptimization",
-      "expo-sharing"
+      "expo-sharing",
+      "@react-native-community/datetimepicker"
     ],
     "ios": {
       "supportsTablet": false,

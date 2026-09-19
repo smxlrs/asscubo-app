@@ -215,11 +215,13 @@ const findLinkAtSelection = (markdown: string, start: number, end: number) => {
   return null;
 };
 
-export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters, disabled = false, preview = false, onEditorFocus, onEditorBlur }: {
+export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters, disabled = false, preview = false, enableChapterLinks = true, inputPlaceholder = '输入手册正文', onEditorFocus, onEditorBlur }: {
   value: string; onChange: (value: string) => void; onBusyChange: (busy: boolean) => void;
   chapters: HandbookLinkChapter[];
   disabled?: boolean;
   preview?: boolean;
+  enableChapterLinks?: boolean;
+  inputPlaceholder?: string;
   onEditorFocus?: (input: TextInput | null) => void;
   onEditorBlur?: () => void;
 }) {
@@ -439,7 +441,18 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
       onBusyChange(false);
     }
   };
+  const keyboardAccessory = !preview && Platform.OS === 'ios' ? (
+    <InputAccessoryView nativeID="handbook-markdown-keyboard">
+      <View style={{ height: 42, width: '100%', backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'flex-end', justifyContent: 'center', paddingHorizontal: 12 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel="收起键盘" onPress={() => { input.current?.blur(); Keyboard.dismiss(); }} hitSlop={8}>
+          <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '600' }}>收起键盘</Text>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
+  ) : null;
+
   return (
+    <>
     <View style={{ height: 520, position: 'relative', paddingBottom: preview ? 0 : 76 }}>
       <ScrollView ref={contentScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
@@ -459,21 +472,12 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
           setActiveSelection(nativeEvent.selection);
           setCursor(undefined);
         }}
-        onChangeText={onChange} placeholder="输入手册正文" placeholderTextColor={colors.textMuted}
+        onChangeText={onChange} placeholder={inputPlaceholder} placeholderTextColor={colors.textMuted}
         autoCapitalize="none" autoCorrect={false}
         style={{ minHeight: 430, borderWidth: 1, borderRadius: 7, padding: 12, fontSize: 14, lineHeight: 21,
           backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }} />
       </>}
       </ScrollView>
-      {!preview && Platform.OS === 'ios' && (
-        <InputAccessoryView nativeID="handbook-markdown-keyboard">
-          <View style={{ height: 42, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'flex-end', justifyContent: 'center', paddingHorizontal: 12 }}>
-            <Pressable accessibilityRole="button" accessibilityLabel="收起键盘" onPress={() => { input.current?.blur(); Keyboard.dismiss(); }} hitSlop={8}>
-              <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '600' }}>收起键盘</Text>
-            </Pressable>
-          </View>
-        </InputAccessoryView>
-      )}
       {!preview && <View pointerEvents={disabled ? 'none' : 'auto'} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 68, opacity: disabled ? 0.5 : 1,
         backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 8 }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, gap: 7 }} keyboardShouldPersistTaps="handled">
@@ -530,7 +534,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
           <View style={{ maxHeight: '85%', padding: 18, borderRadius: 12, backgroundColor: colors.surface }}>
             <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>添加链接</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 12, columnGap: 20 }}>
-              {(['web', 'chapter', 'map', 'email', 'phone'] as const).map(mode => <Pressable key={mode} onPress={() => {
+              {(['web', ...(enableChapterLinks ? ['chapter'] : []), 'map', 'email', 'phone'] as LinkMode[]).map(mode => <Pressable key={mode} onPress={() => {
                 const detected = detectLinkInput(linkLabel);
                 setLinkMode(mode);
                 setLinkUrl(detected?.mode === mode ? detected.value : '');
@@ -612,5 +616,7 @@ export function HandbookMarkdownEditor({ value, onChange, onBusyChange, chapters
         </KeyboardAvoidingView>
       </Modal>
     </View>
+    {keyboardAccessory}
+    </>
   );
 }

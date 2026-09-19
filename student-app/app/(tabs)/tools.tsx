@@ -33,7 +33,7 @@ const colWidth = cardWidth + GAP;
 const rowHeight = 200;
 
 const TOOLS_ORDER_KEY = '@ag_tools_order';
-const DEFAULT_TOOL_ORDER = ['handbook', 'dictionary', 'studyroom', 'classroom', 'train', 'bus', 'rate', 'links'];
+const DEFAULT_TOOL_ORDER = ['handbook', 'dictionary', 'studyroom', 'classroom', 'events', 'train', 'bus', 'rate', 'links'];
 
 type ToolItem = {
   id: string;
@@ -72,6 +72,8 @@ const LOCALIZED = {
     studyroomDesc: '实时查看博大自习室与图书馆空余座位、开放时间，并支持一键预约。',
     linksTitle: '实用链接',
     linksDesc: '快速访问博洛尼亚大学系统、各类常用办事网站与生活链接。',
+    eventsTitle: '活动报名',
+    eventsDesc: '查看学联活动、填写报名表和管理自己的报名。',
     tip: '提示',
     developing: '该工具正在全力研发中，敬请期待！',
     comingSoon: '建设中',
@@ -94,6 +96,8 @@ const LOCALIZED = {
     studyroomDesc: '實時查看博大自習室與圖書館空余座位、開放時間，並支持一鍵預約。',
     linksTitle: '實用鏈接',
     linksDesc: '快速訪問博洛尼亞大學系統、各類常用辦事網站與生活鏈接。',
+    eventsTitle: '活動報名',
+    eventsDesc: '查看學聯活動、填寫報名表和管理自己的報名。',
     tip: '提示',
     developing: '該工具正在全力研發中，敬請期待！',
     comingSoon: '建設中',
@@ -116,6 +120,8 @@ const LOCALIZED = {
     studyroomDesc: 'Seat availability, hours, and booking for UniBo studyrooms.',
     linksTitle: 'Useful Links',
     linksDesc: 'Quick access to UniBo systems and useful administrative links.',
+    eventsTitle: 'Event Registration',
+    eventsDesc: 'Browse CSSA events, register, and manage your registrations.',
     tip: 'Notice',
     developing: 'This tool is under development and will be available in future updates!',
     comingSoon: 'Soon',
@@ -138,6 +144,8 @@ const LOCALIZED = {
     studyroomDesc: 'Posti liberi, orari e prenotazioni per aule studio UniBo.',
     linksTitle: 'Link Utili',
     linksDesc: 'Accesso rapido ai portali UniBo e siti utili per la vita.',
+    eventsTitle: 'Iscrizione Eventi',
+    eventsDesc: 'Consulta gli eventi CSSA, iscriviti e gestisci le tue iscrizioni.',
     tip: 'Avviso',
     developing: 'Questo strumento è in fase di sviluppo e sarà disponibile nei prossimi aggiornamenti!',
     comingSoon: 'Presto',
@@ -149,6 +157,15 @@ const LOCALIZED = {
 const getToolDefinition = (id: string, eurToCny: number, language: string, t: (key: string) => string): ToolItem | null => {
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   switch (id) {
+    case 'events':
+      return {
+        id: 'events',
+        title: localized.eventsTitle,
+        description: localized.eventsDesc,
+        icon: 'calendar-check-outline',
+        route: '/tools/events',
+        color: '#C2413B',
+      };
     case 'handbook':
       return {
         id: 'handbook',

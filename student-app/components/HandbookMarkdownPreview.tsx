@@ -27,7 +27,7 @@ function renderInline(text: string, color: string): React.ReactNode {
   return nodes.length ? nodes : hyphenateHandbookText(text);
 }
 
-export function HandbookMarkdownPreview({ value }: { value: string }) {
+export function HandbookMarkdownPreview({ value, plain = false }: { value: string; plain?: boolean }) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const fontSize = 18;
@@ -80,5 +80,5 @@ export function HandbookMarkdownPreview({ value }: { value: string }) {
     offset = details.lastIndex;
   }
   if (offset < normalized.length) sections.push(...renderBlocks(normalized.slice(offset), 'remaining'));
-  return <View style={{ minHeight: 430, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 7, backgroundColor: colors.background }}>{sections}</View>;
+  return <View style={plain ? undefined : { minHeight: 430, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 7, backgroundColor: colors.background }}>{sections}</View>;
 }
