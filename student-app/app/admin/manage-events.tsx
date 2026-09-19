@@ -197,6 +197,9 @@ export default function ManageEventsScreen() {
   const [busyRegistration, setBusyRegistration] = useState<string | null>(null);
   const [registrationEditor, setRegistrationEditor] = useState<RegistrationEditorState | null>(null);
   const [registrationDateField, setRegistrationDateField] = useState<string | null>(null);
+  const [registrationSearch, setRegistrationSearch] = useState('');
+  const [registrationSort, setRegistrationSort] = useState<'registered_asc' | 'registered_desc' | 'name_asc' | 'name_desc' | 'status'>('registered_asc');
+  const [expandedRegistrationId, setExpandedRegistrationId] = useState<string | null>(null);
 
   const currentDraftSignature = useMemo(() => JSON.stringify({
     title, description, location, startTime, endTime, hasEndDate, startHasTime, endHasTime,
@@ -970,11 +973,68 @@ export default function ManageEventsScreen() {
     </Modal>
   ) : null;
 
+  const firstRegistrationField = (event?.registration_form || []).find((field) => !field.system);
+  const registrationRows = registrations.filter((registration) => {
+    const query = registrationSearch.trim().toLowerCase();
+    if (!query) return true;
+    const names = registration.attendees?.map((item) => `${item.name} ${item.phone || ''} ${item.email || ''}`).join(' ') || '';
+    const answers = Object.values(registration.answers || {}).map((value) => typeof value === 'object' ? JSON.stringify(value) : String(value)).join(' ');
+    return `${names} ${answers} ${registration.registration_number || ''}`.toLowerCase().includes(query);
+  }).sort((a, b) => {
+    if (registrationSort === 'name_asc' || registrationSort === 'name_desc') {
+      const left = a.attendees?.[0]?.name || a.registration_number || '';
+      const right = b.attendees?.[0]?.name || b.registration_number || '';
+      return left.localeCompare(right, 'zh-CN') * (registrationSort === 'name_asc' ? 1 : -1);
+    }
+    if (registrationSort === 'status') return a.status.localeCompare(b.status);
+    const direction = registrationSort === 'registered_asc' ? 1 : -1;
+    return (new Date(a.registered_at).getTime() - new Date(b.registered_at).getTime()) * direction;
+  });
+
+  const registrationFirstAnswer = (registration: RegistrationRow) => {
+    if (!firstRegistrationField) return '';
+    const value = registration.answers?.[firstRegistrationField.key];
+    if (Array.isArray(value)) return value.join('、');
+    if (value && typeof value === 'object') return value.name || '已上传文件';
+    return value === undefined || value === null ? '' : String(value);
+  };
+
+  const renderRegistrationCard = (registration: RegistrationRow) => {
+    const expanded = expandedRegistrationId === registration.id;
+    const firstAnswer = registrationFirstAnswer(registration);
+    return <View key={registration.id} style={[styles.registrationPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Pressable onPress={() => setExpandedRegistrationId(expanded ? null : registration.id)} style={styles.registrationHeader}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.registrationTitle, { color: colors.textPrimary }]}>{registration.attendees?.map((item) => item.name).join('、') || registration.registration_number || registration.id.slice(0, 8)}</Text>
+          {firstRegistrationField && firstAnswer ? <Text style={[styles.hint, { color: colors.textSecondary }]} numberOfLines={1}>{firstRegistrationField.label}：{firstAnswer}</Text> : null}
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>{registration.registration_kind === 'proxy' ? `代报名：${registration.proxy_note || '未填写备注'}` : '本人报名'} · {registration.participant_count} 人 · {formatDate(registration.registered_at)}</Text>
+        </View>
+        <Text style={{ color: registration.status === 'waitlist' ? '#B7791F' : registration.status === 'cancelled' ? colors.textMuted : colors.success, fontSize: 13, fontWeight: '700' }}>{registration.status === 'waitlist' ? '候补' : registration.status === 'cancelled' ? '已取消' : '已确认'}</Text>
+        <MaterialCommunityIcons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+      </Pressable>
+      {expanded ? <>
+        {event?.vehicle_selection_mode !== 'none' ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, marginTop: 9 }}>{[{ id: null, name: '待分配' }, ...Object.entries(vehicleLookup).map(([id, name]) => ({ id, name }))].map((vehicle) => <Pressable key={vehicle.id || 'none'} onPress={() => assignVehicle(registration.id, vehicle.id)} disabled={busyRegistration === registration.id} style={[styles.smallChoice, { borderColor: registration.vehicle_id === vehicle.id ? colors.primary : colors.border, backgroundColor: registration.vehicle_id === vehicle.id ? colors.primary + '12' : colors.surface }]}><Text style={{ color: registration.vehicle_id === vehicle.id ? colors.primary : colors.textSecondary, fontSize: 12 }}>{vehicle.name}</Text></Pressable>)}</ScrollView> : null}
+        <View style={styles.registrationActions}>
+          {registration.status === 'waitlist' ? <Pressable onPress={() => promoteRegistration(registration.id)} disabled={busyRegistration === registration.id}><Text style={{ color: colors.primary, fontSize: 13 }}>转为正式</Text></Pressable> : null}
+          <Pressable onPress={() => openRegistrationEditor(registration)} disabled={busyRegistration === registration.id}><Text style={{ color: colors.primary, fontSize: 13 }}>修改信息</Text></Pressable>
+          <Pressable onPress={() => cancelRegistration(registration.id)} disabled={busyRegistration === registration.id}><Text style={{ color: colors.error, fontSize: 13 }}>取消报名</Text></Pressable>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>{registration.registration_number || registration.id.slice(0, 8)}</Text>
+        </View>
+      </> : null}
+    </View>;
+  };
+
   const selectedEventPanel = event && !editing ? (
     <>
       <View style={styles.headerRow}><Pressable onPress={() => { setEvent(null); setSelectedId(null); }} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable><View style={{ flex: 1 }}><Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>{event.title}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>报名管理</Text></View><Pressable onPress={() => setEditing(true)} style={styles.addTextButton}><MaterialCommunityIcons name="pencil-outline" size={18} color={colors.primary} /><Text style={{ color: colors.primary }}>编辑</Text></Pressable><Pressable onPress={deleteEvent} style={styles.deleteIconButton} disabled={saving}><MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} /></Pressable></View>
       <View style={[styles.summaryPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.summaryText, { color: colors.textPrimary }]}>当前报名：{registrations.filter((row) => row.status === 'confirmed').length} 条确认，{registrations.filter((row) => row.status === 'waitlist').length} 条候补</Text><View style={styles.exportRow}><Pressable onPress={() => exportCsv(true)} style={[styles.outlineButton, { borderColor: colors.primary }]}><MaterialCommunityIcons name="bus" size={17} color={colors.primary} /><Text style={{ color: colors.primary, fontSize: 13 }}>分车名单</Text></Pressable><Pressable onPress={() => exportCsv(false)} style={[styles.outlineButton, { borderColor: colors.border }]}><MaterialCommunityIcons name="download-outline" size={17} color={colors.textPrimary} /><Text style={{ color: colors.textPrimary, fontSize: 13 }}>报名详情</Text></Pressable></View></View>
-      {registrations.length === 0 ? <Text style={[styles.hint, { color: colors.textSecondary, marginTop: 18 }]}>暂无报名记录。</Text> : registrations.map((registration) => <View key={registration.id} style={[styles.registrationPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={styles.registrationHeader}><View style={{ flex: 1 }}><Text style={[styles.registrationTitle, { color: colors.textPrimary }]}>{registration.attendees?.map((item) => item.name).join('、') || registration.registration_number || registration.id.slice(0, 8)}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>{registration.registration_kind === 'proxy' ? `代报名：${registration.proxy_note || '未填写备注'}` : '本人报名'} · {registration.participant_count} 人</Text></View><Text style={{ color: registration.status === 'waitlist' ? '#B7791F' : registration.status === 'cancelled' ? colors.textMuted : colors.success, fontSize: 13, fontWeight: '700' }}>{registration.status === 'waitlist' ? '候补' : registration.status === 'cancelled' ? '已取消' : '已确认'}</Text></View><Text style={[styles.hint, { color: colors.textSecondary }]}>提交时间：{formatDate(registration.registered_at)}</Text>{event.vehicle_selection_mode !== 'none' ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, marginTop: 9 }}>{[{ id: null, name: '待分配' }, ...Object.entries(vehicleLookup).map(([id, name]) => ({ id, name }))].map((vehicle) => <Pressable key={vehicle.id || 'none'} onPress={() => assignVehicle(registration.id, vehicle.id)} disabled={busyRegistration === registration.id} style={[styles.smallChoice, { borderColor: registration.vehicle_id === vehicle.id ? colors.primary : colors.border, backgroundColor: registration.vehicle_id === vehicle.id ? colors.primary + '12' : colors.surface }]}><Text style={{ color: registration.vehicle_id === vehicle.id ? colors.primary : colors.textSecondary, fontSize: 12 }}>{vehicle.name}</Text></Pressable>)}</ScrollView> : null}<View style={styles.registrationActions}>{registration.status === 'waitlist' ? <Pressable onPress={() => promoteRegistration(registration.id)} disabled={busyRegistration === registration.id}><Text style={{ color: colors.primary, fontSize: 13 }}>转为正式</Text></Pressable> : null}<Pressable onPress={() => openRegistrationEditor(registration)} disabled={busyRegistration === registration.id}><Text style={{ color: colors.primary, fontSize: 13 }}>修改信息</Text></Pressable><Pressable onPress={() => cancelRegistration(registration.id)} disabled={busyRegistration === registration.id}><Text style={{ color: colors.error, fontSize: 13 }}>取消报名</Text></Pressable><Text style={[styles.hint, { color: colors.textMuted }]}>{registration.registration_number || registration.id.slice(0, 8)}</Text></View></View>)}
+      <View style={styles.registrationToolbar}>
+        <TextInput value={registrationSearch} onChangeText={setRegistrationSearch} placeholder="搜索姓名、邮箱、电话或报名答案" placeholderTextColor={colors.textMuted} style={[styles.searchInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface }]} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
+          {[['registered_asc', '报名顺序'], ['registered_desc', '报名倒序'], ['name_asc', '姓名正序'], ['name_desc', '姓名倒序'], ['status', '按状态']].map(([value, label]) => <Pressable key={value} onPress={() => setRegistrationSort(value as typeof registrationSort)} style={[styles.sortChoice, { borderColor: registrationSort === value ? colors.primary : colors.border, backgroundColor: registrationSort === value ? colors.primary + '12' : colors.surface }]}><Text style={{ color: registrationSort === value ? colors.primary : colors.textSecondary, fontSize: 12 }}>{label}</Text></Pressable>)}
+        </ScrollView>
+      </View>
+      {registrationRows.length === 0 ? <Text style={[styles.hint, { color: colors.textSecondary, marginTop: 18 }]}>{registrationSearch ? '没有匹配的报名记录。' : '暂无报名记录。'}</Text> : registrationRows.map(renderRegistrationCard)}
     </>
   ) : null;
 
@@ -1020,6 +1080,10 @@ const styles = StyleSheet.create({
   panel: { borderWidth: 1, borderRadius: 12, padding: 15, marginBottom: 12 },
   summaryPanel: { borderWidth: 1, borderRadius: 12, padding: 15, marginBottom: 12 },
   summaryText: { fontSize: 14, fontWeight: '600' },
+  registrationToolbar: { marginBottom: 10, gap: 8 },
+  searchInput: { minHeight: 44, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, fontSize: 14 },
+  sortRow: { gap: 7 },
+  sortChoice: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
   input: { minHeight: 45, borderWidth: 1, borderRadius: 8, paddingHorizontal: 11, fontSize: 14 },
   textarea: { minHeight: 105, paddingTop: 11, textAlignVertical: 'top' },
