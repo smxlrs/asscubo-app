@@ -233,17 +233,17 @@ DECLARE
   field JSONB;
   field_key TEXT;
   field_type TEXT;
-  value JSONB;
+  answer_value JSONB;
 BEGIN
   IF p_answers IS NULL OR jsonb_typeof(p_answers) <> 'object' THEN
     RAISE EXCEPTION 'Registration answers must be an object.';
   END IF;
 
   FOR field IN
-    SELECT value
+    SELECT form_field.value
     FROM jsonb_array_elements(
       COALESCE((SELECT registration_form FROM public.events WHERE id = p_event_id), '[]'::jsonb)
-    )
+    ) AS form_field(value)
   LOOP
     field_key := NULLIF(field ->> 'key', '');
     field_type := COALESCE(field ->> 'type', 'text');
@@ -251,20 +251,20 @@ BEGIN
       CONTINUE;
     END IF;
 
-    value := p_answers -> field_key;
+    answer_value := p_answers -> field_key;
 
     IF (field ->> 'required') = 'true' AND (
-      value IS NULL
-      OR value = 'null'::jsonb
-      OR (jsonb_typeof(value) = 'string' AND btrim(value #>> '{}') = '')
-      OR (jsonb_typeof(value) = 'array' AND jsonb_array_length(value) = 0)
-      OR (field_type = 'checkbox' AND value = 'false'::jsonb)
+      answer_value IS NULL
+      OR answer_value = 'null'::jsonb
+      OR (jsonb_typeof(answer_value) = 'string' AND btrim(answer_value #>> '{}') = '')
+      OR (jsonb_typeof(answer_value) = 'array' AND jsonb_array_length(answer_value) = 0)
+      OR (field_type = 'checkbox' AND answer_value = 'false'::jsonb)
     ) THEN
       RAISE EXCEPTION 'Required registration field is missing: %', field_key;
     END IF;
 
-    IF value IS NOT NULL AND value <> 'null'::jsonb AND field_type = 'email'
-       AND NOT ((value #>> '{}') ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') THEN
+    IF answer_value IS NOT NULL AND answer_value <> 'null'::jsonb AND field_type = 'email'
+       AND NOT ((answer_value #>> '{}') ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') THEN
       RAISE EXCEPTION 'Invalid email value for field: %', field_key;
     END IF;
   END LOOP;

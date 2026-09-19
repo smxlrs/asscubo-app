@@ -38,8 +38,9 @@ BEGIN
   END IF;
 
   FOR participant, participant_ordinality IN
-    SELECT value, ordinality
-    FROM jsonb_array_elements(p_participants) WITH ORDINALITY
+    SELECT participant_item.value, participant_item.ordinality
+    FROM jsonb_array_elements(p_participants)
+      WITH ORDINALITY AS participant_item(value, ordinality)
   LOOP
     participant_name := NULLIF(btrim(COALESCE(participant ->> 'name', '')), '');
     participant_note := NULLIF(btrim(COALESCE(participant ->> 'proxy_note', '')), '');
