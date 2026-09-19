@@ -223,7 +223,7 @@ export default function ManageEventsScreen() {
     }
     Alert.alert('改动未保存，是否确认退出？', undefined, [
       { text: '返回编辑', style: 'cancel' },
-      { text: '放弃退出', style: 'destructive', onPress: () => { setPreviewing(false); setEditing(false); } },
+      { text: '确认退出', style: 'destructive', onPress: () => { setPreviewing(false); setEditing(false); } },
     ]);
   };
 
@@ -791,7 +791,16 @@ export default function ManageEventsScreen() {
       const rows: string[][] = [];
       if (rosterOnly) {
         rows.push(['姓名', '车辆']);
-        registrations.filter((row) => row.status !== 'cancelled').forEach((row) => {
+        const originalOrder = new Map(registrations.map((row, index) => [row.id, index]));
+        const vehicleOrder = new Map(vehicles.map((vehicle, index) => [vehicle.id, index]));
+        const rosterRegistrations = registrations
+          .filter((row) => row.status !== 'cancelled')
+          .sort((left, right) => {
+            const leftRank = left.vehicle_id && vehicleOrder.has(left.vehicle_id) ? vehicleOrder.get(left.vehicle_id)! : Number.MAX_SAFE_INTEGER;
+            const rightRank = right.vehicle_id && vehicleOrder.has(right.vehicle_id) ? vehicleOrder.get(right.vehicle_id)! : Number.MAX_SAFE_INTEGER;
+            return leftRank - rightRank || (originalOrder.get(left.id)! - originalOrder.get(right.id)!);
+          });
+        rosterRegistrations.forEach((row) => {
           const names = row.attendees?.map((item) => item.name).filter(Boolean) || [];
           const vehicle = row.vehicle_id ? (vehicleLookup[row.vehicle_id] || '待确认') : '待分配';
           if (names.length === 0) rows.push([`报名编号 ${row.registration_number || row.id.slice(0, 8)}`, vehicle]);
