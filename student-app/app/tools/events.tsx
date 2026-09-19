@@ -150,7 +150,8 @@ function errorMessage(error: any, fallback: string, fields: EventFormField[] = [
   }
   if (message.includes('already have an active')) return '你已经报名过这个活动了。';
   if (message.includes('Authentication is required')) return '请先登录后再报名。';
-  if (message.includes('full') || message.includes('enough seats')) return '名额或车辆座位已满，请重新选择。';
+  if (message.includes('This event is full')) return '名额已满，请稍后再试。';
+  if (message.includes('vehicle') && (message.includes('enough seats') || message.includes('unavailable'))) return '所选车辆座位已满，请重新选择。';
   if (message.includes('deadline')) return '报名或修改截止时间已到。';
   if (message.includes('ended')) return '活动已经结束，不能再报名或修改。';
   if (message.includes('proxy')) return '请填写代报名备注，说明报名对象是谁。';

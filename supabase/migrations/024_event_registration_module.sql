@@ -685,6 +685,11 @@ DECLARE
 BEGIN
   SELECT * INTO event_row FROM public.events WHERE id = p_event_id FOR UPDATE;
   IF event_row.id IS NULL THEN RETURN 0; END IF;
+  IF event_row.registration_status <> 'open'
+     OR (event_row.registration_deadline IS NOT NULL AND now() > event_row.registration_deadline)
+     OR now() > event_row.end_time THEN
+    RETURN 0;
+  END IF;
 
   FOR reg_row IN
     SELECT * FROM public.event_registrations
