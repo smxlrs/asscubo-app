@@ -74,13 +74,18 @@ export default function AnnouncementsScreen() {
     try {
       setHasError(false);
       setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      const notificationQuery = supabase
+        .from('notifications')
+        .select('id, title, content, category, cover_image, created_at, link, is_pinned')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      const scopedNotificationQuery = user
+        ? notificationQuery.or(`target_type.neq.user,target_value.eq.${user.id}`)
+        : notificationQuery.neq('target_type', 'user');
       
       const [notificationsRes, articlesRes] = await Promise.all([
-        supabase
-          .from('notifications')
-          .select('id, title, content, category, cover_image, created_at, link, is_pinned')
-          .order('created_at', { ascending: false })
-          .limit(20),
+        scopedNotificationQuery,
         supabase
           .from('articles')
           .select('id, title, summary, category, cover_image, created_at, link, is_pinned')

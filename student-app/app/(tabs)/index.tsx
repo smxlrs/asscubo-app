@@ -636,12 +636,17 @@ export default function HomeScreen() {
   async function fetchData(isRefresh = false) {
     try {
       setHasError(false);
+      const { data: { user } } = await supabase.auth.getUser();
+      const notificationQuery = supabase
+        .from('notifications')
+        .select('id, title, content, category, cover_image, created_at, link, is_pinned')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      const scopedNotificationQuery = user
+        ? notificationQuery.or(`target_type.neq.user,target_value.eq.${user.id}`)
+        : notificationQuery.neq('target_type', 'user');
       const [notificationsRes, articlesRes, eventsRes] = await Promise.all([
-        supabase
-          .from('notifications')
-          .select('id, title, content, category, cover_image, created_at, link, is_pinned')
-          .order('created_at', { ascending: false })
-          .limit(5),
+        scopedNotificationQuery,
         supabase
           .from('articles')
           .select('id, title, summary, category, cover_image, created_at, link, is_pinned, view_count')
