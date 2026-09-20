@@ -362,20 +362,13 @@ async function sendPushNotifications(supabase: any, articles: InsertedArticle[])
   const tokens = [...new Set((tokenRows || []).map((row: any) => row.token).filter(Boolean))] as string[];
   if (tokens.length === 0) return { batches: 0, failures: 0 };
 
-  const newest = [...articles].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-  const payloads = tokens.map((token) => articles.length === 1 ? {
+  const payloads = articles.flatMap((article) => tokens.map((token) => ({
     to: token,
     sound: "default",
-    title: `【综合通知】${newest.title}`,
-    body: newest.summary || "微信公众号发布了新文章",
-    data: { category: "general", link: newest.link, articleId: newest.id },
-  } : {
-    to: token,
-    sound: "default",
-    title: `新增 ${articles.length} 篇微信公众号文章`,
-    body: `最新：${newest.title}`,
-    data: { category: "general", link: newest.link, articleId: newest.id },
-  });
+    title: `【综合通知】${article.title}`,
+    body: article.summary || "微信公众号发布了新文章",
+    data: { category: "general" },
+  })));
 
   const batches = chunk(payloads, EXPO_BATCH_SIZE);
   const results = await runWithConcurrency(batches.map((batch) => async () => {

@@ -1,2 +1,5 @@
 [functions.viaggia-treno-proxy]
 verify_jwt = false
+
+[functions.event-registration-start-notifications]
+verify_jwt = false

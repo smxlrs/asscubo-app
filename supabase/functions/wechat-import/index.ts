@@ -189,7 +189,7 @@ serve(async (req) => {
           sound: 'default',
           title: pushTitle,
           body: summary,
-          data: { category: notificationCategory, link: url, articleId }
+          data: { category: notificationCategory }
         }));
 
         // Split into chunks of 100

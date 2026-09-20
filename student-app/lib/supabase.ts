@@ -187,6 +187,7 @@ export type Database = {
           registration_status: 'draft' | 'open' | 'closed' | 'archived';
           registration_mode: 'authenticated' | 'public';
           registration_start_at: string | null;
+          registration_start_notify_enabled: boolean;
           registration_form: EventFormField[];
           registration_form_version: number;
           vehicle_selection_mode: 'none' | 'auto' | 'self_select' | 'admin';

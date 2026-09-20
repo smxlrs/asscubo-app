@@ -14,7 +14,8 @@ export async function broadcastPushNotification(
   body: string,
   category: 'events' | 'academic' | 'life' | 'general',
   link?: string,
-  articleId?: string
+  articleId?: string,
+  eventId?: string
 ) {
   try {
     // 1. Fetch all tokens from Supabase
@@ -40,7 +41,7 @@ export async function broadcastPushNotification(
       sound: 'default',
       title: title,
       body: body,
-      data: { category, link, articleId },
+      data: { category, link, articleId, eventId },
     }));
 
     // 3. Batch payloads in chunks of 100 as required by Expo

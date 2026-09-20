@@ -60,7 +60,7 @@ async function saveAndPushArticle(title: string, summary: string, url: string, c
     sound: 'default',
     title: pushTitle,
     body: summary,
-    data: { category: 'general', link: url, articleId },
+    data: { category: 'general' },
   }));
 
   // 按照 Expo 每批 100 条的限制进行拆分发送

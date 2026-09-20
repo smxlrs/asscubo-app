@@ -22,6 +22,7 @@ import { supabase, EventFormField, EventFormFieldType } from '../../lib/supabase
 import { appAlert as Alert } from '../../lib/appAlert';
 import { HandbookMarkdownEditor } from '../../components/HandbookMarkdownEditor';
 import { HandbookMarkdownPreview } from '../../components/HandbookMarkdownPreview';
+import { broadcastPushNotification } from '../../lib/notificationService';
 
 type EventRow = {
   id: string;
@@ -38,6 +39,7 @@ type EventRow = {
   registration_deadline: string | null;
   registration_status: 'draft' | 'open' | 'closed' | 'ended' | 'archived';
   registration_start_at: string | null;
+  registration_start_notify_enabled: boolean;
   registration_form: EventFormField[] | null;
   registration_form_version: number;
   vehicle_selection_mode: 'none' | 'auto' | 'self_select' | 'admin';
@@ -59,6 +61,7 @@ type VehicleDraft = {
 
 type RegistrationRow = {
   id: string;
+  user_id: string | null;
   status: 'confirmed' | 'cancelled' | 'waitlist';
   registration_kind: 'self' | 'proxy';
   proxy_note: string | null;
@@ -179,6 +182,7 @@ export default function ManageEventsScreen() {
   const [registrationStart, setRegistrationStart] = useState('');
   const [deadline, setDeadline] = useState('');
   const [registrationStartEnabled, setRegistrationStartEnabled] = useState(false);
+  const [registrationStartNotifyEnabled, setRegistrationStartNotifyEnabled] = useState(false);
   const [deadlineEnabled, setDeadlineEnabled] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('');
   const [published, setPublished] = useState(false);
@@ -203,13 +207,16 @@ export default function ManageEventsScreen() {
   const [registrationSort, setRegistrationSort] = useState<'registered_asc' | 'registered_desc' | 'name_asc' | 'name_desc' | 'status'>('registered_asc');
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [selectedExportKeys, setSelectedExportKeys] = useState<string[]>([]);
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [notificationTitle, setNotificationTitle] = useState('');
+  const [notificationBody, setNotificationBody] = useState('');
 
   const currentDraftSignature = useMemo(() => JSON.stringify({
     title, description, location, startTime, endTime, hasEndDate, startHasTime, endHasTime,
-    registrationStart, deadline, registrationStartEnabled, deadlineEnabled, maxParticipants, published, status, allowProxy, allowWaitlist,
+    registrationStart, deadline, registrationStartEnabled, registrationStartNotifyEnabled, deadlineEnabled, maxParticipants, published, status, allowProxy, allowWaitlist,
     vehicleMode, fields, vehicles,
   }), [title, description, location, startTime, endTime, hasEndDate, startHasTime, endHasTime,
-    registrationStart, deadline, registrationStartEnabled, deadlineEnabled, maxParticipants, published, status, allowProxy, allowWaitlist,
+    registrationStart, deadline, registrationStartEnabled, registrationStartNotifyEnabled, deadlineEnabled, maxParticipants, published, status, allowProxy, allowWaitlist,
     vehicleMode, fields, vehicles]);
 
   useEffect(() => {
@@ -351,6 +358,7 @@ export default function ManageEventsScreen() {
       setRegistrationStart(localDateInput(loaded.registration_start_at));
       setDeadline(localDateInput(loaded.registration_deadline));
       setRegistrationStartEnabled(Boolean(loaded.registration_start_at));
+      setRegistrationStartNotifyEnabled(Boolean(loaded.registration_start_notify_enabled));
       setDeadlineEnabled(Boolean(loaded.registration_deadline));
       setMaxParticipants(loaded.max_participants == null ? '' : String(loaded.max_participants));
       setPublished(Boolean(loaded.is_published));
@@ -397,6 +405,7 @@ export default function ManageEventsScreen() {
     setRegistrationStart('');
     setDeadline('');
     setRegistrationStartEnabled(false);
+    setRegistrationStartNotifyEnabled(false);
     setDeadlineEnabled(false);
     setMaxParticipants('');
     setPublished(false);
@@ -474,6 +483,7 @@ export default function ManageEventsScreen() {
         end_has_time: hasEndDate && endHasTime,
         registration_deadline: deadlineEnabled ? romeToIso(deadline) : null,
         registration_start_at: registrationStartEnabled ? romeToIso(registrationStart) : null,
+        registration_start_notify_enabled: registrationStartEnabled && registrationStartNotifyEnabled,
         max_participants: parsedMax,
         is_published: published,
         registration_status: status,
@@ -527,13 +537,42 @@ export default function ManageEventsScreen() {
         if (result.error) throw result.error;
       }
 
-      Alert.alert('保存成功', '活动设置已保存。', [{ text: '好的', onPress: () => openEvent(savedEvent.id) }]);
+      const { error: scheduleError } = await supabase.rpc('schedule_event_registration_start_notification', {
+        p_event_id: savedEvent.id,
+      });
+      if (scheduleError) {
+        console.warn('Failed to schedule registration-start notification:', scheduleError);
+      }
+
+      Alert.alert(
+        '保存成功',
+        scheduleError ? '活动设置已保存，但自动报名通知任务设置失败，请检查 Supabase 配置。' : '活动设置已保存。',
+        [{ text: '好的', onPress: () => openEvent(savedEvent.id) }]
+      );
       await loadEvents();
     } catch (error: any) {
       Alert.alert('保存失败', error?.message || '活动设置保存失败，请检查权限和网络。');
     } finally {
       setSaving(false);
     }
+  };
+
+  const sendEventNotification = () => {
+    if (!event) return;
+    setNotificationTitle(`【活动通知】${event.title}`);
+    setNotificationBody(event.registration_status === 'open' ? `${event.title}已开始报名！` : event.description || '有新的活动通知。');
+    setNotificationModalVisible(true);
+  };
+
+  const confirmSendEventNotification = async () => {
+    if (!notificationTitle.trim() || !notificationBody.trim()) {
+      Alert.alert('内容不完整', '请填写通知标题和通知内容。');
+      return;
+    }
+    setNotificationModalVisible(false);
+    const result = await broadcastPushNotification(notificationTitle.trim(), notificationBody.trim(), 'events');
+    if (result.success) Alert.alert('发送成功', `已向 ${result.sentCount || 0} 台设备发送活动通知。`);
+    else Alert.alert('发送失败', '活动已保存，但 Expo Push 发送失败，请稍后重试。');
   };
 
   const addField = (type: EventFormFieldType) => {
@@ -670,6 +709,20 @@ export default function ManageEventsScreen() {
     }
   };
 
+  const sendTargetedEventPush = async (userId: string | null, title: string, body: string, eventId: string) => {
+    if (!userId) return;
+    const { data, error } = await supabase.from('push_tokens').select('token').eq('user_id', userId);
+    if (error) throw error;
+    const tokens = [...new Set((data || []).map((row: any) => row.token).filter(Boolean))];
+    if (tokens.length === 0) return;
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(tokens.map((token) => ({ to: token, sound: 'default', title, body, data: { category: 'events', eventId } }))),
+    });
+    if (!response.ok) throw new Error(`Expo Push failed (${response.status}).`);
+  };
+
   const promoteRegistration = (registrationId: string) => {
     Alert.alert('转为正式报名', '确定将这名候补报名者加入正式名单吗？', [
       { text: '返回', style: 'cancel' },
@@ -695,6 +748,10 @@ export default function ManageEventsScreen() {
         try {
           const { error } = await supabase.rpc('admin_cancel_event_registration', { p_registration_id: registrationId, p_notify: notify });
           if (error) throw error;
+          if (notify) {
+            const registration = registrations.find((row) => row.id === registrationId);
+            await sendTargetedEventPush(registration?.user_id || null, '活动报名已取消', `您的${event?.title || '活动'}报名已被取消，请注意核实`, event?.id || '');
+          }
           if (selectedId) await loadRegistrations(selectedId);
         } catch (error: any) {
           Alert.alert('操作失败', error?.message || '取消报名失败。');
@@ -761,6 +818,9 @@ export default function ManageEventsScreen() {
           p_notify: notify,
         });
         if (error) throw error;
+        if (notify) {
+          await sendTargetedEventPush(registration.user_id, '活动报名信息已修改', `您的${event?.title || '活动'}报名信息已被修改，请注意核实`, event?.id || '');
+        }
         if (vehicle_id !== registration.vehicle_id) {
           const { error: vehicleError } = await supabase.rpc('admin_assign_event_registration', {
             p_registration_id: registration.id,
@@ -799,9 +859,11 @@ export default function ManageEventsScreen() {
           try {
             const { error } = await supabase
               .from('events')
-              .update({ deleted_at: new Date().toISOString(), is_published: false, registration_status: 'archived' })
+              .update({ deleted_at: new Date().toISOString(), is_published: false, registration_status: 'archived', registration_start_notify_enabled: false })
               .eq('id', event.id);
             if (error) throw error;
+            const { error: scheduleError } = await supabase.rpc('schedule_event_registration_start_notification', { p_event_id: event.id });
+            if (scheduleError) console.warn('Failed to remove registration-start notification schedule:', scheduleError);
             setEvent(null);
             setSelectedId(null);
             await loadEvents();
@@ -922,7 +984,7 @@ export default function ManageEventsScreen() {
         <View style={styles.switchRow}><View style={{ flex: 1 }}><Text style={[styles.switchLabel, { color: colors.textPrimary }]}>设置具体时间</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>不勾选时只显示活动日期。</Text></View><Switch value={startHasTime || endHasTime} onValueChange={(value) => { setStartHasTime(value); setEndHasTime(value); }} trackColor={{ false: colors.border, true: colors.primaryLight }} thumbColor={(startHasTime || endHasTime) ? colors.primary : colors.textMuted} /></View>
         {(startHasTime || endHasTime) ? <View style={styles.twoColumns}><View style={styles.columnInput}><Text style={[styles.dateButtonLabel, { color: colors.textSecondary }]}>开始时间</Text><Pressable onPress={() => openPicker('startTime')} style={[styles.dateButton, { borderColor: colors.border, backgroundColor: colors.surface }]}><MaterialCommunityIcons name="clock-outline" size={19} color={colors.primary} /><Text style={{ color: colors.textPrimary }}>{startHasTime ? timeLabel(startTime) : '设置开始时间'}</Text></Pressable></View><View style={styles.columnInput}><Text style={[styles.dateButtonLabel, { color: colors.textSecondary }]}>结束时间（可选）</Text><Pressable onPress={() => { setEndHasTime(true); openPicker('endTime'); }} style={[styles.dateButton, { borderColor: colors.border, backgroundColor: colors.surface }]}><MaterialCommunityIcons name="clock-outline" size={19} color={colors.primary} /><Text style={{ color: colors.textPrimary }}>{endHasTime ? timeLabel(endTime) : '设置结束时间'}</Text></Pressable></View></View> : null}
         {pickerTarget ? <View style={styles.pickerPanel}><DateTimePicker value={inputDate(pickerTarget === 'startDate' || pickerTarget === 'startTime' ? (startTime || dateInputValue(new Date())) : pickerTarget === 'endDate' || pickerTarget === 'endTime' ? (endTime || startTime || dateInputValue(new Date())) : pickerTarget.startsWith('registrationStart') ? (registrationStart || dateInputValue(new Date())) : (deadline || dateInputValue(new Date())))} mode={pickerTarget.endsWith('Date') ? 'date' : 'time'} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onValueChange={handlePickerValueChange} onDismiss={handlePickerDismiss} /></View> : null}
-        <View style={styles.registrationTimePanel}><View style={styles.registrationSwitchRow}><View style={{ flex: 1 }}><Text style={[styles.switchLabel, { color: colors.textPrimary }]}>设置开放报名时间</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>关闭表示保存后立即开放报名</Text></View><Switch value={registrationStartEnabled} onValueChange={setRegistrationStartEnabled} trackColor={{ false: colors.border, true: colors.primaryLight }} thumbColor={registrationStartEnabled ? colors.primary : colors.textMuted} /></View>{registrationStartEnabled ? <><View style={styles.twoColumns}><Pressable onPress={() => openPicker('registrationStartDate')} style={[styles.dateButton, styles.columnInput, { borderColor: colors.border, backgroundColor: colors.surface }]}><MaterialCommunityIcons name="calendar-month-outline" size={18} color={colors.primary} /><Text style={{ color: colors.textPrimary }}>{registrationStart ? dateLabel(registrationStart) : '选择日期'}</Text></Pressable><Pressable onPress={() => openPicker('registrationStartTime')} style={[styles.dateButton, styles.columnInput, { borderColor: colors.border, backgroundColor: colors.surface }]}><MaterialCommunityIcons name="clock-outline" size={18} color={colors.primary} /><Text style={{ color: colors.textPrimary }}>{registrationStart ? timeLabel(registrationStart) : '选择时间'}</Text></Pressable></View></> : null}</View>
+        <View style={styles.registrationTimePanel}><View style={styles.registrationSwitchRow}><View style={{ flex: 1 }}><Text style={[styles.switchLabel, { color: colors.textPrimary }]}>设置开放报名时间</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>关闭表示保存后立即开放报名</Text></View><Switch value={registrationStartEnabled} onValueChange={(value) => { setRegistrationStartEnabled(value); if (!value) setRegistrationStartNotifyEnabled(false); }} trackColor={{ false: colors.border, true: colors.primaryLight }} thumbColor={registrationStartEnabled ? colors.primary : colors.textMuted} /></View>{registrationStartEnabled ? <><View style={styles.twoColumns}><Pressable onPress={() => openPicker('registrationStartDate')} style={[styles.dateButton, styles.columnInput, { borderColor: colors.border, backgroundColor: colors.surface }]}><MaterialCommunityIcons name="calendar-month-outline" size={18} color={colors.primary} /><Text style={{ color: colors.textPrimary }}>{registrationStart ? dateLabel(registrationStart) : '选择日期'}</Text></Pressable><Pressable onPress={() => openPicker('registrationStartTime')} style={[styles.dateButton, styles.columnInput, { borderColor: colors.border, backgroundColor: colors.surface }]}><MaterialCommunityIcons name="clock-outline" size={18} color={colors.primary} /><Text style={{ color: colors.textPrimary }}>{registrationStart ? timeLabel(registrationStart) : '选择时间'}</Text></Pressable></View><View style={styles.switchRow}><View style={{ flex: 1 }}><Text style={[styles.switchLabel, { color: colors.textPrimary }]}>到时自动发送报名通知</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>开放报名时间到达后，自动发送 Expo Push</Text></View><Switch value={registrationStartNotifyEnabled} onValueChange={setRegistrationStartNotifyEnabled} trackColor={{ false: colors.border, true: colors.primaryLight }} thumbColor={registrationStartNotifyEnabled ? colors.primary : colors.textMuted} /></View></> : null}</View>
         <View style={styles.registrationTimePanel}><View style={styles.registrationSwitchRow}><View style={{ flex: 1 }}><Text style={[styles.switchLabel, { color: colors.textPrimary }]}>设置报名截止时间</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>关闭表示不设置报名截止时间</Text></View><Switch value={deadlineEnabled} onValueChange={setDeadlineEnabled} trackColor={{ false: colors.border, true: colors.primaryLight }} thumbColor={deadlineEnabled ? colors.primary : colors.textMuted} /></View>{deadlineEnabled ? <><View style={styles.twoColumns}><Pressable onPress={() => openPicker('deadlineDate')} style={[styles.dateButton, styles.columnInput, { borderColor: colors.border, backgroundColor: colors.surface }]}><MaterialCommunityIcons name="calendar-month-outline" size={18} color={colors.primary} /><Text style={{ color: colors.textPrimary }}>{deadline ? dateLabel(deadline) : '选择日期'}</Text></Pressable><Pressable onPress={() => openPicker('deadlineTime')} style={[styles.dateButton, styles.columnInput, { borderColor: colors.border, backgroundColor: colors.surface }]}><MaterialCommunityIcons name="clock-outline" size={18} color={colors.primary} /><Text style={{ color: colors.textPrimary }}>{deadline ? timeLabel(deadline) : '选择时间'}</Text></Pressable></View></> : null}</View>
         <Text style={[styles.hint, { color: colors.textSecondary }]}>开放时间和截止时间会实际限制报名；状态仍可手动提前关闭或归档。</Text>
         <FormLabel colors={colors} optional>活动总人数上限</FormLabel>
@@ -1128,7 +1190,7 @@ export default function ManageEventsScreen() {
   const selectedEventPanel = event && !editing ? (
     <>
       <View style={styles.headerRow}><Pressable onPress={() => { setEvent(null); setSelectedId(null); }} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable><View style={{ flex: 1 }}><Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>{event.title}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>报名管理</Text></View><Pressable onPress={() => setEditing(true)} style={styles.addTextButton}><MaterialCommunityIcons name="pencil-outline" size={18} color={colors.primary} /><Text style={{ color: colors.primary }}>编辑</Text></Pressable><Pressable onPress={deleteEvent} style={styles.deleteIconButton} disabled={saving}><MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} /></Pressable></View>
-      <View style={[styles.summaryPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.summaryText, { color: colors.textPrimary }]}>当前报名：{registrations.filter((row) => row.status === 'confirmed').length} 条确认，{registrations.filter((row) => row.status === 'waitlist').length} 条候补</Text><View style={styles.exportRow}><Pressable onPress={openExportSelector} style={[styles.outlineButton, { borderColor: colors.primary }]}><MaterialCommunityIcons name="download-outline" size={17} color={colors.primary} /><Text style={{ color: colors.primary, fontSize: 13 }}>导出表单</Text></Pressable></View></View>
+      <View style={[styles.summaryPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.summaryText, { color: colors.textPrimary }]}>当前报名：{registrations.filter((row) => row.status === 'confirmed').length} 条确认，{registrations.filter((row) => row.status === 'waitlist').length} 条候补</Text><View style={styles.exportRow}><Pressable onPress={openExportSelector} style={[styles.outlineButton, { borderColor: colors.primary }]}><MaterialCommunityIcons name="download-outline" size={17} color={colors.primary} /><Text style={{ color: colors.primary, fontSize: 13 }}>导出表单</Text></Pressable><Pressable onPress={sendEventNotification} style={[styles.outlineButton, { borderColor: colors.primary }]}><MaterialCommunityIcons name="bell-outline" size={17} color={colors.primary} /><Text style={{ color: colors.primary, fontSize: 13 }}>发送通知</Text></Pressable></View></View>
       <View style={styles.registrationToolbar}>
         <TextInput value={registrationSearch} onChangeText={setRegistrationSearch} placeholder="搜索姓名、邮箱、电话或报名答案" placeholderTextColor={colors.textMuted} style={[styles.searchInput, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface }]} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
@@ -1147,6 +1209,21 @@ export default function ManageEventsScreen() {
     </View> : null}
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{editing ? editor : event ? selectedEventPanel : <><View style={styles.headerRow}><Pressable onPress={() => router.back()} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable><Text style={[styles.title, { color: colors.textPrimary }]}>活动发布与管理</Text><Pressable onPress={startCreate} style={styles.addTextButton}><MaterialCommunityIcons name="plus" size={18} color={colors.primary} /><Text style={{ color: colors.primary }}>新建</Text></Pressable></View>{loading ? <ActivityIndicator style={{ marginTop: 50 }} color={colors.primary} /> : events.length === 0 ? <View style={styles.empty}><MaterialCommunityIcons name="calendar-plus" size={44} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>还没有活动</Text><Pressable onPress={startCreate} style={[styles.saveButton, { backgroundColor: colors.primary, marginTop: 14 }]}><Text style={styles.saveButtonText}>创建第一个活动</Text></Pressable></View> : events.map((item) => <Pressable key={item.id} onPress={() => openEvent(item.id)} style={[styles.eventListRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={{ flex: 1 }}><Text style={[styles.eventListTitle, { color: colors.textPrimary }]}>{item.title}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>{localDateInput(item.start_time)} · {statusOptions.find((option) => option.value === item.registration_status)?.label || item.registration_status} · {item.allow_proxy_registration ? '允许代报名' : '仅本人报名'}</Text></View><MaterialCommunityIcons name="chevron-right" size={22} color={colors.textMuted} /></Pressable>)}</>}</ScrollView>
     {eventPreview}
+    <Modal visible={notificationModalVisible} animationType="slide" transparent onRequestClose={() => setNotificationModalVisible(false)}>
+      <View style={styles.exportModalBackdrop}>
+        <View style={[styles.exportModal, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>发送活动通知</Text>
+          <FormLabel colors={colors}>通知标题</FormLabel>
+          <TextInput value={notificationTitle} onChangeText={setNotificationTitle} style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]} />
+          <FormLabel colors={colors}>通知内容</FormLabel>
+          <TextInput value={notificationBody} onChangeText={setNotificationBody} multiline style={[styles.input, styles.textarea, { color: colors.textPrimary, borderColor: colors.border }]} />
+          <View style={styles.exportModalActions}>
+            <Pressable onPress={() => setNotificationModalVisible(false)} style={[styles.outlineButton, { borderColor: colors.border }]}><Text style={{ color: colors.textSecondary }}>取消</Text></Pressable>
+            <Pressable onPress={() => { Alert.alert('确认发送', '确定向所有已开启推送的设备发送这条通知吗？', [{ text: '返回', style: 'cancel' }, { text: '确认发送', onPress: () => { void confirmSendEventNotification(); } }]); }} style={[styles.saveButton, { backgroundColor: colors.primary }]}><Text style={styles.saveButtonText}>发送</Text></Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
     <Modal visible={exportModalVisible} animationType="slide" transparent onRequestClose={() => setExportModalVisible(false)}>
       <View style={styles.exportModalBackdrop}>
         <View style={[styles.exportModal, { backgroundColor: colors.surface }]}>

@@ -182,8 +182,10 @@ function AppContent() {
         router.push(`/article/web?url=${encodeURIComponent(data.link)}&title=${encodeURIComponent((response.notification.request.content.title as string) || t('details'))}` as any);
       } else if (data && typeof data.articleId === 'string') {
         router.push(`/article/${data.articleId}` as any);
+      } else if (data && typeof data.eventId === 'string') {
+        router.push({ pathname: '/tools/events', params: { eventId: data.eventId, detail: '1' } } as any);
       } else {
-        router.push('/notifications');
+        router.push('/(tabs)');
       }
     });
 
