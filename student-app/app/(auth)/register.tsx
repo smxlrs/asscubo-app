@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -70,12 +70,10 @@ export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
   const emailInputRef = useRef<TextInput>(null);
   const reopenDomainAlertRef = useRef(false);
-  const [allowedDomains, setAllowedDomains] = useState<string[]>(['studio.unibo.it', 'unibo.it', 'esterni.unibo.it']);
-  useEffect(() => { getAllowedSignupDomains().then((items) => setAllowedDomains(items.map((item) => item.domain))); }, []);
   const showDomainAlert = () => Alert.alert(t('tip'), '请使用您的大学邮箱！', [
     { text: '重新输入', style: 'cancel', onPress: () => { setEmail(''); setTimeout(() => emailInputRef.current?.focus(), 80); } },
   ], { messageAlign: 'left', buttonPresentation: 'text', messageLink: { text: '查看支持的邮箱域名', onPress: () => { reopenDomainAlertRef.current = true; router.push('/about/supported-email-domains'); } } });
-  useFocusEffect(React.useCallback(() => { if (reopenDomainAlertRef.current) { reopenDomainAlertRef.current = false; setTimeout(showDomainAlert, 120); } }, [language, allowedDomains]));
+  useFocusEffect(React.useCallback(() => { if (reopenDomainAlertRef.current) { reopenDomainAlertRef.current = false; setTimeout(showDomainAlert, 120); } }, [language]));
 
   const checkNicknameSensitive = async (nickname: string) => {
     try {
@@ -138,13 +136,6 @@ export default function RegisterScreen() {
       return;
     }
 
-    const allowedDomains = ['studio.unibo.it', 'unibo.it', 'esterni.unibo.it'];
-    const emailDomain = email.trim().toLowerCase().split('@')[1] || '';
-    if (!allowedDomains.includes(emailDomain)) {
-      showDomainAlert();
-      return;
-    }
-
     if (!agree) {
       Alert.alert(t('tip'), t('agreeAgreementPrompt'));
       return;
@@ -158,6 +149,14 @@ export default function RegisterScreen() {
       setLoading(true);
 
       try {
+        // Fetch on every attempt so changes also apply while this screen stays open.
+        const allowedDomains = await getAllowedSignupDomains();
+        const emailDomain = email.trim().toLowerCase().split('@')[1] || '';
+        if (!allowedDomains.some((item) => item.domain === emailDomain)) {
+          showDomainAlert();
+          return;
+        }
+
         // Check for sensitive nickname on the frontend first
         const sensitiveMatch = await checkNicknameSensitive(name.trim());
         if (sensitiveMatch) {
