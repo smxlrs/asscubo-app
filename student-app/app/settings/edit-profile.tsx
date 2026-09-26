@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Image, Modal, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useOtpCooldown } from '../../hooks/useOtpCooldown';
@@ -237,6 +237,27 @@ const PASSWORD_VALIDATION_COPY = {
   it: { required: 'Inserisci una nuova password', confirmRequired: 'Reinserisci la nuova password' },
 };
 
+function ProfileEditorModal({ visible, onRequestClose, children }: {
+  visible: boolean;
+  onRequestClose: () => void;
+  children: React.ReactNode;
+}) {
+  // Keep iOS forms in the screen so the global result/OTP alert is the only
+  // native Modal. Presenting sibling native modals can leave UIKit blocked.
+  if (Platform.OS === 'ios') {
+    return visible ? (
+      <KeyboardAvoidingView style={StyleSheet.absoluteFill} behavior="padding" accessibilityViewIsModal>
+        {children}
+      </KeyboardAvoidingView>
+    ) : null;
+  }
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onRequestClose}>
+      {children}
+    </Modal>
+  );
+}
+
 export default function EditProfileScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const { colors, language, t } = useTheme();
@@ -455,7 +476,14 @@ export default function EditProfileScreen() {
         password: modalPassword.trim()
       });
       if (updateError) throw updateError;
-      
+
+      Keyboard.dismiss();
+      setModalPassword('');
+      setModalConfirmPassword('');
+      setModalOtp('');
+      // The iOS editor is an in-screen overlay, so it can close before showing
+      // the success alert without a native modal dismissal race.
+      if (Platform.OS === 'ios') setActiveModal(null);
       Alert.alert(localized.saveSuccess, localized.passUpdated, [
         {
           text: t('confirm') || '确定',
@@ -582,10 +610,8 @@ export default function EditProfileScreen() {
       </ScrollView>
 
       {/* Dynamic Pop-up Modal */}
-      <Modal
+      <ProfileEditorModal
         visible={activeModal !== null}
-        transparent={true}
-        animationType="fade"
         onRequestClose={() => {
           if (!saving) setActiveModal(null);
         }}
@@ -771,7 +797,7 @@ export default function EditProfileScreen() {
             )}
           </View>
         </View>
-      </Modal>
+      </ProfileEditorModal>
     </SafeAreaView>
   );
 }

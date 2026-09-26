@@ -9,16 +9,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { recordDebugEvent, setDebugLoggingEnabled } from '../../lib/logger';
 import { showCustomAlert } from '../../lib/customAlert';
+import { fetchAppStoreVersion, type AppStoreLookupResult } from '../../lib/appStoreUpdate';
 
 const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.asscuboxue.app';
 const APP_STORE_ID = Constants.expoConfig?.extra?.appStoreId as string | undefined;
 const IOS_BUNDLE_ID = Constants.expoConfig?.ios?.bundleIdentifier ?? 'com.asscuboxue.app';
-
-type AppStoreLookupResult = {
-  trackId?: number;
-  version?: string;
-  trackViewUrl?: string;
-};
 
 const compareVersions = (left: string, right: string): number => {
   const a = left.split(/[.-]/).map(part => Number.parseInt(part, 10) || 0);
@@ -29,21 +24,6 @@ const compareVersions = (left: string, right: string): number => {
     if (difference !== 0) return difference;
   }
   return 0;
-};
-
-const fetchAppStoreVersion = async (): Promise<AppStoreLookupResult | null> => {
-  const query = APP_STORE_ID
-    ? `id=${encodeURIComponent(APP_STORE_ID)}`
-    : `bundleId=${encodeURIComponent(IOS_BUNDLE_ID)}`;
-  const countries = ['it', 'us'];
-  for (const country of countries) {
-    const response = await fetch(`https://itunes.apple.com/lookup?${query}&country=${country}`);
-    if (!response.ok) continue;
-    const payload = await response.json() as { resultCount?: number; results?: AppStoreLookupResult[] };
-    const result = payload.results?.[0];
-    if (payload.resultCount && result?.version) return result;
-  }
-  return null;
 };
 
 const openAppStoreListing = async (listing: AppStoreLookupResult): Promise<boolean> => {
@@ -143,6 +123,15 @@ export default function AboutIndexScreen() {
   const [showLogs, setShowLogs] = useState(false);
   const [toastText, setToastText] = useState<string | null>(null);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const iosUpdateRequest = useRef<AbortController | null>(null);
+
+  useFocusEffect(useCallback(() => {
+    setIsCheckingUpdate(false);
+    return () => {
+      iosUpdateRequest.current?.abort();
+      iosUpdateRequest.current = null;
+    };
+  }, []));
 
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -293,12 +282,16 @@ export default function AboutIndexScreen() {
     }
 
     if (Platform.OS === 'ios') {
+      if (iosUpdateRequest.current) return;
+      const request = new AbortController();
+      iosUpdateRequest.current = request;
       const startedAt = Date.now();
       setIsCheckingUpdate(true);
       try {
-        const listing = await fetchAppStoreVersion();
+        const listing = await fetchAppStoreVersion(APP_STORE_ID, IOS_BUNDLE_ID, request.signal);
         const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
         if (remainingDelay) await new Promise(resolve => setTimeout(resolve, remainingDelay));
+        if (request.signal.aborted) return;
         setIsCheckingUpdate(false);
 
         if (!listing?.version) {
@@ -335,9 +328,12 @@ export default function AboutIndexScreen() {
       } catch (error) {
         const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
         if (remainingDelay) await new Promise(resolve => setTimeout(resolve, remainingDelay));
+        if (request.signal.aborted) return;
         setIsCheckingUpdate(false);
         recordDebugEvent('update', 'App Store update check failed', error, 'warn');
         showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
+      } finally {
+        if (iosUpdateRequest.current === request) iosUpdateRequest.current = null;
       }
       return;
     }
@@ -354,6 +350,15 @@ export default function AboutIndexScreen() {
       { text: ut.openStore, onPress: () => Linking.openURL(storeUrl) },
     ], { icon: 'update' });
   };
+
+  const updateCheckingContent = (
+    <View style={styles.updateCheckingOverlay}>
+      <View style={[styles.updateCheckingCard, { backgroundColor: colors.surface }]}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={[styles.updateCheckingText, { color: colors.textPrimary }]}>{ut.checking}</Text>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -401,6 +406,7 @@ export default function AboutIndexScreen() {
           <Pressable
             style={[styles.menuRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
             onPress={handleCheckUpdate}
+            disabled={isCheckingUpdate}
           >
             <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{ut.checkUpdate}</Text>
             <View style={styles.rowRight}>
@@ -469,14 +475,14 @@ export default function AboutIndexScreen() {
         </Animated.View>
       )}
 
-      <Modal visible={isCheckingUpdate} transparent animationType="fade" statusBarTranslucent>
-        <View style={styles.updateCheckingOverlay}>
-          <View style={[styles.updateCheckingCard, { backgroundColor: colors.surface }]}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.updateCheckingText, { color: colors.textPrimary }]}>{ut.checking}</Text>
-          </View>
-        </View>
-      </Modal>
+      {/* iOS must not dismiss one native Modal while presenting the result Modal. */}
+      {Platform.OS === 'ios' ? (
+        isCheckingUpdate ? <View style={StyleSheet.absoluteFill}>{updateCheckingContent}</View> : null
+      ) : (
+        <Modal visible={isCheckingUpdate} transparent animationType="fade" statusBarTranslucent>
+          {updateCheckingContent}
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }

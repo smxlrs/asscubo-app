@@ -118,7 +118,6 @@ export default function LoginScreen() {
                 {
                   text: t('retryLogin'),
                   onPress: () => {
-                    setEmail('');
                     setPassword('');
                     setErrorMsg(null);
                   },
