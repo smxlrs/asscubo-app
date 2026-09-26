@@ -16,6 +16,7 @@ import { COLORS, FONTS, SIZES, SPACING, RADIUS, SHADOWS } from '../../constants/
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { HOME_RATE_VISIBLE_STORAGE_KEY } from '../../lib/currencies';
+import { EVENT_TIME_ZONE, localDateInput } from '../../lib/eventTime';
 
 type Article = {
   id: string;
@@ -45,11 +46,32 @@ type Event = {
   id: string;
   title: string;
   location: string | null;
-  start_time: string;
-  end_time: string;
+  start_time: string | null;
+  end_time: string | null;
+  has_end_date: boolean;
+  start_has_time: boolean;
+  end_has_time: boolean;
   registration_status: 'draft' | 'open' | 'closed' | 'ended' | 'archived';
   cover_image: string | null;
 };
+
+function formatUpcomingEventTime(event: Event, language: string) {
+  const format = (value: string | null, withTime: boolean) => {
+    const local = localDateInput(value);
+    if (!local || !value) return '';
+    if (language === 'zh' || language === 'zh-Hant') {
+      const [year, month, day, hour, minute] = local.match(/\d+/g)!;
+      return `${year}年${Number(month)}月${Number(day)}日${withTime ? ` ${Number(hour)}时${minute}分` : ''}`;
+    }
+    return new Intl.DateTimeFormat(language === 'it' ? 'it-IT' : 'en-US', {
+      timeZone: EVENT_TIME_ZONE, year: 'numeric', month: 'short', day: 'numeric',
+      ...(withTime ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } as const : {}),
+    }).format(new Date(value));
+  };
+  const start = format(event.start_time, event.start_has_time !== false);
+  const end = event.has_end_date === false && !event.end_has_time ? '' : format(event.end_time, event.end_has_time !== false);
+  return start && end ? `${start} - ${end}` : start || end;
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   notice: '通知',
@@ -655,7 +677,7 @@ export default function HomeScreen() {
           .limit(5),
         supabase
           .from('events')
-          .select('id, title, location, start_time, end_time, registration_status, cover_image')
+          .select('id, title, location, start_time, end_time, has_end_date, start_has_time, end_has_time, registration_status, cover_image')
           .eq('is_published', true)
           .in('registration_status', ['open', 'closed'])
           .gte('end_time', new Date().toISOString())
@@ -1037,7 +1059,7 @@ export default function HomeScreen() {
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.eventTitle, { color: colors.textPrimary }]} numberOfLines={2}>{event.title}</Text>
-                    <Text style={[styles.eventDateText, { color: colors.textSecondary }]}>{formatDate(event.start_time)}</Text>
+                    {formatUpcomingEventTime(event, language) ? <Text style={[styles.eventDateText, { color: colors.textSecondary }]}>{formatUpcomingEventTime(event, language)}</Text> : null}
                   </View>
                   <MaterialIcons name="chevron-right" size={20} color={colors.textMuted} />
                 </TouchableOpacity>

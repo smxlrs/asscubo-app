@@ -1,4 +1,8 @@
 import { supabase } from './supabase';
+import { sendExpoPushMessages, type PushSendResult } from './expoPush';
+
+export { sendExpoPushMessages } from './expoPush';
+export type { ExpoPushMessage, PushSendResult } from './expoPush';
 
 /**
  * Broadcasts a push notification to all registered Expo Push Tokens.
@@ -16,63 +20,30 @@ export async function broadcastPushNotification(
   link?: string,
   articleId?: string,
   eventId?: string
-) {
+): Promise<PushSendResult> {
   try {
-    // 1. Fetch all tokens from Supabase
-    const { data: tokensData, error: tokensError } = await supabase
-      .from('push_tokens')
-      .select('token');
-
-    if (tokensError) {
-      throw tokensError;
+    const tokens = new Set<string>();
+    let offset = 0;
+    let total = Infinity;
+    while (offset < total) {
+      const { data, error, count } = await supabase.from('push_tokens')
+        .select('token', { count: 'exact' }).order('token')
+        .range(offset, offset + 499);
+      if (error) throw error;
+      if (!data?.length) break;
+      data.forEach((row) => { if (row.token) tokens.add(row.token); });
+      offset += data.length;
+      total = count ?? (data.length < 500 ? offset : Infinity);
     }
-
-    if (!tokensData || tokensData.length === 0) {
-      console.log('No registered push tokens found.');
-      return { success: true, sentCount: 0 };
-    }
-
-    // De-duplicate tokens
-    const tokens = Array.from(new Set(tokensData.map((t) => t.token)));
-
-    // 2. Construct payloads
-    const messages = tokens.map((token) => ({
+    return await sendExpoPushMessages([...tokens].map((token) => ({
       to: token,
-      sound: 'default',
-      title: title,
-      body: body,
+      sound: 'default' as const,
+      title,
+      body,
       data: { category, link, articleId, eventId },
-    }));
-
-    // 3. Batch payloads in chunks of 100 as required by Expo
-    const chunkSize = 100;
-    let sentCount = 0;
-
-    for (let i = 0; i < messages.length; i += chunkSize) {
-      const chunk = messages.slice(i, i + chunkSize);
-      
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Accept-encoding': 'gzip, deflate',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(chunk),
-      });
-
-      const result = await response.json();
-      if (result.errors) {
-        console.warn('Expo push chunk error:', result.errors);
-      } else {
-        sentCount += chunk.length;
-      }
-    }
-
-    console.log(`Successfully broadcasted notifications to ${sentCount} devices.`);
-    return { success: true, sentCount };
+    })));
   } catch (error) {
-    console.error('Failed to broadcast push notification:', error);
-    return { success: false, error };
+    console.warn('Failed to load push recipients:', error);
+    return { success: false, sentCount: 0, failedCount: 0, error: '无法读取推送设备，请检查网络后重试。' };
   }
 }

@@ -14,15 +14,14 @@ import {
 } from 'react-native';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { supabase, EventFormField, EventFormFieldType } from '../../lib/supabase';
+import { supabase, EventFormField } from '../../lib/supabase';
 import { appAlert as Alert } from '../../lib/appAlert';
 import { HandbookMarkdownPreview } from '../../components/HandbookMarkdownPreview';
+import { EVENT_TIME_ZONE, localDateInput, romeToIso } from '../../lib/eventTime';
 
 type EventRow = {
   id: string;
@@ -38,9 +37,11 @@ type EventRow = {
   cover_image: string | null;
   is_published: boolean;
   registration_deadline: string | null;
+  registration_start_at: string | null;
   registration_status: 'draft' | 'open' | 'closed' | 'ended' | 'archived';
   registration_form: EventFormField[] | null;
   registration_form_version: number;
+  revision: number;
   vehicle_selection_mode: 'none' | 'auto' | 'self_select' | 'admin';
   allow_proxy_registration: boolean;
   allow_waitlist: boolean;
@@ -79,6 +80,9 @@ type Registration = {
   participant_count: number;
   answers: Record<string, any>;
   vehicle_id: string | null;
+  requested_vehicle_id: string | null;
+  revision: number;
+  form_snapshot: EventFormField[];
   registration_number: string | null;
   registered_at: string;
   updated_at: string;
@@ -101,7 +105,7 @@ function formatChineseDate(value: string, withTime: boolean) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Rome', year: 'numeric', month: 'numeric', day: 'numeric',
+    timeZone: EVENT_TIME_ZONE, year: 'numeric', month: 'numeric', day: 'numeric',
     hour: 'numeric', minute: '2-digit', hour12: false,
   }).formatToParts(date).reduce<Record<string, string>>((result, part) => {
     result[part.type] = part.value;
@@ -113,7 +117,7 @@ function formatChineseDate(value: string, withTime: boolean) {
 
 function formatEventTime(event: Pick<EventRow, 'start_time' | 'end_time' | 'has_end_date' | 'start_has_time' | 'end_has_time'>) {
   const start = formatChineseDate(event.start_time, event.start_has_time !== false);
-  const end = event.has_end_date === false ? '' : formatChineseDate(event.end_time, event.end_has_time !== false);
+  const end = event.has_end_date === false && !event.end_has_time ? '' : formatChineseDate(event.end_time, event.end_has_time !== false);
   if (!start && !end) return '';
   if (!end) return `活动时间：${start}`;
   if (!start) return `活动时间：${end}`;
@@ -121,23 +125,18 @@ function formatEventTime(event: Pick<EventRow, 'start_time' | 'end_time' | 'has_
 }
 
 function dateFieldValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return localDateInput(date.toISOString()).slice(0, 10);
 }
 
 function dateFieldDate(value: unknown) {
-  const match = typeof value === 'string' ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null;
-  if (!match) return new Date();
-  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  return Number.isNaN(date.getTime()) ? new Date() : date;
+  const iso = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? romeToIso(`${value} 12:00`) : null;
+  return iso ? new Date(iso) : new Date();
 }
 
 function dateFieldLabel(value: unknown) {
-  const date = dateFieldDate(value);
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  const match = typeof value === 'string' ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null;
+  return match ? `${match[1]}年${Number(match[2])}月${Number(match[3])}日` : '';
 }
 
 function errorMessage(error: any, fallback: string, fields: EventFormField[] = []) {
@@ -145,22 +144,37 @@ function errorMessage(error: any, fallback: string, fields: EventFormField[] = [
   const fieldKey = message.match(/field:\s*([^\s]+)/i)?.[1];
   const fieldName = fields.find((field) => field.key === fieldKey)?.label;
   if (message.includes('Invalid email value')) return `“${fieldName || '邮箱'}”的邮箱格式不正确，请检查后重新填写。`;
+  if (message.includes('Invalid phone value') || message.includes('Invalid attendee phone')) return `“${fieldName || '电话'}”格式不正确，请填写有效号码。`;
+  if (message.includes('Invalid attendee email')) return '报名人的邮箱格式不正确，请检查后重新填写。';
+  if (message.includes('Invalid date value')) return `“${fieldName || '日期'}”不是有效日期，请重新选择。`;
+  if (message.includes('Invalid number value')) return `“${fieldName || '数字'}”需要填写有效数字。`;
+  if (message.includes('Invalid selection')) return `“${fieldName || '选项'}”已发生变化，请重新选择。`;
   if (message.includes('Required registration field is missing')) {
     return `“${fieldName || '该字段'}”为必填项，请填写后再提交。`;
   }
   if (message.includes('already have an active')) return '你已经报名过这个活动了。';
   if (message.includes('Authentication is required')) return '请先登录后再报名。';
-  if (message.includes('This event is full')) return '名额已满，请稍后再试。';
-  if (message.includes('vehicle') && (message.includes('enough seats') || message.includes('unavailable'))) return '所选车辆座位已满，请重新选择。';
-  if (message.includes('deadline')) return '报名或修改截止时间已到。';
-  if (message.includes('ended')) return '活动已经结束，不能再报名或修改。';
+  if (message.includes('Event does not exist.')) return '报名表已关闭';
+  if (message.includes('Registration not found.')) return '报名信息不存在，可能已被取消或删除，请刷新后重试。';
+  if (message.includes('This event is full')) return '名额已满';
+  if (/vehicle/i.test(message) && (/enough seats|unavailable|select a vehicle/i.test(message))) return '所选车辆座位已满或不可用，请重新选择。';
+  if (message.includes('not opened yet')) return '报名尚未开放，请到开放时间后再试。';
+  if (message.includes('not open') || message.includes('no longer accepting') || message.includes('deadline') || message.includes('ended')) return '报名表已关闭';
   if (message.includes('proxy')) return '请填写代报名备注，说明报名对象是谁。';
-  return message || fallback;
+  if (/fetch|network|timeout|connection|failed to/i.test(message)) return '网络连接中断，结果可能已保存。请先到“我的报名”刷新确认，避免重复提交。';
+  return fallback;
 }
 
 export default function EventsToolScreen() {
   const { colors, language } = useTheme();
   const { user, profile } = useAuth();
+  const userId = user?.id;
+  const accountRef = useRef({ userId, name: profile?.name || '' });
+  const previousUserIdRef = useRef(userId);
+  accountRef.current = { userId, name: profile?.name || '' };
+  const editorRequestRef = useRef(0);
+  const mineRequestRef = useRef(0);
+  const submitLockRef = useRef(false);
   const params = useLocalSearchParams<{ eventId?: string; registrationId?: string; detail?: string }>();
   const eventId = typeof params.eventId === 'string' ? params.eventId : undefined;
   const registrationId = typeof params.registrationId === 'string' ? params.registrationId : undefined;
@@ -186,7 +200,6 @@ export default function EventsToolScreen() {
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [datePickerTarget, setDatePickerTarget] = useState<{ key: string; value: string } | null>(null);
   const datePickerSetterRef = useRef<((value: string) => void) | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -205,7 +218,21 @@ export default function EventsToolScreen() {
 
   useEffect(() => () => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    editorRequestRef.current += 1;
+    mineRequestRef.current += 1;
   }, []);
+
+  useEffect(() => {
+    if (previousUserIdRef.current === userId) return;
+    previousUserIdRef.current = userId;
+    setMyRegistrations([]);
+    setSelectedEvent(null);
+    setEditingRegistration(null);
+    setFormValues({});
+    setAttendees([]);
+    setMultiMode(false);
+    setShowRegistrationDetail(false);
+  }, [userId]);
 
   const activeRegistrationByEvent = useMemo(() => {
     const map = new Map<string, Registration>();
@@ -217,8 +244,14 @@ export default function EventsToolScreen() {
     return map;
   }, [myRegistrations]);
 
+  const visibleMyRegistrations = useMemo(() => {
+    const visibleEventIds = new Set(events.map((event) => event.id));
+    return myRegistrations.filter((registration) => visibleEventIds.has(registration.event_id));
+  }, [events, myRegistrations]);
+
   const loadMine = useCallback(async () => {
-    if (!user) {
+    const requestId = ++mineRequestRef.current;
+    if (!userId) {
       setMyRegistrations([]);
       return;
     }
@@ -226,10 +259,11 @@ export default function EventsToolScreen() {
     const { data, error } = await supabase
       .from('event_registrations')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .neq('status', 'cancelled')
       .order('registered_at', { ascending: false });
     if (error) throw error;
+    if (requestId !== mineRequestRef.current || accountRef.current.userId !== userId) return;
 
     const registrations = (data || []) as Registration[];
     if (registrations.length === 0) {
@@ -243,6 +277,7 @@ export default function EventsToolScreen() {
       .in('registration_id', registrations.map((item) => item.id))
       .order('sort_order', { ascending: true });
     if (attendeeError) throw attendeeError;
+    if (requestId !== mineRequestRef.current || accountRef.current.userId !== userId) return;
 
     const attendeeMap = new Map<string, Attendee[]>();
     (attendeeRows || []).forEach((row: any) => {
@@ -252,7 +287,7 @@ export default function EventsToolScreen() {
     });
 
     setMyRegistrations(registrations.map((item) => ({ ...item, attendees: attendeeMap.get(item.id) || [] })));
-  }, [user]);
+  }, [userId]);
 
   const loadEvents = useCallback(async () => {
     const { data, error } = await supabase
@@ -287,6 +322,7 @@ export default function EventsToolScreen() {
   }, [loadAll]);
 
   const loadEventEditor = useCallback(async (nextEventId: string, nextRegistrationId?: string, detailOnly = false) => {
+    const requestId = ++editorRequestRef.current;
     setLoading(true);
     try {
       const [{ data: eventData, error: eventError }, { data: vehicleData, error: vehicleError }] = await Promise.all([
@@ -295,23 +331,28 @@ export default function EventsToolScreen() {
       ]);
       if (eventError) throw eventError;
       if (vehicleError) throw vehicleError;
+      if (requestId !== editorRequestRef.current || accountRef.current.userId !== userId) return;
 
       const event = eventData as EventRow;
-      setSelectedEvent(event);
-      setShowEventDetail(detailOnly && !nextRegistrationId);
-      setVehicles((vehicleData || []) as Vehicle[]);
 
       let registration: Registration | null = null;
       const targetRegistrationId = nextRegistrationId || undefined;
-      if (user && targetRegistrationId) {
+      if (userId && targetRegistrationId) {
         const { data, error } = await supabase
           .from('event_registrations')
           .select('*')
           .eq('id', targetRegistrationId)
-          .eq('user_id', user.id)
+          .eq('event_id', nextEventId)
+          .eq('user_id', userId)
           .single();
         if (error) throw error;
         registration = data as Registration;
+      } else if (userId && !detailOnly) {
+        const { data, error } = await supabase.from('event_registrations').select('*')
+          .eq('event_id', nextEventId).eq('user_id', userId)
+          .eq('registration_kind', 'self').neq('status', 'cancelled').maybeSingle();
+        if (error) throw error;
+        registration = data as Registration | null;
       }
 
       if (registration) {
@@ -324,7 +365,12 @@ export default function EventsToolScreen() {
         registration = { ...registration, attendees: (attendeeData || []) as Attendee[] };
       }
 
-      const defaultName = profile?.name || '';
+      if (requestId !== editorRequestRef.current || accountRef.current.userId !== userId) return;
+      const defaultName = accountRef.current.name;
+      const selectedVehicleId = registration?.vehicle_id || registration?.requested_vehicle_id || null;
+      setSelectedEvent(event);
+      setShowEventDetail(detailOnly && !nextRegistrationId);
+      setVehicles((vehicleData || []) as Vehicle[]);
       setEditingRegistration(registration);
       setShowRegistrationDetail(Boolean(registration));
       setFormValues(registration?.registration_kind === 'proxy'
@@ -338,24 +384,26 @@ export default function EventsToolScreen() {
       setParticipantCount(registration?.participant_count || 1);
       setAttendees(
         registration?.attendees?.length
-          ? registration.attendees.map((item) => ({ name: item.name, phone: item.phone || '', email: item.email || '', answers: item.answers || registration?.answers || {}, vehicle_id: registration?.vehicle_id || null, proxy_note: registration?.proxy_note || '' }))
+          ? registration.attendees.map((item) => ({ name: item.name, phone: item.phone || '', email: item.email || '', answers: item.answers || registration?.answers || {}, vehicle_id: selectedVehicleId, proxy_note: registration?.proxy_note || '' }))
           : [{ name: defaultName, answers: registration?.answers || {}, vehicle_id: null, proxy_note: '' }]
       );
-      setVehicleId(registration?.vehicle_id || null);
+      setVehicleId(selectedVehicleId);
     } catch (error) {
+      if (requestId !== editorRequestRef.current || accountRef.current.userId !== userId) return;
       console.warn('Failed to load event registration editor:', error);
       Alert.alert('加载失败', '无法打开这个活动。');
       router.back();
     } finally {
-      setLoading(false);
+      if (requestId === editorRequestRef.current) setLoading(false);
     }
-  }, [profile?.name, user]);
+  }, [userId]);
 
   useEffect(() => {
     if (eventId) loadEventEditor(eventId, registrationId, detailParam);
   }, [eventId, registrationId, detailParam, loadEventEditor]);
 
   const goBackToList = () => {
+    editorRequestRef.current += 1;
     setSelectedEvent(null);
     setEditingRegistration(null);
     setShowEventDetail(false);
@@ -387,7 +435,13 @@ export default function EventsToolScreen() {
     openNewRegistration(event);
   };
 
-  const beginRegistrationEdit = () => setShowRegistrationDetail(false);
+  const beginRegistrationEdit = () => {
+    if (editingRegistration && editingRegistration.participant_count !== 1) {
+      Alert.alert('历史多人报名', '这条旧报名包含多位报名人，仅支持查看或整条取消。如需修改，请联系管理员。');
+      return;
+    }
+    setShowRegistrationDetail(false);
+  };
 
   const openRegistration = (registration: Registration) => {
     const event = events.find((item) => item.id === registration.event_id);
@@ -431,48 +485,14 @@ export default function EventsToolScreen() {
     }
   };
 
-  const uploadFile = async (field: EventFormField, setAnswers: (updater: (current: FieldValues) => FieldValues) => void, uploadKey = field.key) => {
-    if (!user || !selectedEvent) return;
-    setUploadingField(uploadKey);
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: field.accept?.length ? field.accept : '*/*',
-        copyToCacheDirectory: true,
-        multiple: false,
-      });
-      if (result.canceled || !result.assets?.[0]) return;
-
-      const asset = result.assets[0];
-      const maxBytes = (field.maxFileSizeMb || 10) * 1024 * 1024;
-      if (asset.size && asset.size > maxBytes) {
-        throw new Error(`文件不能超过 ${field.maxFileSizeMb || 10} MB。`);
-      }
-      const bytes = Platform.OS === 'web'
-        ? await (await fetch(asset.uri)).arrayBuffer()
-        : await new File(asset.uri).arrayBuffer();
-      if (bytes.byteLength > maxBytes) throw new Error(`文件不能超过 ${field.maxFileSizeMb || 10} MB。`);
-
-      const safeName = (asset.name || 'attachment').replace(/[^a-zA-Z0-9._-]/g, '_');
-      const path = `${user.id}/${selectedEvent.id}/${Date.now()}-${safeName}`;
-      const { error } = await supabase.storage.from('event-attachments').upload(path, bytes, {
-        contentType: asset.mimeType || 'application/octet-stream',
-        upsert: false,
-      });
-      if (error) throw error;
-      setAnswers((current) => ({
-        ...current,
-        [field.key]: { path, name: asset.name || safeName, size: asset.size || bytes.byteLength },
-      }));
-    } catch (error: any) {
-      Alert.alert('上传失败', error?.message || '文件上传失败，请重试。');
-    } finally {
-      setUploadingField(null);
-    }
-  };
-
   const submit = async () => {
+    if (submitLockRef.current) return;
     if (!user || !selectedEvent) {
       Alert.alert('需要登录', '请先登录后再报名。');
+      return;
+    }
+    if (editingRegistration && editingRegistration.participant_count !== 1) {
+      Alert.alert('历史多人报名', '这条旧报名仅支持查看或整条取消，请联系管理员处理。');
       return;
     }
     if (!multiMode && registrationKind === 'proxy' && !proxyNote.trim()) {
@@ -490,7 +510,8 @@ export default function EventsToolScreen() {
       Alert.alert('请选择车辆', '请先选择要乘坐的车辆。');
       return;
     }
-    const registrationFields = (selectedEvent.registration_form || DEFAULT_FIELDS).filter((field) => !field.system);
+    const registrationFields = (editingRegistration?.form_snapshot ?? selectedEvent.registration_form ?? DEFAULT_FIELDS)
+      .filter((field) => !field.system && field.type !== 'file');
     const answerSets = multiMode ? attendees.map((item) => item.answers || {}) : [formValues];
     for (let index = 0; index < answerSets.length; index += 1) {
       const missing = registrationFields.find((field) => {
@@ -524,6 +545,7 @@ export default function EventsToolScreen() {
       }
     }
 
+    submitLockRef.current = true;
     setSubmitting(true);
     try {
       if (multiMode) {
@@ -535,12 +557,14 @@ export default function EventsToolScreen() {
           vehicle_id: item.vehicle_id || null,
           proxy_note: index === 0 ? null : item.proxy_note?.trim() || null,
         }));
-        const { data, error } = await supabase.rpc('submit_event_registration_group', {
+        const { data, error } = await supabase.rpc('submit_event_registration_group_checked', {
           p_event_id: selectedEvent.id,
           p_participants: participants,
           p_source: 'app',
+          p_expected_form_version: selectedEvent.registration_form_version,
         } as any);
         if (error) throw error;
+        if (accountRef.current.userId !== user.id) return;
         const results = Array.isArray(data) ? data : [];
         const waitlistCount = results.filter((item: any) => item.registration_status === 'waitlist').length;
         Alert.alert(
@@ -568,12 +592,13 @@ export default function EventsToolScreen() {
             answers: selfAnswers,
           }];
       const answers = selfAnswers;
-      const rpcName = editingRegistration ? 'update_event_registration' : 'submit_event_registration';
+      const rpcName = editingRegistration ? 'update_event_registration' : 'submit_event_registration_checked';
       const rpcArgs = editingRegistration
         ? {
             p_registration_id: editingRegistration.id,
+            p_expected_revision: editingRegistration.revision,
             p_proxy_note: proxyNote.trim() || null,
-            p_participant_count: participantCount,
+            p_participant_count: 1,
             p_answers: answers,
             p_attendees: attendeePayload,
             p_vehicle_id: vehicleId,
@@ -582,14 +607,16 @@ export default function EventsToolScreen() {
             p_event_id: selectedEvent.id,
             p_registration_kind: registrationKind,
             p_proxy_note: proxyNote.trim() || null,
-            p_participant_count: participantCount,
+            p_participant_count: 1,
             p_answers: answers,
             p_attendees: attendeePayload,
             p_vehicle_id: vehicleId,
             p_source: 'app',
+            p_expected_form_version: selectedEvent.registration_form_version,
           };
       const { data, error } = await supabase.rpc(rpcName, rpcArgs as any);
       if (error) throw error;
+      if (accountRef.current.userId !== user.id) return;
 
       const result = Array.isArray(data) ? data[0] : data;
       const assignedVehicleName = result?.assigned_vehicle_id
@@ -605,8 +632,24 @@ export default function EventsToolScreen() {
         [{ text: '好的', onPress: () => { loadAll(); goBackToList(); } }]
       );
     } catch (error: any) {
+      if (accountRef.current.userId !== user.id) return;
+      if (/event form changed/i.test(String(error?.message || ''))) {
+        Alert.alert('报名表已更新', '管理员已更新报名表。当前填写已保留，请记录需要保留的内容后重新加载最新报名表；重新加载会替换尚未提交的填写。', [
+          { text: '保留当前填写', style: 'cancel' },
+          { text: '重新加载', onPress: () => { void loadEventEditor(selectedEvent.id); } },
+        ]);
+        return;
+      }
+      if (/registration changed|event changed/i.test(String(error?.message || ''))) {
+        Alert.alert('报名信息已变化', '这条报名已被管理员或其他设备修改。当前填写已保留，请重新加载最新信息后再编辑；重新加载会替换尚未保存的填写。', [
+          { text: '保留当前填写', style: 'cancel' },
+          { text: '重新加载', onPress: () => { void loadEventEditor(selectedEvent.id, editingRegistration?.id); } },
+        ]);
+        return;
+      }
       Alert.alert('提交失败', errorMessage(error, '报名暂时无法提交，请稍后重试。', registrationFields));
     } finally {
+      submitLockRef.current = false;
       setSubmitting(false);
     }
   };
@@ -696,14 +739,7 @@ export default function EventsToolScreen() {
             <Text style={[styles.checkboxText, { color: colors.textSecondary }]}>{field.placeholder || '我确认以上信息真实有效'}</Text>
           </Pressable>
         ) : field.type === 'file' ? (
-          <Pressable
-            style={[styles.fileButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
-            onPress={() => uploadFile(field, setAnswers, uploadKey)}
-            disabled={uploadingField === uploadKey}
-          >
-            {uploadingField === uploadKey ? <ActivityIndicator color={colors.primary} /> : <MaterialCommunityIcons name="paperclip" size={20} color={colors.primary} />}
-            <Text style={[styles.fileButtonText, { color: colors.textPrimary }]}>{value?.name || '选择文件'}</Text>
-          </Pressable>
+          <Text style={[styles.fieldDescription, { color: colors.textSecondary }]}>{value?.name || value?.path || '历史附件'}（只读）</Text>
         ) : field.type === 'date' ? (
           <>
             <Pressable
@@ -720,6 +756,7 @@ export default function EventsToolScreen() {
                 <DateTimePicker
                   value={dateFieldDate(datePickerTarget.value)}
                   mode="date"
+                  timeZoneName={EVENT_TIME_ZONE}
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onValueChange={handleDateChange}
                   onDismiss={() => {
@@ -789,13 +826,13 @@ export default function EventsToolScreen() {
               <Text style={styles.primaryButtonText}>去登录</Text>
             </Pressable>
           </View>
-        ) : myRegistrations.length === 0 ? (
+        ) : visibleMyRegistrations.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="clipboard-text-outline" size={42} color={colors.textMuted} />
             <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>还没有报名记录</Text>
             <Text style={[styles.emptyDescription, { color: colors.textSecondary }]}>报名成功后，记录会显示在这里。</Text>
           </View>
-        ) : myRegistrations.map((registration) => {
+        ) : visibleMyRegistrations.map((registration) => {
           const event = events.find((item) => item.id === registration.event_id);
           return (
             <Pressable key={registration.id} style={[styles.registrationCard, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => openRegistration(registration)}>
@@ -817,9 +854,13 @@ export default function EventsToolScreen() {
     if (!selectedEvent) return null;
     const existing = activeRegistrationByEvent.get(selectedEvent.id);
     const ended = selectedEvent.registration_status === 'ended'
-      || (selectedEvent.has_end_date !== false && new Date(selectedEvent.end_time).getTime() < Date.now());
-    const registrationClosed = selectedEvent.registration_status !== 'open';
-    const disabled = ended || registrationClosed;
+      || Boolean(selectedEvent.end_time && new Date(selectedEvent.end_time).getTime() < Date.now());
+    const registrationNotStarted = Boolean(selectedEvent.registration_start_at && Date.now() < new Date(selectedEvent.registration_start_at).getTime());
+    const registrationClosed = selectedEvent.registration_status !== 'open'
+      || registrationNotStarted
+      || Boolean(selectedEvent.registration_deadline && Date.now() > new Date(selectedEvent.registration_deadline).getTime());
+    const hasSelfRegistration = existing?.registration_kind === 'self';
+    const disabled = !hasSelfRegistration && (ended || registrationClosed);
     return (
       <>
         <View style={styles.header}>
@@ -838,7 +879,7 @@ export default function EventsToolScreen() {
           onPress={() => startRegistration(selectedEvent)}
           disabled={disabled}
         >
-          <Text style={styles.primaryButtonText}>{ended ? '活动已结束' : registrationClosed ? '报名已截止' : existing ? '查看我的报名' : '立即报名'}</Text>
+          <Text style={styles.primaryButtonText}>{hasSelfRegistration ? '查看我的报名' : ended ? '活动已结束' : registrationNotStarted ? '报名尚未开放' : registrationClosed ? '报名已截止' : '立即报名'}</Text>
         </Pressable>
       </>
     );
@@ -847,7 +888,7 @@ export default function EventsToolScreen() {
   const renderRegistrationDetails = () => {
     if (!selectedEvent || !editingRegistration) return null;
     const registration = editingRegistration;
-    const fields = (selectedEvent.registration_form || DEFAULT_FIELDS).filter((field) => !field.system);
+    const fields = (registration.form_snapshot ?? selectedEvent.registration_form ?? DEFAULT_FIELDS).filter((field) => !field.system);
     const answerValues = registration.registration_kind === 'proxy'
       ? registration.attendees?.[0]?.answers || registration.answers || {}
       : registration.answers || {};
@@ -873,13 +914,21 @@ export default function EventsToolScreen() {
           <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>报名状态</Text><Text style={[styles.detailValue, { color: registration.status === 'waitlist' ? '#B7791F' : registration.status === 'cancelled' ? colors.textMuted : colors.success }]}>{registration.status === 'waitlist' ? '候补' : registration.status === 'cancelled' ? '已取消' : '已确认'}</Text></View>
           <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>报名编号</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{registration.registration_number || registration.id.slice(0, 8)}</Text></View>
           <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>报名时间</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{formatDateTime(registration.registered_at)}</Text></View>
-          {registration.attendees?.map((attendee, index) => <View key={`${attendee.name}-${index}`} style={styles.attendeeDetailBlock}><Text style={[styles.detailSectionTitle, { color: colors.textPrimary }]}>报名人 {index + 1}{index === 0 ? '（本人）' : ''}</Text><View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>姓名</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.name || '未填写'}</Text></View>{attendee.phone ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>电话</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.phone}</Text></View> : null}{attendee.email ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>邮箱</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.email}</Text></View> : null}{index > 0 && attendee.proxy_note ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>备注</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.proxy_note}</Text></View> : null}</View>)}
+          {registration.attendees?.map((attendee, index) => (
+            <View key={`${attendee.name}-${index}`} style={styles.attendeeDetailBlock}>
+              <Text style={[styles.detailSectionTitle, { color: colors.textPrimary }]}>报名人 {index + 1}{registration.registration_kind === 'self' && index === 0 ? '（本人）' : '（代他人报名）'}</Text>
+              <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>昵称</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.name || '未填写'}</Text></View>
+              {attendee.phone ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>电话</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.phone}</Text></View> : null}
+              {attendee.email ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>邮箱</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{attendee.email}</Text></View> : null}
+              {(registration.registration_kind === 'proxy' ? registration.proxy_note : attendee.proxy_note) ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>备注</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{registration.registration_kind === 'proxy' ? registration.proxy_note : attendee.proxy_note}</Text></View> : null}
+            </View>
+          ))}
           {fields.map((field) => {
             const value = answerValues[field.key];
             if (!hasAnswer(value) && !field.required) return null;
             return <View key={field.key} style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{field.label}</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{hasAnswer(value) ? displayAnswer(value) : '未填写'}</Text></View>;
           })}
-          {registration.vehicle_id ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>车辆</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{vehicles.find((vehicle) => vehicle.id === registration.vehicle_id)?.name || '待确认'}</Text></View> : null}
+          {registration.vehicle_id || registration.requested_vehicle_id ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{registration.vehicle_id ? '车辆' : '候补车辆'}</Text><Text style={[styles.detailValue, { color: colors.textPrimary }]}>{vehicles.find((vehicle) => vehicle.id === (registration.vehicle_id || registration.requested_vehicle_id))?.name || '待确认'}</Text></View> : null}
         </View>
         {registration.status !== 'cancelled' ? <View style={styles.detailActions}><Pressable style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={beginRegistrationEdit}><Text style={styles.primaryButtonText}>修改信息</Text></Pressable><Pressable style={[styles.cancelButton, { borderColor: colors.error }]} onPress={cancelRegistration}><Text style={[styles.cancelButtonText, { color: colors.error }]}>取消报名</Text></Pressable></View> : null}
       </>
@@ -888,7 +937,8 @@ export default function EventsToolScreen() {
 
   const renderEditor = () => {
     if (!selectedEvent) return null;
-    const fields = (selectedEvent.registration_form || DEFAULT_FIELDS).filter((field) => !field.system);
+    const fields = (editingRegistration?.form_snapshot ?? selectedEvent.registration_form ?? DEFAULT_FIELDS)
+      .filter((field) => !field.system && (field.type !== 'file' || (editingRegistration && formValues[field.key])));
     const activeAttendee = attendees[activeAttendeeIndex] || attendees[0];
     const activeVehicleId = multiMode ? activeAttendee?.vehicle_id || null : vehicleId;
     const setActiveVehicleId = (nextVehicleId: string) => {
@@ -1041,8 +1091,6 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 14 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   checkboxText: { flex: 1, fontSize: 13, lineHeight: 19 },
-  fileButton: { minHeight: 46, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  fileButtonText: { flex: 1, fontSize: 14 },
   dateButton: { minHeight: 46, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   pickerPanel: { alignItems: 'center', paddingVertical: 8 },
   switchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
