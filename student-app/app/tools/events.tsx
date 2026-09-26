@@ -21,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase, EventFormField } from '../../lib/supabase';
 import { appAlert as Alert } from '../../lib/appAlert';
 import { HandbookMarkdownPreview } from '../../components/HandbookMarkdownPreview';
+import { canViewEventAudience, type EventAudience } from '../../lib/eventAudience';
 import { EVENT_TIME_ZONE, localDateInput, romeToIso } from '../../lib/eventTime';
 
 type EventRow = {
@@ -36,6 +37,7 @@ type EventRow = {
   max_participants: number | null;
   cover_image: string | null;
   is_published: boolean;
+  audience: EventAudience;
   registration_deadline: string | null;
   registration_start_at: string | null;
   registration_status: 'draft' | 'open' | 'closed' | 'ended' | 'archived';
@@ -141,6 +143,7 @@ function dateFieldLabel(value: unknown) {
 
 function errorMessage(error: any, fallback: string, fields: EventFormField[] = []) {
   const message = String(error?.message || '');
+  if (message.includes('only available to administrators')) return '此活动仅面向管理员，你当前的账户无法报名。';
   const fieldKey = message.match(/field:\s*([^\s]+)/i)?.[1];
   const fieldName = fields.find((field) => field.key === fieldKey)?.label;
   if (message.includes('Invalid email value')) return `“${fieldName || '邮箱'}”的邮箱格式不正确，请检查后重新填写。`;
@@ -169,8 +172,12 @@ export default function EventsToolScreen() {
   const { colors, language } = useTheme();
   const { user, profile } = useAuth();
   const userId = user?.id;
+  const viewerRole = userId ? profile?.role : undefined;
+  const viewerKey = `${userId || ''}:${viewerRole || ''}`;
+  const viewerKeyRef = useRef(viewerKey);
+  viewerKeyRef.current = viewerKey;
   const accountRef = useRef({ userId, name: profile?.name || '' });
-  const previousUserIdRef = useRef(userId);
+  const previousUserIdRef = useRef(viewerKey);
   accountRef.current = { userId, name: profile?.name || '' };
   const editorRequestRef = useRef(0);
   const mineRequestRef = useRef(0);
@@ -223,8 +230,11 @@ export default function EventsToolScreen() {
   }, []);
 
   useEffect(() => {
-    if (previousUserIdRef.current === userId) return;
-    previousUserIdRef.current = userId;
+    if (previousUserIdRef.current === viewerKey) return;
+    previousUserIdRef.current = viewerKey;
+    editorRequestRef.current += 1;
+    mineRequestRef.current += 1;
+    setEvents([]);
     setMyRegistrations([]);
     setSelectedEvent(null);
     setEditingRegistration(null);
@@ -232,7 +242,7 @@ export default function EventsToolScreen() {
     setAttendees([]);
     setMultiMode(false);
     setShowRegistrationDetail(false);
-  }, [userId]);
+  }, [viewerKey]);
 
   const activeRegistrationByEvent = useMemo(() => {
     const map = new Map<string, Registration>();
@@ -244,10 +254,11 @@ export default function EventsToolScreen() {
     return map;
   }, [myRegistrations]);
 
+  const visibleEvents = useMemo(() => events.filter((event) => canViewEventAudience(event.audience, viewerRole)), [events, viewerRole]);
   const visibleMyRegistrations = useMemo(() => {
-    const visibleEventIds = new Set(events.map((event) => event.id));
+    const visibleEventIds = new Set(visibleEvents.map((event) => event.id));
     return myRegistrations.filter((registration) => visibleEventIds.has(registration.event_id));
-  }, [events, myRegistrations]);
+  }, [visibleEvents, myRegistrations]);
 
   const loadMine = useCallback(async () => {
     const requestId = ++mineRequestRef.current;
@@ -290,6 +301,7 @@ export default function EventsToolScreen() {
   }, [userId]);
 
   const loadEvents = useCallback(async () => {
+    const requestedViewer = viewerKey;
     const { data, error } = await supabase
       .from('events')
       .select('*')
@@ -298,8 +310,9 @@ export default function EventsToolScreen() {
       .in('registration_status', ['open', 'closed', 'ended'])
       .order('start_time', { ascending: true });
     if (error) throw error;
+    if (viewerKeyRef.current !== requestedViewer) return;
     setEvents((data || []) as EventRow[]);
-  }, []);
+  }, [viewerKey]);
 
   const loadAll = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -334,6 +347,7 @@ export default function EventsToolScreen() {
       if (requestId !== editorRequestRef.current || accountRef.current.userId !== userId) return;
 
       const event = eventData as EventRow;
+      if (!canViewEventAudience(event.audience, viewerRole)) throw new Error('This event is only available to administrators.');
 
       let registration: Registration | null = null;
       const targetRegistrationId = nextRegistrationId || undefined;
@@ -396,7 +410,7 @@ export default function EventsToolScreen() {
     } finally {
       if (requestId === editorRequestRef.current) setLoading(false);
     }
-  }, [userId]);
+  }, [userId, viewerRole]);
 
   useEffect(() => {
     if (eventId) loadEventEditor(eventId, registrationId, detailParam);
@@ -802,13 +816,13 @@ export default function EventsToolScreen() {
       </View>
 
       {activeView === 'events' ? (
-        events.length === 0 ? (
+        visibleEvents.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="calendar-blank-outline" size={42} color={colors.textMuted} />
             <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>暂无近期活动</Text>
             <Text style={[styles.emptyDescription, { color: colors.textSecondary }]}>新的活动开放后会显示在这里。</Text>
           </View>
-        ) : events.map((event) => {
+        ) : visibleEvents.map((event) => {
           return (
             <Pressable key={event.id} onPress={() => openEventDetails(event)} style={[styles.eventCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
               <Text style={[styles.eventTitle, { color: colors.textPrimary }]}>{event.title}</Text>
@@ -1036,7 +1050,7 @@ export default function EventsToolScreen() {
           />
         )}
       >
-        {selectedEvent ? (showRegistrationDetail ? renderRegistrationDetails() : showEventDetail ? renderEventDetails() : renderEditor()) : renderEventList()}
+        {selectedEvent && canViewEventAudience(selectedEvent.audience, viewerRole) ? (showRegistrationDetail ? renderRegistrationDetails() : showEventDetail ? renderEventDetails() : renderEditor()) : renderEventList()}
       </ScrollView>
       {toastMsg ? <Animated.View style={[styles.checkmarkBubble, { opacity: toastFade, backgroundColor: toastMsg === '刷新成功' ? '#FFFFFF' : colors.surface, borderColor: toastMsg === '刷新成功' ? 'transparent' : colors.primary }]}>
         {toastMsg === '刷新成功' ? <MaterialCommunityIcons name="check" size={24} color={colors.primary} /> : <Text style={[styles.toastText, { color: colors.primary }]}>{toastMsg}</Text>}

@@ -23,8 +23,9 @@ import { supabase, EventFormField, EventFormFieldType } from '../../lib/supabase
 import { appAlert as Alert } from '../../lib/appAlert';
 import { HandbookMarkdownEditor } from '../../components/HandbookMarkdownEditor';
 import { HandbookMarkdownPreview } from '../../components/HandbookMarkdownPreview';
-import { broadcastPushNotification, sendExpoPushMessages } from '../../lib/notificationService';
+import { broadcastPushNotification } from '../../lib/notificationService';
 import { EVENT_TIME_ZONE, localDateInput, normalizeEventTimes, romeToIso } from '../../lib/eventTime';
+import type { EventAudience } from '../../lib/eventAudience';
 
 type EventRow = {
   id: string;
@@ -38,6 +39,7 @@ type EventRow = {
   end_has_time: boolean;
   max_participants: number | null;
   is_published: boolean;
+  audience: EventAudience;
   registration_deadline: string | null;
   registration_status: 'draft' | 'open' | 'closed' | 'ended' | 'archived';
   registration_start_at: string | null;
@@ -226,13 +228,14 @@ export default function ManageEventsScreen() {
   const registrationLoadVersion = useRef(0);
   const registrationRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [audience, setAudience] = useState<EventAudience>('all');
   const currentDraftSignature = useMemo(() => JSON.stringify({
     title, description, location, startTime, endTime, hasEndDate, startHasTime, endHasTime,
     registrationStart, deadline, registrationStartEnabled, registrationStartNotifyEnabled, deadlineEnabled, maxParticipants, published, status, allowProxy, allowWaitlist,
-    vehicleMode, fields, vehicles,
+    vehicleMode, fields, vehicles, audience,
   }), [title, description, location, startTime, endTime, hasEndDate, startHasTime, endHasTime,
     registrationStart, deadline, registrationStartEnabled, registrationStartNotifyEnabled, deadlineEnabled, maxParticipants, published, status, allowProxy, allowWaitlist,
-    vehicleMode, fields, vehicles]);
+    vehicleMode, fields, vehicles, audience]);
 
   useEffect(() => {
     if (editing) initialDraftSignature.current = currentDraftSignature;
@@ -428,6 +431,7 @@ export default function ManageEventsScreen() {
       setDeadlineEnabled(Boolean(loaded.registration_deadline));
       setMaxParticipants(loaded.max_participants == null ? '' : String(loaded.max_participants));
       setPublished(Boolean(loaded.is_published));
+      setAudience(loaded.audience || 'all');
       setStatus(loaded.registration_status || 'draft');
       setAllowProxy(Boolean(loaded.allow_proxy_registration));
       setAllowWaitlist(loaded.allow_waitlist !== false);
@@ -475,6 +479,7 @@ export default function ManageEventsScreen() {
     setDeadlineEnabled(false);
     setMaxParticipants('');
     setPublished(false);
+    setAudience('all');
     setStatus('draft');
     setAllowProxy(false);
     setAllowWaitlist(true);
@@ -565,6 +570,7 @@ export default function ManageEventsScreen() {
         registration_start_notify_enabled: registrationStartEnabled && registrationStartNotifyEnabled,
         max_participants: parsedMax,
         is_published: published,
+        audience,
         registration_status: status,
         registration_mode: 'authenticated',
         registration_form: fields.map((field) => field.type === 'file' ? field : ({
@@ -633,12 +639,13 @@ export default function ManageEventsScreen() {
   };
 
   const confirmSendEventNotification = async () => {
+    if (!event) return;
     if (!notificationTitle.trim() || !notificationBody.trim()) {
       Alert.alert('内容不完整', '请填写通知标题和通知内容。');
       return;
     }
     setNotificationModalVisible(false);
-    const result = await broadcastPushNotification(notificationTitle.trim(), notificationBody.trim(), 'events');
+    const result = await broadcastPushNotification(notificationTitle.trim(), notificationBody.trim(), 'events', undefined, undefined, event.id);
     if (result.success) Alert.alert('推送已提交', `已向 Expo 提交 ${result.sentCount || 0} 台设备的活动通知。`);
     else Alert.alert('推送未全部成功', `已提交 ${result.sentCount || 0} 台，失败 ${result.failedCount || 0} 台。${result.error || '请稍后重试。'}`);
   };
@@ -750,13 +757,9 @@ export default function ManageEventsScreen() {
 
   const sendTargetedEventPush = async (userId: string | null, title: string, body: string, eventId: string) => {
     if (!userId) return false;
-    const { data, error } = await supabase.from('push_tokens').select('token').eq('user_id', userId);
-    if (error) throw error;
-    const tokens = [...new Set((data || []).map((row: any) => row.token).filter(Boolean))];
-    if (tokens.length === 0) return false;
-    const result = await sendExpoPushMessages(tokens.map((token) => ({ to: token, sound: 'default', title, body, data: { category: 'events', eventId } })));
+    const result = await broadcastPushNotification(title, body, 'events', undefined, undefined, eventId, userId);
     if (!result.success) throw new Error(`推送已提交 ${result.sentCount} 台，失败 ${result.failedCount} 台。`);
-    return true;
+    return result.sentCount > 0;
   };
 
   const promoteRegistration = (registrationId: string) => {
@@ -1080,7 +1083,10 @@ export default function ManageEventsScreen() {
         <Text style={[styles.hint, { color: colors.textSecondary }]}>开放时间和截止时间会实际限制报名；状态仍可手动提前关闭或归档。</Text>
         <FormLabel colors={colors} optional>活动总人数上限</FormLabel>
         <TextInput value={maxParticipants} onChangeText={setMaxParticipants} placeholder="不填则不限制" placeholderTextColor={colors.textMuted} keyboardType="numeric" style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]} />
-        <View style={styles.switchRow}><View style={{ flex: 1 }}><Text style={[styles.switchLabel, { color: colors.textPrimary }]}>发布到活动列表</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>关闭时普通用户完全看不到此活动，管理员仍可管理。</Text></View><Switch value={published} onValueChange={setPublished} trackColor={{ false: colors.border, true: colors.primaryLight }} thumbColor={published ? colors.primary : colors.textMuted} /></View>
+        <FormLabel colors={colors}>面向谁</FormLabel>
+        <View style={styles.choiceWrap}>{([{ value: 'all', label: '所有人' }, { value: 'admins', label: '仅管理员' }] as const).map((option) => <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ checked: audience === option.value }} onPress={() => setAudience(option.value)} style={[styles.choice, { borderColor: audience === option.value ? colors.primary : colors.border, backgroundColor: audience === option.value ? colors.primary + '12' : colors.surface }]}><Text style={{ color: audience === option.value ? colors.primary : colors.textSecondary, fontSize: 13 }}>{option.label}</Text></Pressable>)}</View>
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>{audience === 'admins' ? '仅管理员和超级管理员账户可查看、报名并接收活动通知。' : '所有人均可查看活动，登录后才能报名。'}</Text>
+        <View style={styles.switchRow}><View style={{ flex: 1 }}><Text style={[styles.switchLabel, { color: colors.textPrimary }]}>发布到活动列表</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>开启后按所选范围展示；关闭时仅在管理后台保留。</Text></View><Switch value={published} onValueChange={setPublished} trackColor={{ false: colors.border, true: colors.primaryLight }} thumbColor={published ? colors.primary : colors.textMuted} /></View>
         <View style={styles.choiceGroup}><Text style={[styles.hint, { color: colors.textSecondary }]}>报名状态（需同时发布且状态为“报名中”才可报名）</Text><View style={styles.choiceWrap}>{statusOptions.map((option) => <Pressable key={option.value} onPress={() => setStatus(option.value)} style={[styles.choice, { borderColor: status === option.value ? colors.primary : colors.border, backgroundColor: status === option.value ? colors.primary + '12' : colors.surface }]}><Text style={{ color: status === option.value ? colors.primary : colors.textSecondary, fontSize: 13 }}>{option.label}</Text></Pressable>)}</View></View>
       </View>
 
@@ -1343,7 +1349,7 @@ export default function ManageEventsScreen() {
           <TextInput value={notificationBody} onChangeText={setNotificationBody} multiline style={[styles.input, styles.textarea, { color: colors.textPrimary, borderColor: colors.border }]} />
           <View style={styles.exportModalActions}>
             <Pressable onPress={() => setNotificationModalVisible(false)} style={[styles.outlineButton, { borderColor: colors.border }]}><Text style={{ color: colors.textSecondary }}>取消</Text></Pressable>
-            <Pressable onPress={() => { Alert.alert('确认发送', '确定向所有已开启推送的设备发送这条通知吗？', [{ text: '返回', style: 'cancel' }, { text: '确认发送', onPress: () => { void confirmSendEventNotification(); } }]); }} style={[styles.saveButton, { backgroundColor: colors.primary }]}><Text style={styles.saveButtonText}>发送</Text></Pressable>
+            <Pressable onPress={() => { Alert.alert('确认发送', event?.audience === 'admins' ? '确定向管理员账户已开启推送的设备发送这条通知吗？' : '确定向所有已开启推送的设备发送这条通知吗？', [{ text: '返回', style: 'cancel' }, { text: '确认发送', onPress: () => { void confirmSendEventNotification(); } }]); }} style={[styles.saveButton, { backgroundColor: colors.primary }]}><Text style={styles.saveButtonText}>发送</Text></Pressable>
           </View>
         </View>
       </View>

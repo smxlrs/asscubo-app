@@ -17,6 +17,7 @@ import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-ic
 import Svg, { Path } from 'react-native-svg';
 import { HOME_RATE_VISIBLE_STORAGE_KEY } from '../../lib/currencies';
 import { EVENT_TIME_ZONE, localDateInput } from '../../lib/eventTime';
+import { canViewEventAudience, type EventAudience } from '../../lib/eventAudience';
 
 type Article = {
   id: string;
@@ -44,6 +45,7 @@ type Notification = {
 
 type Event = {
   id: string;
+  audience: EventAudience;
   title: string;
   location: string | null;
   start_time: string | null;
@@ -467,6 +469,11 @@ export default function HomeScreen() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const eventViewerKey = `${user?.id || ''}:${profile?.role || ''}`;
+  const eventViewerRef = useRef(eventViewerKey);
+  const previousEventViewerRef = useRef(eventViewerKey);
+  eventViewerRef.current = eventViewerKey;
+  const visibleUpcomingEvents = upcomingEvents.filter((event) => canViewEventAudience(event.audience, user ? profile?.role : undefined));
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -656,6 +663,7 @@ export default function HomeScreen() {
   }
 
   async function fetchData(isRefresh = false) {
+    const requestedEventViewer = eventViewerRef.current;
     try {
       setHasError(false);
       const { data: { user } } = await supabase.auth.getUser();
@@ -677,7 +685,7 @@ export default function HomeScreen() {
           .limit(5),
         supabase
           .from('events')
-          .select('id, title, location, start_time, end_time, has_end_date, start_has_time, end_has_time, registration_status, cover_image')
+          .select('id, title, location, start_time, end_time, has_end_date, start_has_time, end_has_time, registration_status, cover_image, audience')
           .eq('is_published', true)
           .in('registration_status', ['open', 'closed'])
           .gte('end_time', new Date().toISOString())
@@ -735,7 +743,7 @@ export default function HomeScreen() {
       setArticles(combined);
       setNotifications([]); // Clear independent notifications state
 
-      if (eventsRes.data) setUpcomingEvents(eventsRes.data);
+      if (eventsRes.data && requestedEventViewer === eventViewerRef.current) setUpcomingEvents(eventsRes.data);
       if (isRefresh) {
         setTimeout(() => {
           triggerToast('refresh_success');
@@ -780,6 +788,13 @@ export default function HomeScreen() {
     fetchData();
     initWeather();
   }, []);
+
+  useEffect(() => {
+    if (previousEventViewerRef.current === eventViewerKey) return;
+    previousEventViewerRef.current = eventViewerKey;
+    setUpcomingEvents([]);
+    void fetchData();
+  }, [eventViewerKey]);
 
   function onRefresh() {
     setRefreshing(true);
@@ -1037,7 +1052,7 @@ export default function HomeScreen() {
         </LinearGradient>
 
         {/* Upcoming Events */}
-        {upcomingEvents.length > 0 && (
+        {visibleUpcomingEvents.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('recentEvents')}</Text>
@@ -1050,7 +1065,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <View>
-              {upcomingEvents.map((event) => (
+              {visibleUpcomingEvents.map((event) => (
                 <TouchableOpacity
                   key={event.id}
                   style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(163,22,33,0.06)', elevation: tabGestureActive ? 0 : 2 }]}

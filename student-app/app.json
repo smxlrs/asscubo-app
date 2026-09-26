@@ -2,7 +2,7 @@
   "expo": {
     "name": "博学",
     "slug": "union-student-app",
-    "version": "1.0.94",
+    "version": "1.0.95",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",

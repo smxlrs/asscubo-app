@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import assert from 'node:assert/strict';
+import { testEventAudience } from './event-audience-suite.mjs';
 
 const require = createRequire(import.meta.url);
 const { PGlite } = require(process.env.EVENT_TEST_PGLITE_PATH
@@ -398,6 +399,7 @@ try {
   await exec("SELECT set_config('app.admin','no',false)");
   await fail(() => q('SELECT public.admin_event_registration_page($1,0,100)',[bulkEvent]), /permission is required/);
   console.log(`PASS ${assertions} assertions: 040 twice + 041 integration, 200 people/4 buses, queue fairness, real-clock deadlines, Rome DST dates, legacy normalization, single-person security, atomic groups, optimistic conflicts, historical forms, account deletion, legacy files, cursor paging/export, private RPCs.`);
+  await testEventAudience(db, sql);
 } finally {
   await db.close();
 }

@@ -10,7 +10,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const cli = process.env.EVENT_TEST_SUPABASE_CLI;
 if (!cli) throw new Error('Set EVENT_TEST_SUPABASE_CLI to the installed Supabase CLI.');
 const filename = process.argv[2] || 'event-registration-live-rollback.sql';
-if (!/^event-registration-live-(rollback|vehicles)\.sql$/.test(filename)) throw new Error('Unexpected test script.');
+if (!/^event-registration-live-(rollback|vehicles|audience)\.sql$/.test(filename)) throw new Error('Unexpected test script.');
 const path = resolve(root, 'supabase/tests', filename);
 const source = readFileSync(path, 'utf8');
 if (!/\bBEGIN;/i.test(source) || !/\bROLLBACK;\s*$/.test(source) || /^\s*COMMIT\s*;/im.test(source)) {

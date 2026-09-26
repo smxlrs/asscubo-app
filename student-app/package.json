@@ -1,6 +1,6 @@
 {
   "name": "student-app",
-  "version": "1.0.94",
+  "version": "1.0.95",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

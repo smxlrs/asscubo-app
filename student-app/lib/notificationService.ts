@@ -19,13 +19,29 @@ export async function broadcastPushNotification(
   category: 'events' | 'academic' | 'life' | 'general',
   link?: string,
   articleId?: string,
-  eventId?: string
+  eventId?: string,
+  recipientUserId?: string
 ): Promise<PushSendResult> {
   try {
+    if (recipientUserId && !eventId) throw new Error('Targeted event push requires an event.');
     const tokens = new Set<string>();
     let offset = 0;
     let total = Infinity;
     while (offset < total) {
+      if (eventId) {
+        // The server reads the saved audience, so stale admin pages cannot
+        // accidentally use a cached public recipient list for an internal event.
+        const { data, error } = await supabase.rpc('admin_event_push_tokens', {
+          p_event_id: eventId, p_offset: offset, p_limit: 500,
+          p_user_id: recipientUserId || null,
+        });
+        if (error) throw error;
+        const rows = (data || []) as { token: string }[];
+        rows.forEach((row) => { if (row.token) tokens.add(row.token); });
+        offset += rows.length;
+        if (rows.length < 500) break;
+        continue;
+      }
       const { data, error, count } = await supabase.from('push_tokens')
         .select('token', { count: 'exact' }).order('token')
         .range(offset, offset + 499);
