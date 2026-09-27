@@ -3,7 +3,7 @@ import { initLogger, recordDebugEvent } from '../lib/logger';
 initLogger();
 import { Stack, router, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, BackHandler, ToastAndroid, View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { AppState, Platform, BackHandler, ToastAndroid, View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
@@ -27,6 +27,8 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { syncPushDevice, retryPendingPushSync } from '../lib/pushDevice';
+import { isRomeQuietHours } from '../lib/romeTime';
 import { getSavedQuickActionIds, registerQuickActions } from '../lib/quickActions';
 
 function DebugNavigationTracker() {
@@ -43,6 +45,9 @@ function DebugNavigationTracker() {
 if (Notifications) {
   Notifications.setNotificationHandler({
     handleNotification: async (notification: any) => {
+      const blocked = await AsyncStorage.getItem('@ag_notification_global') === 'false'
+        || (await AsyncStorage.getItem('@ag_notification_dnd') === 'true' && isRomeQuietHours());
+      if (blocked) return { shouldShowAlert: false, shouldPlaySound: false, shouldSetBadge: false, shouldShowBanner: false, shouldShowList: false };
       // 1. Read category from payload
       const category = notification.request.content.data?.category;
       
@@ -118,7 +123,7 @@ async function registerForPushNotificationsAsync() {
 
 function AppContent() {
   const { colors, isDark, isReady, t } = useTheme();
-  const { user, profile, loading, networkError, retryInit } = useAuth();
+  const { user, profile, loading, networkError, retryInit, signOut } = useAuth();
   const splashHiddenRef = useRef(false);
 
   const hideSplash = () => {
@@ -153,24 +158,22 @@ function AppContent() {
       try {
         const token = await registerForPushNotificationsAsync();
         if (token) {
-          // Register through a narrow RPC so device tokens are never publicly readable.
-          await supabase.rpc('register_push_token', { device_token: token });
-
-          // 2. Sync token to user profile if logged in
-          if (user?.id) {
-            await supabase
-              .from('profiles')
-              .update({ push_token: token })
-              .eq('id', user.id);
-          }
+          await syncPushDevice(token, user?.id ?? null);
         }
       } catch (e) {
         console.log('Notification registration failed:', e);
       }
     }
     
-    setupNotifications();
-  }, [user]);
+    void setupNotifications();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void setupNotifications();
+    });
+    const retryTimer = setInterval(() => {
+      if (AppState.currentState === 'active') void retryPendingPushSync().catch(() => undefined);
+    }, 30000);
+    return () => { subscription.remove(); clearInterval(retryTimer); };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!Notifications) return;
@@ -244,7 +247,7 @@ function AppContent() {
         <Pressable
           style={{ paddingVertical: 12, paddingHorizontal: 32, borderRadius: 24, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}
           onPress={async () => {
-            await supabase.auth.signOut();
+            await signOut();
           }}
         >
           <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: 'bold' }}>{t('logout') || '退出登录'}</Text>

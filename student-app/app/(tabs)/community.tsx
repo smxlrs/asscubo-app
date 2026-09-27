@@ -1,3 +1,4 @@
+import { romeParts } from '../../lib/romeTime';
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
@@ -70,9 +71,9 @@ export default function CommunityScreen() {
     if (diffH < 24) return t('comm_time_hours_ago').replace('{hours}', String(diffH));
     if (diffH < 168) return t('comm_time_days_ago').replace('{days}', String(Math.floor(diffH / 24)));
     if (language === 'zh' || language === 'zh-Hant') {
-      return `${d.getMonth() + 1}月${d.getDate()}日`;
+      return `${romeParts(d).month}月${romeParts(d).day}日`;
     }
-    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { timeZone: 'Europe/Rome', month: 'short', day: 'numeric' };
     return d.toLocaleDateString(language === 'it' ? 'it-IT' : 'en-US', options);
   }
 

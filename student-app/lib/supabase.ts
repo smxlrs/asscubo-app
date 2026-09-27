@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
+import { fetchWithDeadline } from './network';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -12,6 +13,7 @@ const ExpoSecureStoreAdapter = {
 };
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  global: { fetch: (input, init) => fetchWithDeadline(input, init, 20000) },
   auth: {
     storage: ExpoSecureStoreAdapter,
     autoRefreshToken: true,

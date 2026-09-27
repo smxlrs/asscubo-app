@@ -42,14 +42,12 @@ export async function broadcastPushNotification(
         if (rows.length < 500) break;
         continue;
       }
-      const { data, error, count } = await supabase.from('push_tokens')
-        .select('token', { count: 'exact' }).order('token')
-        .range(offset, offset + 499);
+      const { data, error } = await supabase.rpc('push_delivery_tokens', { p_offset: offset, p_limit: 500 });
       if (error) throw error;
       if (!data?.length) break;
-      data.forEach((row) => { if (row.token) tokens.add(row.token); });
+      data.forEach((row: { token: string }) => { if (row.token) tokens.add(row.token); });
       offset += data.length;
-      total = count ?? (data.length < 500 ? offset : Infinity);
+      total = data.length < 500 ? offset : Infinity;
     }
     return await sendExpoPushMessages([...tokens].map((token) => ({
       to: token,

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { fetchWithDeadline } from './network';
 
 export type TperServiceAlert = {
   id: string;
@@ -56,7 +57,7 @@ function splitForTranslation(value: string): string[] {
 export async function translateItalianNotice(value: string): Promise<string> {
   const translated = await Promise.all(splitForTranslation(value).map(async (chunk) => {
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=it|zh-CN`;
-    const response = await fetch(url);
+    const response = await fetchWithDeadline(url);
     if (!response.ok) throw new Error('Translation service is unavailable.');
     const payload = await response.json();
     const text = payload?.responseData?.translatedText;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Modal } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
@@ -35,33 +35,42 @@ export default function ManageArticlesScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'published' | 'deleted'>('published');
 
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const requestId = useRef(0);
   const fetchArticles = async () => {
+    const request = ++requestId.current;
     try {
-      const { data, error } = await supabase
+      const { data, error, count } = await supabase
         .from('articles')
-        .select('id, title, category, link, created_at, is_pinned')
+        .select('id, title, category, link, created_at, is_pinned', { count: 'exact' })
         .eq('is_published', activeTab === 'published')
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false })
-        .limit(100);
+        .order('id', { ascending: false })
+        .range(page * 100, page * 100 + 99);
 
+      if (request !== requestId.current) return;
       if (error) throw error;
+      setTotal(count ?? 0);
+      if (page > 0 && !(data?.length)) { setPage(page - 1); return; }
       if (data) {
         setArticles(data as Article[]);
       }
     } catch (e) {
+      if (request !== requestId.current) return;
       console.error('Error fetching articles:', e);
       Alert.alert('加载失败', '无法拉取文章列表，请刷新重试。');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (request === requestId.current) { setLoading(false); setRefreshing(false); }
     }
   };
 
   useEffect(() => {
     setLoading(true);
     fetchArticles();
-  }, [activeTab]);
+    return () => { requestId.current++; };
+  }, [activeTab, page]);
 
   const handleCategoryChange = async (articleId: string, newCategory: string | null) => {
     try {
@@ -97,6 +106,7 @@ export default function ManageArticlesScreen() {
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
       });
+      void fetchArticles();
     } catch (err: any) {
       console.error(err);
       Alert.alert('操作失败', err.message || '切换置顶状态失败，请重试。');
@@ -128,7 +138,7 @@ export default function ManageArticlesScreen() {
 
               if (artError) throw artError;
 
-              setArticles(prev => prev.filter(art => art.id !== article.id));
+              void fetchArticles();
               Alert.alert('删除成功', '文章已成功删除。');
             } catch (err: any) {
               console.error(err);
@@ -157,7 +167,7 @@ export default function ManageArticlesScreen() {
 
               if (error) throw error;
 
-              setArticles(prev => prev.filter(art => art.id !== article.id));
+              void fetchArticles();
               Alert.alert('恢复成功', '文章已重新发布。');
             } catch (err: any) {
               console.error(err);
@@ -173,7 +183,7 @@ export default function ManageArticlesScreen() {
     const cat = (item.category && item.category !== 'general') ? ARTICLE_CATEGORIES[item.category] : null;
     const catColor = cat ? cat.color : '#8A8A8F';
     const catLabel = cat ? cat.label : '未分类';
-    const formattedDate = new Date(item.created_at).toLocaleDateString('zh-CN', {
+    const formattedDate = new Date(item.created_at).toLocaleDateString('zh-CN', { timeZone: 'Europe/Rome',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -239,7 +249,7 @@ export default function ManageArticlesScreen() {
       <View style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable 
           style={[styles.tabItem, activeTab === 'published' && { borderBottomColor: colors.primary }]}
-          onPress={() => setActiveTab('published')}
+          onPress={() => { setPage(0); setActiveTab('published'); }}
         >
           <Text style={[styles.tabText, activeTab === 'published' ? { color: colors.primary, fontWeight: 'bold' } : { color: colors.textSecondary }]}>
             已发布文章
@@ -247,7 +257,7 @@ export default function ManageArticlesScreen() {
         </Pressable>
         <Pressable 
           style={[styles.tabItem, activeTab === 'deleted' && { borderBottomColor: colors.primary }]}
-          onPress={() => setActiveTab('deleted')}
+          onPress={() => { setPage(0); setActiveTab('deleted'); }}
         >
           <Text style={[styles.tabText, activeTab === 'deleted' ? { color: colors.primary, fontWeight: 'bold' } : { color: colors.textSecondary }]}>
             已删除文章
@@ -270,6 +280,13 @@ export default function ManageArticlesScreen() {
             setRefreshing(true);
             fetchArticles();
           }}
+          ListFooterComponent={
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 20 }}>
+              <Pressable disabled={page === 0} onPress={() => setPage(p => p - 1)}><Text style={{ color: page === 0 ? colors.textMuted : colors.primary }}>上一页</Text></Pressable>
+              <Text style={{ color: colors.textSecondary }}>{page + 1} / {Math.max(1, Math.ceil(total / 100))} 页 · 共 {total} 条</Text>
+              <Pressable disabled={(page + 1) * 100 >= total} onPress={() => setPage(p => p + 1)}><Text style={{ color: (page + 1) * 100 >= total ? colors.textMuted : colors.primary }}>下一页</Text></Pressable>
+            </View>
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <MaterialCommunityIcons name="folder-open-outline" size={48} color={colors.textMuted} />

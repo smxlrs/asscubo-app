@@ -1,3 +1,5 @@
+import { Alert, Platform } from 'react-native';
+
 export type AlertButton = {
   text?: string;
   onPress?: () => void;
@@ -38,6 +40,14 @@ class CustomAlertManager {
   }
 
   show(title: string, message?: string, buttons?: AlertButton[], options?: AlertOptions) {
+    if (Platform.OS === 'ios') {
+      // React Native's iOS Alert uses its own alert window; it can safely appear
+      // over a form Modal without presenting a second sibling RCTModalHostView.
+      const actions = buttons?.length ? [...buttons] : [{ text: 'OK' }];
+      if (options?.messageLink) actions.push({ text: options.messageLink.text, onPress: options.messageLink.onPress });
+      Alert.alert(title, message, actions, { cancelable: options?.cancelable, onDismiss: options?.onDismiss });
+      return;
+    }
     if (this.listener) {
       this.listener({ title, message, buttons, options });
     }

@@ -1,3 +1,4 @@
+import { romeParts } from '../../lib/romeTime';
 import React, { useCallback, useState } from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -76,7 +77,7 @@ export default function LogsScreen() {
     const date = new Date(isoString);
     if (Number.isNaN(date.getTime())) return isoString;
     const pad = (value: number, width = 2) => value.toString().padStart(width, '0');
-    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
+    return `${pad(romeParts(date).hour)}:${pad(romeParts(date).minute)}:${pad(romeParts(date).second)}.${pad(date.getMilliseconds(), 3)}`;
   };
 
   const getLogColor = (type: LogEntry['type']) => {

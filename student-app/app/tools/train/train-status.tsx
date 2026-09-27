@@ -1,3 +1,5 @@
+import { romeDay } from '../../../lib/romeTime';
+import { fetchWithDeadline, NetworkError } from '../../../lib/network';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
@@ -299,7 +301,7 @@ export default function TrainStatusScreen() {
   const [isTranslatingAlert, setIsTranslatingAlert] = useState(false);
 
   const selectedAlertIsOlderThanToday = Boolean(
-    selectedAlert?.timestamp && new Date(selectedAlert.timestamp).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)
+    selectedAlert?.timestamp && romeDay(selectedAlert.timestamp) < romeDay()
   );
 
   const closeAlertDetails = () => {
@@ -321,7 +323,7 @@ export default function TrainStatusScreen() {
 
     setIsTranslatingAlert(true);
     try {
-      const response = await fetch(
+      const response = await fetchWithDeadline(
         `https://api.mymemory.translated.net/get?q=${encodeURIComponent(selectedAlert.text)}&langpair=it|zh-CN`
       );
       const payload = await response.json();
@@ -562,36 +564,10 @@ export default function TrainStatusScreen() {
         const requestedRunDate = getRomeDateKey(requestedTimestamp);
         const returnedServiceDate = getRomeDateKey(serviceStartTime);
 
-        // ViaggiaTreno occasionally returns the still-running previous service for a
-        // future timestamp of the same train number. Preserve the selected future
-        // service, but strip the stale realtime state from the previous service.
+        // A response for another service day is not the requested timetable.
         if (requestedRunDate && returnedServiceDate && requestedRunDate !== returnedServiceDate) {
-          const dayOffset = Math.round((requestedTimestamp - serviceStartTime) / (24 * 60 * 60 * 1000));
-          const offsetMs = dayOffset * 24 * 60 * 60 * 1000;
-          const shiftPlannedTime = (value: number | null) => value === null ? null : value + offsetMs;
-
-          data = {
-            ...data,
-            scheduledDepartureTime: serviceStartTime + offsetMs,
-            scheduledArrivalTime: shiftPlannedTime(
-              data.stops[data.stops.length - 1]?.scheduledArrivalTime || data.scheduledArrivalTime
-            ) || data.scheduledArrivalTime,
-            delay: 0,
-            lastReportedStation: '',
-            lastReportedTime: null,
-            stops: data.stops.map(stop => ({
-              ...stop,
-              scheduledArrivalTime: shiftPlannedTime(stop.scheduledArrivalTime),
-              scheduledDepartureTime: shiftPlannedTime(stop.scheduledDepartureTime),
-              actualArrivalTime: null,
-              actualDepartureTime: null,
-              actualPlatform: '',
-              arrivalDelay: 0,
-              departureDelay: 0,
-            })),
-          };
+          setStatus(null); setErrorMsg('无数据'); return;
         }
-
         setStatus(data);
         await updateRecentTrainInHistory(data, resolvedStationID, resolvedTimestamp);
 
@@ -602,11 +578,11 @@ export default function TrainStatusScreen() {
           triggerToast(t('refreshSuccess'));
         }
       } else {
-        setErrorMsg(t('error'));
+        setStatus(null); setErrorMsg('无数据');
       }
     } catch (e) {
       console.log(e);
-      setErrorMsg(t('error'));
+      setStatus(null); setErrorMsg(e instanceof NetworkError ? '无网络' : '无数据');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -1225,9 +1201,7 @@ export default function TrainStatusScreen() {
                   <MaterialIcons name={selectedAlertIsOlderThanToday ? 'priority-high' : 'schedule'} size={18} color={selectedAlertIsOlderThanToday ? '#DC2626' : '#D97706'} />
                   <View style={styles.alertDateCopy}>
                     <Text style={[styles.alertModalDate, { color: selectedAlertIsOlderThanToday ? '#B91C1C' : '#92400E' }]}>
-                      {t('alertPublished')}: {new Date(selectedAlert.timestamp).toLocaleString(
-                        language === 'it' ? 'it-IT' : language === 'en' ? 'en-US' : 'zh-CN',
-                        { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+                      {t('alertPublished')}: {new Date(selectedAlert.timestamp).toLocaleString(language === 'it' ? 'it-IT' : language === 'en' ? 'en-US' : 'zh-CN', { timeZone: 'Europe/Rome', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
                       )}
                     </Text>
                     {selectedAlertIsOlderThanToday ? (

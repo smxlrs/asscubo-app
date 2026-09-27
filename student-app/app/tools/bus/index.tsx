@@ -1,3 +1,5 @@
+import { romeParts, romeMinutes } from '../../../lib/romeTime';
+import { NetworkError } from '../../../lib/network';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
@@ -23,6 +25,7 @@ import * as Location from 'expo-location';
 import { appAlert as Alert } from '../../../lib/appAlert';
 import {
   fetchBusArrivals,
+  getBusStopDetails,
   searchStopsByName,
   fetchStopsInBoundingBox,
   BusArrival,
@@ -37,7 +40,7 @@ const { width } = Dimensions.get('window');
 const FAVORITES_KEY = '@ag_bus_favorites';
 const RECENTS_KEY = '@ag_bus_recents';
 const SERVICE_ALERT_BANNER_TEXT = {
-  zh: '注意：该线路有变动信息，点击查看',
+  zh: '注意：该站点部分线路有变动信息，点击查看',
   'zh-Hant': '注意：該路線有變動資訊，點擊查看',
   en: 'Notice: this line has a service change. Tap to view.',
   it: 'Attenzione: questa linea ha una modifica. Tocca per vedere.',
@@ -628,6 +631,8 @@ export default function BusBoardScreen() {
   // Active stop query states
   const [activeStopCode, setActiveStopCode] = useState<string | null>(null);
   const [activeStopName, setActiveStopName] = useState<string | null>(null);
+  const [activeStopZone, setActiveStopZone] = useState<string | null>(null);
+  const stopRequest = useRef(0);
   const [cardCollapsed, setCardCollapsed] = useState(false);
   const [activeStopLines, setActiveStopLines] = useState<string[]>([]);
   const [selectedRouteFilters, setSelectedRouteFilters] = useState<string[]>(['ALL']);
@@ -935,6 +940,10 @@ export default function BusBoardScreen() {
   // Execute HelloBus arrival query (Parallel fetch for each line to maximize data density)
   const executeQuery = async (code: string, name?: string, lineFilter = lineFilterInput) => {
     if (!code.trim()) return;
+    code = code.trim();
+    const request = ++stopRequest.current;
+    setActiveStopZone(null);
+    setActiveStopName(name || '公交站');
 
     setQueryLoading(true);
     setQueryError(null);
@@ -946,15 +955,17 @@ export default function BusBoardScreen() {
 
     // Fetch stop name and passing lines from Supabase database
     try {
-      const results = await searchStopsByName(code);
-      const match = results.find(r => r.stop_code === code);
+      const match = await getBusStopDetails(code);
+      if (request !== stopRequest.current) return;
       if (match) {
         displayName = match.stop_name;
         stopLinesStr = match.lines || '';
+        setActiveStopZone(match.zone_code || null);
       }
     } catch (e) {
       console.warn('Could not retrieve stop details:', e);
     }
+    if (request !== stopRequest.current) return;
     setActiveStopName(displayName);
 
     // Parse list of lines, e.g. ["25", "356", "N2"]
@@ -973,15 +984,20 @@ export default function BusBoardScreen() {
         finalArrivals = await fetchBusArrivals(code, '');
       } else {
         // Parallel queries to HelloBus API for all passing lines (improves density, like WeBus)
+        let queryFailure: unknown;
+        let successfulQueries = 0;
         const promises = linesList.map(line =>
           fetchBusArrivals(code, line)
+            .then(rows => { successfulQueries++; return rows; })
             .catch(err => {
+              queryFailure = err;
               // Log as info to avoid triggering React Native YellowBox warning in development
               console.log(`Query failed for line ${line}:`, err.message || err);
               return [] as BusArrival[];
             })
         );
         const results = await Promise.all(promises);
+        if (!successfulQueries && queryFailure) throw queryFailure;
         const combined = results.flat();
 
         // Sort all arrivals by remaining minutes (handling midnight crossing)
@@ -989,7 +1005,7 @@ export default function BusBoardScreen() {
           const [ah, am] = a.time.split(':').map(Number);
           const [bh, bm] = b.time.split(':').map(Number);
           const now = new Date();
-          const nowMin = now.getHours() * 60 + now.getMinutes();
+          const nowMin = romeMinutes(now);
           
           let aMin = ah * 60 + am;
           let bMin = bh * 60 + bm;
@@ -1006,19 +1022,24 @@ export default function BusBoardScreen() {
         );
       }
 
+      if (request !== stopRequest.current) return;
       setAllArrivals(finalArrivals);
       setArrivals(finalArrivals);
       addToRecents(code, displayName);
     } catch (err: any) {
-      setQueryError(err.message || '查询失败，请稍后重试');
+      if (request !== stopRequest.current) return;
+      setQueryError(err instanceof NetworkError ? '无网络' : (err.message || '无数据'));
       setArrivals([]);
       setAllArrivals([]);
     } finally {
-      setQueryLoading(false);
+      if (request === stopRequest.current) setQueryLoading(false);
     }
   };
 
   const handleCloseCard = () => {
+    stopRequest.current++;
+    setActiveStopZone(null);
+    setQueryLoading(false);
     webViewRef.current?.injectJavaScript('window.clearSelectedStop && window.clearSelectedStop(); true;');
     setActiveStopCode(null);
     setActiveStopName(null);
@@ -1202,8 +1223,8 @@ export default function BusBoardScreen() {
   const getCountdownString = (timeStr: string) => {
     const [arrH, arrM] = timeStr.split(':').map(Number);
     const now = new Date();
-    const nowH = now.getHours();
-    const nowM = now.getMinutes();
+    const nowH = romeParts(now).hour;
+    const nowM = romeParts(now).minute;
 
     let diff = (arrH * 60 + arrM) - (nowH * 60 + nowM);
     if (diff < -120) {
@@ -1249,7 +1270,7 @@ export default function BusBoardScreen() {
             <View style={{ flex: 1 }}>
               <MarqueeText style={[styles.activeStopName, { color: colors.textPrimary }]} text={activeStopName || ''} />
               <Text style={[styles.activeStopCode, { color: colors.textSecondary }]}>
-                {localized.stopCodeLabel}{activeStopCode}
+                {localized.stopCodeLabel}{activeStopCode}{activeStopZone ? ` · Zona ${activeStopZone}` : ''}
               </Text>
             </View>
 
@@ -1315,7 +1336,7 @@ export default function BusBoardScreen() {
             <View style={{ flex: 1 }}>
               <MarqueeText style={[styles.activeStopName, { color: colors.textPrimary }]} text={activeStopName || ''} />
               <Text style={[styles.activeStopCode, { color: colors.textSecondary }]}>
-                {localized.stopCodeLabel}{activeStopCode}
+                {localized.stopCodeLabel}{activeStopCode}{activeStopZone ? ` · Zona ${activeStopZone}` : ''}
               </Text>
             </View>
 
@@ -1895,7 +1916,7 @@ export default function BusBoardScreen() {
                   <View style={{ flex: 1, marginRight: 12 }}>
                     <MarqueeText style={[styles.activeStopName, { color: colors.textPrimary }]} text={activeStopName || ''} />
                     <Text style={[styles.activeStopCode, { color: colors.textSecondary }]}>
-                      {localized.stopCodeLabel}{activeStopCode}
+                      {localized.stopCodeLabel}{activeStopCode}{activeStopZone ? ` · Zona ${activeStopZone}` : ''}
                     </Text>
                   </View>
 

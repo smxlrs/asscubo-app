@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getDeliveryTokens } from '../_shared/push-recipients.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { getSupabaseAdminKey, isInternalSupabaseRequest } from "../_shared/supabase-keys.ts";
 
@@ -356,10 +357,7 @@ async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, concurrency
 async function sendPushNotifications(supabase: any, articles: InsertedArticle[]): Promise<{ batches: number; failures: number }> {
   if (articles.length === 0) return { batches: 0, failures: 0 };
 
-  const { data: tokenRows, error } = await supabase.from("push_tokens").select("token");
-  if (error) throw error;
-
-  const tokens = [...new Set((tokenRows || []).map((row: any) => row.token).filter(Boolean))] as string[];
+  const tokens = await getDeliveryTokens(supabase);
   if (tokens.length === 0) return { batches: 0, failures: 0 };
 
   const payloads = articles.flatMap((article) => tokens.map((token) => ({

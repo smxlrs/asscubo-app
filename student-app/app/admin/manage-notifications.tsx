@@ -139,7 +139,7 @@ export default function ManageNotificationsScreen() {
 
   const renderItem = ({ item }: { item: Notification }) => {
     const cat = item.category ? NOTIFICATION_CATEGORIES[item.category] : null;
-    const formattedDate = new Date(item.created_at).toLocaleDateString('zh-CN', {
+    const formattedDate = new Date(item.created_at).toLocaleDateString('zh-CN', { timeZone: 'Europe/Rome',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

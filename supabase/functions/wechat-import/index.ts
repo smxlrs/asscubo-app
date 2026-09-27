@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getDeliveryTokens } from '../_shared/push-recipients.ts';
 import * as cheerio from "https://esm.sh/cheerio@1.0.0-rc.12";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { getSupabaseAdminKey } from "../_shared/supabase-keys.ts";
@@ -177,12 +178,8 @@ serve(async (req) => {
     // 7. Send Expo push notification if checked
     let pushSentCount = 0;
     if (sendPush) {
-      const { data: tokensData, error: tokensError } = await supabase
-        .from('push_tokens')
-        .select('token');
-
-      if (!tokensError && tokensData && tokensData.length > 0) {
-        const tokens = Array.from(new Set(tokensData.map((t: any) => t.token)));
+      const tokens = await getDeliveryTokens(supabase);
+      if (tokens.length > 0) {
         const pushTitle = category ? `【${mappedCategory.label}】${title}` : title;
         const messages = tokens.map(token => ({
           to: token,

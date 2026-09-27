@@ -28,7 +28,7 @@ function normalizeLine(value: string) {
 function dateLabel(value: string | null, language: string) {
   if (!value) return '-';
   const locale = language === 'it' ? 'it-IT' : language === 'en' ? 'en-GB' : 'zh-CN';
-  return new Date(value).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(value).toLocaleDateString(locale, { timeZone: 'Europe/Rome', year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 export default function BusServiceAlertsScreen() {

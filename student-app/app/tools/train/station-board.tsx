@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { NetworkError } from '../../../lib/network';
 import {
   StyleSheet,
   Text,
@@ -367,9 +368,11 @@ export default function StationBoardScreen() {
       }
     } catch (e) {
       if (targetMode === 'departures') {
-        setErrorDep(t('error'));
+        setDepartures([]);
+        setErrorDep(e instanceof NetworkError ? '无网络' : '无数据');
       } else {
-        setErrorArr(t('error'));
+        setArrivals([]);
+        setErrorArr(e instanceof NetworkError ? '无网络' : '无数据');
       }
     } finally {
       if (targetMode === 'departures') {

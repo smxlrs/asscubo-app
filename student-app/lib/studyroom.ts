@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { fetchWithDeadline, NetworkError } from './network';
 
 export type StudyRoom = {
   id: string;
@@ -12,9 +12,10 @@ export type StudyRoom = {
 };
 
 export type StudyRoomStatus = {
-  occupancyPercent: number;
-  availableSeats: number;
-  isOpen: boolean;
+  state: 'available' | 'no_data' | 'offline';
+  occupancyPercent: number | null;
+  availableSeats: number | null;
+  isOpen: boolean | null;
   openingHours: string;
 };
 
@@ -480,93 +481,23 @@ export const STUDY_ROOMS: StudyRoom[] = RAW_STUDY_ROOMS.map(room => ({
   supportsBooking: !FREE_STUDY_ROOMS.includes(room.id)
 })) as StudyRoom[];
 
-/**
- * Fetches the real-time occupancy and open status of a study room by its Affluences ID.
- * If the API is offline or rate-limited, it falls back to an intelligent simulator based on local time.
- */
 export async function fetchStudyRoomStatus(room: StudyRoom): Promise<StudyRoomStatus> {
+  const empty = (state: 'no_data' | 'offline'): StudyRoomStatus => ({
+    state, occupancyPercent: null, availableSeats: null, isOpen: null, openingHours: '',
+  });
   try {
-    // 1. Query the modern Affluences v3 API endpoint
-    const response = await fetch(`https://api.affluences.com/app/v3/sites/${room.affluencesId}`, {
-      headers: {
-        'Accept': 'application/json',
-        'x-service-name': 'website',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+    const response = await fetchWithDeadline(`https://api.affluences.com/app/v3/sites/${room.affluencesId}`, {
+      headers: { Accept: 'application/json', 'x-service-name': 'website' },
     });
-
-    if (response.ok) {
-      const json = await response.json();
-      if (json && json.data) {
-        const site = json.data;
-        const forecast = site.current_forecast || {};
-        const percent = typeof forecast.occupancy === 'number' ? Math.min(100, Math.max(0, forecast.occupancy)) : 0;
-        const isOpen = forecast.opened ?? true;
-        const available = Math.max(0, Math.round(room.capacity * (1 - percent / 100)));
-        const openingHours = site.closed ? '已关闭' : '09:00 - 22:00';
-        return {
-          occupancyPercent: percent,
-          availableSeats: available,
-          isOpen,
-          openingHours,
-        };
-      }
-    }
-  } catch (e) {
-    console.log(`Failed to fetch live occupancy for ${room.id}, calculating simulation:`, e);
+    if (!response.ok) return empty('no_data');
+    const json = await response.json();
+    const forecast = json?.data?.current_forecast;
+    if (!forecast || typeof forecast.occupancy !== 'number' || !Number.isFinite(forecast.occupancy)
+      || forecast.occupancy < 0 || forecast.occupancy > 100 || typeof forecast.opened !== 'boolean') return empty('no_data');
+    return { state: 'available', occupancyPercent: forecast.occupancy,
+      availableSeats: Math.max(0, Math.round(room.capacity * (1 - forecast.occupancy / 100))),
+      isOpen: forecast.opened, openingHours: '' };
+  } catch (error) {
+    return empty(error instanceof NetworkError && ['network', 'timeout'].includes(error.kind) ? 'offline' : 'no_data');
   }
-
-  // 2. Intelligent Simulation Fallback
-  // Returns realistic occupancy based on current time (e.g. peaks at 14:00-16:00, closed at night)
-  const currentHour = new Date().getHours();
-  const currentMin = new Date().getMinutes();
-  
-  let isOpen = true;
-  let openingHours = '09:00 - 22:00';
-  let occupancyPercent = 0;
-
-  // Handle specific room hours
-  if (room.id === 'paleotti') {
-    openingHours = '09:00 - 24:00';
-    if (currentHour < 9) {
-      isOpen = false;
-    }
-  } else {
-    if (currentHour < 9 || currentHour >= 22) {
-      isOpen = false;
-    }
-  }
-
-  if (isOpen) {
-    // Occupancy curves:
-    // 09:00 - 11:00: rising from 10% to 75%
-    // 11:00 - 13:00: peak 80% - 95%
-    // 13:00 - 14:00: lunch dip (down to 65%)
-    // 14:00 - 18:00: high peak 85% - 98%
-    // 18:00 - 22:00: declining to 15%
-    if (currentHour >= 9 && currentHour < 11) {
-      occupancyPercent = 20 + Math.round(((currentHour - 9) * 60 + currentMin) * 0.45);
-    } else if (currentHour >= 11 && currentHour < 13) {
-      occupancyPercent = 80 + Math.round(Math.random() * 15);
-    } else if (currentHour >= 13 && currentHour < 14) {
-      occupancyPercent = 65 + Math.round(Math.random() * 10);
-    } else if (currentHour >= 14 && currentHour < 18) {
-      occupancyPercent = 85 + Math.round(Math.random() * 12);
-    } else {
-      const hoursLeft = (room.id === 'paleotti' ? 24 : 22) - currentHour;
-      occupancyPercent = Math.round(hoursLeft * 15 + Math.random() * 10);
-    }
-  } else {
-    occupancyPercent = 0;
-  }
-
-  occupancyPercent = Math.min(100, Math.max(0, occupancyPercent));
-  const availableSeats = isOpen ? Math.max(0, Math.round(room.capacity * (1 - occupancyPercent / 100))) : 0;
-
-  return {
-    occupancyPercent,
-    availableSeats,
-    isOpen,
-    openingHours,
-  };
 }

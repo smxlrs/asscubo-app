@@ -762,6 +762,11 @@ export default function ManageEventsScreen() {
     return result.sentCount > 0;
   };
 
+  const refreshAfterWrite = async () => {
+    try { if (selectedId) await loadRegistrations(selectedId); return ''; }
+    catch { return '\n数据已保存，但列表刷新失败，请稍后刷新确认，无需重复提交。'; }
+  };
+
   const promoteRegistration = (registrationId: string) => {
     Alert.alert('转为正式报名', '确定将这名候补报名者加入正式名单吗？', [
       { text: '返回', style: 'cancel' },
@@ -770,7 +775,8 @@ export default function ManageEventsScreen() {
         try {
           const { error } = await supabase.rpc('admin_promote_event_registration', { p_registration_id: registrationId });
           if (error) throw error;
-          if (selectedId) await loadRegistrations(selectedId);
+          const warning = await refreshAfterWrite();
+          Alert.alert('已转为正式报名', '操作已保存。' + warning);
         } catch (error: any) {
           Alert.alert('操作失败', adminErrorMessage(error, '候补转正失败。'));
         } finally {
@@ -795,8 +801,8 @@ export default function ManageEventsScreen() {
               noPushDevice = !await sendTargetedEventPush(registration?.user_id || null, '活动报名已取消', `您的${event?.title || '活动'}报名已被取消，请注意核实`, event?.id || '');
             } catch (pushError) { console.warn('Registration cancelled but push failed:', pushError); pushFailed = true; }
           }
-          if (selectedId) await loadRegistrations(selectedId);
-          Alert.alert('已取消', pushFailed ? '报名已取消，但推送发送失败，请另行联系报名者。' : noPushDevice ? '报名已取消，但该账户没有可用的推送设备。' : '报名已取消。');
+          const warning = await refreshAfterWrite();
+          Alert.alert('已取消', (pushFailed ? '报名已取消，但推送发送失败，请另行联系报名者。' : noPushDevice ? '报名已取消，但该账户没有可用的推送设备。' : '报名已取消。') + warning);
         } catch (error: any) {
           Alert.alert('操作失败', adminErrorMessage(error, '取消报名失败。'));
         } finally {
@@ -821,8 +827,8 @@ export default function ManageEventsScreen() {
             const { error } = await supabase.rpc('admin_delete_cancelled_event_registration', { p_registration_id: registrationId });
             if (error) throw error;
             setRegistrationDetail(null);
-            if (selectedId) await loadRegistrations(selectedId);
-            Alert.alert('已删除', '这条已取消的报名信息已永久删除。');
+            const warning = await refreshAfterWrite();
+            Alert.alert('已删除', '这条已取消的报名信息已永久删除。' + warning);
           } catch (error: any) {
             Alert.alert('删除失败', error?.message || '无法彻底删除这条报名信息。');
           } finally {
@@ -879,8 +885,8 @@ export default function ManageEventsScreen() {
           } catch (pushError) { console.warn('Registration saved but push failed:', pushError); pushFailed = true; }
         }
         setRegistrationEditor(null);
-        if (selectedId) await loadRegistrations(selectedId);
-        Alert.alert('已保存', pushFailed ? '报名信息已修改，但推送发送失败，请另行联系报名者。' : noPushDevice ? '报名信息已修改，但该账户没有可用的推送设备。' : notify ? '报名信息已修改，推送已提交。' : '报名信息已修改。');
+        const warning = await refreshAfterWrite();
+        Alert.alert('已保存', (pushFailed ? '报名信息已修改，但推送发送失败，请另行联系报名者。' : noPushDevice ? '报名信息已修改，但该账户没有可用的推送设备。' : notify ? '报名信息已修改，推送已提交。' : '报名信息已修改。') + warning);
       } catch (error: any) {
         if (/revision|conflict|changed.*reload/i.test(String(error?.message || ''))) {
           Alert.alert('报名已被修改', '本次改动尚未保存。请记下需要保留的内容，再重新加载最新报名信息。', [
@@ -1159,7 +1165,7 @@ export default function ManageEventsScreen() {
   </Modal>;
 
   const registrationEditorModal = registrationEditor ? (
-    <Modal visible animationType="slide" onRequestClose={() => setRegistrationEditor(null)}>
+    <View style={{ flex: 1 }}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <View style={[styles.previewHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <Pressable onPress={() => setRegistrationEditor(null)} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable>
@@ -1202,11 +1208,11 @@ export default function ManageEventsScreen() {
           {registrationEditor.registration.status === 'waitlist' ? <Pressable onPress={() => { setRegistrationEditor(null); promoteRegistration(registrationEditor.registration.id); }} disabled={busyRegistration === registrationEditor.registration.id} style={styles.editorActionButton}><Text style={{ color: colors.primary, fontSize: 14 }}>转为正式报名</Text></Pressable> : null}
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </View>
   ) : null;
 
   const registrationDetailModal = registrationDetail ? (
-    <Modal visible animationType="slide" onRequestClose={() => setRegistrationDetail(null)}>
+    <View style={{ flex: 1 }}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <View style={[styles.previewHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <Pressable onPress={() => setRegistrationDetail(null)} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable>
@@ -1243,7 +1249,7 @@ export default function ManageEventsScreen() {
           </View> : registrationDetail.status === 'cancelled' ? <Pressable onPress={() => deleteCancelledRegistration(registrationDetail.id)} disabled={busyRegistration === registrationDetail.id} style={[styles.deleteRegistrationButton, { borderColor: colors.error }]}><MaterialCommunityIcons name="delete-forever-outline" size={18} color={colors.error} /><Text style={{ color: colors.error, fontSize: 14, fontWeight: '600' }}>彻底删除这条报名</Text></Pressable> : null}
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </View>
   ) : null;
 
   const registrationRows = registrations.filter((registration) => {
@@ -1376,7 +1382,7 @@ export default function ManageEventsScreen() {
         </View>
       </View>
     </Modal>
-  </SafeAreaView>{registrationDetailModal}{registrationEditorModal}</>;
+  </SafeAreaView><Modal visible={!!registrationDetail || !!registrationEditor} animationType="slide" onRequestClose={() => { if (!busyRegistration) { setRegistrationEditor(null); setRegistrationDetail(null); } }}>{registrationEditorModal || registrationDetailModal}</Modal></>;
 }
 
 const styles = StyleSheet.create({

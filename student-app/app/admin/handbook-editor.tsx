@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import { TypedDeleteConfirmationModal } from '../../components/TypedDeleteConfirmationModal';
 import { HandbookMarkdownEditor } from '../../components/HandbookMarkdownEditor';
+
+import { usePreventRemove } from 'expo-router/react-navigation';
 
 type Chapter = {
   id: string;
@@ -117,16 +119,16 @@ export default function HandbookEditorScreen() {
   const currentSnapshot = JSON.stringify({ title, orderIndex, contentType, contentUrl, contentBody, parentId, published });
   const isDirty = initialSnapshot !== '' && currentSnapshot !== initialSnapshot;
 
-  const cancelEditing = () => {
-    if (uploading) return;
-    if (!isDirty) {
-      router.back();
-      return;
-    }
+  const navigation = useNavigation();
+  usePreventRemove(isDirty || saving || uploading, ({ data }) => {
+    if (saving || uploading) return;
     Alert.alert('改动未保存，是否确认退出？', undefined, [
       { text: '返回编辑', style: 'cancel' },
-      { text: '退出', style: 'destructive', onPress: () => router.back() },
+      { text: '确认退出', style: 'destructive', onPress: () => navigation.dispatch(data.action) },
     ]);
+  });
+  const cancelEditing = () => {
+    if (!uploading && !saving) router.back();
   };
 
   const confirmSave = () => {
@@ -177,6 +179,7 @@ export default function HandbookEditorScreen() {
         : await supabase.from('handbook_chapters').insert(payload);
       if (response.error) throw response.error;
 
+      setInitialSnapshot(currentSnapshot);
       Alert.alert('保存成功', chapterId ? '章节内容已更新。' : '新章节已创建。', [
         { text: '返回目录', onPress: () => router.back() },
       ]);
@@ -195,6 +198,7 @@ export default function HandbookEditorScreen() {
     if (error) {
       Alert.alert('删除失败', error.message || '无法删除该章节。');
     } else {
+      setInitialSnapshot(currentSnapshot);
       setDeleteConfirmationVisible(false);
       Alert.alert('已删除', '章节已从手册中删除。', [{ text: '返回目录', onPress: () => router.back() }]);
     }

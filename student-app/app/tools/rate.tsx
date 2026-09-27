@@ -1,3 +1,5 @@
+import { fetchWithDeadline, NetworkError } from '../../lib/network';
+import { formatRome } from '../../lib/romeTime';
 import React, { useCallback, useEffect, useState } from 'react';
 import { 
   StyleSheet, 
@@ -25,12 +27,7 @@ import {
 
 const { width } = Dimensions.get('window');
 
-const DEFAULT_RATES: Record<string, number> = {
-  EUR: 1.0,
-  CNY: 7.8256,
-  USD: 1.0852,
-  GBP: 0.8543,
-};
+const DEFAULT_RATES: Record<string, number> = {};
 
 const LOCALIZED = {
   zh: {
@@ -117,7 +114,7 @@ export default function RateConverterScreen() {
 
   // Exchange rates state
   const [rates, setRates] = useState<Record<string, number>>(DEFAULT_RATES);
-  const [lastUpdated, setLastUpdated] = useState<string>(localized.defaultRates);
+  const [lastUpdated, setLastUpdated] = useState<string>('无数据');
   const [loading, setLoading] = useState<boolean>(false);
   const [displayedCurrencyCodes, setDisplayedCurrencyCodes] = useState<string[]>(DEFAULT_DISPLAYED_CURRENCY_CODES);
 
@@ -125,10 +122,7 @@ export default function RateConverterScreen() {
   const [activeCurrency, setActiveCurrency] = useState<string>('EUR');
   const [showKeypad, setShowKeypad] = useState<boolean>(true);
   const [inputValues, setInputValues] = useState<Record<string, string>>({
-    EUR: '1',
-    CNY: DEFAULT_RATES.CNY.toFixed(2),
-    USD: DEFAULT_RATES.USD.toFixed(2),
-    GBP: DEFAULT_RATES.GBP.toFixed(2),
+    EUR: '1', CNY: '', USD: '', GBP: '',
   });
 
   const displayedCurrencies = displayedCurrencyCodes
@@ -229,45 +223,51 @@ export default function RateConverterScreen() {
     }, keepDuration);
   };
 
+  const latestInput = React.useRef({ inputValues, activeCurrency });
+  latestInput.current = { inputValues, activeCurrency };
+  const rateRequest = React.useRef(0);
   const fetchRates = async (isManual: boolean = false) => {
+    const request = ++rateRequest.current;
     setLoading(true);
     try {
-      const response = await fetch('https://open.er-api.com/v6/latest/EUR');
+      const response = await fetchWithDeadline('https://open.er-api.com/v6/latest/EUR');
       const data = await response.json();
-      if (data && data.result === 'success' && data.rates) {
+      if (request !== rateRequest.current) return;
+      if (response.ok && data && data.result === 'success' && data.rates && typeof data.rates.EUR === 'number') {
         setRates(data.rates);
         
         // Format last update time
         const date = new Date(data.time_last_update_unix * 1000);
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        setLastUpdated(`${localized.updatedAt} ${date.toLocaleDateString()} ${hours}:${minutes}`);
+        setLastUpdated(`${localized.updatedAt} ${formatRome(date)}`);
         
         // Recalculate values based on new rates
-        recalculate(inputValues[activeCurrency] || '0', activeCurrency, data.rates);
+        recalculate(latestInput.current.inputValues[latestInput.current.activeCurrency] || '0', latestInput.current.activeCurrency, data.rates);
         
         if (isManual) {
           showToast(localized.refreshSuccess);
         }
       } else {
+        setRates({}); setLastUpdated('无数据'); setInputValues(current => ({ [latestInput.current.activeCurrency]: current[latestInput.current.activeCurrency] || '0' }));
         if (isManual) {
           showToast(localized.invalidData, 'error');
         }
       }
     } catch (error) {
+      if (request !== rateRequest.current) return;
       console.log('Error fetching exchange rates:', error);
-      setLastUpdated(localized.offlineMode);
+      setRates({}); setLastUpdated(error instanceof NetworkError ? '无网络' : '无数据'); setInputValues(current => ({ [latestInput.current.activeCurrency]: current[latestInput.current.activeCurrency] || '0' }));
       if (isManual) {
         showToast(localized.updateFail, 'error');
       }
     } finally {
-      setLoading(false);
+      if (request === rateRequest.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchRates();
     return () => {
+      rateRequest.current++;
       if (toastTimeoutRef.current) {
         clearTimeout(toastTimeoutRef.current);
       }
@@ -276,7 +276,7 @@ export default function RateConverterScreen() {
 
   const recalculate = (valueStr: string, sourceCode: string, currentRates: Record<string, number>) => {
     const value = parseFloat(valueStr) || 0;
-    const rateInEUR = value / (currentRates[sourceCode] || 1);
+    const rateInEUR = currentRates[sourceCode] > 0 ? value / currentRates[sourceCode] : NaN;
     
     const newValues: Record<string, string> = {};
     
@@ -284,7 +284,8 @@ export default function RateConverterScreen() {
       if (currency.code === sourceCode) {
         newValues[currency.code] = valueStr;
       } else {
-        const converted = rateInEUR * (currentRates[currency.code] || 0);
+        if (!Number.isFinite(rateInEUR) || !(currentRates[currency.code] > 0)) { newValues[currency.code] = ''; return; }
+        const converted = rateInEUR * currentRates[currency.code];
         // Format based on currency type (e.g. JPY, KRW usually don't show cents)
         if (currency.code === 'JPY' || currency.code === 'KRW') {
           newValues[currency.code] = converted.toFixed(0);
@@ -334,12 +335,12 @@ export default function RateConverterScreen() {
     const displayName = isCny ? localized.eur : (getCurrencyOption(activeCurrency)?.currencyName || activeCurrency);
     
     const rateToCny = isCny 
-      ? (rates.CNY || DEFAULT_RATES.CNY)
-      : (rates.CNY || DEFAULT_RATES.CNY) / (rates[activeCurrency] || DEFAULT_RATES[activeCurrency] || 1);
+      ? rates.CNY
+      : rates.CNY / rates[activeCurrency];
       
     return {
       label: localized.benchmarkLabel.replace('{name}', displayName),
-      value: `1 ${displayCode} = ${rateToCny.toFixed(4)} CNY`
+      value: Number.isFinite(rateToCny) ? `1 ${displayCode} = ${rateToCny.toFixed(4)} CNY` : lastUpdated
     };
   };
 

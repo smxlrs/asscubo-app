@@ -1,3 +1,7 @@
+import { AppState } from 'react-native';
+import { fetchWithDeadline, NetworkError } from '../../../lib/network';
+import { romeDay, romeMinutes } from '../../../lib/romeTime';
+import { romeToIso } from '../../../lib/eventTime';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
@@ -859,7 +863,12 @@ export default function EmptyClassroomScreen() {
   };
 
   // 1. Fetch classrooms and impegni
+  const [clockNow, setClockNow] = useState(() => Date.now());
+  const fetchGeneration = useRef(0);
+  const loadedDay = useRef('');
   const fetchData = async (isRefresh = false) => {
+    const generation = ++fetchGeneration.current;
+    setClockNow(Date.now());
     if (isRefresh) {
       setRefreshing(true);
     } else {
@@ -868,7 +877,7 @@ export default function EmptyClassroomScreen() {
     setError(null);
     try {
       // Fetch Classrooms
-      const auleResponse = await fetch(AULE_API, {
+      const auleResponse = await fetchWithDeadline(AULE_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json;charset=UTF-8' },
         body: JSON.stringify({
@@ -884,12 +893,12 @@ export default function EmptyClassroomScreen() {
 
       // Determine date range for today (slightly expanded to prevent timezone missing bookings)
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const dataInizio = `${todayStr}T00:00:00.000Z`;
-      const dataFine = `${todayStr}T23:59:59.000Z`;
+      const todayStr = romeDay(now);
+      const dataInizio = romeToIso(todayStr + ' 00:00')!;
+      const dataFine = new Date(new Date(romeToIso(todayStr + ' 23:59')!).getTime() + 59999).toISOString();
 
       // Fetch Today's Impegni
-      const impegniResponse = await fetch(IMPEGNI_API, {
+      const impegniResponse = await fetchWithDeadline(IMPEGNI_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json;charset=UTF-8' },
         body: JSON.stringify({
@@ -906,33 +915,45 @@ export default function EmptyClassroomScreen() {
       if (!impegniResponse.ok) throw new Error('无法加载课程占用数据');
       const impegniData = await impegniResponse.json();
 
+      if (generation !== fetchGeneration.current) return;
+      if (!Array.isArray(auleData) || !Array.isArray(impegniData)) throw new Error('无数据');
+      loadedDay.current = todayStr;
       setClassrooms(auleData);
       setImpegni(impegniData);
+      if (!auleData.length) setError('无数据');
       if (isRefresh) {
         triggerToast(getTxt('refreshSuccess'));
       }
     } catch (err: any) {
+      if (generation !== fetchGeneration.current) return;
+      setClassrooms([]); setImpegni([]);
       console.error(err);
       const errMsg = err.message || '';
-      const isNetworkError = !errMsg || 
+      const isNetworkError = (err instanceof NetworkError && ['network', 'timeout'].includes(err.kind)) || !errMsg ||
                             errMsg.includes('fetch failed') || 
                             errMsg.includes('Network request failed') || 
                             errMsg.includes('UnknownHostException') || 
                             errMsg.includes('Unable to resolve') ||
                             errMsg.includes('Failed to fetch');
-      const displayError = isNetworkError ? getTxt('errorMsg') : errMsg;
+      const displayError = isNetworkError ? '无网络' : '无数据';
       setError(displayError);
       if (isRefresh) {
         triggerToast(`❌ ${displayError}`);
       }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (generation === fetchGeneration.current) { setLoading(false); setRefreshing(false); }
     }
   };
 
   useEffect(() => {
     fetchData();
+    const tick = () => {
+      setClockNow(Date.now());
+      if (loadedDay.current && loadedDay.current !== romeDay()) void fetchData(true);
+    };
+    const timer = setInterval(tick, 60000);
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') tick(); });
+    return () => { clearInterval(timer); listener.remove(); fetchGeneration.current++; };
   }, []);
 
   useAndroidBackHandler(() => {
@@ -995,7 +1016,7 @@ export default function EmptyClassroomScreen() {
   // Compute current query time minutes
   const queryTimeRange = useMemo(() => {
     const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const currentMinutes = romeMinutes(clockNow);
 
     switch (timeMode) {
       case 'now':
@@ -1009,7 +1030,7 @@ export default function EmptyClassroomScreen() {
       default:
         return { start: currentMinutes, end: currentMinutes + 10 };
     }
-  }, [timeMode, customStart, customEnd]);
+  }, [timeMode, customStart, customEnd, clockNow]);
 
   // Map each classroom's daily impegni
   const classroomOccupations = useMemo(() => {
@@ -1020,9 +1041,11 @@ export default function EmptyClassroomScreen() {
       
       const localStart = new Date(imp.dataInizio);
       const localEnd = new Date(imp.dataFine);
+      if (!Number.isFinite(localStart.getTime()) || !Number.isFinite(localEnd.getTime())) return;
+      if (romeDay(localStart) > romeDay(clockNow) || romeDay(localEnd) < romeDay(clockNow)) return;
       
-      const startMin = localStart.getHours() * 60 + localStart.getMinutes();
-      const endMin = localEnd.getHours() * 60 + localEnd.getMinutes();
+      const startMin = romeDay(localStart) < romeDay(clockNow) ? 0 : romeMinutes(localStart);
+      const endMin = romeDay(localEnd) > romeDay(clockNow) ? 1440 : romeMinutes(localEnd);
       const name = imp.nome || imp.tipoAttivita?.descrizione || '课表占用';
 
       imp.aule.forEach(aulaRef => {
@@ -1039,7 +1062,7 @@ export default function EmptyClassroomScreen() {
     });
 
     return map;
-  }, [impegni]);
+  }, [impegni, clockNow]);
 
   // Filter classrooms and determine availability status
   const processedClassrooms = useMemo(() => {

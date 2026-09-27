@@ -40,7 +40,7 @@ async function readableSyncError(error: any): Promise<string> {
 
 function formatDate(value: string | null): string {
   if (!value) return '暂无记录';
-  return new Date(value).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return new Date(value).toLocaleString('zh-CN', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 function readableLoadError(error: any): string {

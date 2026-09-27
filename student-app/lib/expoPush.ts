@@ -1,3 +1,5 @@
+import { fetchWithDeadline } from './network';
+
 export type ExpoPushMessage = {
   to: string;
   title: string;
@@ -24,7 +26,7 @@ export async function sendExpoPushMessages(messages: ExpoPushMessage[]): Promise
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
     try {
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      const response = await fetchWithDeadline('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify(chunk),

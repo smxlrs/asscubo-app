@@ -43,7 +43,7 @@ const LOCALIZED = {
 
 const getLocalDateString = (dateStr: string, lang: string) => {
   const locale = lang === 'it' ? 'it-IT' : lang === 'en' ? 'en-US' : lang === 'zh-Hant' ? 'zh-TW' : 'zh-CN';
-  return new Date(dateStr).toLocaleDateString(locale);
+  return new Date(dateStr).toLocaleDateString(locale, { timeZone: 'Europe/Rome' });
 };
 
 export default function ArticleDetailScreen() {

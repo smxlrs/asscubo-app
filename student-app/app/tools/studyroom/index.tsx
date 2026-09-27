@@ -312,7 +312,7 @@ export default function StudyRoomsScreen() {
       const resolved = await Promise.all(roomPromises);
       setRooms(resolved);
       if (isRefresh) {
-        triggerToast(localized.refreshSuccess);
+        triggerToast(resolved.some(room => room.status.state === 'offline') ? '无网络' : resolved.some(room => room.status.state === 'no_data') ? '部分自习室无数据' : localized.refreshSuccess);
       }
     } catch (e) {
       console.error('Failed to load study room occupancies:', e);
@@ -472,7 +472,7 @@ export default function StudyRoomsScreen() {
             />
           }
           renderItem={({ item }) => {
-            const barColor = getOccupancyColor(item.status.occupancyPercent);
+            const barColor = getOccupancyColor(item.status.occupancyPercent ?? 0);
             const isFav = favorites.includes(item.id);
             return (
               <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -494,17 +494,14 @@ export default function StudyRoomsScreen() {
                       styles.statusTagText, 
                       { color: item.status.isOpen ? '#10B981' : '#EF4444' }
                     ]}>
-                      {item.status.isOpen ? localized.openNow : localized.closed}
+                      {item.status.state === 'offline' ? '无网络' : item.status.state === 'no_data' ? '无数据' : item.status.isOpen ? localized.openNow : localized.closed}
                     </Text>
                   </View>
                 </View>
 
                 {/* Meta details */}
                 <View style={styles.metaRow}>
-                  <View style={styles.metaItem}>
-                    <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textMuted} />
-                    <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.status.openingHours}</Text>
-                  </View>
+                  {item.status.openingHours ? <View style={styles.metaItem}><Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.status.openingHours}</Text></View> : null}
                   <View style={styles.metaItem}>
                     <MaterialCommunityIcons name="map-marker-outline" size={14} color={colors.textMuted} />
                     <Text style={[styles.metaText, { color: colors.textSecondary }]} numberOfLines={1}>{item.address}</Text>
@@ -536,7 +533,7 @@ export default function StudyRoomsScreen() {
                     <View style={[styles.progressBarContainer, { backgroundColor: colors.border }]}>
                       <View style={[
                         styles.progressBarFill, 
-                        { width: `${item.status.occupancyPercent}%`, backgroundColor: barColor }
+                        { width: `${item.status.occupancyPercent ?? 0}%`, backgroundColor: barColor }
                       ]} />
                     </View>
                   </View>

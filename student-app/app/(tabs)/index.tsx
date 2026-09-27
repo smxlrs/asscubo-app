@@ -1,3 +1,5 @@
+import { fetchWithDeadline, NetworkError } from '../../lib/network';
+import { romeParts } from '../../lib/romeTime';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
@@ -445,7 +447,8 @@ export default function HomeScreen() {
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showHomeRate, setShowHomeRate] = useState(true);
-  const [eurToCny, setEurToCny] = useState(7.8256);
+  const [eurToCny, setEurToCny] = useState<number | null>(null);
+  const [rateState, setRateState] = useState('无数据');
   const homeSubtitleTicker = useRef(new Animated.Value(0)).current;
   const isShowingHomeRateRef = useRef(false);
 
@@ -490,14 +493,15 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!showHomeRate) return;
-    fetch('https://open.er-api.com/v6/latest/EUR')
+    fetchWithDeadline('https://open.er-api.com/v6/latest/EUR')
       .then((response) => response.json())
       .then((data) => {
         if (data?.result === 'success' && typeof data?.rates?.CNY === 'number') {
           setEurToCny(data.rates.CNY);
+        } else { setEurToCny(null); setRateState('无数据');
         }
       })
-      .catch(() => undefined);
+      .catch(error => { setEurToCny(null); setRateState(error instanceof NetworkError ? '无网络' : '无数据'); });
   }, [showHomeRate]);
 
   useEffect(() => {
@@ -578,6 +582,8 @@ export default function HomeScreen() {
     color: string;
   } | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherState, setWeatherState] = useState('无数据');
+  const weatherRequest = useRef(0);
   const [fadeAnim] = useState(new Animated.Value(1));
   const [spinValue] = useState(new Animated.Value(0));
 
@@ -608,12 +614,14 @@ export default function HomeScreen() {
       setWeatherLoading(true);
     }
 
+    const request = ++weatherRequest.current;
     try {
-      const response = await fetch(
+      const response = await fetchWithDeadline(
         `https://api.open-meteo.com/v1/forecast?latitude=${cityToFetch.lat}&longitude=${cityToFetch.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&timezone=Europe%2FRome`
       );
       const data = await response.json();
-      if (data && data.current) {
+      if (request !== weatherRequest.current) return;
+      if (response.ok && data?.current && ['temperature_2m', 'apparent_temperature', 'relative_humidity_2m', 'wind_speed_10m', 'weather_code', 'is_day'].every(key => typeof data.current[key] === 'number' && Number.isFinite(data.current[key]))) {
         const current = data.current;
         const info = getWeatherInfo(current.weather_code, current.is_day);
         setWeather({
@@ -627,11 +635,16 @@ export default function HomeScreen() {
           icon: info.icon,
           color: info.color
         });
+      } else {
+        setWeather(null); setWeatherState('无数据');
       }
     } catch (e) {
+      if (request !== weatherRequest.current) return;
       console.warn('Failed to fetch weather:', e);
       setWeather(null);
+      setWeatherState(e instanceof NetworkError ? '无网络' : '无数据');
     } finally {
+      if (request !== weatherRequest.current) return;
       if (isRefresh) {
         const elapsedTime = Date.now() - startTime;
         const minDuration = 1000; // Let the icon spin at least one full turn
@@ -804,13 +817,13 @@ export default function HomeScreen() {
   function formatDate(dateStr: string) {
     const d = new Date(dateStr);
     if (language === 'zh' || language === 'zh-Hant') {
-      return `${d.getMonth() + 1}月${d.getDate()}日`;
+      return `${romeParts(d).month}月${romeParts(d).day}日`;
     }
-    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { timeZone: 'Europe/Rome', month: 'short', day: 'numeric' };
     return d.toLocaleDateString(language === 'it' ? 'it-IT' : 'en-US', options);
   }
 
-  const greetingHour = new Date().getHours();
+  const greetingHour = romeParts().hour;
   const greeting = greetingHour < 12 ? t('greetingMorning') : greetingHour < 18 ? t('greetingAfternoon') : t('greetingEvening');
 
   if (loading) {
@@ -921,7 +934,7 @@ export default function HomeScreen() {
                       >
                         <Pressable onPress={() => router.push('/tools/rate')} hitSlop={8}>
                           <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
-                            {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} 1 EUR = <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny.toFixed(4)}</Text> CNY
+                            {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny === null ? rateState : `1 EUR = ${eurToCny.toFixed(4)} CNY`}</Text>
                           </Text>
                         </Pressable>
                       </Animated.View>
@@ -994,6 +1007,8 @@ export default function HomeScreen() {
               <View style={styles.weatherCenter}>
                 <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : '#A31621'} />
               </View>
+            ) : !weather ? (
+              <View style={styles.weatherCenter}><Text style={{ color: colors.textSecondary }}>{weatherState}</Text></View>
             ) : (
               <Animated.View style={{ opacity: fadeAnim, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                 <View style={styles.weatherCol}>
@@ -1057,7 +1072,7 @@ export default function HomeScreen() {
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('recentEvents')}</Text>
               <TouchableOpacity 
-                onPress={() => router.push('/(tabs)/events')}
+                onPress={() => router.push('/tools/events')}
                 style={{ flexDirection: 'row', alignItems: 'center' }}
               >
                 <Text style={[styles.seeAll, { color: colors.primary, marginRight: 2 }]}>{t('seeAll')}</Text>
@@ -1090,7 +1105,7 @@ export default function HomeScreen() {
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('latestUpdates')}</Text>
             </View>
             <TouchableOpacity 
-              onPress={() => router.push('/(tabs)/announcements')}
+              onPress={() => router.push('/announcements')}
               style={{ flexDirection: 'row', alignItems: 'center' }}
             >
               <Text style={[styles.seeAll, { color: colors.primary, marginRight: 2 }]}>{t('seeAll')}</Text>

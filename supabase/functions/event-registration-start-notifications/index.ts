@@ -36,7 +36,14 @@ Deno.serve(async (req) => {
       });
       if (activeError) throw new Error("Could not verify notification job ownership.");
       if (!active) return Response.json({ processed: false, status: "cancelled_or_replaced" });
-      const outcomes = await sendEventPushBatch(tokens.slice(offset, offset + 100), job.title, job.event_id);
+      const batch = tokens.slice(offset, offset + 100);
+      const { data: eligible, error: preferenceError } = await supabase.rpc('filter_event_push_batch', { p_event_id: job.event_id, p_tokens: batch });
+      if (preferenceError) throw new Error('Could not verify delivery preferences.');
+      const allowed = new Set((eligible || []).map((row: { token: string }) => row.token));
+      const outcomes = [
+        ...await sendEventPushBatch(batch.filter(token => allowed.has(token)), job.title, job.event_id),
+        ...batch.filter(token => !allowed.has(token)).map(token => ({ token, status: 'failed' as const, error: 'Skipped: device preference or audience no longer allows delivery.' })),
+      ];
       const { data: saved, error: saveError } = await supabase.rpc("record_event_registration_notification_batch", {
         p_job_id: jobId, p_lease_token: job.lease_token, p_results: outcomes,
       });

@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { recordDebugEvent } from '../lib/logger';
 import * as Linking from 'expo-linking';
 import { AppState } from 'react-native';
 import { AdminPermission, ALL_ADMIN_PERMISSIONS } from '../lib/adminPermissions';
+import { detachPushDevice, finishPushLogout } from '../lib/pushDevice';
 
 const AUTH_TIMEOUT_MS = 5000;
 const PROFILE_MAX_ATTEMPTS = 3;
@@ -62,6 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [networkError, setNetworkError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [adminPermissions, setAdminPermissions] = useState<AdminPermission[]>([]);
+  const currentUserId = useRef<string | null>(null);
+  const profileRequest = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,10 +72,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setNetworkError(false);
 
     async function init() {
+      const initialRequest = profileRequest.current;
       // getSession 读本地缓存，加超时保险
       const result = await withTimeout(supabase.auth.getSession(), AUTH_TIMEOUT_MS);
 
-      if (cancelled) return;
+      if (cancelled || initialRequest !== profileRequest.current) return;
 
       if (result === null) {
         // 超时：放行开屏，显示离线提示
@@ -84,9 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: { session } } = result;
       setSession(session);
       setUser(session?.user ?? null);
+      currentUserId.current = session?.user.id ?? null;
 
       if (session?.user) {
-        await fetchProfile(session.user.id, session.user, cancelled);
+        await fetchProfile(session.user.id, session.user);
       } else {
         if (!cancelled) setLoading(false);
       }
@@ -95,10 +100,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      profileRequest.current += 1;
+      if (currentUserId.current !== (session?.user.id ?? null)) {
+        setProfile(null);
+        setAdminPermissions([]);
+        setHasUnreadFeedbackReply(false);
+      }
+      currentUserId.current = session?.user.id ?? null;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id, session.user, false);
+        void fetchProfile(session.user.id, session.user);
       } else {
         setProfile(null);
         setAdminPermissions([]);
@@ -108,23 +120,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       cancelled = true;
+      profileRequest.current += 1;
       subscription.unsubscribe();
     };
   }, [retryKey]);
 
-  async function fetchProfile(userId: string, currentUser?: User | null, cancelled = false, attempt = 1) {
+  async function fetchProfile(userId: string, currentUser?: User | null, requestId = ++profileRequest.current, attempt = 1) {
+    const active = () => requestId === profileRequest.current && currentUserId.current === userId;
     try {
       const result = await withTimeout(
         Promise.resolve(supabase.from('profiles').select('*').eq('id', userId).single()),
         AUTH_TIMEOUT_MS
       );
 
-      if (cancelled) return;
+      if (!active()) return;
 
       if (result === null) {
         if (attempt < PROFILE_MAX_ATTEMPTS) {
           await new Promise((resolve) => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
-          if (!cancelled) await fetchProfile(userId, currentUser, cancelled, attempt + 1);
+          if (active()) await fetchProfile(userId, currentUser, requestId, attempt + 1);
         } else {
           setNetworkError(true);
         }
@@ -146,17 +160,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             currentProfile = updatedData as Profile;
           }
         }
+        if (!active()) return;
         setProfile(currentProfile);
         setNetworkError(false);
         if (currentProfile.role === 'super_admin') {
           setAdminPermissions(ALL_ADMIN_PERMISSIONS);
         } else if (currentProfile.role === 'admin') {
           const { data: permissionData, error: permissionError } = await supabase.rpc('get_my_admin_permissions');
+          if (!active()) return;
           if (permissionError) {
             console.warn('Failed to fetch administrator permissions:', permissionError);
             if (attempt < PROFILE_MAX_ATTEMPTS) {
               await new Promise((resolve) => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
-              if (!cancelled) await fetchProfile(userId, currentUser, cancelled, attempt + 1);
+              if (active()) await fetchProfile(userId, currentUser, requestId, attempt + 1);
               return;
             }
             setAdminPermissions([]);
@@ -169,16 +185,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (attempt < PROFILE_MAX_ATTEMPTS) {
         await new Promise((resolve) => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
-        if (!cancelled) await fetchProfile(userId, currentUser, cancelled, attempt + 1);
+        if (active()) await fetchProfile(userId, currentUser, requestId, attempt + 1);
       } else {
         console.warn('Failed to fetch profile after retries:', error);
         setNetworkError(true);
       }
     } catch (e) {
       console.error('Error fetching profile:', e);
-      if (!cancelled) setNetworkError(true);
+      if (active()) setNetworkError(true);
     } finally {
-      if (!cancelled) setLoading(false);
+      if (active()) setLoading(false);
     }
   }
 
@@ -230,14 +246,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signOut() {
     recordDebugEvent('auth', 'Sign-out requested');
-    if (user?.id) {
-      try {
-        await supabase.from('profiles').update({ push_token: null }).eq('id', user.id);
-      } catch (err) {
-        console.warn('Failed to clear push token during signOut:', err);
-      }
-    }
-    await supabase.auth.signOut();
+    try {
+      await detachPushDevice();
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) throw error;
+    } finally { finishPushLogout(); }
+    currentUserId.current = null;
+    profileRequest.current += 1;
+    setUser(null);
+    setSession(null);
+    setProfile(null);
     setAdminPermissions([]);
     recordDebugEvent('auth', 'Sign-out completed');
   }
@@ -258,6 +276,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('user_viewed_reply', false);
 
       if (error) throw error;
+      if (currentUserId.current !== user.id) return;
       setHasUnreadFeedbackReply(count ? count > 0 : false);
     } catch (err) {
       console.warn('Failed to check unread feedback replies:', err);
@@ -269,7 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   function hasAdminPermission(permission: AdminPermission) {
-    return profile?.role === 'super_admin' || adminPermissions.includes(permission);
+    return !!user && profile?.id === user.id && (profile.role === 'super_admin' || adminPermissions.includes(permission));
   }
 
   useEffect(() => {

@@ -17,7 +17,11 @@ const equal = (actual, expected) => { assert.deepEqual(actual, expected); checks
 const loadTs = (path, additions = {}) => {
   const source = readFileSync(resolve(root, path), 'utf8');
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  const context = { exports: {}, Response, Request, AbortController, setTimeout, clearTimeout, console, ...additions };
+  const context = { exports: {}, Response, Request, AbortController, setTimeout, clearTimeout, console,
+    require: name => {
+      if (name === './network') return loadTs('student-app/lib/network.ts', additions);
+      throw new Error('Unexpected module ' + name);
+    }, ...additions };
   vm.runInNewContext(output, context, { filename: path });
   return context.exports;
 };
@@ -145,6 +149,7 @@ try {
   let handler;
   const workerBatches = [];
   const workerClient = {rpc:async(name,args)=> {
+    if(name==='filter_event_push_batch') return {data:args.p_tokens.map(token=>({token})),error:null};
     if(name==='claim_event_registration_notification') return {data:{claimed:true,lease_token:'lease',event_id:event,title:'Test',tokens:Array.from({length:200},(_,i)=>token(i))},error:null};
     if(name==='record_event_registration_notification_batch') { if(args.p_results.length) workerBatches.push(args.p_results.length);return {data:true,error:null}; }
     if(name==='finish_event_registration_notification') return {data:{status:'sent',sent:200,failed:0},error:null};

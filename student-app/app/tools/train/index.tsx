@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { NetworkError } from '../../../lib/network';
 import {
   StyleSheet,
   Text,
@@ -542,7 +543,7 @@ export default function TrainToolIndex() {
         }
       }
     } catch (err) {
-      setTrainError(t('noTrainsFound'));
+      setTrainError(err instanceof NetworkError ? '无网络' : '无数据');
     } finally {
       setLoadingTrain(false);
     }

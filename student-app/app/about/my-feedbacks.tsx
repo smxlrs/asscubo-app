@@ -1,3 +1,4 @@
+import { localDateInput } from '../../lib/eventTime';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Image, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
@@ -161,7 +162,7 @@ export default function MyFeedbacksScreen() {
 
   const formatDateTime = (dateStr: string) => {
     const d = new Date(dateStr);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return localDateInput(d.toISOString());
   };
 
   const renderFeedbackItem = ({ item }: { item: UserFeedback }) => {

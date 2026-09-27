@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from './network';
 import { supabase } from './supabase';
 
 export interface BusArrival {
@@ -17,6 +18,17 @@ export interface BusStop {
   longitude: number | null;
   city: string;
   lines: string | null;
+  zone_code?: string | null;
+}
+
+export async function getBusStopDetails(code: string): Promise<BusStop | null> {
+  const { data, error } = await supabase.from('bus_stops')
+    .select('id, stop_code, stop_name, latitude, longitude, city, lines, zone_code')
+    .eq('stop_code', code.trim()).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const zone = String(data.zone_code || '').trim();
+  return { ...data, id: Number(data.id), zone_code: /^[1-9][0-9]*$/.test(zone) ? zone : null };
 }
 
 /**
@@ -43,7 +55,7 @@ export async function fetchBusArrivals(stopCode: string, lineCode = ''): Promise
 </soap:Envelope>`;
 
   try {
-    const response = await fetch('https://hellobuswsweb.tper.it/web-services/hellobus.asmx', {
+    const response = await fetchWithDeadline('https://hellobuswsweb.tper.it/web-services/hellobus.asmx', {
       method: 'POST',
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',

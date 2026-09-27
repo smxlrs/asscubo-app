@@ -1,3 +1,4 @@
+import { sendExpoPushMessages } from '../../../lib/expoPush';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -61,19 +62,16 @@ export default function ManageUserDetailScreen() {
   }, [userId]);
 
   const sendPushNotification = async (title: string, body: string) => {
-    if (!user?.push_token) return;
+    if (!user) return;
     try {
-      await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: user.push_token,
-          sound: 'default',
-          title,
-          body,
-          data: { type: 'profile_violation' },
-        }),
-      });
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await supabase.rpc('push_delivery_tokens', { p_offset: offset, p_limit: 500, p_user_id: user.id });
+        if (error) throw error;
+        await sendExpoPushMessages((data || []).map((row: { token: string }) => ({
+          to: row.token, sound: 'default' as const, title, body, data: { type: 'profile_violation' },
+        })));
+        if (!data || data.length < 500) break;
+      }
     } catch (error) {
       console.warn('Failed to send moderation push:', error);
     }

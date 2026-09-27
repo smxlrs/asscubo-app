@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getDeliveryTokens } from '../_shared/push-recipients.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { getSupabaseAdminKey } from "../_shared/supabase-keys.ts";
 
@@ -41,16 +42,8 @@ async function saveAndPushArticle(title: string, summary: string, url: string, c
   // 2. [Removed insertion into notifications table to separate articles and notifications]
 
   // 3. 获取所有设备的 Push Token
-  const { data: tokensData, error: tokensError } = await supabase
-    .from('push_tokens')
-    .select('token');
-
-  if (tokensError || !tokensData || tokensData.length === 0) {
-    console.log('No push tokens found or failed to query:', tokensError);
-    return;
-  }
-
-  const tokens = Array.from(new Set(tokensData.map(t => t.token)));
+  const tokens = await getDeliveryTokens(supabase);
+  if (!tokens.length) return;
   console.log(`Sending mass push to ${tokens.length} devices...`);
 
   // 4. 构造 Expo 推送消息 Payload

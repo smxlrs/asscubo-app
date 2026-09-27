@@ -1,3 +1,4 @@
+import { fetchWithDeadline, NetworkError } from '../../lib/network';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Animated as RNAnimated, BackHandler } from 'react-native';
 import { router, useNavigation } from 'expo-router';
@@ -154,7 +155,7 @@ const LOCALIZED = {
   }
 };
 
-const getToolDefinition = (id: string, eurToCny: number, language: string, t: (key: string) => string): ToolItem | null => {
+const getToolDefinition = (id: string, eurToCny: number | null, language: string, t: (key: string) => string): ToolItem | null => {
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   switch (id) {
     case 'events':
@@ -189,7 +190,7 @@ const getToolDefinition = (id: string, eurToCny: number, language: string, t: (k
       return {
         id: 'rate',
         title: localized.rateTitle,
-        description: `${localized.rateDescPrefix}1 EUR = ${eurToCny.toFixed(4)} CNY`,
+        description: `${localized.rateDescPrefix}1 EUR = ${(eurToCny === null ? '无数据' : eurToCny.toFixed(4))} CNY`,
         icon: 'currency-eur',
         route: '/tools/rate',
         color: '#10B981',
@@ -247,7 +248,8 @@ const getToolDefinition = (id: string, eurToCny: number, language: string, t: (k
 interface DraggableCardProps {
   id: string;
   tool: ToolItem;
-  eurToCny: number;
+  eurToCny: number | null;
+  rateState: string;
   language: string;
   t: (key: string) => string;
   colors: any;
@@ -268,6 +270,7 @@ function DraggableCard({
   id,
   tool,
   eurToCny,
+  rateState,
   language,
   t,
   colors,
@@ -491,7 +494,7 @@ function DraggableCard({
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{tool.title}</Text>
             {tool.id === 'rate' ? (
               <Text numberOfLines={4} style={[styles.cardDescription, { color: colors.textSecondary }]}>
-                {localized.rateDescPrefix}{"\n"}1 EUR = <Text style={{ color: colors.primary, fontWeight: 'bold' }}>{eurToCny.toFixed(4)}</Text> CNY
+                {eurToCny === null ? rateState : `${localized.rateDescPrefix}\n1 EUR = ${eurToCny.toFixed(4)} CNY`}
               </Text>
             ) : (
               <Text numberOfLines={4} style={[styles.cardDescription, { color: colors.textSecondary }]}>{tool.description}</Text>
@@ -512,7 +515,8 @@ function DraggableCard({
 export default function ToolsScreen() {
   const { colors, t, tabBarStyle, tabOpacities, isDark, language } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
-  const [eurToCny, setEurToCny] = useState<number>(7.8256);
+  const [eurToCny, setEurToCny] = useState<number | null>(null);
+  const [rateState, setRateState] = useState('无数据');
   const [toolOrder, setToolOrder] = useState<string[]>(DEFAULT_TOOL_ORDER);
   const [isEditing, setIsEditing] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
@@ -575,12 +579,14 @@ export default function ToolsScreen() {
   useEffect(() => {
     const fetchRate = async () => {
       try {
-        const response = await fetch('https://open.er-api.com/v6/latest/EUR');
+        const response = await fetchWithDeadline('https://open.er-api.com/v6/latest/EUR');
         const data = await response.json();
-        if (data && data.result === 'success' && data.rates && data.rates.CNY) {
+        if (response.ok && data?.result === 'success' && typeof data?.rates?.CNY === 'number' && Number.isFinite(data.rates.CNY) && data.rates.CNY > 0) {
           setEurToCny(data.rates.CNY);
+        } else { setEurToCny(null); setRateState('无数据');
         }
       } catch (error) {
+        setEurToCny(null); setRateState(error instanceof NetworkError ? '无网络' : '无数据');
         console.log('Error fetching EUR to CNY rate for Tools tab:', error);
       }
     };
@@ -668,6 +674,7 @@ export default function ToolsScreen() {
                     id={tool.id}
                     tool={tool}
                     eurToCny={eurToCny}
+                    rateState={rateState}
                     language={language}
                     t={t}
                     colors={colors}

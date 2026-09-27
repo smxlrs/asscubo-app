@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Switch, ActivityIndicator, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../lib/supabase';
+import { syncPushDevice } from '../../lib/pushDevice';
+import { appAlert } from '../../lib/appAlert';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 
@@ -28,7 +28,7 @@ const LOCALIZED = {
     globalLabel: '允许接收推送',
     globalSub: '开启后可接收学联发送的重要通知消息',
     dndLabel: '夜间免打扰模式',
-    dndSub: '22:00 至次日 08:00 期间自动静音推送消息',
+    dndSub: '罗马时间 22:00 至次日 08:00 不发送推送消息',
     sectionWechat: '微信文章通知',
     articlesLabel: '文章通知',
     articlesSub: '微信公众号文章等精选长文更新通知',
@@ -54,7 +54,7 @@ const LOCALIZED = {
     globalLabel: '允許接收推送',
     globalSub: '開啟後可接收學聯發送的重要通知消息',
     dndLabel: '夜間免打擾模式',
-    dndSub: '22:00 至次日 08:00 期間自動靜音推送消息',
+    dndSub: '羅馬時間 22:00 至次日 08:00 不發送推送消息',
     sectionWechat: '微信文章通知',
     articlesLabel: '文章通知',
     articlesSub: '微信公眾號文章等精選長文更新通知',
@@ -80,7 +80,7 @@ const LOCALIZED = {
     globalLabel: 'Allow Push Notifications',
     globalSub: 'Receive important updates and announcements from ASSCUBO',
     dndLabel: 'Do Not Disturb',
-    dndSub: 'Mute push notifications automatically between 22:00 and 08:00',
+    dndSub: 'No push delivery between 22:00 and 08:00 (Rome time)',
     sectionWechat: 'Articles Notification',
     articlesLabel: 'Article Notifications',
     articlesSub: 'Get updates for select long articles and WeChat newsletters',
@@ -106,7 +106,7 @@ const LOCALIZED = {
     globalLabel: 'Consenti Notifiche Push',
     globalSub: 'Ricevi aggiornamenti importanti e annunci da ASSCUBO',
     dndLabel: 'Non Disturbare',
-    dndSub: 'Silenzia le notifiche automaticamente dalle 22:00 alle 08:00',
+    dndSub: 'Nessun invio dalle 22:00 alle 08:00 (ora di Roma)',
     sectionWechat: 'Notifiche Articoli',
     articlesLabel: 'Notifiche Articoli',
     articlesSub: 'Ricevi aggiornamenti per articoli selezionati e newsletter WeChat',
@@ -130,7 +130,7 @@ const LOCALIZED = {
 
 export default function NotificationSettingsScreen() {
   const { colors, isDark, language } = useTheme();
-  const { user } = useAuth();
+  const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(true);
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
   
@@ -184,6 +184,9 @@ export default function NotificationSettingsScreen() {
   }, []);
 
   const toggleSwitch = async (category: keyof typeof preferences) => {
+    if (syncing) return;
+    const previous = preferences;
+    setSyncing(true);
     const newValue = !preferences[category];
     const newPrefs = { ...preferences, [category]: newValue };
     setPreferences(newPrefs);
@@ -191,14 +194,12 @@ export default function NotificationSettingsScreen() {
     try {
       await AsyncStorage.setItem(PREFS_KEYS[category], String(newValue));
 
-      if (user) {
-        await supabase.from('profiles').update({
-          notification_preferences: newPrefs,
-        }).eq('id', user.id);
-      }
+      if (category === 'globalEnabled' || category === 'dndEnabled') await syncPushDevice();
     } catch (e) {
-      console.warn('Failed to save notification settings change:', e);
-    }
+      await AsyncStorage.setItem(PREFS_KEYS[category], String(previous[category])).catch(() => undefined);
+      setPreferences(previous);
+      appAlert.alert('设置未同步', '无法确认服务器是否已更新，请联网后重试。系统已接收的通知无法撤回。');
+    } finally { setSyncing(false); }
   };
 
   if (loading) {
@@ -210,7 +211,7 @@ export default function NotificationSettingsScreen() {
   }
 
   const isDimmable = (category: keyof typeof preferences) => {
-    return !preferences.globalEnabled && category !== 'globalEnabled';
+    return syncing || (!preferences.globalEnabled && category !== 'globalEnabled');
   };
 
   return (
@@ -241,6 +242,7 @@ export default function NotificationSettingsScreen() {
               <Text style={[styles.rowSubLabel, { color: colors.textSecondary }]}>{localized.globalSub}</Text>
             </View>
             <Switch
+              disabled={syncing}
               value={preferences.globalEnabled}
               onValueChange={() => toggleSwitch('globalEnabled')}
               trackColor={{ false: '#D1D5DB', true: colors.primary + '80' }}
@@ -268,6 +270,7 @@ export default function NotificationSettingsScreen() {
         </View>
 
         {/* Section 2: WeChat Articles Notification */}
+        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>以下为实验性设置功能</Text>
         <View style={styles.sectionHeaderContainer}>
           <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{localized.sectionWechat}</Text>
         </View>

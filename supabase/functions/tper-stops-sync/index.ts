@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { strFromU8, unzipSync } from "npm:fflate@0.8.2";
+import { stopZones } from '../_shared/tper-stop-zones.ts';
 
 const OPEN_DATA_INDEX_URL = "https://solweb.tper.it/web/tools/open-data/open-data.aspx";
 const OPEN_DATA_DOWNLOAD_URL = "https://solweb.tper.it/web/tools/open-data/open-data-download.aspx";
@@ -16,6 +17,7 @@ type StopRow = {
   longitude: number;
   city: string;
   lines: string | null;
+  zone_code: string | null;
 };
 
 function getSecretKeys(): string[] {
@@ -128,20 +130,23 @@ serve(async (request) => {
     const indexHtml = await (await fetchRequired(OPEN_DATA_INDEX_URL)).text();
     const gtfsVersion = readVersion(indexHtml, "gommagtfsbo");
     const lineStopsVersion = readVersion(indexHtml, "lineefermate");
+    const stopDetailsVersion = readVersion(indexHtml, "fermate");
     const force = new URL(request.url).searchParams.get("force") === "true";
 
-    const { data: state } = await supabase
+    const { data: state, error: stateError } = await supabase
       .from("tper_stop_sync_state")
-      .select("gtfs_version, line_stops_version, last_success_at")
+      .select("gtfs_version, line_stops_version, stop_details_version, last_success_at")
       .eq("id", 1)
       .maybeSingle();
-    if (!force && state?.gtfs_version === gtfsVersion && state?.line_stops_version === lineStopsVersion) {
-      return jsonResponse({ refreshed: false, gtfsVersion, lineStopsVersion, lastSyncedAt: state.last_success_at });
+    if (stateError) throw stateError;
+    if (!force && state?.gtfs_version === gtfsVersion && state?.line_stops_version === lineStopsVersion && state?.stop_details_version === stopDetailsVersion) {
+      return jsonResponse({ refreshed: false, gtfsVersion, lineStopsVersion, stopDetailsVersion, lastSyncedAt: state.last_success_at });
     }
 
-    const [gtfsResponse, lineStopsResponse] = await Promise.all([
+    const [gtfsResponse, lineStopsResponse, stopDetailsResponse] = await Promise.all([
       fetchRequired(downloadUrl("gommagtfsbo", gtfsVersion, "zip")),
       fetchRequired(downloadUrl("lineefermate", lineStopsVersion, "csv")),
+      fetchRequired(downloadUrl("fermate", stopDetailsVersion, "csv")),
     ]);
 
     const archive = new Uint8Array(await gtfsResponse.arrayBuffer());
@@ -156,6 +161,11 @@ serve(async (request) => {
     }
 
     const linesByStop = new Map<string, Set<string>>();
+    const details = recordsFromDelimited(await stopDetailsResponse.text(), ';');
+    if (!details.length || !('codice_zona' in details[0]) || !('codice' in details[0])) {
+      throw new Error('TPER stop-zone fields are missing; previous data retained.');
+    }
+    const zonesByStop = stopZones(details);
     const cityByStop = new Map<string, string>();
     const lineStopRows = recordsFromDelimited(await lineStopsResponse.text(), ";");
     for (const row of lineStopRows) {
@@ -184,17 +194,19 @@ serve(async (request) => {
         longitude,
         city: cityByStop.get(row.stop_id) || "Bologna",
         lines: lines.length > 0 ? lines.join(",") : null,
+        zone_code: zonesByStop.get(row.stop_id) ?? null,
       };
     });
 
-    const { data: result, error } = await supabase.rpc("replace_bus_stops_from_tper", {
+    const { data: result, error } = await supabase.rpc("replace_bus_stops_with_zones", {
       p_stops: stops,
       p_gtfs_version: gtfsVersion,
       p_line_stops_version: lineStopsVersion,
+      p_stop_details_version: stopDetailsVersion,
     });
     if (error) throw error;
 
-    return jsonResponse({ refreshed: true, gtfsVersion, lineStopsVersion, result });
+    return jsonResponse({ refreshed: true, gtfsVersion, lineStopsVersion, stopDetailsVersion, result });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await supabase.from("tper_stop_sync_state").upsert({ id: 1, last_attempt_at: startedAt, last_error: message });
