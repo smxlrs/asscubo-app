@@ -1,3 +1,4 @@
+import { stationSearchKey } from './stationSearch';
 import { fetchWithDeadline, NetworkError } from './network';
 import { romeToIso } from './eventTime';
 import { romeDay, romeParts } from './romeTime';
@@ -152,27 +153,7 @@ export const normalizeTrainCategory = (value: string | null | undefined): string
   return category;
 };
 
-const CHINESE_CITY_MAPPINGS: Record<string, string> = {
-  '米兰': 'milano',
-  '米': 'milano',
-  '罗马': 'roma',
-  '博洛尼亚': 'bologna',
-  '博大': 'bologna',
-  '都灵': 'torino',
-  '佛罗伦萨': 'firenze',
-  '威尼斯': 'venezia',
-  '那不勒斯': 'napoli',
-  '热那亚': 'genova',
-  '比萨': 'pisa',
-  '巴里': 'bari',
-  '拉文纳': 'ravenna',
-  '里米尼': 'rimini',
-  '帕多瓦': 'padova',
-  '维罗纳': 'verona',
-  '锡耶纳': 'siena',
-  '帕尔马': 'parma',
-  '摩德纳': 'modena',
-};
+
 
 const ROMAN_TO_ARABIC: Record<string, string> = {
   'I': '1', 'II': '2', 'III': '3', 'IV': '4', 'V': '5',
@@ -613,14 +594,7 @@ export async function searchStations(query: string): Promise<VtStation[]> {
   const cleanQuery = query.trim().toLowerCase();
   if (!cleanQuery) return [];
 
-  // Resolve Chinese city aliases
-  let searchKey = cleanQuery;
-  for (const [zh, it] of Object.entries(CHINESE_CITY_MAPPINGS)) {
-    if (searchKey === zh || searchKey.includes(zh)) {
-      searchKey = it;
-      break;
-    }
-  }
+  const searchKey = stationSearchKey(cleanQuery);
 
   // 1. Try local index first
   const localMatches = stations.filter(s => s.n.toLowerCase().includes(searchKey));
@@ -655,7 +629,7 @@ export async function searchStations(query: string): Promise<VtStation[]> {
 
   // 2. Fall back to ViaggiaTreno autocompletaStazione API
   try {
-    const encoded = encodeURIComponent(query);
+    const encoded = encodeURIComponent(searchKey);
     const response = await fetchWithTimeout(`${BASE_URL}/autocompletaStazione/${encoded}`, undefined, 5000);
     if (!response.ok) return [];
     

@@ -1,3 +1,4 @@
+import { stationSearchKey } from '../../../lib/stationSearch';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { NetworkError } from '../../../lib/network';
 import {
@@ -184,6 +185,15 @@ export default function TrainToolIndex() {
 
   // Train Tab State
   const [trainNo, setTrainNo] = useState('');
+  const trainRequest = useRef(0);
+  useEffect(() => () => { trainRequest.current++; }, []);
+  const changeTrainNo = (value: string) => {
+    trainRequest.current++;
+    setTrainNo(value);
+    setLoadingTrain(false);
+    setTrainMatches([]);
+    setTrainError('');
+  };
   const [loadingTrain, setLoadingTrain] = useState(false);
   const [trainMatches, setTrainMatches] = useState<(VtTrainSummary | VtTrainSearchMatch)[]>([]);
   const [recentTrains, setRecentTrains] = useState<(VtTrainSearchMatch | VtTrainSummary)[]>([]);
@@ -384,35 +394,7 @@ export default function TrainToolIndex() {
     if (!input.trim()) return [];
     const query = input.trim().toLowerCase();
     
-    // Resolve Chinese city aliases
-    let searchKey = query;
-    const CHINESE_CITY_MAPPINGS: Record<string, string> = {
-      '米兰': 'milano',
-      '米': 'milano',
-      '罗马': 'roma',
-      '博洛尼亚': 'bologna',
-      '博大': 'bologna',
-      '都灵': 'torino',
-      '佛罗伦萨': 'firenze',
-      '威尼斯': 'venezia',
-      '那不勒斯': 'napoli',
-      '热那亚': 'genova',
-      '比萨': 'pisa',
-      '巴里': 'bari',
-      '拉文纳': 'ravenna',
-      '里米尼': 'rimini',
-      '帕多瓦': 'padova',
-      '维罗纳': 'verona',
-      '锡耶纳': 'siena',
-      '帕尔马': 'parma',
-      '摩德纳': 'modena',
-    };
-    for (const [zh, it] of Object.entries(CHINESE_CITY_MAPPINGS)) {
-      if (searchKey === zh || searchKey.includes(zh)) {
-        searchKey = it;
-        break;
-      }
-    }
+    const searchKey = stationSearchKey(query);
 
     const localMatches = stations.filter(s => s.n.toLowerCase().includes(searchKey));
     const scored = localMatches.map(s => {
@@ -454,12 +436,14 @@ export default function TrainToolIndex() {
     const cleanNum = trainNo.trim();
     if (!cleanNum) return;
 
+    const request = ++trainRequest.current;
     setLoadingTrain(true);
     setTrainError('');
     setTrainMatches([]);
 
     try {
       const rawResults = await searchTrain(cleanNum);
+      if (request !== trainRequest.current) return;
       if (rawResults.length === 0) {
         setTrainError(t('noTrainsFound'));
       } else {
@@ -491,6 +475,7 @@ export default function TrainToolIndex() {
           })
         );
 
+        if (request !== trainRequest.current) return;
         // Group by number and departureStationID to deduplicate different dates
         const groups: Record<string, typeof resolved> = {};
         for (const item of resolved) {
@@ -543,9 +528,10 @@ export default function TrainToolIndex() {
         }
       }
     } catch (err) {
+      if (request !== trainRequest.current) return;
       setTrainError(err instanceof NetworkError ? '无网络' : '无数据');
     } finally {
-      setLoadingTrain(false);
+      if (request === trainRequest.current) setLoadingTrain(false);
     }
   };
 
@@ -737,13 +723,13 @@ export default function TrainToolIndex() {
                   placeholder={t('trainNumberPlaceholder')}
                   placeholderTextColor={colors.textMuted}
                   value={trainNo}
-                  onChangeText={setTrainNo}
+                  onChangeText={changeTrainNo}
                   keyboardType="numeric"
                   onSubmitEditing={handleTrainSearch}
                   returnKeyType="search"
                 />
                 {trainNo.length > 0 && (
-                  <Pressable onPress={() => setTrainNo('')} style={styles.clearInputBtn}>
+                  <Pressable onPress={() => changeTrainNo('')} style={styles.clearInputBtn}>
                     <MaterialIcons name="close" size={18} color={colors.textSecondary} />
                   </Pressable>
                 )}

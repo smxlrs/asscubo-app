@@ -1,3 +1,4 @@
+import { useStoreUpdateAvailable } from '../../hooks/useStoreUpdateAvailable';
 import { Tabs, router } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { View, Text, Animated, StyleSheet, Easing, Pressable, Platform, Dimensions, LayoutChangeEvent } from 'react-native';
@@ -69,13 +70,19 @@ const BOOTSTRAP_TAB_ICONS = {
 type BootstrapTabIconName = keyof typeof BOOTSTRAP_TAB_ICONS;
 
 function BootstrapTabIcon({ name, focused, color, size = 22 }: { name: BootstrapTabIconName; focused: boolean; color: string; size?: number }) {
+  const hasStoreUpdate = useStoreUpdateAvailable();
   const paths = BOOTSTRAP_TAB_ICONS[name][focused ? 'fill' : 'outline'];
   return (
-    <Svg width={size} height={size} viewBox="0 0 16 16">
-      {paths.map((d, index) => (
-        <Path key={`${name}-${focused ? 'fill' : 'outline'}-${index}`} d={d} fill={color} />
-      ))}
-    </Svg>
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size} viewBox="0 0 16 16">
+        {paths.map((d, index) => (
+          <Path key={`${name}-${focused ? 'fill' : 'outline'}-${index}`} d={d} fill={color} />
+        ))}
+      </Svg>
+      {name === 'profile' && hasStoreUpdate && (
+        <View pointerEvents="none" style={{ position: 'absolute', top: -3, right: -4, width: 7, height: 7, borderRadius: 4, backgroundColor: '#EF4444' }} />
+      )}
+    </View>
   );
 }
 
@@ -362,6 +369,7 @@ function NativeIOSTabs({
   labels: { home: string; notifications: string; tools: string; profile: string };
   isDark: boolean;
 }) {
+  const hasStoreUpdate = useStoreUpdateAvailable();
   const inactiveColor = isDark ? '#D1D1D6' : '#6E6E73';
   const activeColor = isDark ? '#FFFFFF' : '#000000';
 
@@ -387,6 +395,7 @@ function NativeIOSTabs({
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} />
         <NativeTabs.Trigger.Label>{labels.profile}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Badge hidden={!hasStoreUpdate} />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -1051,15 +1060,6 @@ export default function TabsLayout() {
                 </GestureDetector>
               );
             }
-          }}
-        />
-        <Tabs.Screen
-          name="announcements"
-          listeners={{
-            focus: () => setActiveIndex(0)
-          }}
-          options={{
-            href: null,
           }}
         />
         <Tabs.Screen

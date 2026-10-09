@@ -1,3 +1,4 @@
+import { notificationPreview } from '../../lib/notificationContent';
 import { fetchWithDeadline, NetworkError } from '../../lib/network';
 import { romeParts } from '../../lib/romeTime';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
@@ -717,7 +718,7 @@ export default function HomeScreen() {
           combined.push({
             id: item.id,
             title: item.title,
-            summary: item.content || null,
+            summary: notificationPreview(item.content),
             category: item.category || 'general',
             cover_image: item.cover_image || null,
             created_at: item.created_at,

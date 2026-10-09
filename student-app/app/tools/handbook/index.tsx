@@ -668,6 +668,7 @@ export default function HandbookReaderScreen() {
 
   // 1. Fetch handbook chapters
   useEffect(() => {
+    let active = true;
     async function fetchHandbook() {
       try {
         const { data, error } = await supabase
@@ -676,6 +677,7 @@ export default function HandbookReaderScreen() {
           .eq('is_published', true)
           .order('order_index', { ascending: true });
 
+        if (!active) return;
         if (error || !data || data.length === 0) {
           throw new Error('Supabase fetch failed or returned empty');
         }
@@ -713,14 +715,16 @@ export default function HandbookReaderScreen() {
         
         setCurrentChapter(defaultChapter);
       } catch (err) {
+        if (!active) return;
         console.log('Using local fallback handbook data:', err);
         setChapters([]);
         setCurrentChapter(null);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     fetchHandbook();
+    return () => { active = false; };
   }, [retryKey]);
 
   // Disable native iOS swipe-back when modals are open

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Switch } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as FileSystem from 'expo-file-system/legacy';
+import { getCacheSize, clearCacheDir } from '../../lib/cacheStorage';
 import { appAlert as Alert } from '../../lib/appAlert';
 
 function formatBytes(bytes: number, decimals = 1) {
@@ -15,57 +15,33 @@ function formatBytes(bytes: number, decimals = 1) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-async function getCacheSize(): Promise<number> {
-  let size = 0;
-  const cacheDir = FileSystem.cacheDirectory;
-  if (!cacheDir) return 0;
-  try {
-    const info = await FileSystem.getInfoAsync(cacheDir);
-    if (!info.exists) return 0;
-    
-    const files = await FileSystem.readDirectoryAsync(cacheDir);
-    for (const file of files) {
-      const fileUri = `${cacheDir}${file}`;
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      if (fileInfo.exists) {
-        size += fileInfo.size || 0;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to calculate cache size:', e);
-  }
-  return size;
-}
-
-async function clearCacheDir() {
-  const cacheDir = FileSystem.cacheDirectory;
-  if (!cacheDir) return;
-  try {
-    const files = await FileSystem.readDirectoryAsync(cacheDir);
-    for (const file of files) {
-      const fileUri = `${cacheDir}${file}`;
-      await FileSystem.deleteAsync(fileUri, { idempotent: true });
-    }
-  } catch (e) {
-    console.warn('Failed to clear cache directory:', e);
-  }
-}
-
 const LOCALIZED = {
   zh: {
     notificationsSetting: '通知设置',
+    cacheUnavailable: '暂时无法统计',
+    cacheFailed: '部分缓存未能清理，请稍后重试。',
+    cacheHint: '统计可清理的临时文件。下载的词典、收藏和个人数据会保留。',
     manageSubscriptions: '管理订阅',
   },
   'zh-Hant': {
     notificationsSetting: '通知設置',
+    cacheUnavailable: '暫時無法統計',
+    cacheFailed: '部分快取未能清理，請稍後重試。',
+    cacheHint: '統計可清理的暫存檔案。下載的詞典、收藏和個人資料會保留。',
     manageSubscriptions: '管理訂閱',
   },
   en: {
     notificationsSetting: 'Notifications',
+    cacheUnavailable: 'Size unavailable',
+    cacheFailed: 'Some cached files could not be cleared. Please try again later.',
+    cacheHint: 'Shows removable temporary files. Downloaded dictionaries, favorites and personal data are kept.',
     manageSubscriptions: 'Manage Subscriptions',
   },
   it: {
     notificationsSetting: 'Notifiche',
+    cacheUnavailable: 'Dimensione non disponibile',
+    cacheFailed: 'Alcuni file temporanei non sono stati eliminati. Riprova più tardi.',
+    cacheHint: 'Mostra i file temporanei eliminabili. Dizionari scaricati, preferiti e dati personali vengono conservati.',
     manageSubscriptions: 'Gestisci Iscrizioni',
   }
 };
@@ -73,27 +49,54 @@ const LOCALIZED = {
 export default function SettingsIndexScreen() {
   const { colors, t, themeMode, languageMode, tabBarStyle, setTabBarStyle, language } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
-  const [cacheSize, setCacheSize] = useState('0.0 KB');
+  const [cacheSize, setCacheSize] = useState('…');
+  const [clearingCache, setClearingCache] = useState(false);
+  const cacheRequest = useRef(0);
+  const clearingRef = useRef(false);
 
-  useEffect(() => {
-    async function updateCacheSize() {
-      const size = await getCacheSize();
-      setCacheSize(formatBytes(size));
-    }
-    updateCacheSize();
-  }, []);
+  useFocusEffect(useCallback(() => {
+    const request = ++cacheRequest.current;
+    setCacheSize('…');
+    getCacheSize().then(size => {
+      if (request === cacheRequest.current) setCacheSize(formatBytes(size));
+    }).catch(error => {
+      console.warn('Failed to calculate cache size:', error);
+      if (request === cacheRequest.current) setCacheSize(localized.cacheUnavailable);
+    });
+    return () => { cacheRequest.current++; };
+  }, [localized.cacheUnavailable]));
 
   const handleClearCache = () => {
+    if (clearingRef.current) return;
     Alert.alert(t('clearCache'), t('confirmClearCache'), [
       { text: t('cancel'), style: 'cancel' },
-      { 
-        text: t('confirm'), 
+      {
+        text: t('confirm'),
         onPress: async () => {
-          await clearCacheDir();
-          const size = await getCacheSize();
-          setCacheSize(formatBytes(size));
-          Alert.alert(t('clearCache'), t('cacheCleared'));
-        } 
+          if (clearingRef.current) return;
+          clearingRef.current = true;
+          setClearingCache(true);
+          const request = ++cacheRequest.current;
+          let failed = false;
+          try {
+            await clearCacheDir();
+          } catch (error) {
+            failed = true;
+            console.warn('Failed to clear cache directory:', error);
+          }
+          try {
+            const size = await getCacheSize();
+            if (request === cacheRequest.current) setCacheSize(formatBytes(size));
+          } catch {
+            if (request === cacheRequest.current) setCacheSize(localized.cacheUnavailable);
+          } finally {
+            clearingRef.current = false;
+            setClearingCache(false);
+          }
+          if (request === cacheRequest.current) {
+            Alert.alert(t('clearCache'), failed ? localized.cacheFailed : t('cacheCleared'));
+          }
+        }
       }
     ]);
   };
@@ -199,14 +202,17 @@ export default function SettingsIndexScreen() {
           <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{t('dataStorage')}</Text>
         </View>
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Pressable style={styles.rowPressable} onPress={handleClearCache}>
+          <Pressable style={styles.rowPressable} onPress={handleClearCache} disabled={clearingCache}>
             <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t('clearCache')}</Text>
             <View style={styles.rowRight}>
-              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{cacheSize}</Text>
+              <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{clearingCache ? '…' : cacheSize}</Text>
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>
           </Pressable>
         </View>
+        <Text style={{ color: colors.textMuted, fontSize: 12, marginHorizontal: 20, marginTop: 8 }}>
+          {localized.cacheHint}
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );

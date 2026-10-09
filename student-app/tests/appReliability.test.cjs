@@ -15,6 +15,7 @@ function load(file, modules = {}, globals = {}) {
 }
 const rome = load('lib/romeTime.ts');
 const eventTime = load('lib/eventTime.ts');
+const stationSearch = load('lib/stationSearch.ts');
 
 test('Rome day and quiet hours do not depend on device timezone, including DST', () => {
   const original = process.env.TZ;
@@ -34,7 +35,7 @@ test('Rome day and quiet hours do not depend on device timezone, including DST',
 
 test('train wall times use Rome rather than the phone clock', () => {
   const service = load('lib/viaggiaTrenoService.ts', { './network': {}, './romeTime': rome,
-    './eventTime': eventTime, '../assets/stations': { stations: [] } }, { process, __DEV__: false });
+    './stationSearch': stationSearch, './eventTime': eventTime, '../assets/stations': { stations: [] } }, { process, __DEV__: false });
   const original = process.env.TZ;
   try {
     process.env.TZ = 'Asia/Shanghai';
@@ -46,21 +47,21 @@ test('train wall times use Rome rather than the phone clock', () => {
 });
 
 test('network deadline covers a stalled response body even when abort is ignored', async () => {
-  const network = load('lib/network.ts', {}, { fetch: async () => ({ arrayBuffer: () => new Promise(() => {}) }) });
+  const network = load('lib/network.ts', {}, { fetch: async () => ({ blob: () => new Promise(() => {}) }) });
   await assert.rejects(network.fetchWithDeadline('https://example.invalid', undefined, 20), e => e.kind === 'timeout');
 });
 
 test('missing train schedules never invent arrival times or foreign stops', async () => {
   const network = load('lib/network.ts', {}, { fetch: async () => Response.json([]) });
   const service = load('lib/viaggiaTrenoService.ts', { './network': network, './romeTime': rome,
-    './eventTime': eventTime, '../assets/stations': { stations: [] } }, { process, __DEV__: false });
+    './stationSearch': stationSearch, './eventTime': eventTime, '../assets/stations': { stations: [] } }, { process, __DEV__: false });
   assert.equal(await service.getFutureItaloTrainSchedule('999', 'Unknown origin', 'Unknown destination', Date.now()), null);
   const original = { number: '294', category: 'NJ', stops: [], destination: 'Provided by API' };
   assert.equal(service.adjustInternationalTrainStatus(original), original);
   assert.equal(original.stops.length, 0);
   const offline = load('lib/network.ts', {}, { fetch: async () => { throw new Error('offline'); } });
   const offlineService = load('lib/viaggiaTrenoService.ts', { './network': offline, './romeTime': rome,
-    './eventTime': eventTime, '../assets/stations': { stations: [] } }, { process, __DEV__: false, console: { log() {}, warn() {} } });
+    './stationSearch': stationSearch, './eventTime': eventTime, '../assets/stations': { stations: [] } }, { process, __DEV__: false, console: { log() {}, warn() {} } });
   await assert.rejects(offlineService.searchTrain('123'), e => e.kind === 'network');
 });
 test('network cancellation, HTTP error bodies, and empty responses remain usable', async () => {

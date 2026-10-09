@@ -1,5 +1,6 @@
+import { translateItalianNotice } from '../../../lib/noticeTranslation';
 import { romeDay } from '../../../lib/romeTime';
-import { fetchWithDeadline, NetworkError } from '../../../lib/network';
+import { NetworkError } from '../../../lib/network';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
@@ -323,14 +324,7 @@ export default function TrainStatusScreen() {
 
     setIsTranslatingAlert(true);
     try {
-      const response = await fetchWithDeadline(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(selectedAlert.text)}&langpair=it|zh-CN`
-      );
-      const payload = await response.json();
-      const translatedText = payload?.responseData?.translatedText;
-      if (!response.ok || typeof translatedText !== 'string' || !translatedText.trim()) {
-        throw new Error('Translation unavailable');
-      }
+      const translatedText = await translateItalianNotice(selectedAlert.text);
       setTranslatedAlertText(translatedText);
       setShowTranslatedAlert(true);
     } catch (error) {

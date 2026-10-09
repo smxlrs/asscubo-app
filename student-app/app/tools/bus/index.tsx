@@ -633,6 +633,13 @@ export default function BusBoardScreen() {
   const [activeStopName, setActiveStopName] = useState<string | null>(null);
   const [activeStopZone, setActiveStopZone] = useState<string | null>(null);
   const stopRequest = useRef(0);
+  const mapRequest = useRef(0);
+  const nearbyRequest = useRef(0);
+  useEffect(() => () => {
+    stopRequest.current++;
+    mapRequest.current++;
+    nearbyRequest.current++;
+  }, []);
   const [cardCollapsed, setCardCollapsed] = useState(false);
   const [activeStopLines, setActiveStopLines] = useState<string[]>([]);
   const [selectedRouteFilters, setSelectedRouteFilters] = useState<string[]>(['ALL']);
@@ -806,6 +813,7 @@ export default function BusBoardScreen() {
 
   useEffect(() => {
     if (activeTab !== 'map') {
+      mapRequest.current++;
       setMapReady(false);
       hasAutoLocatedMapRef.current = false;
       return;
@@ -917,8 +925,10 @@ export default function BusBoardScreen() {
 
   // Fuzzy stop name search debouncer
   useEffect(() => {
+    let active = true;
     if (stopNameInput.trim().length < 2) {
       setSuggestions([]);
+      setSearchingStops(false);
       return;
     }
 
@@ -926,15 +936,16 @@ export default function BusBoardScreen() {
     const delay = setTimeout(async () => {
       try {
         const results = await searchStopsByName(stopNameInput);
+        if (!active) return;
         setSuggestions(results);
       } catch (err) {
         console.warn('Stop name search error:', err);
       } finally {
-        setSearchingStops(false);
+        if (active) setSearchingStops(false);
       }
     }, 400);
 
-    return () => clearTimeout(delay);
+    return () => { active = false; clearTimeout(delay); };
   }, [stopNameInput]);
 
   // Execute HelloBus arrival query (Parallel fetch for each line to maximize data density)
@@ -1073,7 +1084,7 @@ export default function BusBoardScreen() {
     return serviceAlerts.filter((alert) => alert.affected_lines.some((line) => queriedLines.has(line.trim().toUpperCase().replace(/\s+/g, ''))));
   }, [activeStopLines, allArrivals, serviceAlerts]);
 
-  const loadNearbyStops = async (latitude: number, longitude: number) => {
+  const loadNearbyStops = async (latitude: number, longitude: number, request: number) => {
     setNearbyLoading(true);
     try {
       // A roughly 2 km box is enough for a compact nearby-stop list; sort by
@@ -1087,6 +1098,7 @@ export default function BusBoardScreen() {
         longitude + longitudeDelta,
         200,
       );
+      if (request !== nearbyRequest.current) return;
       const toRadians = (value: number) => value * Math.PI / 180;
       const distance = (stop: BusStop) => {
         if (stop.latitude === null || stop.longitude === null) return Number.POSITIVE_INFINITY;
@@ -1101,31 +1113,39 @@ export default function BusBoardScreen() {
         .sort((a, b) => distance(a) - distance(b))
         .slice(0, 3));
     } catch (error) {
+      if (request !== nearbyRequest.current) return;
       console.warn('Nearby stop lookup error:', error);
       setNearbyStops([]);
     } finally {
-      setNearbyLoading(false);
+      if (request === nearbyRequest.current) setNearbyLoading(false);
     }
   };
 
   const refreshNearbyStops = async (requestPermission = false) => {
+    const request = ++nearbyRequest.current;
+    setNearbyLoading(true);
     try {
       let { status } = await Location.getForegroundPermissionsAsync();
       if (requestPermission && status !== 'granted') {
         const result = await Location.requestForegroundPermissionsAsync();
         status = result.status;
       }
+      if (request !== nearbyRequest.current) return;
       setLocationPermission(status === 'granted' ? 'granted' : 'denied');
       if (status !== 'granted') {
         setNearbyStops([]);
         return;
       }
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      await loadNearbyStops(location.coords.latitude, location.coords.longitude);
+      if (request !== nearbyRequest.current) return;
+      await loadNearbyStops(location.coords.latitude, location.coords.longitude, request);
     } catch (error) {
+      if (request !== nearbyRequest.current) return;
       console.warn('Nearby location error:', error);
       setLocationPermission('denied');
       setNearbyStops([]);
+    } finally {
+      if (request === nearbyRequest.current) setNearbyLoading(false);
     }
   };
 
@@ -1162,6 +1182,7 @@ export default function BusBoardScreen() {
     try {
       const message = JSON.parse(event.nativeEvent.data);
       if (message.type === 'MAP_MOVED') {
+        const request = ++mapRequest.current;
         const { lat, lon, zoom, minLat, maxLat, minLon, maxLon } = message;
         setMapCenter({ lat, lon });
         
@@ -1181,6 +1202,7 @@ export default function BusBoardScreen() {
             1000 // Query more stops to support clustering over visible bounds
           );
         }
+        if (request !== mapRequest.current) return;
         webViewRef.current?.injectJavaScript(`window.updateStops(${JSON.stringify(stops)}); true;`);
       } else if (message.type === 'SELECT_STOP') {
         const { code, name } = message;

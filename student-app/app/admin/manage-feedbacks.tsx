@@ -1,3 +1,4 @@
+import { getFeedbackMedia } from '../../lib/feedbackMedia';
 import { localDateInput } from '../../lib/eventTime';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Image, Modal, ScrollView, TextInput } from 'react-native';
@@ -19,33 +20,6 @@ type Feedback = {
   reply: string | null;
   replied_at: string | null;
   replied_by_name: string | null;
-};
-
-type FeedbackMedia = {
-  url: string;
-  type: 'image' | 'video';
-};
-
-const isVideoUrl = (url: string) => /\.(mp4|mov|m4v|webm|avi)(?:\?|$)/i.test(url);
-
-const getFeedbackMedia = (mediaUrl: string | null): FeedbackMedia[] => {
-  if (!mediaUrl) return [];
-
-  try {
-    const parsed = JSON.parse(mediaUrl);
-    if (Array.isArray(parsed)) {
-      return parsed
-        .filter((item): item is { url: string; type?: string } => typeof item?.url === 'string')
-        .map((item) => ({
-          url: item.url,
-          type: item.type === 'video' || isVideoUrl(item.url) ? 'video' : 'image',
-        }));
-    }
-  } catch {
-    // Legacy feedbacks contain one plain public URL.
-  }
-
-  return [{ url: mediaUrl, type: isVideoUrl(mediaUrl) ? 'video' : 'image' }];
 };
 
 const STATUS_DETAILS = {

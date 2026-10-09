@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { buildNotificationContent } from '../../lib/notificationContent';
 import { broadcastPushNotification } from '../../lib/notificationService';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -237,6 +238,11 @@ export default function PublishNotificationScreen() {
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
+    if (uploadingImage || uploadingBodyImage) {
+      Alert.alert('图片上传中', '请等待图片上传完成后再发布。');
+      return;
+    }
     if (!title.trim()) {
       Alert.alert('校验失败', '请输入通知标题');
       return;
@@ -255,7 +261,7 @@ export default function PublishNotificationScreen() {
       // 1. Insert into notifications table (default category to 'general' if null to satisfy DB not-null constraint)
       const notificationPayload = {
         title: title.trim(),
-        content: summary.trim(),
+        content: buildNotificationContent(summary, contentBody),
         category: category || 'general',
         link: finalLink,
         cover_image: finalCover,
@@ -419,7 +425,7 @@ export default function PublishNotificationScreen() {
               <Pressable
                 style={[styles.pickerButton, { backgroundColor: colors.primary }]}
                 onPress={handleSelectImage}
-                disabled={uploadingImage}
+                disabled={uploadingImage || submitting}
               >
                 {uploadingImage ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
@@ -458,7 +464,7 @@ export default function PublishNotificationScreen() {
                 { backgroundColor: colors.surfaceElevated, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }
               ]}
               onPress={handleInsertBodyImage}
-              disabled={uploadingBodyImage}
+              disabled={uploadingBodyImage || submitting}
             >
               {uploadingBodyImage ? (
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -502,9 +508,9 @@ export default function PublishNotificationScreen() {
 
         {/* Submit Button */}
         <Pressable
-          style={[styles.submitButton, { backgroundColor: colors.primary }, submitting && { opacity: 0.7 }]}
+          style={[styles.submitButton, { backgroundColor: colors.primary }, (submitting || uploadingImage || uploadingBodyImage) && { opacity: 0.7 }]}
           onPress={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || uploadingImage || uploadingBodyImage}
         >
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" size="small" />

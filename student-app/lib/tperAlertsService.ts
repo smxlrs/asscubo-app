@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { fetchWithDeadline } from './network';
+export { translateItalianNotice } from './noticeTranslation';
 
 export type TperServiceAlert = {
   id: string;
@@ -38,31 +38,4 @@ export async function getTperServiceAlerts(): Promise<TperAlertsResult> {
   if (error) return { alerts: [], available: false, lastSyncedAt };
   const alerts = (data || []) as TperServiceAlert[];
   return { alerts, available: true, lastSyncedAt: lastSyncedAt || alerts[0]?.synced_at || null };
-}
-
-function splitForTranslation(value: string): string[] {
-  const pieces = value.match(/[^.!?]+[.!?]?/g) || [value];
-  const chunks: string[] = [];
-  let current = '';
-  for (const piece of pieces) {
-    if (`${current} ${piece}`.trim().length > 420 && current) {
-      chunks.push(current.trim());
-      current = piece;
-    } else current += ` ${piece}`;
-  }
-  if (current.trim()) chunks.push(current.trim());
-  return chunks;
-}
-
-export async function translateItalianNotice(value: string): Promise<string> {
-  const translated = await Promise.all(splitForTranslation(value).map(async (chunk) => {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=it|zh-CN`;
-    const response = await fetchWithDeadline(url);
-    if (!response.ok) throw new Error('Translation service is unavailable.');
-    const payload = await response.json();
-    const text = payload?.responseData?.translatedText;
-    if (!text) throw new Error('Translation service returned no result.');
-    return String(text).replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-  }));
-  return translated.join(' ');
 }

@@ -9,22 +9,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { recordDebugEvent, setDebugLoggingEnabled } from '../../lib/logger';
 import { showCustomAlert } from '../../lib/customAlert';
-import { fetchAppStoreVersion, type AppStoreLookupResult } from '../../lib/appStoreUpdate';
+import { type AppStoreLookupResult } from '../../lib/appStoreUpdate';
+import { checkStoreUpdate } from '../../lib/storeUpdate';
+import { useStoreUpdateAvailable } from '../../hooks/useStoreUpdateAvailable';
 
 const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.asscuboxue.app';
 const APP_STORE_ID = Constants.expoConfig?.extra?.appStoreId as string | undefined;
-const IOS_BUNDLE_ID = Constants.expoConfig?.ios?.bundleIdentifier ?? 'com.asscuboxue.app';
-
-const compareVersions = (left: string, right: string): number => {
-  const a = left.split(/[.-]/).map(part => Number.parseInt(part, 10) || 0);
-  const b = right.split(/[.-]/).map(part => Number.parseInt(part, 10) || 0);
-  const length = Math.max(a.length, b.length);
-  for (let index = 0; index < length; index += 1) {
-    const difference = (a[index] || 0) - (b[index] || 0);
-    if (difference !== 0) return difference;
-  }
-  return 0;
-};
 
 const openAppStoreListing = async (listing: AppStoreLookupResult): Promise<boolean> => {
   const webUrl = listing.trackViewUrl
@@ -118,18 +108,19 @@ const UPDATE_TEXTS: Record<string, {
 export default function AboutIndexScreen() {
   const { colors, t, language } = useTheme();
   const { hasUnreadFeedbackReply } = useAuth();
+  const hasStoreUpdate = useStoreUpdateAvailable();
   const [tapCount, setTapCount] = useState(0);
   const [lastTap, setLastTap] = useState(0);
   const [showLogs, setShowLogs] = useState(false);
   const [toastText, setToastText] = useState<string | null>(null);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
-  const iosUpdateRequest = useRef<AbortController | null>(null);
+  const storeUpdateRequest = useRef<AbortController | null>(null);
 
   useFocusEffect(useCallback(() => {
     setIsCheckingUpdate(false);
     return () => {
-      iosUpdateRequest.current?.abort();
-      iosUpdateRequest.current = null;
+      storeUpdateRequest.current?.abort();
+      storeUpdateRequest.current = null;
     };
   }, []));
 
@@ -223,132 +214,52 @@ export default function AboutIndexScreen() {
   const ut = UPDATE_TEXTS[language] ?? UPDATE_TEXTS['zh'];
 
   const handleCheckUpdate = async () => {
-    if (Platform.OS === 'android') {
-      const playStoreUpdate = NativeModules.PlayStoreUpdate as {
-        checkForUpdate?: () => Promise<'available' | 'up_to_date' | 'unavailable'>;
-        openGooglePlay?: () => Promise<boolean>;
-      } | undefined;
-
-      const startedAt = Date.now();
-      setIsCheckingUpdate(true);
-      try {
-        const status = playStoreUpdate?.checkForUpdate
-          ? await playStoreUpdate.checkForUpdate()
-          : 'unavailable';
-        const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
-        if (remainingDelay) {
-          await new Promise((resolve) => setTimeout(resolve, remainingDelay));
-        }
-        setIsCheckingUpdate(false);
-        recordDebugEvent('update', 'Google Play update check completed', { status });
-
-        if (status === 'available') {
-          showCustomAlert(ut.updateAvailable, undefined, [
-            { text: ut.cancel, style: 'cancel' },
-            {
-              text: ut.updateNow,
-              onPress: async () => {
-                try {
-                  const opened = playStoreUpdate?.openGooglePlay
-                    ? await playStoreUpdate.openGooglePlay()
-                    : false;
-                  recordDebugEvent('update', 'Attempted to open Google Play update listing', { opened });
-                  if (!opened) {
-                    showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
-                  }
-                } catch (error) {
-                  recordDebugEvent('update', 'Failed to open Google Play listing', error, 'warn');
-                  showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
-                }
-              },
-            },
-          ], { buttonPresentation: 'text', textButtonAlignment: 'end' });
-        } else if (status === 'up_to_date') {
-          showCustomAlert(ut.upToDate, undefined, [{ text: ut.confirm }], { buttonPresentation: 'text' });
-        } else {
-          recordDebugEvent('update', 'Google Play update check unavailable', { reason: 'native-module-missing-or-store-unavailable' }, 'warn');
-          showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
-        }
-      } catch (error) {
-        const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
-        if (remainingDelay) {
-          await new Promise((resolve) => setTimeout(resolve, remainingDelay));
-        }
-        setIsCheckingUpdate(false);
-        recordDebugEvent('update', 'Google Play update check failed', error, 'warn');
-        showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
-      }
+    if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
+      showCustomAlert(ut.storeTitle, ut.storeDescription, [
+        { text: ut.cancel, style: 'cancel' },
+        { text: ut.openStore, onPress: () => Linking.openURL(GOOGLE_PLAY_URL) },
+      ], { icon: 'update' });
       return;
     }
-
-    if (Platform.OS === 'ios') {
-      if (iosUpdateRequest.current) return;
-      const request = new AbortController();
-      iosUpdateRequest.current = request;
-      const startedAt = Date.now();
-      setIsCheckingUpdate(true);
-      try {
-        const listing = await fetchAppStoreVersion(APP_STORE_ID, IOS_BUNDLE_ID, request.signal);
-        const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
-        if (remainingDelay) await new Promise(resolve => setTimeout(resolve, remainingDelay));
-        if (request.signal.aborted) return;
-        setIsCheckingUpdate(false);
-
-        if (!listing?.version) {
-          recordDebugEvent('update', 'App Store update check unavailable', { bundleId: IOS_BUNDLE_ID }, 'warn');
-          showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
-          return;
-        }
-
-        const updateAvailable = compareVersions(listing.version, currentVersion) > 0;
-        recordDebugEvent('update', 'App Store update check completed', {
-          currentVersion,
-          storeVersion: listing.version,
-          updateAvailable,
-        });
-
-        if (!updateAvailable) {
-          showCustomAlert(ut.upToDate, undefined, [{ text: ut.confirm }], { buttonPresentation: 'text' });
-          return;
-        }
-
+    if (storeUpdateRequest.current) return;
+    const request = new AbortController();
+    storeUpdateRequest.current = request;
+    setIsCheckingUpdate(true);
+    const startedAt = Date.now();
+    try {
+      const result = await checkStoreUpdate(request.signal);
+      const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
+      if (remainingDelay) await new Promise(resolve => setTimeout(resolve, remainingDelay));
+      if (request.signal.aborted) return;
+      if (result.status === 'up_to_date') {
+        showCustomAlert(ut.upToDate, undefined, [{ text: ut.confirm }], { buttonPresentation: 'text' });
+      } else if (result.status === 'available') {
         showCustomAlert(ut.updateAvailable, undefined, [
           { text: ut.cancel, style: 'cancel' },
           {
             text: ut.updateNow,
             onPress: async () => {
-              const opened = await openAppStoreListing(listing);
-              recordDebugEvent('update', 'Attempted to open App Store listing', { opened, trackId: listing.trackId });
-              if (!opened) {
+              try {
+                const opened = Platform.OS === 'ios'
+                  ? await openAppStoreListing(result.listing ?? {})
+                  : await NativeModules.PlayStoreUpdate?.openGooglePlay?.();
+                if (!opened) throw new Error('Store listing unavailable');
+              } catch (error) {
+                recordDebugEvent('update', 'Failed to open store listing', error, 'warn');
                 showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
               }
             },
           },
         ], { buttonPresentation: 'text', textButtonAlignment: 'end' });
-      } catch (error) {
-        const remainingDelay = Math.max(0, 500 - (Date.now() - startedAt));
-        if (remainingDelay) await new Promise(resolve => setTimeout(resolve, remainingDelay));
-        if (request.signal.aborted) return;
-        setIsCheckingUpdate(false);
-        recordDebugEvent('update', 'App Store update check failed', error, 'warn');
+      } else {
         showCustomAlert(ut.storeTitle, ut.unableToCheck, [{ text: ut.confirm }], { messageAlign: 'left', buttonPresentation: 'text' });
-      } finally {
-        if (iosUpdateRequest.current === request) iosUpdateRequest.current = null;
       }
-      return;
+    } finally {
+      if (storeUpdateRequest.current === request) {
+        storeUpdateRequest.current = null;
+        setIsCheckingUpdate(false);
+      }
     }
-
-    const storeUrl = GOOGLE_PLAY_URL;
-
-    if (!storeUrl) {
-      showCustomAlert(ut.storeTitle, ut.storeUnavailable, [{ text: ut.confirm }], { messageAlign: 'left' });
-      return;
-    }
-
-    showCustomAlert(ut.storeTitle, ut.storeDescription, [
-      { text: ut.cancel, style: 'cancel' },
-      { text: ut.openStore, onPress: () => Linking.openURL(storeUrl) },
-    ], { icon: 'update' });
   };
 
   const updateCheckingContent = (
@@ -408,7 +319,10 @@ export default function AboutIndexScreen() {
             onPress={handleCheckUpdate}
             disabled={isCheckingUpdate}
           >
-            <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{ut.checkUpdate}</Text>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{ut.checkUpdate}</Text>
+              {hasStoreUpdate && <View style={styles.redDot} />}
+            </View>
             <View style={styles.rowRight}>
               <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
             </View>

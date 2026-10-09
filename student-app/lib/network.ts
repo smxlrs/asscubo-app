@@ -15,7 +15,8 @@ export async function fetchWithDeadline(input: RequestInfo | URL, init?: Request
   const request = async () => {
     if (init?.signal?.aborted) { abort(); throw new NetworkError('network', '请求已取消'); }
     const response = await fetch(input, { ...init, signal: controller.signal });
-    const body = await response.arrayBuffer();
+    // Keep a Blob so React Native decodes text as UTF-8, rather than mapping each byte to a character.
+    const body = await response.blob();
     return new Response([204, 205, 304].includes(response.status) ? null : body, {
       status: response.status, statusText: response.statusText, headers: response.headers,
     });

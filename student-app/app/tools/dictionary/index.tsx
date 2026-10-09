@@ -677,7 +677,8 @@ export default function DictionaryScreen() {
   const collapsedDictsRef = useRef<{ [dictId: string]: boolean }>({});
 
   const textInputRef = useRef<TextInput>(null);
-  const currentSearchRef = useRef<string>('');
+  const currentSearchRef = useRef(0);
+  useEffect(() => () => { currentSearchRef.current++; }, []);
   const webviewRef = useRef<WebView>(null);
   const initialDefinitionsRef = useRef<{ dict_id: string; definition: string }[]>([]);
 
@@ -784,6 +785,7 @@ export default function DictionaryScreen() {
 
   // Handle prefix input to fetch suggestions dynamically
   useEffect(() => {
+    let active = true;
     if (!searchQuery.trim() || enabledDictIds.length === 0) {
       setSuggestions([]);
       setLoadingSuggestions(false);
@@ -795,15 +797,16 @@ export default function DictionaryScreen() {
     const delayDebounce = setTimeout(async () => {
       try {
         const list = await searchWords(searchQuery, enabledDictIds);
+        if (!active) return;
         setSuggestions(list);
       } catch (err) {
         console.error(err);
       } finally {
-        setLoadingSuggestions(false);
+        if (active) setLoadingSuggestions(false);
       }
     }, 120); // 120ms debounce for high performance typing
 
-    return () => clearTimeout(delayDebounce);
+    return () => { active = false; clearTimeout(delayDebounce); };
   }, [searchQuery, enabledDictIds]);
 
   // Save word search query to AsyncStorage history list
@@ -834,7 +837,7 @@ export default function DictionaryScreen() {
     setActiveWord(word);
     
     // Track search sequence to avoid race conditions
-    currentSearchRef.current = word;
+    const request = ++currentSearchRef.current;
     
     // Clear old definitions first, and start primary search spinner
     setDefinitions([]);
@@ -845,6 +848,7 @@ export default function DictionaryScreen() {
 
     try {
       await saveToHistory(word);
+      if (currentSearchRef.current !== request) return;
 
       // Separate enabled dictionaries by their loaded status
       const loadedDictIds = enabledDictIds.filter(
@@ -873,7 +877,7 @@ export default function DictionaryScreen() {
       }
 
       // Check if user has navigated away or searched another word before updating state
-      if (currentSearchRef.current !== word) return;
+      if (currentSearchRef.current !== request) return;
 
       // Render initial results instantly and turn off main spinner
       initialDefinitionsRef.current = initialDefs;
@@ -906,18 +910,18 @@ export default function DictionaryScreen() {
           await new Promise(resolve => setTimeout(resolve, 0));
 
           const loadNext = async () => {
-            while (currentSearchRef.current === currentWord) {
+            while (currentSearchRef.current === request) {
               const index = nextIndex++;
               if (index >= pendingDictIds.length) return;
               const dictId = pendingDictIds[index];
 
               try {
                 const def = await getSingleDefinition(currentWord, dictId);
-                if (currentSearchRef.current !== currentWord) return;
+                if (currentSearchRef.current !== request) return;
 
                 if (def) {
                   setDefinitions(prev => {
-                    if (currentSearchRef.current !== currentWord) return prev;
+                    if (currentSearchRef.current !== request) return prev;
                     const newDefs = [...prev, def];
                     // Maintain user preferred dictionary display order
                     return newDefs.sort((a, b) => {
@@ -941,7 +945,7 @@ export default function DictionaryScreen() {
               } catch (err) {
                 console.error(`Progressive background lookup error for ${dictId}:`, err);
               } finally {
-                if (currentSearchRef.current === currentWord) {
+                if (currentSearchRef.current === request) {
                   loadedCount++;
                   setBackgroundProgress({ loaded: loadedCount, total: pendingDictIds.length });
                 }
@@ -951,14 +955,14 @@ export default function DictionaryScreen() {
 
           await Promise.all(Array.from({ length: workerCount }, () => loadNext()));
           
-          if (currentSearchRef.current === currentWord) {
+          if (currentSearchRef.current === request) {
             setBackgroundSearching(false);
           }
         })();
       }
     } catch (err) {
       console.error('Error during progressive search:', err);
-      if (currentSearchRef.current === word) {
+      if (currentSearchRef.current === request) {
         setSearching(false);
         setBackgroundSearching(false);
       }
@@ -966,7 +970,7 @@ export default function DictionaryScreen() {
   };
 
   const handleClearSearch = () => {
-    currentSearchRef.current = '';
+    currentSearchRef.current++;
     setSearchQuery('');
     setSuggestions([]);
     setDefinitions([]);
@@ -1042,7 +1046,12 @@ export default function DictionaryScreen() {
             placeholder={inputFocused ? "" : ls('placeholder')}
             placeholderTextColor={colors.textMuted}
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={(value) => {
+              currentSearchRef.current++;
+              setSearching(false);
+              setBackgroundSearching(false);
+              setSearchQuery(value);
+            }}
             onFocus={() => {
               setIsFocused(true);
               setInputFocused(true);

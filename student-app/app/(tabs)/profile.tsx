@@ -1,3 +1,4 @@
+import { useStoreUpdateAvailable } from '../../hooks/useStoreUpdateAvailable';
 import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Image, Animated, type StyleProp, type ViewStyle } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -102,6 +103,7 @@ const LOCALIZED = {
 };
 
 export default function ProfileScreen() {
+  const hasStoreUpdate = useStoreUpdateAvailable();
   const userObj = useAuth();
   const user = userObj?.user;
   const profile = userObj?.profile;
@@ -192,7 +194,7 @@ export default function ProfileScreen() {
               <ProfileBootstrapIcon name="info" size={22} color={colors.textSecondary} style={styles.menuIcon} />
               <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={{ fontSize: 15, color: colors.textPrimary }}>{t('about')}</Text>
-                {hasUnreadFeedbackReply && (
+                {(hasUnreadFeedbackReply || hasStoreUpdate) && (
                   <View style={styles.redDot} />
                 )}
               </View>

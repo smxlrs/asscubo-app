@@ -1,6 +1,7 @@
+import { getFeedbackMedia } from '../../lib/feedbackMedia';
 import { localDateInput } from '../../lib/eventTime';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Image, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Image, RefreshControl, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { appAlert as Alert } from '../../lib/appAlert';
@@ -166,6 +167,7 @@ export default function MyFeedbacksScreen() {
   };
 
   const renderFeedbackItem = ({ item }: { item: UserFeedback }) => {
+    const media = getFeedbackMedia(item.media_url);
     const statusText = localized[item.status] || item.status;
     const statusColor = STATUS_COLORS[item.status] || '#999';
 
@@ -190,16 +192,21 @@ export default function MyFeedbacksScreen() {
         </Text>
 
         {/* Media Preview if attached */}
-        {item.media_url && (
-          <View style={[styles.mediaContainer, { borderColor: colors.border }]}>
-            {item.media_url.toLowerCase().endsWith('.mp4') ? (
-              <View style={[styles.videoPlaceholder, { backgroundColor: colors.surfaceElevated }]}>
-                <MaterialCommunityIcons name="video" size={24} color={colors.textSecondary} />
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginLeft: 6 }}>视频文件已附加</Text>
-              </View>
-            ) : (
-              <Image source={{ uri: item.media_url }} style={styles.attachedImage} resizeMode="cover" />
-            )}
+        {media.length > 0 && (
+          <View style={styles.mediaGrid}>
+            {media.map((attachment, index) => (
+              <Pressable key={attachment.url + index}
+                style={[styles.mediaContainer, { borderColor: colors.border }]}
+                onPress={() => Linking.openURL(attachment.url).catch(() => Alert.alert('无法打开附件', '请稍后重试。'))}>
+                {attachment.type === 'video' ? (
+                  <View style={[styles.videoPlaceholder, { backgroundColor: colors.surfaceElevated }]}>
+                    <MaterialCommunityIcons name="video" size={24} color={colors.textSecondary} />
+                  </View>
+                ) : (
+                  <Image source={{ uri: attachment.url }} style={styles.attachedImage} resizeMode="cover" />
+                )}
+              </Pressable>
+            ))}
           </View>
         )}
 
@@ -400,8 +407,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 12,
   },
+  mediaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
   mediaContainer: {
-    width: '100%',
+    width: '48%',
     height: 150,
     borderRadius: 8,
     borderWidth: 1,

@@ -34,12 +34,12 @@ export default function AdminDashboardScreen() {
           onPress: async () => {
             setClearing(true);
             try {
-              // 1. 获取最新10篇文章的ID（包括软删的，防止因误删而在此期间被微信重新同步）
+              // 1. 多取一篇判断是否有历史文章，保留最新10篇的ID（包括软删的，防止因误删而在此期间被微信重新同步）
               const { data, error } = await supabase
                 .from('articles')
                 .select('id')
                 .order('created_at', { ascending: false })
-                .limit(10);
+                .limit(11);
 
               if (error) throw error;
 
@@ -49,18 +49,18 @@ export default function AdminDashboardScreen() {
                 return;
               }
 
-              const latestIds = data.map(item => item.id);
+              const latestIds = data.slice(0, 10).map(item => item.id);
               
               // 2. 仅删除除了最新10个ID之外且【已被软删除/未发布】的文章
-              const { error: deleteError } = await supabase
+              const { error: deleteError, count: deletedCount } = await supabase
                 .from('articles')
-                .delete()
+                .delete({ count: 'exact' })
                 .eq('is_published', false)
                 .not('id', 'in', `(${latestIds.join(',')})`);
 
               if (deleteError) throw deleteError;
 
-              Alert.alert('清理成功', '已成功从数据库中彻底清除旧的历史已删文章。');
+              Alert.alert('清理成功', '已清理 ' + (deletedCount ?? 0) + ' 篇旧的已删除/未发布文章。');
             } catch (err: any) {
               console.error('Failed to clear old articles:', err);
               Alert.alert('清理失败', err.message || '请检查网络或权限后重试。');

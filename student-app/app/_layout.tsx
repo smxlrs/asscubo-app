@@ -1,3 +1,4 @@
+import { checkStoreUpdateOnColdStart } from '../lib/storeUpdate';
 import React, { useEffect, useState, useRef } from 'react';
 import { initLogger, recordDebugEvent } from '../lib/logger';
 initLogger();
@@ -280,6 +281,10 @@ function AppContent() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    void checkStoreUpdateOnColdStart();
+  }, []);
+
   return (
     <ThemeProvider>
       <AuthProvider>

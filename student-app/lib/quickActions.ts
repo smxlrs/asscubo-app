@@ -72,7 +72,7 @@ export const ALL_QUICK_ACTIONS: QuickActionConfig[] = [
     id: 'announcements',
     titleKey: 'quickAction_announcements',
     subtitleKey: 'quickAction_announcements_desc',
-    href: '/(tabs)/announcements',
+    href: '/announcements',
     iosIcon: 'symbol:bell.fill',
     androidIcon: 'shortcut_announcements',
   },
