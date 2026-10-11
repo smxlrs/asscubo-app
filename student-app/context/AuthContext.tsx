@@ -1,3 +1,4 @@
+import { NETWORK_TIMEOUT_MS } from '../lib/network';
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
@@ -7,7 +8,7 @@ import { AppState } from 'react-native';
 import { AdminPermission, ALL_ADMIN_PERMISSIONS } from '../lib/adminPermissions';
 import { detachPushDevice, finishPushLogout } from '../lib/pushDevice';
 
-const AUTH_TIMEOUT_MS = 5000;
+const AUTH_TIMEOUT_MS = NETWORK_TIMEOUT_MS;
 const PROFILE_MAX_ATTEMPTS = 3;
 const PROFILE_RETRY_DELAY_MS = 1200;
 
@@ -17,11 +18,16 @@ function getEmailDomain(email: string) {
 }
 
 /** 给任意 Promise 加超时，超时时 resolve(null) 而非 reject，防止崩溃 */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-  return Promise.race([
-    promise,
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-  ]);
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), ms); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 type Profile = {

@@ -1,3 +1,4 @@
+import { networkErrorKey } from '../../lib/network';
 import { romeParts } from '../../lib/romeTime';
 import React, { useEffect, useState } from 'react';
 import {
@@ -37,12 +38,13 @@ export default function CommunityScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [errorReason, setErrorReason] = useState('requestErrorUnknown');
   const [selectedType, setSelectedType] = useState('general');
 
   async function fetchPosts() {
     try {
       setHasError(false);
-      const { data, error } = await supabase
+      const { data, error, status } = await supabase
         .from('community_posts')
         .select('id, title, content, group_type, group_value, reply_count, created_at, author:author_id(name, faculty)')
         .eq('group_type', selectedType)
@@ -50,10 +52,11 @@ export default function CommunityScreen() {
         .order('created_at', { ascending: false })
         .limit(30);
 
-      if (error) throw error;
+      if (error) throw { ...error, status };
       if (data) setPosts(data as any);
     } catch (e) {
       console.warn('Failed to fetch community posts:', e);
+      setErrorReason(networkErrorKey(e));
       setHasError(true);
     } finally {
       setLoading(false);
@@ -121,7 +124,7 @@ export default function CommunityScreen() {
             {t('networkErrorTitle') || '网络似乎出了点问题'}
           </Text>
           <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
-            {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+            {t(errorReason)}
           </Text>
           <TouchableOpacity
             style={[styles.retryBtn, { backgroundColor: colors.primary }]}

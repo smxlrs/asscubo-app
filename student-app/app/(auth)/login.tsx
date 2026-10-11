@@ -1,3 +1,4 @@
+import { networkErrorKey } from '../../lib/network';
 import React, { useRef, useState } from 'react';
 import { 
   View, 
@@ -81,7 +82,7 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       console.error('Send OTP error:', err);
-      setErrorMsg(t('sendOtpError'));
+      setErrorMsg(networkErrorKey(err) === 'requestErrorUnknown' ? t('sendOtpError') : t(networkErrorKey(err)));
     } finally {
       setSendingOtp(false);
     }
@@ -162,7 +163,7 @@ export default function LoginScreen() {
             router.replace('/(tabs)');
           }
         } catch (err) {
-          setErrorMsg(t('loginVerifyFailed'));
+          setErrorMsg(networkErrorKey(err) === 'requestErrorUnknown' ? t('loginVerifyFailed') : t(networkErrorKey(err)));
         } finally {
           setLoading(false);
         }

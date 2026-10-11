@@ -1,3 +1,4 @@
+import { NETWORK_TIMEOUT_MS } from './network';
 import { NativeModules, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { fetchAppStoreVersion, type AppStoreLookupResult } from './appStoreUpdate';
@@ -41,7 +42,7 @@ async function checkPlayStore(signal: AbortSignal): Promise<StoreUpdateResult> {
   const interrupted = new Promise<never>((_, reject) => {
     cancel = () => reject(new Error('Store update check cancelled'));
     signal.addEventListener('abort', cancel, { once: true });
-    timer = setTimeout(() => reject(new Error('Store update check timed out')), 12_000);
+    timer = setTimeout(() => reject(new Error('Store update check timed out')), NETWORK_TIMEOUT_MS);
   });
   try {
     if (signal.aborted) throw new Error('Store update check cancelled');

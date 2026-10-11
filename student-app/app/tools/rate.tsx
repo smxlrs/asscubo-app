@@ -1,4 +1,5 @@
-import { fetchWithDeadline, NetworkError } from '../../lib/network';
+import { networkErrorText } from '../../lib/networkMessages';
+import { fetchWithDeadline, networkErrorKey, requireSuccessfulResponse } from '../../lib/network';
 import { formatRome } from '../../lib/romeTime';
 import React, { useCallback, useEffect, useState } from 'react';
 import { 
@@ -231,6 +232,7 @@ export default function RateConverterScreen() {
     setLoading(true);
     try {
       const response = await fetchWithDeadline('https://open.er-api.com/v6/latest/EUR');
+      requireSuccessfulResponse(response);
       const data = await response.json();
       if (request !== rateRequest.current) return;
       if (response.ok && data && data.result === 'success' && data.rates && typeof data.rates.EUR === 'number') {
@@ -247,7 +249,7 @@ export default function RateConverterScreen() {
           showToast(localized.refreshSuccess);
         }
       } else {
-        setRates({}); setLastUpdated('无数据'); setInputValues(current => ({ [latestInput.current.activeCurrency]: current[latestInput.current.activeCurrency] || '0' }));
+        setRates({}); setLastUpdated('requestErrorData'); setInputValues(current => ({ [latestInput.current.activeCurrency]: current[latestInput.current.activeCurrency] || '0' }));
         if (isManual) {
           showToast(localized.invalidData, 'error');
         }
@@ -255,9 +257,9 @@ export default function RateConverterScreen() {
     } catch (error) {
       if (request !== rateRequest.current) return;
       console.log('Error fetching exchange rates:', error);
-      setRates({}); setLastUpdated(error instanceof NetworkError ? '无网络' : '无数据'); setInputValues(current => ({ [latestInput.current.activeCurrency]: current[latestInput.current.activeCurrency] || '0' }));
+      setRates({}); setLastUpdated(networkErrorKey(error)); setInputValues(current => ({ [latestInput.current.activeCurrency]: current[latestInput.current.activeCurrency] || '0' }));
       if (isManual) {
-        showToast(localized.updateFail, 'error');
+        showToast(networkErrorText(networkErrorKey(error), language), 'error');
       }
     } finally {
       if (request === rateRequest.current) setLoading(false);
@@ -340,7 +342,7 @@ export default function RateConverterScreen() {
       
     return {
       label: localized.benchmarkLabel.replace('{name}', displayName),
-      value: Number.isFinite(rateToCny) ? `1 ${displayCode} = ${rateToCny.toFixed(4)} CNY` : lastUpdated
+      value: Number.isFinite(rateToCny) ? `1 ${displayCode} = ${rateToCny.toFixed(4)} CNY` : networkErrorText(lastUpdated, language, true)
     };
   };
 
@@ -387,8 +389,8 @@ export default function RateConverterScreen() {
               {cardInfo.value}
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-            <Text style={[styles.updatedText, { color: colors.textMuted }]}>{lastUpdated}</Text>
+          <View style={{ flexDirection: lastUpdated.startsWith('requestError') ? 'column' : 'row', justifyContent: 'space-between', alignItems: lastUpdated.startsWith('requestError') ? 'flex-start' : 'center', marginTop: 6 }}>
+            <Text style={[styles.updatedText, { color: colors.textMuted }]}>{networkErrorText(lastUpdated, language)}</Text>
             <Text style={{ fontSize: 11, color: colors.textMuted }}>{localized.dataSource}</Text>
           </View>
         </View>

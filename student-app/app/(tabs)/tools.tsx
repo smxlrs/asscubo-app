@@ -1,4 +1,5 @@
-import { fetchWithDeadline, NetworkError } from '../../lib/network';
+import { networkErrorText } from '../../lib/networkMessages';
+import { fetchWithDeadline, networkErrorKey, requireSuccessfulResponse } from '../../lib/network';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, Animated as RNAnimated, BackHandler } from 'react-native';
 import { router, useNavigation } from 'expo-router';
@@ -580,13 +581,14 @@ export default function ToolsScreen() {
     const fetchRate = async () => {
       try {
         const response = await fetchWithDeadline('https://open.er-api.com/v6/latest/EUR');
-        const data = await response.json();
+        requireSuccessfulResponse(response);
+      const data = await response.json();
         if (response.ok && data?.result === 'success' && typeof data?.rates?.CNY === 'number' && Number.isFinite(data.rates.CNY) && data.rates.CNY > 0) {
           setEurToCny(data.rates.CNY);
         } else { setEurToCny(null); setRateState('无数据');
         }
       } catch (error) {
-        setEurToCny(null); setRateState(error instanceof NetworkError ? '无网络' : '无数据');
+        setEurToCny(null); setRateState(networkErrorKey(error));
         console.log('Error fetching EUR to CNY rate for Tools tab:', error);
       }
     };
@@ -674,7 +676,7 @@ export default function ToolsScreen() {
                     id={tool.id}
                     tool={tool}
                     eurToCny={eurToCny}
-                    rateState={rateState}
+                    rateState={networkErrorText(rateState, language, true)}
                     language={language}
                     t={t}
                     colors={colors}

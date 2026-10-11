@@ -1,4 +1,4 @@
-import { fetchWithDeadline } from './network';
+import { fetchWithDeadline, NetworkError, requireSuccessfulResponse } from './network';
 import { supabase } from './supabase';
 
 export interface BusArrival {
@@ -64,16 +64,14 @@ export async function fetchBusArrivals(stopCode: string, lineCode = ''): Promise
       body: soapEnvelope,
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP 错误: ${response.status}`);
-    }
+    requireSuccessfulResponse(response);
 
     const xmlResponse = await response.text();
     
     // Extract QueryHellobusResult node using regex
     const match = xmlResponse.match(/<QueryHellobusResult>([\s\S]*?)<\/QueryHellobusResult>/);
     if (!match) {
-      throw new Error('解析响应数据失败');
+      throw new NetworkError('data', 'Invalid bus response');
     }
 
     const resultText = match[1].trim();

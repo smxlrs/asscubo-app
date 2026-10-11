@@ -1,5 +1,6 @@
+import { networkErrorText } from '../../../lib/networkMessages';
 import React, { useState, useEffect, useRef } from 'react';
-import { NetworkError } from '../../../lib/network';
+import { networkErrorKey } from '../../../lib/network';
 import {
   StyleSheet,
   Text,
@@ -369,10 +370,10 @@ export default function StationBoardScreen() {
     } catch (e) {
       if (targetMode === 'departures') {
         setDepartures([]);
-        setErrorDep(e instanceof NetworkError ? '无网络' : '无数据');
+        setErrorDep(networkErrorKey(e));
       } else {
         setArrivals([]);
-        setErrorArr(e instanceof NetworkError ? '无网络' : '无数据');
+        setErrorArr(networkErrorKey(e));
       }
     } finally {
       if (targetMode === 'departures') {
@@ -826,7 +827,7 @@ export default function StationBoardScreen() {
           ) : errorDep ? (
             <View style={styles.centerContainer}>
               <MaterialIcons name="error-outline" size={48} color={colors.error} />
-              <Text style={[styles.errorText, { color: colors.error }]}>{errorDep}</Text>
+              <Text style={[styles.errorText, { color: colors.error }]}>{networkErrorText(errorDep, language)}</Text>
               <Pressable
                 onPress={handleRefreshDep}
                 style={[styles.retryBtn, { backgroundColor: colors.primary }]}
@@ -869,7 +870,7 @@ export default function StationBoardScreen() {
           ) : errorArr ? (
             <View style={styles.centerContainer}>
               <MaterialIcons name="error-outline" size={48} color={colors.error} />
-              <Text style={[styles.errorText, { color: colors.error }]}>{errorArr}</Text>
+              <Text style={[styles.errorText, { color: colors.error }]}>{networkErrorText(errorArr, language)}</Text>
               <Pressable
                 onPress={handleRefreshArr}
                 style={[styles.retryBtn, { backgroundColor: colors.primary }]}

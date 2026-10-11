@@ -1,3 +1,4 @@
+import { networkErrorKey } from '../lib/network';
 import { notificationPreview } from '../lib/notificationContent';
 import { localDateInput } from '../lib/eventTime';
 import React, { useEffect, useState, useRef } from 'react';
@@ -60,6 +61,7 @@ export default function AnnouncementsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [errorReason, setErrorReason] = useState('requestErrorUnknown');
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
 
@@ -96,8 +98,8 @@ export default function AnnouncementsScreen() {
           .limit(20)
       ]);
 
-      if (notificationsRes.error) throw notificationsRes.error;
-      if (articlesRes.error) throw articlesRes.error;
+      if (notificationsRes.error) throw { ...notificationsRes.error, status: notificationsRes.status };
+      if (articlesRes.error) throw { ...articlesRes.error, status: articlesRes.status };
 
       const notificationsData = (notificationsRes.data || []).map(item => ({
         id: item.id,
@@ -137,6 +139,7 @@ export default function AnnouncementsScreen() {
       setDisplayLimit(40);
     } catch (e) {
       console.error('Failed to fetch initial announcements data:', e);
+      setErrorReason(networkErrorKey(e));
       setHasError(true);
     } finally {
       setLoading(false);
@@ -334,7 +337,7 @@ export default function AnnouncementsScreen() {
             {t('networkErrorTitle') || '网络似乎出了点问题'}
           </Text>
           <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
-            {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+            {t(errorReason)}
           </Text>
           <TouchableOpacity
             style={[styles.retryBtn, { backgroundColor: colors.primary }]}

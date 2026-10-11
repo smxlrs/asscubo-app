@@ -1,5 +1,5 @@
 import { stationSearchKey } from './stationSearch';
-import { fetchWithDeadline, NetworkError } from './network';
+import { fetchWithDeadline, NetworkError, NETWORK_TIMEOUT_MS, requireSuccessfulResponse } from './network';
 import { romeToIso } from './eventTime';
 import { romeDay, romeParts } from './romeTime';
 import { stations, Station } from '../assets/stations';
@@ -9,7 +9,7 @@ const BASE_URL = `${SUPABASE_URL}/functions/v1/viaggia-treno-proxy`;
 
 const isViaggiaProxyUrl = (url: string) => url.startsWith(BASE_URL);
 
-export const fetchWithTimeout = async (url: string, options?: RequestInit, timeoutMs = 3000): Promise<Response> => {
+export const fetchWithTimeout = async (url: string, options?: RequestInit, timeoutMs = NETWORK_TIMEOUT_MS): Promise<Response> => {
   return fetchWithDeadline(url, {
     ...options,
     headers: isViaggiaProxyUrl(url)
@@ -630,8 +630,9 @@ export async function searchStations(query: string): Promise<VtStation[]> {
   // 2. Fall back to ViaggiaTreno autocompletaStazione API
   try {
     const encoded = encodeURIComponent(searchKey);
-    const response = await fetchWithTimeout(`${BASE_URL}/autocompletaStazione/${encoded}`, undefined, 5000);
-    if (!response.ok) return [];
+    const response = await fetchWithTimeout(`${BASE_URL}/autocompletaStazione/${encoded}`, undefined, NETWORK_TIMEOUT_MS);
+    if (response.status === 404) return [];
+    requireSuccessfulResponse(response);
     
     const text = await response.text();
     if (!text.trim()) return [];
@@ -663,8 +664,9 @@ export async function searchTrain(trainNumber: string | number): Promise<VtTrain
 
   const vtPromise = (async (): Promise<VtTrainSearchMatch[]> => {
     try {
-      const response = await fetchWithTimeout(`${BASE_URL}/cercaNumeroTrenoTrenoAutocomplete/${cleanNumber}`, {}, 5000);
-      if (!response.ok) return [];
+      const response = await fetchWithTimeout(`${BASE_URL}/cercaNumeroTrenoTrenoAutocomplete/${cleanNumber}`, {}, NETWORK_TIMEOUT_MS);
+      if (response.status === 404) return [];
+      requireSuccessfulResponse(response);
 
       const text = await response.text();
       if (!text.trim()) return [];
@@ -694,8 +696,9 @@ export async function searchTrain(trainNumber: string | number): Promise<VtTrain
     try {
       const response = await fetchWithTimeout(`https://italoinviaggio.italotreno.it/api/RicercaTrenoService?TrainNumber=${cleanNumber}`, {
         headers: ITALO_HEADERS
-      }, 2500);
-      if (!response.ok) return [];
+      }, NETWORK_TIMEOUT_MS);
+      if (response.status === 404) return [];
+      requireSuccessfulResponse(response);
       const data = await response.json();
       if (data && !data.IsEmpty && data.TrainSchedule) {
         const schedule = data.TrainSchedule;
@@ -747,8 +750,9 @@ export async function getTrainStatus(
     try {
       const response = await fetchWithTimeout(`https://italoinviaggio.italotreno.it/api/RicercaTrenoService?TrainNumber=${cleanNum}`, {
         headers: ITALO_HEADERS
-      }, 4000);
-      if (!response.ok) return null;
+      }, NETWORK_TIMEOUT_MS);
+      if (response.status === 404) return null;
+      requireSuccessfulResponse(response);
       const data = await response.json();
       return parseItaloTrainStatus(data);
     } catch (error) {
@@ -763,12 +767,13 @@ export async function getTrainStatus(
       ? `${BASE_URL}/andamentoTreno/${cleanStation}/${cleanNum}/${timestamp}`
       : `${BASE_URL}/andamentoTreno/${cleanStation}/${cleanNum}`;
       
-    const response = await fetchWithTimeout(url, undefined, 8000);
+    const response = await fetchWithTimeout(url, undefined, NETWORK_TIMEOUT_MS);
     if (response.status === 204) {
       // Train not started or cancelled, no details
       return null;
     }
-    if (!response.ok) return null;
+    if (response.status === 404) return null;
+    requireSuccessfulResponse(response);
 
     const data = await response.json();
     if (!data) return null;
@@ -852,11 +857,12 @@ export async function getStationBoard(
       const path = mode === 'departures' ? 'partenze' : 'arrivi';
       const url = `${BASE_URL}/${path}/${cleanId}/${encodeURIComponent(formattedTime)}`;
       
-      const response = await fetchWithTimeout(url, undefined, 20000);
+      const response = await fetchWithTimeout(url, undefined, NETWORK_TIMEOUT_MS);
       if (__DEV__) {
         console.log(`[Train][ViaggiaTreno] ${mode} date=${dateTime.toString()} iso=${dateTime.toISOString()} status=${response.status} url=${url}`);
       }
-      if (!response.ok) return [];
+      if (response.status === 404) return [];
+      requireSuccessfulResponse(response);
 
       const body = await response.text();
       let data: any;
@@ -866,7 +872,7 @@ export async function getStationBoard(
         if (__DEV__) {
           console.warn(`[Train][ViaggiaTreno] JSON parse failed length=${body.length}`, parseError);
         }
-        return [];
+        throw new NetworkError('data', 'Invalid station board response', undefined, parseError);
       }
       if (!Array.isArray(data)) return [];
       if (__DEV__) {
@@ -919,7 +925,8 @@ export async function getStationBoard(
     try {
       const url = `https://italoinviaggio.italotreno.it/api/RicercaStazioneService?CodiceStazione=${italoInfo.code}&NomeStazione=${italoInfo.slug}`;
       const response = await fetchWithDeadline(url, { headers: ITALO_HEADERS });
-      if (!response.ok) return [];
+      if (response.status === 404) return [];
+      requireSuccessfulResponse(response);
 
       const data = await response.json();
       if (!data || data.IsEmpty) return [];
@@ -1053,7 +1060,7 @@ export async function getTransportStrikes(): Promise<VtTransportStrikeResult> {
     const response = await fetchWithTimeout(
       MIT_STRIKES_RSS_URL,
       { headers: { Accept: 'application/rss+xml, application/xml, text/xml, */*' } },
-      8000
+      NETWORK_TIMEOUT_MS
     );
     if (!response.ok) return { strikes: [], available: false };
 
@@ -1112,7 +1119,7 @@ export async function getTrainAlerts(
   destination: string
 ): Promise<VtAlertResult> {
   try {
-    const response = await fetchWithTimeout(`${BASE_URL}/news/0/it`, undefined, 8000);
+    const response = await fetchWithTimeout(`${BASE_URL}/news/0/it`, undefined, NETWORK_TIMEOUT_MS);
     if (!response.ok) return { alerts: [], available: false };
     const data = await response.json();
     if (!Array.isArray(data)) return { alerts: [], available: false };

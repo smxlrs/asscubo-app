@@ -1,5 +1,6 @@
+import { networkErrorText } from '../../../lib/networkMessages';
 import { romeParts, romeMinutes } from '../../../lib/romeTime';
-import { NetworkError } from '../../../lib/network';
+import { NetworkError, networkErrorKey } from '../../../lib/network';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
@@ -1039,7 +1040,7 @@ export default function BusBoardScreen() {
       addToRecents(code, displayName);
     } catch (err: any) {
       if (request !== stopRequest.current) return;
-      setQueryError(err instanceof NetworkError ? '无网络' : (err.message || '无数据'));
+      setQueryError(err instanceof NetworkError ? networkErrorKey(err) : (err.message || '无数据'));
       setArrivals([]);
       setAllArrivals([]);
     } finally {
@@ -1425,7 +1426,7 @@ export default function BusBoardScreen() {
         ) : queryError ? (
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons name="alert-circle-outline" size={32} color={colors.error} style={{ marginBottom: 8 }} />
-            <Text style={[styles.errorText, { color: colors.textPrimary, marginBottom: 12 }]}>{queryError}</Text>
+            <Text style={[styles.errorText, { color: colors.textPrimary, marginBottom: 12 }]}>{networkErrorText(queryError, language)}</Text>
             <Pressable
               onPress={() => executeQuery(activeStopCode!, activeStopName!)}
               style={({ pressed }) => [

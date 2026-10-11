@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const ts = require('typescript');
 
 function load(file, modules = {}, globals = {}) {
-  const context = { exports: {}, console, Promise, ArrayBuffer, Uint8Array, URL, Response,
+  const context = { exports: {}, console, Promise, ArrayBuffer, Uint8Array, URL, Response, TextDecoder,
     AbortController, setTimeout, clearTimeout,
     require: name => { assert.ok(name in modules, name); return modules[name]; }, ...globals };
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), {
@@ -101,6 +101,45 @@ test('React Native fetch polyfill preserves raw UTF-8 JSON and original binary b
   });
   const response = await network.fetchWithDeadline('https://example.invalid');
   assert.equal((await response.json()).responseData.translatedText, JSON.parse(text).responseData.translatedText);
+  const bytes = await (await network.fetchWithDeadline('https://example.invalid')).arrayBuffer();
+  assert.deepEqual(Buffer.from(bytes), Buffer.from(text, 'utf8'));
+});
+
+
+test('Expo 56 ArrayBuffer responses work when RN Blob rejects buffers, including cloned UTF-8', async () => {
+  // Match the actual mobile combination: Expo fetch response + RN Response/Blob.
+  class RNBlob extends Blob {
+    constructor(parts = [], options) {
+      if (parts.some(part => part instanceof ArrayBuffer || ArrayBuffer.isView(part))) {
+        throw new Error("Creating blobs from 'ArrayBuffer' and 'ArrayBufferView' are not supported");
+      }
+      super(parts, options);
+    }
+  }
+  class FileReader {
+    readAsText(blob) { blob.text().then(text => { this.result = text; this.onload(); }); }
+    readAsArrayBuffer(blob) { blob.arrayBuffer().then(bytes => { this.result = bytes; this.onload(); }); }
+  }
+  const globals = { Blob: RNBlob, FileReader, Promise, ArrayBuffer, Uint8Array, URLSearchParams, setTimeout };
+  globals.globalThis = globals;
+  vm.createContext(globals);
+  vm.runInContext(fs.readFileSync(require.resolve('whatwg-fetch/dist/fetch.umd.js'), 'utf8'), globals);
+  const text = JSON.stringify({ responseData: { translatedText: '罢工／罷工，公交 🚎 città' } });
+  const raw = new TextEncoder().encode(text).buffer;
+  let blobCalls = 0;
+  const network = load('lib/network.ts', {}, {
+    Response: globals.Response,
+    fetch: async () => ({ status: 200, statusText: 'OK', headers: new globals.Headers({ 'content-type': 'application/json' }),
+      arrayBuffer: async () => raw,
+      blob: async () => { blobCalls++; return new RNBlob([raw]); },
+    }),
+  });
+  const response = await network.fetchWithDeadline('https://example.invalid');
+  const clone = response.clone();
+  assert.equal(await response.text(), text);
+  assert.equal((await clone.json()).responseData.translatedText, JSON.parse(text).responseData.translatedText);
+  await assert.rejects(response.text(), /Already read/);
+  assert.equal(blobCalls, 0);
   const bytes = await (await network.fetchWithDeadline('https://example.invalid')).arrayBuffer();
   assert.deepEqual(Buffer.from(bytes), Buffer.from(text, 'utf8'));
 });

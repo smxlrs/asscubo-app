@@ -1,3 +1,4 @@
+import { networkErrorText } from '../../../lib/networkMessages';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Linking, FlatList, RefreshControl, Animated, TextInput, Modal, Platform } from 'react-native';
 import { router, useNavigation } from 'expo-router';
@@ -494,11 +495,16 @@ export default function StudyRoomsScreen() {
                       styles.statusTagText, 
                       { color: item.status.isOpen ? '#10B981' : '#EF4444' }
                     ]}>
-                      {item.status.state === 'offline' ? '无网络' : item.status.state === 'no_data' ? '无数据' : item.status.isOpen ? localized.openNow : localized.closed}
+                      {item.status.state !== 'available' ? networkErrorText('requestErrorNoData', language) : item.status.isOpen ? localized.openNow : localized.closed}
                     </Text>
                   </View>
                 </View>
 
+                {item.status.errorReason && (
+                  <Text style={{ color: colors.error, fontSize: 13, lineHeight: 20, marginBottom: 12 }}>
+                    {networkErrorText(item.status.errorReason, language)}
+                  </Text>
+                )}
                 {/* Meta details */}
                 <View style={styles.metaRow}>
                   {item.status.openingHours ? <View style={styles.metaItem}><Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.status.openingHours}</Text></View> : null}

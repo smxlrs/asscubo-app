@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const ts = require('typescript');
 
 function load(file, modules = {}, globals = {}) {
-  const context = { exports: {}, console, Date, Intl, URL, Response, AbortController, setTimeout, clearTimeout,
+  const context = { exports: {}, console, Date, Intl, URL, Response, TextDecoder, AbortController, setTimeout, clearTimeout,
     require: name => { assert.ok(name in modules, name); return modules[name]; }, ...globals };
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true },
@@ -47,7 +47,7 @@ test('train wall times use Rome rather than the phone clock', () => {
 });
 
 test('network deadline covers a stalled response body even when abort is ignored', async () => {
-  const network = load('lib/network.ts', {}, { fetch: async () => ({ blob: () => new Promise(() => {}) }) });
+  const network = load('lib/network.ts', {}, { fetch: async () => ({ arrayBuffer: () => new Promise(() => {}) }) });
   await assert.rejects(network.fetchWithDeadline('https://example.invalid', undefined, 20), e => e.kind === 'timeout');
 });
 
@@ -71,7 +71,7 @@ test('network cancellation, HTTP error bodies, and empty responses remain usable
   await assert.rejects(network.fetchWithDeadline('https://example.invalid', { signal: controller.signal }), e => e.kind === 'network');
   assert.equal(called, 0);
   const response = await network.fetchWithDeadline('https://example.invalid');
-  assert.equal(response.status, 409); assert.deepEqual(await response.json(), { error: 'full' });
+  assert.equal(response.status, 409); assert.equal((await response.json()).error, 'full');
   const empty = load('lib/network.ts', {}, { fetch: async () => new Response(null, { status: 204 }) });
   assert.equal((await empty.fetchWithDeadline('https://example.invalid')).status, 204);
 });
@@ -145,6 +145,7 @@ test('a late administrator profile cannot restore permissions after sign-out', a
   const session = { user: { id: 'admin', email: 'admin@example.invalid', user_metadata: {} } };
   const chain = { select() { return this; }, eq() { return this; }, single: () => new Promise(resolve => { resolveProfile = resolve; }) };
   const api = load('context/AuthContext.tsx', {
+    '../lib/network': { NETWORK_TIMEOUT_MS: 20000 },
     react, '../lib/supabase': { supabase: {
       auth: { getSession: async () => ({ data: { session } }), onAuthStateChange: callback => { listener = callback; return { data: { subscription: { unsubscribe() {} } } }; }, signOut: async () => { listener('SIGNED_OUT', null); return { error: null }; } },
       from: () => chain,

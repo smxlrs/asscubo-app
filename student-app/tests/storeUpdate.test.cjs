@@ -27,6 +27,7 @@ function harness(os = 'android', globals = {}) {
   const modules = {
     'react-native': { NativeModules: native, Platform: platform },
     'expo-constants': { __esModule: true, default: { expoConfig: { version: '1.0.97', ios: { bundleIdentifier: 'app.test' } } } },
+    './network': { NETWORK_TIMEOUT_MS: 20000 },
     './appStoreUpdate': lookup, './logger': { recordDebugEvent() {} },
   };
   const api = load(source('lib/storeUpdate.ts'), modules, globals);
@@ -101,7 +102,7 @@ test('a stalled native check times out and its eventual result cannot create a d
   });
   const pending = deferred(); h.native.PlayStoreUpdate.checkForUpdate = () => pending.promise;
   const request = h.api.checkStoreUpdateOnColdStart();
-  assert.equal(delay, 12000); timeout();
+  assert.equal(delay, 20000); timeout();
   assert.equal((await request).status, 'unavailable');
   assert.equal(cleared, 1);
   pending.resolve('available'); await new Promise(setImmediate);

@@ -1,6 +1,7 @@
+import { networkErrorText } from '../../../lib/networkMessages';
 import { stationSearchKey } from '../../../lib/stationSearch';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { NetworkError } from '../../../lib/network';
+import { networkErrorKey } from '../../../lib/network';
 import {
   StyleSheet,
   Text,
@@ -529,7 +530,7 @@ export default function TrainToolIndex() {
       }
     } catch (err) {
       if (request !== trainRequest.current) return;
-      setTrainError(err instanceof NetworkError ? '无网络' : '无数据');
+      setTrainError(networkErrorKey(err));
     } finally {
       if (request === trainRequest.current) setLoadingTrain(false);
     }
@@ -755,7 +756,7 @@ export default function TrainToolIndex() {
             {trainError.length > 0 && !loadingTrain && (
               <View style={styles.errorContainer}>
                 <MaterialIcons name="error-outline" size={24} color={colors.error} />
-                <Text style={[styles.errorText, { color: colors.error }]}>{trainError}</Text>
+                <Text style={[styles.errorText, { color: colors.error }]}>{networkErrorText(trainError, language)}</Text>
               </View>
             )}
 

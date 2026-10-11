@@ -1,5 +1,6 @@
+import { networkErrorText } from '../../../lib/networkMessages';
 import { AppState } from 'react-native';
-import { fetchWithDeadline, NetworkError } from '../../../lib/network';
+import { fetchWithDeadline, NetworkError, networkErrorKey, requireSuccessfulResponse } from '../../../lib/network';
 import { romeDay, romeMinutes } from '../../../lib/romeTime';
 import { romeToIso } from '../../../lib/eventTime';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -888,7 +889,7 @@ export default function EmptyClassroomScreen() {
         })
       });
 
-      if (!auleResponse.ok) throw new Error('无法加载教室数据');
+      requireSuccessfulResponse(auleResponse);
       const auleData = await auleResponse.json();
 
       // Determine date range for today (slightly expanded to prevent timezone missing bookings)
@@ -912,11 +913,11 @@ export default function EmptyClassroomScreen() {
         })
       });
 
-      if (!impegniResponse.ok) throw new Error('无法加载课程占用数据');
+      requireSuccessfulResponse(impegniResponse);
       const impegniData = await impegniResponse.json();
 
       if (generation !== fetchGeneration.current) return;
-      if (!Array.isArray(auleData) || !Array.isArray(impegniData)) throw new Error('无数据');
+      if (!Array.isArray(auleData) || !Array.isArray(impegniData)) throw new NetworkError('data', 'Invalid classroom data');
       loadedDay.current = todayStr;
       setClassrooms(auleData);
       setImpegni(impegniData);
@@ -928,17 +929,10 @@ export default function EmptyClassroomScreen() {
       if (generation !== fetchGeneration.current) return;
       setClassrooms([]); setImpegni([]);
       console.error(err);
-      const errMsg = err.message || '';
-      const isNetworkError = (err instanceof NetworkError && ['network', 'timeout'].includes(err.kind)) || !errMsg ||
-                            errMsg.includes('fetch failed') || 
-                            errMsg.includes('Network request failed') || 
-                            errMsg.includes('UnknownHostException') || 
-                            errMsg.includes('Unable to resolve') ||
-                            errMsg.includes('Failed to fetch');
-      const displayError = isNetworkError ? '无网络' : '无数据';
+      const displayError = networkErrorKey(err);
       setError(displayError);
       if (isRefresh) {
-        triggerToast(`❌ ${displayError}`);
+        triggerToast(`❌ ${networkErrorText(displayError, language)}`);
       }
     } finally {
       if (generation === fetchGeneration.current) { setLoading(false); setRefreshing(false); }
@@ -1273,7 +1267,7 @@ export default function EmptyClassroomScreen() {
       ) : error && classrooms.length === 0 ? (
         <View style={styles.center}>
           <MaterialIcons name="error-outline" size={40} color={colors.error} style={{ marginBottom: 8 }} />
-          <Text style={[styles.errorText, { color: colors.textPrimary }]}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.textPrimary }]}>{networkErrorText(error, language)}</Text>
           <Pressable style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => fetchData()}>
             <Text style={styles.retryText}>{getTxt('retry')}</Text>
           </Pressable>

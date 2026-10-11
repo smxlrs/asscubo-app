@@ -1,3 +1,4 @@
+import { NETWORK_TIMEOUT_MS } from './network';
 export type AppStoreLookupResult = {
   trackId?: number;
   version?: string;
@@ -9,7 +10,7 @@ export async function fetchAppStoreVersion(
   appStoreId: string | undefined,
   bundleId: string,
   signal: AbortSignal,
-  timeoutMs = 12_000,
+  timeoutMs = NETWORK_TIMEOUT_MS,
 ): Promise<AppStoreLookupResult | null> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;

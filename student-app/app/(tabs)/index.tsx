@@ -1,5 +1,6 @@
+import { networkErrorText } from '../../lib/networkMessages';
 import { notificationPreview } from '../../lib/notificationContent';
-import { fetchWithDeadline, NetworkError } from '../../lib/network';
+import { fetchWithDeadline, networkErrorKey, requireSuccessfulResponse } from '../../lib/network';
 import { romeParts } from '../../lib/romeTime';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
@@ -481,6 +482,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [errorReason, setErrorReason] = useState('requestErrorUnknown');
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -495,14 +497,14 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!showHomeRate) return;
     fetchWithDeadline('https://open.er-api.com/v6/latest/EUR')
-      .then((response) => response.json())
+      .then((response) => requireSuccessfulResponse(response).json())
       .then((data) => {
         if (data?.result === 'success' && typeof data?.rates?.CNY === 'number') {
           setEurToCny(data.rates.CNY);
-        } else { setEurToCny(null); setRateState('无数据');
+        } else { setEurToCny(null); setRateState('requestErrorData');
         }
       })
-      .catch(error => { setEurToCny(null); setRateState(error instanceof NetworkError ? '无网络' : '无数据'); });
+      .catch(error => { setEurToCny(null); setRateState(networkErrorKey(error)); });
   }, [showHomeRate]);
 
   useEffect(() => {
@@ -620,6 +622,7 @@ export default function HomeScreen() {
       const response = await fetchWithDeadline(
         `https://api.open-meteo.com/v1/forecast?latitude=${cityToFetch.lat}&longitude=${cityToFetch.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&timezone=Europe%2FRome`
       );
+      requireSuccessfulResponse(response);
       const data = await response.json();
       if (request !== weatherRequest.current) return;
       if (response.ok && data?.current && ['temperature_2m', 'apparent_temperature', 'relative_humidity_2m', 'wind_speed_10m', 'weather_code', 'is_day'].every(key => typeof data.current[key] === 'number' && Number.isFinite(data.current[key]))) {
@@ -637,13 +640,13 @@ export default function HomeScreen() {
           color: info.color
         });
       } else {
-        setWeather(null); setWeatherState('无数据');
+        setWeather(null); setWeatherState('requestErrorData');
       }
     } catch (e) {
       if (request !== weatherRequest.current) return;
       console.warn('Failed to fetch weather:', e);
       setWeather(null);
-      setWeatherState(e instanceof NetworkError ? '无网络' : '无数据');
+      setWeatherState(networkErrorKey(e));
     } finally {
       if (request !== weatherRequest.current) return;
       if (isRefresh) {
@@ -707,9 +710,9 @@ export default function HomeScreen() {
           .limit(3),
       ]);
 
-      if (notificationsRes.error) throw notificationsRes.error;
-      if (articlesRes.error) throw articlesRes.error;
-      if (eventsRes.error) throw eventsRes.error;
+      if (notificationsRes.error) throw { ...notificationsRes.error, status: notificationsRes.status };
+      if (articlesRes.error) throw { ...articlesRes.error, status: articlesRes.status };
+      if (eventsRes.error) throw { ...eventsRes.error, status: eventsRes.status };
 
       const combined: Article[] = [];
 
@@ -765,6 +768,7 @@ export default function HomeScreen() {
       }
     } catch (e) {
       console.warn('Failed to fetch home index data:', e);
+      setErrorReason(networkErrorKey(e));
       setHasError(true);
     } finally {
       setLoading(false);
@@ -935,7 +939,7 @@ export default function HomeScreen() {
                       >
                         <Pressable onPress={() => router.push('/tools/rate')} hitSlop={8}>
                           <Text style={[styles.homeRateText, { color: bannerSubtitleColor }]}>
-                            {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny === null ? rateState : `1 EUR = ${eurToCny.toFixed(4)} CNY`}</Text>
+                            {language === 'zh' || language === 'zh-Hant' ? '今日汇率：' : language === 'it' ? 'Cambio oggi:' : "Today's rate:"} <Text style={{ color: colors.primary, fontFamily: FONTS.bold }}>{eurToCny === null ? networkErrorText(rateState, language, true) : `1 EUR = ${eurToCny.toFixed(4)} CNY`}</Text>
                           </Text>
                         </Pressable>
                       </Animated.View>
@@ -1009,7 +1013,7 @@ export default function HomeScreen() {
                 <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : '#A31621'} />
               </View>
             ) : !weather ? (
-              <View style={styles.weatherCenter}><Text style={{ color: colors.textSecondary }}>{weatherState}</Text></View>
+              <View style={styles.weatherCenter}><Text style={{ color: colors.textSecondary }}>{networkErrorText(weatherState, language)}</Text></View>
             ) : (
               <Animated.View style={{ opacity: fadeAnim, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                 <View style={styles.weatherCol}>
@@ -1126,7 +1130,7 @@ export default function HomeScreen() {
                 {t('networkErrorTitle') || '网络似乎出了点问题'}
               </Text>
               <Text style={[styles.errorSubText, { color: colors.textSecondary }]}>
-                {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+                {t(errorReason)}
               </Text>
               <TouchableOpacity
                 style={[styles.errorBtn, { backgroundColor: colors.primary }]}

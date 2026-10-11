@@ -1,3 +1,4 @@
+import { networkErrorKey } from '../../lib/network';
 import { localDateInput } from '../../lib/eventTime';
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, TextInput, Animated, Platform, TouchableOpacity } from 'react-native';
@@ -36,6 +37,7 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [errorReason, setErrorReason] = useState('requestErrorUnknown');
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const [hasMore, setHasMore] = useState(true);
@@ -112,10 +114,10 @@ export default function NotificationsScreen() {
         query = query.eq('category', filter);
       }
 
-      const { data, error } = await query;
+      const { data, error, status } = await query;
 
       if (error) {
-        throw error;
+        throw { ...error, status };
       }
 
       if (data) {
@@ -141,6 +143,7 @@ export default function NotificationsScreen() {
       }
     } catch (e) {
       console.log('Failed to fetch from articles table:', e);
+      setErrorReason(networkErrorKey(e));
       setHasError(true);
     } finally {
       setLoading(false);
@@ -260,7 +263,7 @@ export default function NotificationsScreen() {
             {t('networkErrorTitle') || '网络似乎出了点问题'}
           </Text>
           <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 16 }}>
-            {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+            {t(errorReason)}
           </Text>
           <TouchableOpacity
             style={[styles.retryBtn, { backgroundColor: colors.primary }]}

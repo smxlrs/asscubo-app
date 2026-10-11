@@ -1,3 +1,4 @@
+import { NETWORK_TIMEOUT_MS } from '../lib/network';
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
@@ -267,7 +268,7 @@ export default function LoginCallback() {
       if (active && !verificationSuccess && !errorOccurred) {
         triggerFailure(t('verificationTimeout'));
       }
-    }, 45000);
+    }, NETWORK_TIMEOUT_MS);
 
     return () => {
       active = false;

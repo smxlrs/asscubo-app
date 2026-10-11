@@ -10,7 +10,8 @@ function load(fetch) {
   const code = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
-  const context = { exports: {}, fetch, AbortController, setTimeout, clearTimeout };
+  const context = { exports: {}, fetch, AbortController, setTimeout, clearTimeout,
+    require: name => { assert.equal(name, './network'); return { NETWORK_TIMEOUT_MS: 20000 }; } };
   vm.runInNewContext(code, context);
   return context.exports.fetchAppStoreVersion;
 }

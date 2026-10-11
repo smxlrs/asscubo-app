@@ -1,4 +1,4 @@
-import { fetchWithDeadline, NetworkError } from './network';
+import { fetchWithDeadline, NetworkError, networkErrorKey, requireSuccessfulResponse } from './network';
 
 export type StudyRoom = {
   id: string;
@@ -13,6 +13,7 @@ export type StudyRoom = {
 
 export type StudyRoomStatus = {
   state: 'available' | 'no_data' | 'offline';
+  errorReason?: string;
   occupancyPercent: number | null;
   availableSeats: number | null;
   isOpen: boolean | null;
@@ -489,7 +490,7 @@ export async function fetchStudyRoomStatus(room: StudyRoom): Promise<StudyRoomSt
     const response = await fetchWithDeadline(`https://api.affluences.com/app/v3/sites/${room.affluencesId}`, {
       headers: { Accept: 'application/json', 'x-service-name': 'website' },
     });
-    if (!response.ok) return empty('no_data');
+    requireSuccessfulResponse(response);
     const json = await response.json();
     const forecast = json?.data?.current_forecast;
     if (!forecast || typeof forecast.occupancy !== 'number' || !Number.isFinite(forecast.occupancy)
@@ -498,6 +499,6 @@ export async function fetchStudyRoomStatus(room: StudyRoom): Promise<StudyRoomSt
       availableSeats: Math.max(0, Math.round(room.capacity * (1 - forecast.occupancy / 100))),
       isOpen: forecast.opened, openingHours: '' };
   } catch (error) {
-    return empty(error instanceof NetworkError && ['network', 'timeout'].includes(error.kind) ? 'offline' : 'no_data');
+    return { ...empty(error instanceof NetworkError && ['network', 'timeout'].includes(error.kind) ? 'offline' : 'no_data'), errorReason: networkErrorKey(error) };
   }
 }

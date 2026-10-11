@@ -1,6 +1,7 @@
+import { networkErrorText } from '../../../lib/networkMessages';
 import { translateItalianNotice } from '../../../lib/noticeTranslation';
 import { romeDay } from '../../../lib/romeTime';
-import { NetworkError } from '../../../lib/network';
+import { networkErrorKey } from '../../../lib/network';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
@@ -576,7 +577,7 @@ export default function TrainStatusScreen() {
       }
     } catch (e) {
       console.log(e);
-      setStatus(null); setErrorMsg(e instanceof NetworkError ? '无网络' : '无数据');
+      setStatus(null); setErrorMsg(networkErrorKey(e));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -677,7 +678,7 @@ export default function TrainStatusScreen() {
         {errorMsg ? (
           <View style={styles.centerContainer}>
             <MaterialIcons name="error-outline" size={48} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.error }]}>{errorMsg}</Text>
+            <Text style={[styles.errorText, { color: colors.error }]}>{networkErrorText(errorMsg, language)}</Text>
             <Pressable
               onPress={handleRefresh}
               style={[styles.retryBtn, { backgroundColor: colors.primary }]}

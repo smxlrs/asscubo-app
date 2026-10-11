@@ -1,3 +1,4 @@
+import { networkErrorKey } from '../../../lib/network';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   StyleSheet, 
@@ -439,6 +440,7 @@ const findChapterByTarget = (target: string, allChapters: Chapter[]): Chapter | 
 
 export default function HandbookReaderScreen() {
   const { colors, isDark, t } = useTheme();
+  const [errorReason, setErrorReason] = useState('requestErrorUnknown');
   const navigation = useNavigation();
 
   // Settings states
@@ -678,8 +680,12 @@ export default function HandbookReaderScreen() {
           .order('order_index', { ascending: true });
 
         if (!active) return;
-        if (error || !data || data.length === 0) {
-          throw new Error('Supabase fetch failed or returned empty');
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          setErrorReason('requestErrorNoData');
+          setChapters([]);
+          setCurrentChapter(null);
+          return;
         }
 
         // Process data into hierarchical tree structure
@@ -717,6 +723,7 @@ export default function HandbookReaderScreen() {
       } catch (err) {
         if (!active) return;
         console.log('Using local fallback handbook data:', err);
+        setErrorReason(networkErrorKey(err));
         setChapters([]);
         setCurrentChapter(null);
       } finally {
@@ -1242,7 +1249,7 @@ export default function HandbookReaderScreen() {
           {t('networkErrorTitle') || '网络似乎出了点问题'}
         </Text>
         <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginHorizontal: 40, marginTop: 4, marginBottom: 16 }}>
-          {t('networkErrorSub') || '目前无法连接到服务器，请检查您的网络设置'}
+          {t(errorReason)}
         </Text>
         <Pressable
           style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 }}

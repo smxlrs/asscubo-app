@@ -49,7 +49,7 @@ test('station API fallback receives translated Italian name', async () => {
   let url;
   const service = load(read('lib/viaggiaTrenoService.ts'), {
     './stationSearch': search,
-    './network': { fetchWithDeadline: async value => {
+    './network': { NETWORK_TIMEOUT_MS: 20000, requireSuccessfulResponse: response => response, fetchWithDeadline: async value => {
       url = value; return { ok: true, text: async () => 'RIMINI|S00001' };
     } },
     './romeTime': {}, './eventTime': {}, '../assets/stations': { stations: [] },

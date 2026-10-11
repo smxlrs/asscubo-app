@@ -36,6 +36,7 @@ function screen(file, os = 'ios', verifyError = null) {
       signIn: async () => ({ error: { message: 'Invalid login credentials' } }),
     }) },
     '../../hooks/useOtpCooldown': { useOtpCooldown: () => ({ remaining: 0, startCooldown() {}, resetCooldown() {} }) },
+    '../../lib/network': { networkErrorKey: () => 'requestErrorUnknown' },
     '../../lib/supabase': { translateAuthError: value => value, supabase: { auth: {
       verifyOtp: async args => { calls.push(['verify', args]); return { error: verifyError }; },
       updateUser: async args => { calls.push(['update', args]); return { error: null }; },

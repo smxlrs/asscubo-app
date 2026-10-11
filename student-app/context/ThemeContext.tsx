@@ -1,3 +1,4 @@
+import { networkMessages } from '../lib/networkMessages';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme, View, Platform, NativeModules, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -1282,7 +1283,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const language = getActiveLanguage(languageMode);
 
   const t = (key: string) => {
-    return translations[language]?.[key] || translations['zh'][key] || key;
+    return networkMessages[language]?.[key] || translations[language]?.[key] || translations['zh'][key] || key;
   };
 
   const setThemeMode = async (mode: ThemeMode) => {
