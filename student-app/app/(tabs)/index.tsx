@@ -1,3 +1,4 @@
+import { LoadingImage } from '../../components/LoadingImage';
 import { networkErrorText } from '../../lib/networkMessages';
 import { notificationPreview } from '../../lib/notificationContent';
 import { fetchWithDeadline, networkErrorKey, requireSuccessfulResponse } from '../../lib/network';
@@ -1226,7 +1227,7 @@ export default function HomeScreen() {
                   </View>
                 </View>
                 {item.cover_image ? (
-                  <Image
+                  <LoadingImage
                     source={{
                       uri: item.cover_image,
                       headers: {

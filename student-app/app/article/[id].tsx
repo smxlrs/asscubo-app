@@ -1,3 +1,4 @@
+import { articleImageLoadingScript, articleImageLoadingStyles, imageLoadingMessages } from '../../lib/imageLoading';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -231,6 +232,7 @@ export default function ArticleDetailScreen() {
   }
 
   // 2. If it is local HTML/text content, load a styled local HTML in WebView
+  const imageLabels = imageLoadingMessages[language];
   const localHtml = `
     <!DOCTYPE html>
     <html>
@@ -273,9 +275,10 @@ export default function ArticleDetailScreen() {
             margin-top: 0;
             margin-bottom: 16px;
           }
+          ${articleImageLoadingStyles(colors.border, colors.primary, colors.textSecondary)}
         </style>
       </head>
-      <body>
+      <body data-image-loading="${imageLabels.loading}" data-image-failed="${imageLabels.failed}">
         <h1>${article.title}</h1>
         <div class="meta">
           ${localized.publishDate}${getLocalDateString(article.created_at, language)}
@@ -283,6 +286,7 @@ export default function ArticleDetailScreen() {
         <div>
           ${article.content || `<p>${t('noContent') || '暂无内容'}</p>`}
         </div>
+        <script>${articleImageLoadingScript}</script>
       </body>
     </html>
   `;

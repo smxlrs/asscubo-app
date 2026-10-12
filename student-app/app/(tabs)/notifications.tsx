@@ -1,7 +1,8 @@
+import { LoadingImage } from '../../components/LoadingImage';
 import { networkErrorKey } from '../../lib/network';
 import { localDateInput } from '../../lib/eventTime';
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, Image, TextInput, Animated, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, TextInput, Animated, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -341,7 +342,7 @@ export default function NotificationsScreen() {
                     )}
                   </View>
                   {item.cover_image ? (
-                    <Image
+                    <LoadingImage
                       source={{
                         uri: item.cover_image,
                         headers: {

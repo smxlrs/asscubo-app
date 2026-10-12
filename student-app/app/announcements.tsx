@@ -1,3 +1,4 @@
+import { LoadingImage } from '../components/LoadingImage';
 import { networkErrorKey } from '../lib/network';
 import { notificationPreview } from '../lib/notificationContent';
 import { localDateInput } from '../lib/eventTime';
@@ -435,7 +436,7 @@ export default function AnnouncementsScreen() {
                   {item.summary && <Text style={[styles.cardSummary, { color: colors.textSecondary }]} numberOfLines={2}>{item.summary}</Text>}
                 </View>
                 {item.cover_image ? (
-                  <Image
+                  <LoadingImage
                     source={{
                       uri: item.cover_image,
                       headers: {
