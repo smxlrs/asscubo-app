@@ -149,3 +149,23 @@ test('settings recalculates on each focus and rejects an old measurement', async
   firstResolve(99); await new Promise(setImmediate);
   assert.equal(call, 2); assert.equal(sizes.at(-1), '25');
 });
+
+
+test('complete operator names survive stale local IDs', () => {
+  const service = load(read('lib/viaggiaTrenoService.ts'), {
+    './stationSearch': search, './network': {}, './romeTime': {}, './eventTime': {},
+    '../assets/stations': { stations: [{ id: 'S08412', n: 'Fiumicino Aeroporto' }] },
+  }, { process });
+  assert.equal(service.getCleanStationName('PARCO LEONARDO', 'S08412'), 'Parco Leonardo');
+  assert.equal(service.getCleanStationName('FIUMICINO AEROPORTO', 'S08411'), 'Fiumicino Aeroporto');
+  assert.equal(service.getCleanStationName('', 'S08412'), 'Fiumicino Aeroporto');
+});
+
+test('airport line station IDs match operator train 20405', () => {
+  const catalog = load(read('assets/stations.ts')).stations;
+  for (const [name, id] of [['Fiera di Roma', 'S08413'], ['Parco Leonardo', 'S08412'],
+    ['Fiumicino Aeroporto', 'S08411'], ['Muratella', 'S08400'], ['Villa Bonelli', 'S08399']]) {
+    assert.equal(catalog.find(s => s.n === name).id, id);
+    assert.equal(catalog.filter(s => s.id === id).length, 1);
+  }
+});

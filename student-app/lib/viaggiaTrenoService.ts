@@ -50,7 +50,8 @@ export const fetchWithTimeout = async (url: string, options?: RequestInit, timeo
 export const getCleanStationName = (apiName: string, id?: string): string => {
   let name = String(apiName || '').trim();
   const cleanId = String(id || '').trim();
-  if (cleanId) {
+  // Keep complete operator names authoritative; the local catalog may be outdated.
+  if (cleanId && (!name || name.endsWith('...'))) {
     const found = stations.find(s => s.id === cleanId || s.id === 'S' + cleanId || 'S' + s.id === cleanId);
     if (found) {
       return found.n;
