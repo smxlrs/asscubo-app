@@ -69,6 +69,7 @@
           }
         }
       ],
+      "./plugins/withIosPodDeploymentTarget",
       "./plugins/withViaggiaTrenoNetworkSecurity",
       "./plugins/withLiquidGlassAndroid",
       "./plugins/withPlayStoreUpdateAndroid",
@@ -77,6 +78,7 @@
       "@react-native-community/datetimepicker"
     ],
     "ios": {
+      "deploymentTarget": "16.4",
       "supportsTablet": false,
       "bundleIdentifier": "com.asscuboxue.app",
       "infoPlist": {
