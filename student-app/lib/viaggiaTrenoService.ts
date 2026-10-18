@@ -7,15 +7,44 @@ import { stations, Station } from '../assets/stations';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const BASE_URL = `${SUPABASE_URL}/functions/v1/viaggia-treno-proxy`;
 
-const isViaggiaProxyUrl = (url: string) => url.startsWith(BASE_URL);
+const DIRECT_VIAGGIA_URL = 'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
+const isViaggiaProxyUrl = (url: string) => !!SUPABASE_URL && url.startsWith(`${BASE_URL}/`);
 
 export const fetchWithTimeout = async (url: string, options?: RequestInit, timeoutMs = NETWORK_TIMEOUT_MS): Promise<Response> => {
-  return fetchWithDeadline(url, {
-    ...options,
-    headers: isViaggiaProxyUrl(url)
-      ? { apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '', ...(options?.headers || {}) }
-      : options?.headers,
-  }, timeoutMs);
+  if (!isViaggiaProxyUrl(url)) return fetchWithDeadline(url, options, timeoutMs);
+  const started = Date.now();
+  // Credentials belong only to Supabase, never to the public operator endpoint.
+  const proxyHeaders = new Headers(options?.headers);
+  proxyHeaders.set('apikey', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '');
+  let proxyResponse: Response | undefined;
+  let proxyError: unknown;
+  try {
+    proxyResponse = await fetchWithDeadline(url, { ...options, headers: proxyHeaders }, timeoutMs);
+    if (![401, 403, 408, 429].includes(proxyResponse.status) && proxyResponse.status < 500) return proxyResponse;
+  } catch (error) {
+    if (options?.signal?.aborted || (error instanceof NetworkError && error.reason === 'requestErrorCancelled')) throw error;
+    proxyError = error;
+  }
+  const remaining = timeoutMs - (Date.now() - started);
+  if (remaining <= 0) {
+    if (proxyError) throw proxyError;
+    throw new NetworkError('timeout', 'Train request deadline exceeded');
+  }
+  console.log('[Train][ViaggiaTreno] Proxy unavailable; retrying operator HTTPS', proxyResponse?.status || 'connection error');
+  const directHeaders = new Headers(options?.headers);
+  for (const name of ['apikey', 'authorization', 'cookie']) directHeaders.delete(name);
+  directHeaders.set('Accept', 'application/json, text/plain, */*');
+  // The operator CDN rejects some native HTTP client defaults (including OkHttp).
+  // Match its public web client, as already done for the separate Italo API.
+  directHeaders.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+  directHeaders.set('Referer', 'https://www.viaggiatreno.it/');
+  // Keep the whole operation within one deadline, including reading both bodies.
+  const response = await fetchWithDeadline(`${DIRECT_VIAGGIA_URL}${url.slice(BASE_URL.length)}`, {
+    ...options, headers: directHeaders, credentials: 'omit',
+  }, remaining);
+  console.log('[Train][ViaggiaTreno] Operator HTTPS response', response.status,
+    url.slice(BASE_URL.length).split('/')[1], response.headers.get('content-type'));
+  return response;
 };
 
 export const getCleanStationName = (apiName: string, id?: string): string => {
@@ -657,12 +686,13 @@ export async function searchStations(query: string): Promise<VtStation[]> {
 /**
  * Resolve train number into list of matching runs with origin, station id, and timestamp
  */
-export async function searchTrain(trainNumber: string | number): Promise<VtTrainSearchMatch[]> {
+export async function searchTrain(trainNumber: string | number, operator?: 'italo' | 'trenitalia'): Promise<VtTrainSearchMatch[]> {
   const cleanNumber = normalizeTrainNumber(trainNumber);
   if (!cleanNumber) return [];
   let networkFailure: NetworkError | null = null;
 
   const vtPromise = (async (): Promise<VtTrainSearchMatch[]> => {
+    if (operator === 'italo') return [];
     try {
       const response = await fetchWithTimeout(`${BASE_URL}/cercaNumeroTrenoTrenoAutocomplete/${cleanNumber}`, {}, NETWORK_TIMEOUT_MS);
       if (response.status === 404) return [];
@@ -693,6 +723,7 @@ export async function searchTrain(trainNumber: string | number): Promise<VtTrain
   })();
 
   const italoPromise = (async (): Promise<VtTrainSearchMatch[]> => {
+    if (operator === 'trenitalia') return [];
     try {
       const response = await fetchWithTimeout(`https://italoinviaggio.italotreno.it/api/RicercaTrenoService?TrainNumber=${cleanNumber}`, {
         headers: ITALO_HEADERS
@@ -844,7 +875,8 @@ export async function getTrainStatus(
 export async function getStationBoard(
   stationID: string,
   mode: 'departures' | 'arrivals',
-  dateTime: Date = new Date()
+  dateTime: Date = new Date(),
+  operator?: 'italo' | 'trenitalia'
 ): Promise<VtBoardEntry[]> {
   const cleanId = stationID.trim();
   if (!cleanId) return [];
@@ -852,6 +884,7 @@ export async function getStationBoard(
   let fetchError: any = null;
 
   const vtPromise = (async (): Promise<VtBoardEntry[]> => {
+    if (operator === 'italo') return [];
     try {
       const formattedTime = formatVtDateTime(dateTime);
       const path = mode === 'departures' ? 'partenze' : 'arrivi';
@@ -919,6 +952,7 @@ export async function getStationBoard(
   })();
 
   const italoPromise = (async (): Promise<VtBoardEntry[]> => {
+    if (operator === 'trenitalia') return [];
     const italoInfo = ITALO_STATION_MAP[cleanId];
     if (!italoInfo) return [];
 
@@ -1233,7 +1267,7 @@ export async function getFutureItaloTrainSchedule(
   
   if (destId) {
     try {
-      const board = await getStationBoard(destId, 'arrivals', new Date(scheduledDepartureTime));
+      const board = await getStationBoard(destId, 'arrivals', new Date(scheduledDepartureTime), 'italo');
       const entry = board.find(b => String(b.trainNumber) === String(trainNumber));
       if (entry) {
         arrivalTime = entry.scheduledTime;

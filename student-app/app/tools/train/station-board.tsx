@@ -444,7 +444,9 @@ export default function StationBoardScreen() {
     if (resolvingTrain) return;
     setResolvingTrain(true);
     try {
-      let matches = await searchTrain(entry.trainNumber);
+      // The board already identifies the operator and run. Future Italo trains
+      // may have no live detail yet; do not route them through Trenitalia search.
+      let matches = entry.codiceCliente === 'ITALO' ? [] : await searchTrain(entry.trainNumber, 'trenitalia');
       if (matches.length === 0 && entry.codiceCliente === 'ITALO') {
         matches = [{
           label: `${entry.trainNumber} - ${entry.origin.toUpperCase()} (Italo)`,

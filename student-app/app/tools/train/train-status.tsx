@@ -456,7 +456,16 @@ export default function TrainStatusScreen() {
       let data = null;
       
       // Resolve the latest active run first if we have multiple runs
-      const matches = await searchTrain(trainNumber);
+      const operator = resolvedStationID === 'ITALO' || category === 'NTV' ? 'italo'
+        : resolvedStationID ? 'trenitalia' : undefined;
+      let matches: Awaited<ReturnType<typeof searchTrain>> = [];
+      try {
+        matches = await searchTrain(trainNumber, operator);
+      } catch (error) {
+        // A known run can still have working details even if autocomplete fails.
+        if (!resolvedStationID) throw error;
+        console.warn('[Train] Run search unavailable; requesting known run directly', error);
+      }
       if (matches && matches.length > 0) {
         // Filter matches to only keep those matching resolvedStationID (if present)
         const cleanStationId = (id: string) => String(id || '').trim().toUpperCase().replace(/^S/i, '').replace(/^0+/, '');
@@ -533,9 +542,9 @@ export default function TrainStatusScreen() {
       }
       
       // Fallback
-      if (!data) {
+      if (!data && operator !== 'italo') {
         console.log(`Query for train ${trainNumber} failed. Trying generic match fallback...`);
-        const fallbackMatches = await searchTrain(trainNumber);
+        const fallbackMatches = await searchTrain(trainNumber, operator);
         if (fallbackMatches && fallbackMatches.length > 0) {
           const sorted = [...fallbackMatches].sort((a, b) => parseInt(b.timestamp, 10) - parseInt(a.timestamp, 10));
           const bestMatch = sorted[0];

@@ -5,6 +5,14 @@ const corsHeaders = {
 };
 
 const UPSTREAM_BASE = 'http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
+// The public website's endpoint redirects HTTPS to HTTP. Keep that hop on the
+// server, and use the same request headers as the public web client: the CDN
+// rejects some default native/server user agents with Access Denied.
+const upstreamHeaders = {
+  Accept: 'application/json, text/plain, */*',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  Referer: 'https://www.viaggiatreno.it/',
+};
 
 // Keep this proxy read-only and limited to the public ViaggiaTreno endpoints used by the app.
 const ALLOWED_PATH = /^(?:autocompletaStazione|cercaNumeroTrenoTrenoAutocomplete|andamentoTreno|partenze|arrivi|news)\/[A-Za-z0-9._~+%: '\-]+(?:\/[A-Za-z0-9._~+%: '\-]+){0,3}$/;
@@ -58,7 +66,7 @@ Deno.serve(async (request) => {
   const timeout = setTimeout(() => controller.abort(), 10_000);
   try {
     let upstream = await fetch(`${UPSTREAM_BASE}/${incoming}`, {
-      headers: { Accept: 'application/json, text/plain, */*' },
+      headers: upstreamHeaders,
       redirect: 'manual',
       signal: controller.signal,
     });
@@ -74,7 +82,7 @@ Deno.serve(async (request) => {
         const segments = incoming.split('/');
         segments[segments.length - 1] = encodeURIComponent(formatRomeDateTime(new Date()));
         upstream = await fetch(`${UPSTREAM_BASE}/${segments.join('/')}`, {
-          headers: { Accept: 'application/json, text/plain, */*' },
+          headers: upstreamHeaders,
           redirect: 'manual',
           signal: controller.signal,
         });
