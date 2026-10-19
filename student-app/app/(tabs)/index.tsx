@@ -823,9 +823,9 @@ export default function HomeScreen() {
   function formatDate(dateStr: string) {
     const d = new Date(dateStr);
     if (language === 'zh' || language === 'zh-Hant') {
-      return `${romeParts(d).month}月${romeParts(d).day}日`;
+      return `${romeParts(d).year}年${romeParts(d).month}月${romeParts(d).day}日`;
     }
-    const options: Intl.DateTimeFormatOptions = { timeZone: 'Europe/Rome', month: 'short', day: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { timeZone: 'Europe/Rome', year: 'numeric', month: 'short', day: 'numeric' };
     return d.toLocaleDateString(language === 'it' ? 'it-IT' : 'en-US', options);
   }
 
@@ -1218,25 +1218,29 @@ export default function HomeScreen() {
                     )}
                   </View>
 
-                  <Text style={[styles.articleTitle, { color: colors.textPrimary }]} numberOfLines={2}>{item.title}</Text>
-                  {item.summary ? (
-                    <Text style={[styles.articleSummary, { color: colors.textSecondary }]} numberOfLines={2}>{item.summary}</Text>
-                  ) : null}
-                  <View style={styles.articleMeta}>
-                    <Text style={[styles.articleDate, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
+                  <View>
+                    <Text style={[styles.articleTitle, { color: colors.textPrimary }, item.summary ? { marginBottom: SPACING.xs } : null]} numberOfLines={2}>{item.title}</Text>
+                    {item.summary ? (
+                      <Text style={[styles.articleSummary, { color: colors.textSecondary }]} numberOfLines={2}>{item.summary}</Text>
+                    ) : null}
                   </View>
+                  {!item.cover_image && (
+                    <Text style={[styles.articleDate, styles.articleDateWithoutImage, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
+                  )}
                 </View>
                 {item.cover_image ? (
-                  <LoadingImage
-                    source={{
-                      uri: item.cover_image,
-                      headers: {
-                        Referer: 'https://mp.weixin.qq.com',
-                      },
-                    }}
-                    style={[styles.articleImage, { backgroundColor: colors.border }]}
-                    resizeMode="cover"
-                  />
+                  <View style={styles.articleRight}>
+                    <LoadingImage
+                      source={{
+                        uri: item.cover_image,
+                        headers: { Referer: 'https://mp.weixin.qq.com' },
+                      }}
+                      style={styles.articleImage}
+                      backgroundColor={colors.surface}
+                      resizeMode="contain"
+                    />
+                    <Text style={[styles.articleDate, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
+                  </View>
                 ) : null}
               </TouchableOpacity>
             ))
@@ -1610,16 +1614,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.04)',
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
     shadowColor: '#0A101D',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
   },
-  articleLeft: { flex: 1 },
+  articleLeft: { flex: 1, minWidth: 0, justifyContent: 'space-between' },
+  articleRight: {
+    width: '42%',
+    maxWidth: 176,
+    flexShrink: 0,
+    marginLeft: SPACING.md,
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
   articleHeaderRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: SPACING.xs,
     alignItems: 'center',
     marginBottom: SPACING.xs,
   },
@@ -1638,21 +1652,19 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
     color: COLORS.textPrimary,
     lineHeight: 22,
-    marginBottom: SPACING.xs,
+    marginBottom: 0,
   },
   articleSummary: {
     fontSize: SIZES.sm,
     fontFamily: FONTS.regular,
     color: COLORS.textSecondary,
     lineHeight: 18,
-    marginBottom: SPACING.xs,
+    marginBottom: 0,
   },
-  articleMeta: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-    marginTop: 2,
-  },
+  articleDateWithoutImage: { marginTop: SPACING.xs },
   articleDate: {
+    textAlign: 'right',
+    lineHeight: 18,
     fontSize: SIZES.xs,
     fontFamily: FONTS.regular,
     color: COLORS.textMuted,
@@ -1675,11 +1687,9 @@ const styles = StyleSheet.create({
     color: COLORS.gold,
   },
   articleImage: {
-    width: 80,
-    height: 80,
+    width: '100%',
+    aspectRatio: 2,
     borderRadius: RADIUS.md,
-    marginLeft: SPACING.md,
-    backgroundColor: COLORS.border,
   },
   emptyState: {
     alignItems: 'center',

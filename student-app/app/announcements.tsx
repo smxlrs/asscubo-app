@@ -388,7 +388,7 @@ export default function AnnouncementsScreen() {
               <View style={styles.cardContentRow}>
                 <View style={styles.cardTextContent}>
                   <View style={styles.cardTop}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', rowGap: 4 }}>
                       {/* Pinned Badge */}
                       {item.is_pinned && (
                         <View style={[
@@ -430,7 +430,6 @@ export default function AnnouncementsScreen() {
                         </View>
                       )}
                     </View>
-                    <Text style={[styles.date, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
                   </View>
                   <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={2}>{item.title}</Text>
                   {item.summary && <Text style={[styles.cardSummary, { color: colors.textSecondary }]} numberOfLines={2}>{item.summary}</Text>}
@@ -443,13 +442,14 @@ export default function AnnouncementsScreen() {
                         Referer: 'https://mp.weixin.qq.com',
                       },
                     }}
-                    style={[styles.cardImage, { backgroundColor: colors.border }]}
-                    resizeMode="cover"
+                    style={styles.cardImage}
+                    backgroundColor={colors.surface}
+                    resizeMode="contain"
                   />
                 ) : null}
               </View>
               <View style={styles.cardBottom}>
-                <View />
+                <Text style={[styles.date, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
                 <Text style={[styles.readMore, { color: colors.primary }]}>
                   {!item.link ? t('viewDetailsArrow') : t('readFullArticleArrow')}
                 </Text>
@@ -528,10 +528,13 @@ const styles = StyleSheet.create({
   },
   cardTextContent: {
     flex: 1,
+    minWidth: 0,
   },
   cardImage: {
-    width: 80,
-    height: 80,
+    width: '42%',
+    maxWidth: 176,
+    flexShrink: 0,
+    aspectRatio: 2,
     borderRadius: RADIUS.md,
     marginLeft: SPACING.md,
     backgroundColor: COLORS.border,
@@ -544,9 +547,9 @@ const styles = StyleSheet.create({
   date: { fontSize: SIZES.xs, fontFamily: FONTS.regular, color: COLORS.textMuted },
   cardTitle: { fontSize: SIZES.base, fontFamily: FONTS.semiBold, color: COLORS.textPrimary, lineHeight: 22, marginBottom: SPACING.xs },
   cardSummary: { fontSize: SIZES.sm, fontFamily: FONTS.regular, color: COLORS.textSecondary, lineHeight: 18, marginBottom: SPACING.sm },
-  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: SPACING.sm },
   views: { fontSize: SIZES.xs, fontFamily: FONTS.regular, color: COLORS.textMuted },
-  readMore: { fontSize: SIZES.xs, fontFamily: FONTS.medium, color: COLORS.primary },
+  readMore: { flexShrink: 1, textAlign: 'right', fontSize: SIZES.xs, fontFamily: FONTS.medium, color: COLORS.primary },
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: SPACING.base },
   emptyText: { fontSize: SIZES.base, fontFamily: FONTS.regular, color: COLORS.textMuted },

@@ -3,6 +3,9 @@ import { getDeliveryTokens } from '../_shared/push-recipients.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { getSupabaseAdminKey, isInternalSupabaseRequest } from "../_shared/supabase-keys.ts";
 
+import { syncWebsiteArticles } from '../_shared/wordpress-articles.ts';
+
+const ARTICLE_SOURCE = Deno.env.get('ARTICLE_SOURCE') || 'wordpress';
 const WECHAT_APPID = Deno.env.get("WECHAT_APPID");
 const WECHAT_APPSECRET = Deno.env.get("WECHAT_APPSECRET");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -364,7 +367,7 @@ async function sendPushNotifications(supabase: any, articles: InsertedArticle[])
     to: token,
     sound: "default",
     title: `【综合通知】${article.title}`,
-    body: article.summary || "微信公众号发布了新文章",
+    body: article.summary || "学联发布了新文章",
     data: { category: "general" },
   })));
 
@@ -388,8 +391,14 @@ serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY);
   if (!(await isAuthorized(req, supabase))) return jsonResponse({ status: "error", message: "Unauthorized" }, 401);
-  if (!WECHAT_APPID || !WECHAT_APPSECRET) {
+  if (ARTICLE_SOURCE === 'wechat' && (!WECHAT_APPID || !WECHAT_APPSECRET)) {
     return jsonResponse({ status: "error", message: "Missing WeChat credentials." }, 500);
+  }
+
+  if (!['wechat', 'wordpress'].includes(ARTICLE_SOURCE)) return jsonResponse({ status: 'error', message: 'Invalid ARTICLE_SOURCE' }, 500);
+  let preview = false;
+  if (req.method === 'POST') {
+    try { preview = (await req.json())?.preview === true; } catch { /* Existing manual/cron requests have no body. */ }
   }
 
   const { data: claimed, error: claimError } = await supabase.rpc("claim_wechat_sync_run", {
@@ -410,6 +419,18 @@ serve(async (req) => {
 
   let result: Record<string, unknown> = { status: "error", synced: 0, skipped: 0 };
   try {
+    if (ARTICLE_SOURCE === 'wordpress') {
+      const sync = await syncWebsiteArticles(supabase, preview);
+      const { pushEligible, ...summary } = sync;
+      let push = { batches: 0, failures: 0 };
+      if (!preview) {
+        try { push = await sendPushNotifications(supabase, pushEligible); }
+        catch (error) { push = { batches: 0, failures: 1 }; console.error('Website article push failed:', error); }
+      }
+      result = { status: 'success', ...summary, push_batches: push.batches, push_failures: push.failures };
+      return jsonResponse(result);
+    }
+    if (preview) throw new Error('Preview is supported only for the website article source');
     const publications = await fetchPublications(supabase);
     const candidates = toCandidates(publications);
     const newCandidates = await findNewCandidates(supabase, candidates);

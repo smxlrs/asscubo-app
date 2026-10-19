@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, ImageProps, StyleSheet, Text, View } from 're
 import { useTheme } from '../context/ThemeContext';
 import { imageLoadingMessages } from '../lib/imageLoading';
 
-type Props = Pick<ImageProps, 'source' | 'style' | 'resizeMode'>;
+type Props = Pick<ImageProps, 'source' | 'style' | 'resizeMode'> & { backgroundColor?: string };
 
 export function LoadingImage(props: Props) {
   // Remount the state when a recycled card receives a different image URL.
@@ -11,12 +11,12 @@ export function LoadingImage(props: Props) {
   return <ImageWithPlaceholder key={String(uri)} {...props} />;
 }
 
-function ImageWithPlaceholder({ source, style, resizeMode }: Props) {
+function ImageWithPlaceholder({ source, style, resizeMode, backgroundColor }: Props) {
   const { colors, language } = useTheme();
   const labels = imageLoadingMessages[language];
   const [status, setStatus] = useState<'loading' | 'loaded' | 'failed'>('loading');
   return (
-    <View style={[style, { overflow: 'hidden', backgroundColor: colors.border }]}>
+    <View style={[style, { overflow: 'hidden', backgroundColor: backgroundColor ?? colors.border }]}>
       <Image source={source} resizeMode={resizeMode} style={StyleSheet.absoluteFill}
         onLoad={() => setStatus('loaded')} onError={() => setStatus('failed')} />
       {status !== 'loaded' && (

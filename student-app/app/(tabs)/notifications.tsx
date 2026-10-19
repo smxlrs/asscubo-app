@@ -306,8 +306,8 @@ export default function NotificationsScreen() {
             </View>
           }
           renderItem={({ item }) => {
-            const details = CATEGORY_DETAILS[item.category as keyof typeof CATEGORY_DETAILS];
-            const showBadge = details && item.category !== 'general';
+            const categoryKey = Object.prototype.hasOwnProperty.call(CATEGORY_DETAILS, item.category) ? item.category as keyof typeof CATEGORY_DETAILS : 'general';
+            const details = CATEGORY_DETAILS[categoryKey];
             const isExpanded = expandedId === item.id;
             return (
               <Pressable
@@ -315,21 +315,19 @@ export default function NotificationsScreen() {
                 onPress={() => handlePressNotification(item)}
               >
                 <View style={styles.cardHeader}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.dateText, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
+                  <View style={styles.cardBadges}>
                     {item.is_pinned && (
                       <View style={[styles.badge, { backgroundColor: '#F59E0B20' }]}>
                         <MaterialCommunityIcons name="pin" size={14} color="#F59E0B" style={styles.badgeIcon} />
                         <Text style={[styles.badgeText, { color: '#F59E0B' }]}>{t('featured')}</Text>
                       </View>
                     )}
-                    {showBadge ? (
-                      <View style={[styles.badge, { backgroundColor: details.color + '15' }]}>
+                    <View style={[styles.badge, { backgroundColor: details.color + '15' }]}>
                         <MaterialCommunityIcons name={details.icon as any} size={14} color={details.color} style={styles.badgeIcon} />
-                        <Text style={[styles.badgeText, { color: details.color }]}>{t('category_' + item.category)}</Text>
-                      </View>
-                    ) : null}
+                        <Text style={[styles.badgeText, { color: details.color }]}>{t('category_' + categoryKey)}</Text>
+                    </View>
                   </View>
-                  <Text style={[styles.dateText, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
                 </View>
 
                 <View style={styles.cardBodyRow}>
@@ -350,7 +348,8 @@ export default function NotificationsScreen() {
                         },
                       }}
                       style={styles.cardImage}
-                      resizeMode="cover"
+                      backgroundColor={colors.surface}
+                      resizeMode="contain"
                     />
                   ) : null}
                 </View>
@@ -459,12 +458,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  cardBadges: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6,
+    marginLeft: 12,
+  },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 999,
   },
   badgeIcon: {
     marginRight: 4,
@@ -489,10 +497,13 @@ const styles = StyleSheet.create({
   },
   cardTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
   cardImage: {
-    width: 70,
-    height: 70,
+    width: '42%',
+    maxWidth: 176,
+    flexShrink: 0,
+    aspectRatio: 2,
     borderRadius: 8,
     marginLeft: 12,
     backgroundColor: 'rgba(0,0,0,0.05)',

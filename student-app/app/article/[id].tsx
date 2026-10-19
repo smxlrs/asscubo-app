@@ -1,3 +1,4 @@
+import { isWebsiteArticleUrl, websiteArticleReaderScript } from '../../lib/websiteArticleReader';
 import { articleImageLoadingScript, articleImageLoadingStyles, imageLoadingMessages } from '../../lib/imageLoading';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
@@ -213,8 +214,8 @@ export default function ArticleDetailScreen() {
         {/* WebView */}
         <WebView
           source={{ uri: article.link }}
-          injectedJavaScriptBeforeContentLoaded={injectedJSBeforeContent}
-          injectedJavaScript={injectedJSBeforeContent}
+          injectedJavaScriptBeforeContentLoaded={isWebsiteArticleUrl(article.link) ? websiteArticleReaderScript(colors, isDark) : injectedJSBeforeContent}
+          injectedJavaScript={isWebsiteArticleUrl(article.link) ? websiteArticleReaderScript(colors, isDark) : injectedJSBeforeContent}
           style={{ flex: 1, backgroundColor: colors.background }}
           startInLoadingState
           renderLoading={() => (
