@@ -169,3 +169,54 @@ test('airport line station IDs match operator train 20405', () => {
     assert.equal(catalog.filter(s => s.id === id).length, 1);
   }
 });
+
+const fullCatalog = load(read('assets/stations.ts')).stations;
+test('city searches prioritize travel hubs consistently in autocomplete and service', async () => {
+  const local = handler('app/tools/train/index.tsx', 'getStationMatchesForInput', { stations: fullCatalog, ...search });
+  const service = load(read('lib/viaggiaTrenoService.ts'), {
+    './stationSearch': search, './network': {}, './romeTime': {}, './eventTime': {},
+    '../assets/stations': { stations: fullCatalog },
+  }, { process });
+  const cases = [
+    ['Torino', ['S00219', 'S00222', 'S00452']],
+    ['都灵', ['S00219', 'S00222', 'S00452']],
+    ['Roma', ['S08409', 'S08217', 'S08406']],
+    ['Milano', ['S01700', 'S01645', 'S01820']],
+    ['Firenze', ['S06421', 'S06900', 'S06420']],
+    ['Venezia', ['S02593', 'S02589']],
+    ['Genova', ['S04700', 'S04702', 'S04220']],
+    ['Napoli', ['S09218', 'S09988']],
+    ['Bologna', ['S05043']],
+  ];
+  for (const [query, expected] of cases) {
+    assert.deepEqual(Array.from(local(query).slice(0, expected.length), s => s.id), expected, query);
+    assert.deepEqual(Array.from((await service.searchStations(query)).slice(0, expected.length), s => s.id), expected, query);
+  }
+});
+test('specific smaller stations remain searchable and ranking never mutates or loses matching IDs', () => {
+  const original = fullCatalog.map(s => s.id).join(',');
+  for (const [query, id] of [
+    ['Torino Dora', 'S82332'], ['Venezia Mestre Ospedale', 'S02517'],
+    ['Milano Porta Garibaldi Passante', 'S01662'], [' BOLOGNA CORTICELLA ', 'S05725'],
+    ['Forli', 'S05059'],
+  ]) assert.equal(search.rankStationMatches(fullCatalog, query)[0].id, id, query);
+  assert.equal(search.rankStationMatches(fullCatalog, '').length, 0);
+  assert.equal(search.rankStationMatches(fullCatalog, 'constructor').length, 0);
+  const matches = search.rankStationMatches(fullCatalog, 'torino');
+  assert.equal(new Set(matches.map(s => s.id)).size, fullCatalog.filter(s => s.n.toLowerCase().includes('torino')).length);
+  assert.equal(fullCatalog.map(s => s.id).join(','), original);
+  // A fully matching name wins even when another matching station is a major hub.
+  assert.equal(search.rankStationMatches([
+    { n: 'Porta', id: 'small', p: 0 }, { n: 'Porta Nuova', id: 'S00219', p: 2 },
+  ], 'Porta')[0].id, 'small');
+});
+test('official API fallback uses the same hub ordering despite upstream alphabetical order', async () => {
+  const service = load(read('lib/viaggiaTrenoService.ts'), {
+    './stationSearch': search,
+    './network': { NETWORK_TIMEOUT_MS: 20000, requireSuccessfulResponse: r => r, fetchWithDeadline: async () => ({
+      ok: true, text: async () => 'TORINO DORA|S82332\nTORINO LINGOTTO|S00452\nTORINO PORTA SUSA|S00222\nTORINO PORTA NUOVA|S00219',
+    }) },
+    './romeTime': {}, './eventTime': {}, '../assets/stations': { stations: [] },
+  }, { process });
+  assert.deepEqual(Array.from(await service.searchStations('Torino'), s => s.id), ['S00219', 'S00222', 'S00452', 'S82332']);
+});

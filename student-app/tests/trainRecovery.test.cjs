@@ -19,11 +19,11 @@ const rome = load(read('lib/romeTime.ts'));
 const time = load(read('lib/eventTime.ts'));
 const proxy = 'https://project.supabase.co/functions/v1/viaggia-treno-proxy';
 const direct = 'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
-function service(fetchWithDeadline, globals = {}) {
+function service(fetchWithDeadline, globals = {}, catalog) {
   return load(read('lib/viaggiaTrenoService.ts'), {
     './network': { ...network, fetchWithDeadline }, './stationSearch': stationSearch,
     './romeTime': rome, './eventTime': time,
-    '../assets/stations': { stations: [{ id: 'S05043', n: 'Bologna Centrale' }, { id: 'S01700', n: 'Roma Termini' }] },
+    '../assets/stations': { stations: catalog || [{ id: 'S05043', n: 'Bologna Centrale' }, { id: 'S08409', n: 'Roma Termini' }] },
   }, { __DEV__: false, process: { env: { EXPO_PUBLIC_SUPABASE_URL: 'https://project.supabase.co', EXPO_PUBLIC_SUPABASE_ANON_KEY: 'test-key' } }, ...globals });
 }
 test('proxy 403 recovers using HTTPS, keeps encoded path and never leaks Supabase credentials', async () => {
@@ -92,10 +92,10 @@ test('Italo empty live search never contacts failing Trenitalia and timetable us
     return Response.json({ IsEmpty: false, ListaTreniArrivo: [{ Numero: '8944', OraPassaggio: '15:30', DescrizioneLocalita: 'Bologna Centrale', Binario: '5' }] });
   });
   assert.equal((await s.searchTrain('8944', 'italo')).length, 0);
-  const details = await s.getFutureItaloTrainSchedule('8944', 'Bologna Centrale', 'Roma Termini', Date.parse('2026-10-18T10:30:00Z'));
+  const details = await s.getFutureItaloTrainSchedule('8944', 'Bologna Centrale', 'Roma Termini', Date.parse(rome.romeDay() + 'T10:30:00Z'));
   assert.equal(details.number, '8944');
   assert.equal(details.stops.length, 2);
-  assert.equal(details.scheduledArrivalTime, Date.parse('2026-10-18T13:30:00Z'));
+  assert.equal(details.scheduledArrivalTime, Date.parse(time.romeToIso(rome.romeDay() + ' 15:30')));
   assert.equal(calls.length, 2);
 });
 test('Trenitalia search and mixed station boards recover beyond a rejected proxy', async () => {
@@ -113,8 +113,7 @@ test('Trenitalia search and mixed station boards recover beyond a rejected proxy
   assert.ok(board.some(entry => entry.trainNumber === '9406'));
   assert.ok(board.some(entry => entry.trainNumber === '8944'));
 });
-function handler(name, globals) {
-  const file = 'app/tools/train/train-status.tsx';
+function handler(name, globals, file = 'app/tools/train/train-status.tsx') {
   const tree = ts.createSourceFile(file, read(file), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let found;
   function visit(node) {
@@ -122,7 +121,7 @@ function handler(name, globals) {
     ts.forEachChild(node, visit);
   }
   visit(tree); assert.ok(found);
-  return load('export const ' + found.getText(tree), {}, globals)[name];
+  return load('export const ' + found.getText(tree), {}, { boardMode: undefined, boardPlatform: undefined, boardActualPlatform: undefined, ...globals })[name];
 }
 test('actual detail screen reaches future Italo timetable when live search is empty', async () => {
   let shown, error, fallback = 0;
@@ -194,4 +193,106 @@ test('server proxy uses web request headers on initial board request and stale-t
     assert.equal(call.options.headers.Referer,'https://www.viaggiatreno.it/');
     assert.equal(call.options.headers.apikey,undefined);
   }
+});
+
+const fullCatalog = load(read('assets/stations.ts')).stations;
+test('Italo station aliases resolve exact identities without choosing an arbitrary city stop', () => {
+  const s = service(async () => { throw Error('not needed'); }, {}, fullCatalog);
+  for (const [name, id] of [['VENEZIA S.LUCIA','S02593'],['Venezia Santa Lucia','S02593'],['FIRENZE S.M.N.','S06421'],['FIRENZE SMN','S06421'],['TORINO PORTA DI SUSA','S00222'],['bologna','S05043'],['BAZZANO (FER)','S05975']]) assert.equal(s.findStationIdByName(name),id,name);
+  assert.equal(s.findStationIdByName('Roma'), null);
+  assert.equal(s.findStationIdByName('Venezia'), null);
+  assert.equal(s.findStationIdByName(''), null);
+  assert.equal(s.findStationIdByName('nonexistent'), null);
+  assert.equal(s.findStationIdByName('constructor'), null);
+});
+
+test('8910 uses Venezia arrival board when live details are empty, preserves known departure platform and marks partial data', async () => {
+  const start = Date.parse(rome.romeDay()+'T11:21:00Z');
+  const s=service(async url => {
+    assert.match(url,/CodiceStazione=VSL&NomeStazione=venezia-santa-lucia/);
+    return Response.json({ListaTreniArrivo:[{Numero:'8910',OraPassaggio:'14:55',DescrizioneLocalita:'SALERNO',Binario:'3'}]});
+  },{},fullCatalog);
+  const d=await s.getFutureItaloTrainSchedule('8910','bologna','VENEZIA S.LUCIA',start,'departures',{scheduledPlatform:'17'});
+  assert.equal(d.detailLevel,'station-board');assert.equal(d.stops[0].stationId,'S05043');assert.equal(d.stops[1].stationId,'S02593');
+  assert.equal(d.stops[0].scheduledPlatform,'17');assert.ok(d.scheduledArrivalTime>start);
+  assert.equal(d.stops[0].actualDepartureTime,null);assert.equal(d.lastReportedTime,null);
+});
+
+test('missing or unavailable endpoint information retains only confirmed board times; arrivals are never treated as departures', async () => {
+  const start = Date.parse(rome.romeDay()+'T11:21:00Z');
+  const s=service(async()=>{throw new network.NetworkError('network','offline');},{},fullCatalog);
+  const d=await s.getFutureItaloTrainSchedule('8910','Bologna Centrale','Venezia S.Lucia',start);
+  assert.equal(d.scheduledDepartureTime,start);assert.equal(d.scheduledArrivalTime,0);assert.equal(d.stops[1].scheduledArrivalTime,null);
+  const a=await s.getFutureItaloTrainSchedule('8910','Salerno','Bologna Centrale',start,'arrivals',{actualPlatform:'17'});
+  assert.equal(a.scheduledDepartureTime,0);assert.equal(a.stops[0].scheduledDepartureTime,null);assert.equal(a.scheduledArrivalTime,start);assert.equal(a.stops[1].actualPlatform,'17');
+  const unknown=await s.getFutureItaloTrainSchedule('8910','Unknown start','Unknown end',start);
+  assert.equal(unknown,null);
+});
+
+test("saved past/future dates and invalid board timestamps never use today's Italo board", async () => {
+  let calls=0;const s=service(async()=>{calls++;return Response.json({});},{},fullCatalog);
+  for(const stamp of [0,NaN,Date.now()-48*3600000,Date.now()+48*3600000])assert.equal(await s.getFutureItaloTrainSchedule('8910','Bologna Centrale','Venezia S.Lucia',stamp),null);
+  assert.equal(calls,0);
+});
+
+test('numeric display platform fields are preserved; null Tper platform fields stay unknown', async () => {
+  for(const fields of [{binarioProgrammatoPartenza:'5',binarioEffettivoPartenza:'6'}, {binarioProgrammatoPartenzaDescrizione:null,binarioEffettivoPartenzaDescrizione:null,binarioProgrammatoPartenzaCodice:'internal-id'}]){
+    const s=service(async()=>Response.json({numeroTreno:90041,codiceCliente:18,fermate:[{id:'S05043',stazione:'BOLOGNA CENTRALE',...fields}]}));
+    const d=await s.getTrainStatus('S05043','90041');
+    assert.equal(d.stops[0].scheduledPlatform,fields.binarioProgrammatoPartenza||'');
+    assert.equal(d.stops[0].actualPlatform,fields.binarioEffettivoPartenza||'');
+    assert.equal(s.getOperatorInfo(d.codiceCliente,d.category).name,'Trenitalia Tper');
+  }
+});
+
+test('Italo stop codes match national station IDs and planned/actual platforms remain distinct', () => {
+  const s=service(async()=>{throw Error('not needed');});
+  const d=s.parseItaloTrainStatus({TrainSchedule:{TrainNumber:'8910',StazionePartenza:{LocationCode:'BC_',LocationDescription:'Bologna Centrale',BinaryProgrammed:'17',BinaryReal:'18'},StazioniFerme:[],StazioniNonFerme:[]}});
+  assert.equal(d.stops[0].stationId,'S05043');assert.equal(d.stops[0].scheduledPlatform,'17');assert.equal(d.stops[0].actualPlatform,'18');
+});
+
+test('station platform backfill separates arrivals/departures and refresh updates a cached platform', async () => {
+  const file='app/tools/train/station-board.tsx';
+  const extraTimesKey=handler('extraTimesKey',{},file);
+  const matchPlatformFromStatus=handler('matchPlatformFromStatus',{},file);
+  const entry={trainNumber:'90041',originStationID:'S05043',timestamp:1,codiceCliente:18};
+  const dep=extraTimesKey('S05043','departures',entry),arr=extraTimesKey('S05043','arrivals',entry);
+  assert.notEqual(dep,arr);assert.notEqual(dep,extraTimesKey('S05100','departures',entry));
+  let track='5',shown={};const cache={current:{}};
+  const run=handler('triggerBackgroundTimeLoading',{
+    stationID:'S05043',extraTimesKey,matchPlatformFromStatus,extraTimesCache:cache,boardRequestVersion:{current:{departures:0,arrivals:0}},
+    getTrainStatus:async()=>({scheduledDepartureTime:1,scheduledArrivalTime:2,stops:[{stationId:'S05043',scheduledPlatform:track,actualPlatform:track}]}),
+    setExtraTrainTimes:fn=>{shown=fn(shown);},
+  },file);
+  await run([entry],'departures');track='7';await run([entry],'arrivals');
+  assert.equal(shown[dep].actualPlatform,'5');assert.equal(shown[arr].actualPlatform,'7');
+  track='9';await run([entry],'departures',true);assert.equal(shown[dep].actualPlatform,'9');
+});
+
+test('partial detail screen keeps the selected board date and direction', async () => {
+  let shown,called;
+  const stamp=String(Date.now());const data={detailLevel:'station-board',number:'8910',stops:[],origin:'Salerno',destination:'Bologna',scheduledDepartureTime:0};
+  const run=handler('fetchData',{
+    trainNumber:'8910',activeStationID:'ITALO',activeTimestamp:stamp,departureStationID:'ITALO',category:'NTV',origin:'Salerno',destination:'Bologna',scheduledTime:stamp,boardMode:'arrivals',boardPlatform:'17',isFetchingRef:{current:false},
+    searchTrain:async()=>[],getTrainStatus:async()=>null,getFutureItaloTrainSchedule:async(...args)=>{called=args;return data;},
+    getRomeDateKey:val=>String(val),updateRecentTrainInHistory:async()=>{},getTrainAlerts:async()=>({alerts:[],available:false}),
+    setLoading(){},setRefreshing(){},setAlerts(){},setAlertServiceAvailable(){},setErrorMsg(){},setStatus:d=>{shown=d;},networkErrorKey:network.networkErrorKey,
+  });await run();assert.equal(shown,data);assert.equal(called[4],'arrivals');assert.equal(called[5].scheduledPlatform,'17');
+});
+
+test('late board requests and their background platform results cannot overwrite a newer refresh', async () => {
+  const file='app/tools/train/station-board.tsx';let release,shown;const version={current:{departures:0,arrivals:0}};
+  const first=new Promise(r=>{release=r;});let count=0;
+  const run=handler('fetchBoardData',{
+    stationID:'S05043',boardRequestVersion:version,getStationBoard:async()=>++count===1?first:[],
+    setLoadingDep(){},setLoadingArr(){},setErrorDep(){},setErrorArr(){},setRefreshingDep(){},setRefreshingArr(){},
+    setDepartures:x=>{shown=x;},setArrivals(){},getRomeTimestampFromLocalDate:()=>Date.now(),triggerBackgroundTimeLoading(){},triggerToast(){},t:k=>k,networkErrorKey:network.networkErrorKey,
+  },file);
+  const old=run('departures');await run('departures',true);release([{scheduledTime:Date.now()+3600000}]);await old;assert.equal(shown.length,0);
+  const extraTimesKey=handler('extraTimesKey',{},file),matchPlatformFromStatus=handler('matchPlatformFromStatus',{},file);let releasePlatform;const waiting=new Promise(r=>{releasePlatform=r;});let writes=0;
+  const backfill=handler('triggerBackgroundTimeLoading',{
+    stationID:'S05043',boardRequestVersion:version,extraTimesKey,matchPlatformFromStatus,extraTimesCache:{current:{}},getTrainStatus:()=>waiting,setExtraTrainTimes:()=>{writes++;},
+  },file);
+  const pending=backfill([{trainNumber:'90041',originStationID:'S05043',timestamp:1}],'departures');version.current.departures++;
+  releasePlatform({stops:[{stationId:'S05043',actualPlatform:'5'}]});await pending;assert.equal(writes,0);
 });

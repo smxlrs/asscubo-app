@@ -1,5 +1,5 @@
 import { networkErrorText } from '../../../lib/networkMessages';
-import { stationSearchKey } from '../../../lib/stationSearch';
+import { rankStationMatches } from '../../../lib/stationSearch';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { networkErrorKey } from '../../../lib/network';
 import {
@@ -392,26 +392,9 @@ export default function TrainToolIndex() {
   };
 
   const getStationMatchesForInput = (input: string) => {
-    if (!input.trim()) return [];
-    const query = input.trim().toLowerCase();
-    
-    const searchKey = stationSearchKey(query);
-
-    const localMatches = stations.filter(s => s.n.toLowerCase().includes(searchKey));
-    const scored = localMatches.map(s => {
-      const nameLower = s.n.toLowerCase();
-      let score = 0;
-      if (nameLower.startsWith(searchKey)) {
-        score += 1000;
-      }
-      score += (s.p || 0) * 100;
-      score -= s.n.length;
-      return { station: s, score };
-    });
-    scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, 8).map(item => ({
-      name: item.station.n,
-      id: item.station.id
+    return rankStationMatches(stations, input).slice(0, 8).map(station => ({
+      name: station.n,
+      id: station.id
     }));
   };
 

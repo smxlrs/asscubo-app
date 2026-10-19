@@ -126,6 +126,9 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
   }
 };
 
+const extraTimesKey = (stationId: string, mode: 'departures' | 'arrivals', entry: VtBoardEntry) =>
+  `${stationId}_${mode}_${entry.trainNumber}_${entry.originStationID}_${entry.timestamp}`;
+
 const matchPlatformFromStatus = (status: any, targetStationID: string) => {
   if (!status || !status.stops || !targetStationID) return null;
   const clean = (id: string) => String(id || '').trim().replace(/^S/i, '').replace(/^0+/, '');
@@ -281,6 +284,7 @@ export default function StationBoardScreen() {
 
   // States for background back-filling of missing endpoint times
   const [extraTrainTimes, setExtraTrainTimes] = useState<Record<string, { departureTime: number; arrivalTime: number; scheduledPlatform: string; actualPlatform: string }>>({});
+  const boardRequestVersion = useRef({ departures: 0, arrivals: 0 });
   const extraTimesCache = useRef<Record<string, { departureTime: number; arrivalTime: number; scheduledPlatform: string; actualPlatform: string }>>({});
 
   const FAVORITE_STATIONS_KEY = '@ag_favorite_stations';
@@ -338,6 +342,7 @@ export default function StationBoardScreen() {
 
   const fetchBoardData = async (targetMode: 'departures' | 'arrivals', isRef = false) => {
     if (!stationID) return;
+    const requestVersion = ++boardRequestVersion.current[targetMode];
     if (targetMode === 'departures') {
       if (!isRef) setLoadingDep(true);
       setErrorDep('');
@@ -347,6 +352,7 @@ export default function StationBoardScreen() {
     }
     try {
       const data = await getStationBoard(stationID, targetMode);
+      if (requestVersion !== boardRequestVersion.current[targetMode]) return;
       
       // Filter out trains that already arrived/departed more than 30 minutes ago
       const now = getRomeTimestampFromLocalDate(new Date());
@@ -363,11 +369,12 @@ export default function StationBoardScreen() {
       } else {
         setArrivals(filteredData);
       }
-      triggerBackgroundTimeLoading(filteredData);
+      triggerBackgroundTimeLoading(filteredData, targetMode, isRef);
       if (isRef) {
         triggerToast(t('refreshSuccess'));
       }
     } catch (e) {
+      if (requestVersion !== boardRequestVersion.current[targetMode]) return;
       if (targetMode === 'departures') {
         setDepartures([]);
         setErrorDep(networkErrorKey(e));
@@ -376,28 +383,34 @@ export default function StationBoardScreen() {
         setErrorArr(networkErrorKey(e));
       }
     } finally {
-      if (targetMode === 'departures') {
-        setLoadingDep(false);
-        setRefreshingDep(false);
-      } else {
-        setLoadingArr(false);
-        setRefreshingArr(false);
+      if (requestVersion === boardRequestVersion.current[targetMode]) {
+        if (targetMode === 'departures') {
+          setLoadingDep(false);
+          setRefreshingDep(false);
+        } else {
+          setLoadingArr(false);
+          setRefreshingArr(false);
+        }
       }
     }
   };
 
-  const triggerBackgroundTimeLoading = (boardEntries: VtBoardEntry[]) => {
+  const triggerBackgroundTimeLoading = (boardEntries: VtBoardEntry[], targetMode: 'departures' | 'arrivals', force = false) => {
+    const requestVersion = boardRequestVersion.current[targetMode];
     const loadTimes = async () => {
       for (const entry of boardEntries) {
+        if (requestVersion !== boardRequestVersion.current[targetMode]) return;
         if (!entry.trainNumber || !entry.originStationID || !entry.timestamp) continue;
-        const cacheKey = `${entry.trainNumber}_${entry.originStationID}_${entry.timestamp}`;
-        if (extraTimesCache.current[cacheKey]) continue;
+        const cacheKey = extraTimesKey(stationID || '', targetMode, entry);
+        if (!force && extraTimesCache.current[cacheKey]) continue;
 
         try {
           let status = await getTrainStatus(entry.originStationID, entry.trainNumber, String(entry.timestamp));
+          if (requestVersion !== boardRequestVersion.current[targetMode]) return;
           if (!status && entry.codiceCliente === 'ITALO') {
-            status = await getFutureItaloTrainSchedule(entry.trainNumber, entry.origin, entry.destination, entry.scheduledTime);
+            status = await getFutureItaloTrainSchedule(entry.trainNumber, entry.origin, entry.destination, entry.scheduledTime, targetMode, entry);
           }
+          if (requestVersion !== boardRequestVersion.current[targetMode]) return;
           if (status) {
             const platforms = matchPlatformFromStatus(status, stationID || '');
             const timeObj = {
@@ -417,7 +430,7 @@ export default function StationBoardScreen() {
         }
       }
     };
-    loadTimes();
+    return loadTimes();
   };
 
   const handleRefresh = () => {
@@ -440,7 +453,7 @@ export default function StationBoardScreen() {
     fetchBoardData('arrivals', true);
   };
 
-  const handleTrainPress = async (entry: VtBoardEntry) => {
+  const handleTrainPress = async (entry: VtBoardEntry, selectedMode = boardMode) => {
     if (resolvingTrain) return;
     setResolvingTrain(true);
     try {
@@ -468,7 +481,10 @@ export default function StationBoardScreen() {
             origin: entry.origin,
             destination: entry.destination,
             scheduledTime: String(entry.scheduledTime),
-            category: entry.category
+            category: entry.category,
+            boardMode: selectedMode,
+            boardPlatform: entry.scheduledPlatform,
+            boardActualPlatform: entry.actualPlatform,
           }
         });
       } else {
@@ -528,7 +544,10 @@ export default function StationBoardScreen() {
             origin: entry.origin,
             destination: entry.destination,
             scheduledTime: String(entry.scheduledTime),
-            category: entry.category
+            category: entry.category,
+            boardMode: selectedMode,
+            boardPlatform: entry.scheduledPlatform,
+            boardActualPlatform: entry.actualPlatform,
           }
         });
       }
@@ -560,7 +579,7 @@ export default function StationBoardScreen() {
       delayText = `${item.delay}'`;
     }
 
-    const cacheKey = `${item.trainNumber}_${item.originStationID}_${item.timestamp}`;
+    const cacheKey = extraTimesKey(stationID || '', listMode, item);
     const extraTime = extraTrainTimes[cacheKey];
 
     const scheduledPlatform = item.scheduledPlatform || extraTime?.scheduledPlatform || '';
@@ -581,7 +600,7 @@ export default function StationBoardScreen() {
             opacity: pressed ? 0.9 : 1
           }
         ]}
-        onPress={() => handleTrainPress(item)}
+        onPress={() => handleTrainPress(item, listMode)}
       >
         <View style={[styles.cardMain, { marginBottom: 0 }]}>
           <View style={styles.trainInfo}>

@@ -84,6 +84,12 @@ const getPlatformDisplayInfo = (scheduled: string, actual: string) => {
 
 const LOCALIZED: Record<Language, Record<string, string>> = {
   zh: {
+    partialStatus: '仅有站牌信息',
+    partialOrigin: '出发站',
+    partialDestination: '到达站',
+    partialStops: '已获取的站点信息',
+    partialNotice: '详细运行信息暂不可用，以下仅展示站牌已提供的站点和时间，不代表完整路线或实时位置。',
+
     title: '车次追踪',
     loading: '正在获取运行状态...',
     error: '查询失败，该车次今日尚未开行或数据未更新。',
@@ -125,6 +131,12 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     alertUnavailable: '运营变动信息暂时无法获取，请以官方公告为准。'
   },
   'zh-Hant': {
+    partialStatus: '僅有站牌資訊',
+    partialOrigin: '出發站',
+    partialDestination: '到達站',
+    partialStops: '已取得的站點資訊',
+    partialNotice: '詳細運行資訊暫不可用，以下僅顯示站牌已提供的站點及時間，不代表完整路線或即時位置。',
+
     title: '車次追踪',
     loading: '正在獲取運行狀態...',
     error: '查詢失敗，該車次今日尚未開行或數據未更新。',
@@ -154,6 +166,12 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     refreshSuccess: '刷新成功'
   },
   en: {
+    partialStatus: 'Station board only',
+    partialOrigin: 'Departure station',
+    partialDestination: 'Arrival station',
+    partialStops: 'Available station information',
+    partialNotice: 'Detailed running information is unavailable. Only stations and times provided by station boards are shown; this is not a complete route or live position.',
+
     title: 'Train Tracking',
     loading: 'Loading train status...',
     error: 'Failed to load details. The train may not have started running yet today.',
@@ -195,6 +213,12 @@ const LOCALIZED: Record<Language, Record<string, string>> = {
     alertUnavailable: 'Operational update notices are temporarily unavailable. Please refer to official announcements.'
   },
   it: {
+    partialStatus: 'Solo dati del tabellone',
+    partialOrigin: 'Stazione di partenza',
+    partialDestination: 'Stazione di arrivo',
+    partialStops: 'Informazioni disponibili sulle fermate',
+    partialNotice: 'I dettagli di circolazione non sono disponibili. Sono mostrate solo le stazioni e gli orari forniti dai tabelloni, non il percorso completo o la posizione in tempo reale.',
+
     title: 'Stato Treno',
     loading: 'Caricamento stato treno...',
     error: 'Impossibile caricare lo stato del treno. Il treno potrebbe non essere ancora partito.',
@@ -229,7 +253,7 @@ export default function TrainStatusScreen() {
   const { colors, language, isDark } = useTheme();
 
   // Route query params
-  const { trainNumber, departureStationID, timestamp, origin, destination, scheduledTime, category } = useLocalSearchParams<{
+  const { trainNumber, departureStationID, timestamp, origin, destination, scheduledTime, category, boardMode, boardPlatform, boardActualPlatform } = useLocalSearchParams<{
     trainNumber: string;
     departureStationID: string;
     timestamp: string;
@@ -237,6 +261,9 @@ export default function TrainStatusScreen() {
     destination?: string;
     scheduledTime?: string;
     category?: string;
+    boardMode?: 'departures' | 'arrivals';
+    boardPlatform?: string;
+    boardActualPlatform?: string;
   }>();
 
   // Localizer
@@ -558,12 +585,12 @@ export default function TrainStatusScreen() {
       }
       
       if (!data && (resolvedStationID === 'ITALO' || departureStationID === 'ITALO' || category === 'NTV') && origin && destination && scheduledTime) {
-        data = await getFutureItaloTrainSchedule(trainNumber, origin, destination, parseInt(scheduledTime, 10));
+        data = await getFutureItaloTrainSchedule(trainNumber, origin, destination, parseInt(scheduledTime, 10), boardMode, { scheduledPlatform: boardPlatform, actualPlatform: boardActualPlatform });
       }
       
       if (data) {
         const requestedTimestamp = parseInt(resolvedTimestamp, 10);
-        const serviceStartTime = data.stops.find(stop => stop.scheduledDepartureTime)?.scheduledDepartureTime
+        const serviceStartTime = data.detailLevel === 'station-board' ? parseInt(scheduledTime || '', 10) : data.stops.find(stop => stop.scheduledDepartureTime)?.scheduledDepartureTime
           || data.scheduledDepartureTime;
         const requestedRunDate = getRomeDateKey(requestedTimestamp);
         const returnedServiceDate = getRomeDateKey(serviceStartTime);
@@ -705,6 +732,7 @@ export default function TrainStatusScreen() {
     );
   }
 
+  const isPartial = status.detailLevel === 'station-board';
   const timeBasedActiveIndex = status ? getLastReachedStopIndex(status.stops) : -1;
   const nameBasedActiveIndex = status
     ? status.stops.findIndex(
@@ -717,7 +745,7 @@ export default function TrainStatusScreen() {
   );
 
   // Compute activeStopIndex by taking the maximum of time-based reports, name-based position, and time-based progression
-  const activeStopIndex = isNotStartedYet
+  const activeStopIndex = isPartial || isNotStartedYet
     ? -1
     : Math.max(timeBasedActiveIndex, nameBasedActiveIndex, timeProgressActiveIndex);
 
@@ -730,6 +758,9 @@ export default function TrainStatusScreen() {
   if (isCancelled) {
     delayColor = colors.error;
     delayText = t('trainCancelled');
+  } else if (isPartial) {
+    delayColor = colors.textSecondary;
+    delayText = t('partialStatus');
   } else if (isNotStartedYet) {
     delayColor = colors.primary;
     delayText = t('notStarted');
@@ -744,6 +775,7 @@ export default function TrainStatusScreen() {
   const isHighSpeed = status && ['FR', 'FA', 'FB', 'Italo', 'ITALO', 'NTV', 'EC', 'EN'].includes(status.category);
 
   const handleStationPress = (stationName: string, stationId: string) => {
+    if (!stationId) return;
     router.push({
       pathname: '/tools/train/station-board',
       params: {
@@ -762,14 +794,14 @@ export default function TrainStatusScreen() {
     let isDelayed = false;
     let isEarly = false;
     
-    const hasLiveTime = actual !== null || (!isNotStartedYet && (status?.delay || 0) !== 0);
+    const hasLiveTime = !isPartial && (actual !== null || (!isNotStartedYet && (status?.delay || 0) !== 0));
 
     if (actual) {
       actStr = formatTimeStr(actual);
       const diffMin = Math.round((actual - scheduled) / 60000);
       isDelayed = diffMin > 0;
       isEarly = diffMin < 0;
-    } else if (!isNotStartedYet) {
+    } else if (!isPartial && !isNotStartedYet) {
       const delayVal = status?.delay || 0;
       const predicted = scheduled + delayVal * 60000;
       actStr = formatTimeStr(predicted);
@@ -806,6 +838,7 @@ export default function TrainStatusScreen() {
         </View>
 
         <View style={{ paddingHorizontal: 16 }}>
+          {isPartial && <Text style={{ color: colors.textSecondary, marginBottom: 12, lineHeight: 20 }}>{t('partialNotice')}</Text>}
           {/* Train Summary Dashboard Card */}
           <View style={[styles.dashboardCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.dashboardHeader}>
@@ -824,7 +857,7 @@ export default function TrainStatusScreen() {
             {/* Path Endpoints */}
             <View style={styles.endpointsRow}>
               <View style={styles.endpointCol}>
-                <Text style={[styles.endpointLabel, { color: colors.textSecondary }]}>{t('origin')}</Text>
+                <Text style={[styles.endpointLabel, { color: colors.textSecondary }]}>{t(isPartial ? 'partialOrigin' : 'origin')}</Text>
                 <MarqueeText style={[styles.endpointName, { color: colors.textPrimary }]} text={status.origin} />
                 <Text style={[styles.endpointTime, { color: colors.textSecondary }]}>
                   {formatTimeStr(status.scheduledDepartureTime)}
@@ -834,7 +867,7 @@ export default function TrainStatusScreen() {
                 <MaterialIcons name="trending-flat" size={24} color={colors.textMuted} />
               </View>
               <View style={styles.endpointCol}>
-                <Text style={[styles.endpointLabel, { color: colors.textSecondary }]}>{t('destination')}</Text>
+                <Text style={[styles.endpointLabel, { color: colors.textSecondary }]}>{t(isPartial ? 'partialDestination' : 'destination')}</Text>
                 <MarqueeText style={[styles.endpointName, { color: colors.textPrimary }]} text={status.destination} />
                 <Text style={[styles.endpointTime, { color: colors.textSecondary }]}>
                   {formatTimeStr(status.scheduledArrivalTime)}
@@ -885,7 +918,7 @@ export default function TrainStatusScreen() {
 
           {/* Timeline Section Header with Date Selector */}
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>{t('stopsTitle')}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>{t(isPartial ? 'partialStops' : 'stopsTitle')}</Text>
             {availableRuns.length > 0 && (
               <View style={styles.dateSelectorContainer}>
                 {availableRuns.map((run) => {
@@ -977,7 +1010,7 @@ export default function TrainStatusScreen() {
                 // Platform change check
                 const platformInfo = getPlatformDisplayInfo(
                   stop.scheduledPlatform || '',
-                  isNotStartedYet ? '' : stop.actualPlatform || ''
+                  stop.actualPlatform || ''
                 );
 
                 // Time calculations (Scheduled and Actual side-by-side)

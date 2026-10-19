@@ -1,4 +1,4 @@
-import { stationSearchKey } from './stationSearch';
+import { rankStationMatches, stationSearchKey } from './stationSearch';
 import { fetchWithDeadline, NetworkError, NETWORK_TIMEOUT_MS, requireSuccessfulResponse } from './network';
 import { romeToIso } from './eventTime';
 import { romeDay, romeParts } from './romeTime';
@@ -117,6 +117,7 @@ export interface VtStop {
 }
 
 export interface VtTrainStatus {
+  detailLevel?: 'station-board';
   number: string;
   category: string;
   origin: string;
@@ -328,11 +329,12 @@ export function parseItaloTrainStatus(data: any): VtTrainStatus | null {
   const baseDate = new Date();
   
   const parseItaloStop = (s: any, isReached: boolean): VtStop => {
-    const code = s.LocationCode || s.StationCode || '';
+    const code = String(s.LocationCode || s.StationCode || '').toUpperCase();
     let stationName = s.LocationDescription || s.StationDescription || '';
     stationName = getCleanStationName(stationName);
     
-    const platform = cleanPlatform(s.BinaryProgrammed || s.BinaryReal || s.ActualArrivalPlatform || '');
+    const scheduledPlatform = cleanPlatform(s.BinaryProgrammed || '');
+    const actualPlatform = cleanPlatform(s.BinaryReal || s.ActualArrivalPlatform || '');
     
     // Times
     let scheduledArrivalTime: number | null = null;
@@ -365,13 +367,13 @@ export function parseItaloTrainStatus(data: any): VtTrainStatus | null {
     
     return {
       stationName,
-      stationId: code,
+      stationId: Object.entries(ITALO_STATION_MAP).find(([, info]) => info.code === code)?.[0] || code,
       scheduledArrivalTime,
       actualArrivalTime,
       scheduledDepartureTime,
       actualDepartureTime,
-      scheduledPlatform: platform,
-      actualPlatform: isReached ? platform : '',
+      scheduledPlatform,
+      actualPlatform: isReached ? actualPlatform : '',
       arrivalDelay,
       departureDelay,
       status: 'regular'
@@ -627,34 +629,9 @@ export async function searchStations(query: string): Promise<VtStation[]> {
   const searchKey = stationSearchKey(cleanQuery);
 
   // 1. Try local index first
-  const localMatches = stations.filter(s => s.n.toLowerCase().includes(searchKey));
-
+  const localMatches = rankStationMatches(stations, searchKey);
   if (localMatches.length > 0) {
-    const scored = localMatches.map(s => {
-      const nameLower = s.n.toLowerCase();
-      let score = 0;
-      
-      // Prefix match gets a huge bonus
-      if (nameLower.startsWith(searchKey)) {
-        score += 1000;
-      }
-      
-      // Priority score (0 to 2, scaled by 100)
-      score += (s.p || 0) * 100;
-      
-      // Length penalty (prefer shorter names)
-      score -= s.n.length;
-      
-      return { station: s, score };
-    });
-
-    // Sort by score descending
-    scored.sort((a, b) => b.score - a.score);
-
-    return scored.slice(0, 15).map(item => ({
-      name: item.station.n,
-      id: item.station.id
-    }));
+    return localMatches.slice(0, 15).map(station => ({ name: station.n, id: station.id }));
   }
 
   // 2. Fall back to ViaggiaTreno autocompletaStazione API
@@ -677,7 +654,8 @@ export async function searchStations(query: string): Promise<VtStation[]> {
         return { name: name.trim(), id: id.trim() };
       });
       
-    return parsed;
+    return rankStationMatches(parsed.map(station => ({ n: station.name, id: station.id })), searchKey)
+      .slice(0, 15).map(station => ({ name: station.n, id: station.id }));
   } catch (error) {
     console.log('Error fetching stations from ViaggiaTreno API:', error);
     return [];
@@ -818,8 +796,8 @@ export async function getTrainStatus(
       else if (f.actualFermataType === 0) stopStatus = 'unknown';
 
       // Parse platforms properly based on whether it is origin, destination or intermediate
-      const scheduledPlatform = cleanPlatform(f.binarioProgrammatoPartenzaDescrizione || f.binarioProgrammatoArrivoDescrizione);
-      const actualPlatform = cleanPlatform(f.binarioEffettivoPartenzaDescrizione || f.binarioEffettivoArrivoDescrizione);
+      const scheduledPlatform = cleanPlatform(f.binarioProgrammatoPartenzaDescrizione || f.binarioProgrammatoPartenza || f.binarioProgrammatoArrivoDescrizione || f.binarioProgrammatoArrivo);
+      const actualPlatform = cleanPlatform(f.binarioEffettivoPartenzaDescrizione || f.binarioEffettivoPartenza || f.binarioEffettivoArrivoDescrizione || f.binarioEffettivoArrivo);
 
       return {
         stationName: getCleanStationName(f.stazione || '', f.id || ''),
@@ -1241,56 +1219,81 @@ export function inferTrainCategory(trainNumber: string | number, currentCategory
   return '';
 }
 
+// Compare complete station identities; a city substring must never pick an arbitrary stop.
+function stationIdentityKey(name: string): string {
+  return getCleanStationName(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+}
+const STATION_ALIASES: Record<string, string> = {
+  'venezia s lucia': 'S02593', 'venezia s l': 'S02593',
+  'firenze smn': 'S06421', 'firenze s m novella': 'S06421', 'firenze s m n': 'S06421',
+  'torino p nuova': 'S00219', 'torino p n': 'S00219',
+  'torino p susa': 'S00222', 'torino porta di susa': 'S00222',
+  'reggio emilia av': 'S05254', 'mediopadana r emilia': 'S05254',
+  'reggio emilia av mediopadana': 'S05254', 'bazzano fer': 'S05975',
+};
 export const findStationIdByName = (name: string): string | null => {
-  const cleanName = getCleanStationName(name).toLowerCase().trim();
-  if (!cleanName) return null;
-  const found = stations.find(s => getCleanStationName(s.n).toLowerCase().trim() === cleanName);
-  if (found) return found.id;
-  const partial = stations.find(s => {
-    const sClean = getCleanStationName(s.n).toLowerCase().trim();
-    return sClean.includes(cleanName) || cleanName.includes(sClean);
+  const key = stationIdentityKey(name);
+  if (!key) return null;
+  if (Object.prototype.hasOwnProperty.call(STATION_ALIASES, key)) return STATION_ALIASES[key];
+  // The operator's own station slugs safely resolve short names such as Bologna.
+  const operator = Object.entries(ITALO_STATION_MAP).filter(([, s]) => stationIdentityKey(s.slug) === key);
+  if (operator.length === 1) return operator[0][0];
+  const exact = stations.filter(s => stationIdentityKey(s.n) === key);
+  if (exact.length === 1) return exact[0].id;
+  const partial = stations.filter(s => {
+    const candidate = stationIdentityKey(s.n);
+    return candidate.startsWith(key + ' ') || key.startsWith(candidate + ' ');
   });
-  if (partial) return partial.id;
-  return null;
+  return partial.length === 1 ? partial[0].id : null;
 };
 
 export async function getFutureItaloTrainSchedule(
   trainNumber: string,
   originName: string,
   destinationName: string,
-  scheduledDepartureTime: number
+  scheduledDepartureTime: number,
+  boardMode: 'departures' | 'arrivals' = 'departures',
+  boardPlatforms: { scheduledPlatform?: string; actualPlatform?: string } = {}
 ): Promise<VtTrainStatus | null> {
+  // Italo station boards are live: never attach today's board to a saved past/future run.
+  if (!Number.isFinite(scheduledDepartureTime) || scheduledDepartureTime <= 0
+    || romeDay(new Date(scheduledDepartureTime)) !== romeDay()) return null;
   const originId = findStationIdByName(originName);
   const destId = findStationIdByName(destinationName);
+  if (!originId && !destId) return null;
   
-  let arrivalTime = 0; // Unknown until an upstream timetable confirms it.
-  let scheduledPlatform = '';
+  let arrivalTime = boardMode === 'arrivals' ? scheduledDepartureTime : 0;
+  const departureTime = boardMode === 'departures' ? scheduledDepartureTime : 0;
+  let scheduledPlatform = boardMode === 'arrivals' ? cleanPlatform(boardPlatforms.scheduledPlatform) : '';
+  let actualPlatform = boardMode === 'arrivals' ? cleanPlatform(boardPlatforms.actualPlatform) : '';
   
   if (destId) {
     try {
       const board = await getStationBoard(destId, 'arrivals', new Date(scheduledDepartureTime), 'italo');
-      const entry = board.find(b => String(b.trainNumber) === String(trainNumber));
+      const entry = board.find(b => String(b.trainNumber) === String(trainNumber)
+        && (!departureTime || b.scheduledTime >= departureTime));
       if (entry) {
         arrivalTime = entry.scheduledTime;
         scheduledPlatform = entry.scheduledPlatform;
+        actualPlatform = entry.actualPlatform;
       }
     } catch (e) {
-      if (e instanceof NetworkError) throw e;
+      // The selected board still confirms a station/time even if the endpoint board fails.
       console.warn('Failed to fetch destination board for future Italo train:', e);
     }
   }
   
-  if (!arrivalTime) return null;
   const stops: VtStop[] = [
     {
       stationName: originName,
       stationId: originId || '',
       scheduledArrivalTime: null,
       actualArrivalTime: null,
-      scheduledDepartureTime: scheduledDepartureTime,
+      scheduledDepartureTime: departureTime || null,
       actualDepartureTime: null,
-      scheduledPlatform: '',
-      actualPlatform: '',
+      scheduledPlatform: boardMode === 'departures' ? cleanPlatform(boardPlatforms.scheduledPlatform) : '',
+      actualPlatform: boardMode === 'departures' ? cleanPlatform(boardPlatforms.actualPlatform) : '',
       arrivalDelay: 0,
       departureDelay: 0,
       status: 'regular'
@@ -1298,12 +1301,12 @@ export async function getFutureItaloTrainSchedule(
     {
       stationName: destinationName,
       stationId: destId || '',
-      scheduledArrivalTime: arrivalTime,
+      scheduledArrivalTime: arrivalTime || null,
       actualArrivalTime: null,
       scheduledDepartureTime: null,
       actualDepartureTime: null,
-      scheduledPlatform: scheduledPlatform,
-      actualPlatform: '',
+      scheduledPlatform,
+      actualPlatform,
       arrivalDelay: 0,
       departureDelay: 0,
       status: 'regular'
@@ -1311,11 +1314,12 @@ export async function getFutureItaloTrainSchedule(
   ];
   
   return {
+    detailLevel: 'station-board',
     number: normalizeTrainNumber(trainNumber),
     category: 'NTV',
     origin: originName,
     destination: destinationName,
-    scheduledDepartureTime,
+    scheduledDepartureTime: departureTime,
     scheduledArrivalTime: arrivalTime,
     delay: 0,
     lastReportedStation: '',
