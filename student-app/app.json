@@ -6,6 +6,12 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "locales": {
+      "zh-Hans": "./locales/zh-Hans.json",
+      "zh-Hant": "./locales/zh-Hant.json",
+      "en": "./locales/en.json",
+      "it": "./locales/it.json"
+    },
     "scheme": "union-app",
     "updates": {
       "url": "https://u.expo.dev/30915e7c-2905-4e7b-81b1-277f9d93128c"
@@ -82,6 +88,13 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.asscuboxue.app",
       "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "CFBundleLocalizations": [
+          "zh-Hans",
+          "zh-Hant",
+          "en",
+          "it"
+        ],
         "NSCameraUsageDescription": "允许访问相机以上传头像",
         "NSPhotoLibraryUsageDescription": "允许访问相册以上传头像",
         "NSLocationWhenInUseUsageDescription": "我们需要您的位置以在公交地图上显示您的当前位置并查找附近站点。",

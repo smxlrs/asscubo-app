@@ -1,0 +1,13 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "博学ASSCUBO",
+    "CFBundleName": "博学ASSCUBO",
+    "NSCameraUsageDescription": "Consenti di usare la fotocamera per scattare e caricare immagini.",
+    "NSPhotoLibraryUsageDescription": "Consenti di accedere alla libreria foto per scegliere e caricare foto del profilo, immagini degli avvisi o allegati alle segnalazioni.",
+    "NSLocationWhenInUseUsageDescription": "Consenti di usare la posizione per mostrarti sulla mappa degli autobus e trovare le fermate vicine.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "Consenti di usare la posizione per la mappa degli autobus e le fermate vicine.",
+    "NSLocationAlwaysUsageDescription": "Consenti di usare la posizione per la mappa degli autobus e le fermate vicine.",
+    "NSMotionUsageDescription": "Consenti di riconoscere il tuo stato di movimento.",
+    "NSFaceIDUsageDescription": "Consenti di usare Face ID per verificare la tua identità."
+  }
+}

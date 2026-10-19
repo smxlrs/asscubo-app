@@ -1,0 +1,13 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "博学ASSCUBO",
+    "CFBundleName": "博学ASSCUBO",
+    "NSCameraUsageDescription": "Allow camera access to take and upload pictures.",
+    "NSPhotoLibraryUsageDescription": "Allow photo library access to select and upload profile pictures, notice images or feedback attachments.",
+    "NSLocationWhenInUseUsageDescription": "Allow location access to show your position on the bus map and find nearby stops.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow location access for the bus map and nearby stops.",
+    "NSLocationAlwaysUsageDescription": "Allow location access for the bus map and nearby stops.",
+    "NSMotionUsageDescription": "Allow access to recognize your current motion activity.",
+    "NSFaceIDUsageDescription": "Allow Face ID to verify your identity."
+  }
+}

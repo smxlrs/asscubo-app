@@ -1,0 +1,13 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "博學ASSCUBO",
+    "CFBundleName": "博學ASSCUBO",
+    "NSCameraUsageDescription": "允許使用相機拍攝並上傳圖片。",
+    "NSPhotoLibraryUsageDescription": "允許取用相簿，以選擇並上傳頭像、通知圖片或意見回饋附件。",
+    "NSLocationWhenInUseUsageDescription": "允許使用目前位置，以在公車地圖上顯示您的位置並尋找附近站點。",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "允許取用您的位置，以提供公車地圖及附近站點服務。",
+    "NSLocationAlwaysUsageDescription": "允許取用您的位置，以提供公車地圖及附近站點服務。",
+    "NSMotionUsageDescription": "允許辨識目前的運動狀態。",
+    "NSFaceIDUsageDescription": "允許使用 Face ID 驗證您的身分。"
+  }
+}
