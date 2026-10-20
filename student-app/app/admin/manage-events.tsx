@@ -172,6 +172,8 @@ export default function ManageEventsScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const visibleEvents = events.filter((item) => showDeleted ? !!item.deleted_at : !item.deleted_at);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -492,6 +494,7 @@ export default function ManageEventsScreen() {
   };
 
   const saveEvent = async () => {
+    if (saving) return;
     if (!title.trim() || !description.trim()) {
       Alert.alert('信息不完整', '请填写活动标题和活动详情。');
       return;
@@ -909,8 +912,8 @@ export default function ManageEventsScreen() {
   };
 
   const deleteEvent = () => {
-    if (!event) return;
-    Alert.alert('删除活动', '删除后活动不会再出现在用户端，已有报名记录会保留供管理员查询。确定继续吗？', [
+    if (!event || saving) return;
+    Alert.alert('移入已删除活动', '活动将从用户端和当前列表移除，报名历史保留在“已删除”活动中，可在那里彻底删除。确定继续吗？', [
       { text: '返回', style: 'cancel' },
       {
         text: '确认删除',
@@ -927,7 +930,7 @@ export default function ManageEventsScreen() {
             setEvent(null);
             setSelectedId(null);
             await loadEvents();
-            Alert.alert('已删除', '活动已从用户端隐藏，报名数据仍已保留。');
+            Alert.alert('已移入已删除活动', '活动已隐藏，可在“已删除”列表查看历史或彻底删除。');
           } catch (error: any) {
             Alert.alert('删除失败', adminErrorMessage(error, '活动删除失败，请稍后重试。'));
           } finally {
@@ -935,6 +938,32 @@ export default function ManageEventsScreen() {
           }
         },
       },
+    ]);
+  };
+
+  const permanentlyDeleteEvent = () => {
+    if (!event?.deleted_at || saving) return;
+    const target = event;
+    Alert.alert('彻底删除活动', `确定永久删除《${target.title}》及其全部报名、报名人信息、车辆和通知任务吗？删除后无法恢复，建议先导出需要保留的名单。`, [
+      { text: '取消', style: 'cancel' },
+      { text: '彻底删除', style: 'destructive', onPress: async () => {
+        setSaving(true);
+        try {
+          const { error } = await supabase.rpc('admin_permanently_delete_event', {
+            p_event_id: target.id, p_expected_revision: target.revision,
+          });
+          if (error) throw error;
+          setEvents((current) => current.filter((row) => row.id !== target.id));
+          setEvent(null);
+          setSelectedId(null);
+          await loadEvents();
+          Alert.alert('已彻底删除', '活动和关联报名数据已永久删除。');
+        } catch (error: any) {
+          Alert.alert('删除失败', adminErrorMessage(error, '无法彻底删除活动，请刷新后重试。'));
+        } finally {
+          setSaving(false);
+        }
+      } },
     ]);
   };
 
@@ -1321,7 +1350,7 @@ export default function ManageEventsScreen() {
 
   const selectedEventPanel = event && !editing ? (
     <>
-      <View style={styles.headerRow}><Pressable onPress={() => { setEvent(null); setSelectedId(null); }} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable><View style={{ flex: 1 }}><Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>{event.title}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>{event.deleted_at ? '已删除 · 可查看和导出历史报名' : '报名管理'}</Text></View>{!event.deleted_at ? <><Pressable onPress={() => setEditing(true)} style={styles.addTextButton}><MaterialCommunityIcons name="pencil-outline" size={18} color={colors.primary} /><Text style={{ color: colors.primary }}>编辑</Text></Pressable><Pressable onPress={deleteEvent} style={styles.deleteIconButton} disabled={saving}><MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} /></Pressable></> : null}</View>
+      <View style={styles.headerRow}><Pressable onPress={() => { setEvent(null); setSelectedId(null); }} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable><View style={{ flex: 1 }}><Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>{event.title}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>{event.deleted_at ? '已删除 · 可查看和导出历史报名' : '报名管理'}</Text></View>{!event.deleted_at ? <><Pressable onPress={() => setEditing(true)} style={styles.addTextButton}><MaterialCommunityIcons name="pencil-outline" size={18} color={colors.primary} /><Text style={{ color: colors.primary }}>编辑</Text></Pressable><Pressable onPress={deleteEvent} style={styles.deleteIconButton} disabled={saving}><MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} /></Pressable></> : <Pressable onPress={permanentlyDeleteEvent} style={styles.deleteIconButton} disabled={saving}><Text style={{ color: colors.error }}>彻底删除</Text></Pressable>}</View>
       <View style={[styles.summaryPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}><Text style={[styles.summaryText, { color: colors.textPrimary }]}>已确认 {registrations.filter((row) => row.status === 'confirmed').reduce((total, row) => total + row.participant_count, 0)} 人，候补 {registrations.filter((row) => row.status === 'waitlist').reduce((total, row) => total + row.participant_count, 0)} 人{event.vehicle_selection_mode !== 'none' ? `，待分车 ${registrations.filter((row) => row.status === 'confirmed' && !row.vehicle_id).reduce((total, row) => total + row.participant_count, 0)} 人` : ''}</Text><View style={styles.exportRow}><Pressable onPress={openExportSelector} style={[styles.outlineButton, { borderColor: colors.primary }]}><MaterialCommunityIcons name="download-outline" size={17} color={colors.primary} /><Text style={{ color: colors.primary, fontSize: 13 }}>导出表单</Text></Pressable>{!event.deleted_at ? <Pressable onPress={sendEventNotification} style={[styles.outlineButton, { borderColor: colors.primary }]}><MaterialCommunityIcons name="bell-outline" size={17} color={colors.primary} /><Text style={{ color: colors.primary, fontSize: 13 }}>发送通知</Text></Pressable> : null}</View></View>
       {notificationJobPanel}
       <View style={styles.registrationToolbar}>
@@ -1343,7 +1372,10 @@ export default function ManageEventsScreen() {
       <Text style={[styles.fixedEditorTitle, { color: colors.textPrimary }]}>{event ? '编辑活动' : '新建活动'}</Text>
       <Pressable accessibilityLabel="预览活动" onPress={() => setPreviewing(true)} style={styles.previewHeaderButton}><MaterialCommunityIcons name="eye-outline" size={23} color={colors.primary} /></Pressable>
     </View> : null}
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{editing ? editor : event ? selectedEventPanel : <><View style={styles.headerRow}><Pressable onPress={() => router.back()} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable><Text style={[styles.title, { color: colors.textPrimary }]}>活动发布与管理</Text><Pressable onPress={startCreate} style={styles.addTextButton}><MaterialCommunityIcons name="plus" size={18} color={colors.primary} /><Text style={{ color: colors.primary }}>新建</Text></Pressable></View>{loading ? <ActivityIndicator style={{ marginTop: 50 }} color={colors.primary} /> : events.length === 0 ? <View style={styles.empty}><MaterialCommunityIcons name="calendar-plus" size={44} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>还没有活动</Text><Pressable onPress={startCreate} style={[styles.saveButton, { backgroundColor: colors.primary, marginTop: 14 }]}><Text style={styles.saveButtonText}>创建第一个活动</Text></Pressable></View> : events.map((item) => <Pressable key={item.id} onPress={() => openEvent(item.id)} style={[styles.eventListRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={{ flex: 1 }}><Text style={[styles.eventListTitle, { color: colors.textPrimary }]}>{item.title}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>{localDateInput(item.start_time)} · {item.deleted_at ? '已删除' : statusOptions.find((option) => option.value === item.registration_status)?.label || item.registration_status} · {item.allow_proxy_registration ? '允许代报名' : '仅本人报名'}</Text></View><MaterialCommunityIcons name="chevron-right" size={22} color={colors.textMuted} /></Pressable>)}</>}</ScrollView>
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{editing ? editor : event ? selectedEventPanel : <><View style={styles.headerRow}><Pressable onPress={() => router.back()} style={styles.backButton}><MaterialCommunityIcons name="arrow-left" size={23} color={colors.textPrimary} /></Pressable><Text style={[styles.title, { color: colors.textPrimary }]}>活动发布与管理</Text><Pressable onPress={startCreate} style={styles.addTextButton}><MaterialCommunityIcons name="plus" size={18} color={colors.primary} /><Text style={{ color: colors.primary }}>新建</Text></Pressable></View><View style={[styles.exportRow, { marginBottom: 16 }]}>
+  <Pressable onPress={() => setShowDeleted(false)} style={[styles.outlineButton, { borderColor: showDeleted ? colors.border : colors.primary }]}><Text style={{ color: showDeleted ? colors.textSecondary : colors.primary }}>活动列表</Text></Pressable>
+  <Pressable onPress={() => setShowDeleted(true)} style={[styles.outlineButton, { borderColor: showDeleted ? colors.primary : colors.border }]}><Text style={{ color: showDeleted ? colors.primary : colors.textSecondary }}>已删除（{events.filter((item) => !!item.deleted_at).length}）</Text></Pressable>
+</View>{loading ? <ActivityIndicator style={{ marginTop: 50 }} color={colors.primary} /> : visibleEvents.length === 0 ? <View style={styles.empty}><MaterialCommunityIcons name="calendar-plus" size={44} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{showDeleted ? '没有已删除活动' : '还没有活动'}</Text><Pressable onPress={startCreate} style={[styles.saveButton, { backgroundColor: colors.primary, marginTop: 14 }]}><Text style={styles.saveButtonText}>创建第一个活动</Text></Pressable></View> : visibleEvents.map((item) => <Pressable key={item.id} onPress={() => openEvent(item.id)} style={[styles.eventListRow, { backgroundColor: colors.surface, borderColor: colors.border }]}><View style={{ flex: 1 }}><Text style={[styles.eventListTitle, { color: colors.textPrimary }]}>{item.title}</Text><Text style={[styles.hint, { color: colors.textSecondary }]}>{localDateInput(item.start_time)} · {item.deleted_at ? '已删除' : statusOptions.find((option) => option.value === item.registration_status)?.label || item.registration_status} · {item.allow_proxy_registration ? '允许代报名' : '仅本人报名'}</Text></View><MaterialCommunityIcons name="chevron-right" size={22} color={colors.textMuted} /></Pressable>)}</>}</ScrollView>
     {eventPreview}
     <Modal visible={notificationModalVisible} animationType="slide" transparent onRequestClose={() => setNotificationModalVisible(false)}>
       <View style={styles.exportModalBackdrop}>

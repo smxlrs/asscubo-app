@@ -10,7 +10,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const cli = process.env.EVENT_TEST_SUPABASE_CLI;
 if (!cli) throw new Error('Set EVENT_TEST_SUPABASE_CLI to the installed Supabase CLI.');
 const filename = process.argv[2] || 'event-registration-live-rollback.sql';
-if (!/^event-registration-live-(rollback|vehicles|audience)\.sql$/.test(filename)) throw new Error('Unexpected test script.');
+if (!/^event-registration-live-(rollback|vehicles|audience|deletion)\.sql$/.test(filename)) throw new Error('Unexpected test script.');
 const path = resolve(root, 'supabase/tests', filename);
 const source = readFileSync(path, 'utf8');
 if (!/\bBEGIN;/i.test(source) || !/\bROLLBACK;\s*$/.test(source) || /^\s*COMMIT\s*;/im.test(source)) {
@@ -24,7 +24,18 @@ async function query(args) {
   if (!Array.isArray(parsed.rows)) throw new Error('Missing query rows.');
   return parsed.rows;
 }
-const rows = await query(['--file', path]);
+let queryPath = path;
+if (process.argv.includes('--preview-deletion-migration')) {
+  if (filename !== 'event-registration-live-deletion.sql') throw new Error('Migration preview is limited to deletion tests.');
+  const migration = readFileSync(resolve(root, 'supabase/migrations/048_permanent_event_deletion.sql'), 'utf8')
+    .replace(/^BEGIN;\s*$/m, '').replace(/^COMMIT;\s*$/m, '');
+  if (/^\s*(?:BEGIN|COMMIT)\s*;/im.test(migration)) throw new Error('Unexpected migration transaction boundary.');
+  const temporaryDirectory = resolve(root, '.tmp/event-live-results');
+  mkdirSync(temporaryDirectory, { recursive: true });
+  queryPath = resolve(temporaryDirectory, 'deletion-migration-preview.sql');
+  writeFileSync(queryPath, source.replace(/\bBEGIN;/, () => `BEGIN;\n${migration}\n`));
+}
+const rows = await query(['--file', queryPath]);
 const report = rows[0]?.test_report;
 if (typeof report?.passed !== 'boolean' || !Array.isArray(report.results)) throw new Error('Live test did not return a test report.');
 const fixture = report.results.find(item=>item.details?.run_id && item.details?.event_ids)?.details;

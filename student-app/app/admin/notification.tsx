@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Alert, ActivityIndicator, Modal, FlatList, Image, Switch } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { buildNotificationContent } from '../../lib/notificationContent';
+import { buildNotificationContent, parseNotificationContent } from '../../lib/notificationContent';
+import { useAuth } from '../../context/AuthContext';
 import { broadcastPushNotification } from '../../lib/notificationService';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -69,6 +70,13 @@ const decodeBase64 = (base64: string): ArrayBuffer => {
 
 export default function PublishNotificationScreen() {
   const { colors } = useTheme();
+  const { notificationId } = useLocalSearchParams<{ notificationId?: string }>();
+  const editingId = typeof notificationId === 'string' ? notificationId : null;
+  const { hasAdminPermission } = useAuth();
+  const [loadingNotification, setLoadingNotification] = useState(!!editingId);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [existingLink, setExistingLink] = useState<string | null>(null);
+  const [originalContent, setOriginalContent] = useState<{ content: string; summary: string; body: string } | null>(null);
   
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<CategoryType | null>(null);
@@ -86,8 +94,40 @@ export default function PublishNotificationScreen() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBodyImage, setUploadingBodyImage] = useState(false);
 
-  const [sendPush, setSendPush] = useState(true);
+  const [sendPush, setSendPush] = useState(!editingId);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!editingId) return;
+    let active = true;
+    setLoadingNotification(true);
+    setLoadFailed(false);
+    async function loadNotification() {
+      try {
+        const { data, error } = await supabase.from('notifications')
+          .select('title,category,content,link,cover_image').eq('id', editingId).single();
+        if (error) throw error;
+        if (!active) return;
+        const parsed = parseNotificationContent(data.content);
+        setTitle(data.title);
+        setCategory(data.category as CategoryType);
+        setSummary(parsed.summary);
+        setContentBody(parsed.body);
+        setImageUri(data.cover_image || null);
+        setExistingLink(data.link || null);
+        setOriginalContent({ content: data.content || '', ...parsed });
+        setSendPush(false);
+      } catch (error: any) {
+        if (!active) return;
+        setLoadFailed(true);
+        Alert.alert('加载失败', error.message || '无法读取通知，请返回后重试。');
+      } finally {
+        if (active) setLoadingNotification(false);
+      }
+    }
+    void loadNotification();
+    return () => { active = false; };
+  }, [editingId]);
 
   // Fetch articles on mount
   useEffect(() => {
@@ -234,11 +274,16 @@ export default function PublishNotificationScreen() {
   };
 
   const getFinalWechatLink = () => {
-    return selectedArticle ? selectedArticle.link : null;
+    return selectedArticle ? selectedArticle.link : existingLink;
   };
 
   const handleSubmit = async () => {
     if (submitting) return;
+    if (loadingNotification || loadFailed) return;
+    if (!hasAdminPermission(editingId ? 'notifications.manage' : 'notifications.publish')) {
+      Alert.alert('权限不足', '当前账号没有执行此操作的权限。');
+      return;
+    }
     if (uploadingImage || uploadingBodyImage) {
       Alert.alert('图片上传中', '请等待图片上传完成后再发布。');
       return;
@@ -258,19 +303,26 @@ export default function PublishNotificationScreen() {
       const finalCover = getFinalCoverImage();
       const finalLink = getFinalWechatLink();
 
-      // 1. Insert into notifications table (default category to 'general' if null to satisfy DB not-null constraint)
       const notificationPayload = {
         title: title.trim(),
-        content: buildNotificationContent(summary, contentBody),
+        content: editingId && originalContent && summary === originalContent.summary && contentBody === originalContent.body
+          ? originalContent.content : buildNotificationContent(summary, contentBody),
         category: category || 'general',
         link: finalLink,
         cover_image: finalCover,
-        created_at: new Date().toISOString(),
       };
+
+      if (editingId) {
+        const { error } = await supabase.from('notifications').update(notificationPayload)
+          .eq('id', editingId).select('id').single();
+        if (error) throw error;
+        Alert.alert('保存成功', '通知已更新，原发布时间保持不变。', [{ text: '返回管理列表', onPress: () => router.back() }]);
+        return;
+      }
 
       const { error: notificationError } = await supabase
         .from('notifications')
-        .insert([notificationPayload]);
+        .insert([{ ...notificationPayload, created_at: new Date().toISOString() }]);
 
       if (notificationError) {
         throw notificationError;
@@ -309,13 +361,22 @@ export default function PublishNotificationScreen() {
 
     } catch (error: any) {
       console.error('Error publishing notification:', error);
-      Alert.alert('发布失败', error.message || '请检查网络连接后重试。');
+      Alert.alert(editingId ? '保存失败' : '发布失败', error.message || '请检查网络连接后重试。');
     } finally {
       setSubmitting(false);
     }
   };
 
   const finalCover = getFinalCoverImage();
+
+  if (loadingNotification || loadFailed) return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]} edges={['top', 'bottom']}>
+      {loadingNotification ? <ActivityIndicator size="large" color={colors.primary} /> : <>
+        <Text style={{ color: colors.textPrimary }}>通知加载失败，请返回后重试。</Text>
+        <Pressable onPress={() => router.back()} style={styles.backButton}><Text style={{ color: colors.primary }}>返回</Text></Pressable>
+      </>}
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -324,7 +385,7 @@ export default function PublishNotificationScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <View style={[styles.backArrow, { borderColor: colors.primaryLight }]} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>发布通知</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{editingId ? '编辑通知' : '发布通知'}</Text>
         <View style={styles.headerPlaceholder} />
       </View>
 
@@ -389,19 +450,19 @@ export default function PublishNotificationScreen() {
 
         {/* Article Selector Instead of WeChat URL Text Input */}
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>关联公众号文章 (可选)</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>关联网站文章 (可选)</Text>
           <View style={styles.selectorWrapper}>
             <Pressable
               style={[styles.input, styles.articleSelector, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => setShowArticleModal(true)}
             >
               <Text style={[styles.selectorText, { color: selectedArticle ? colors.textPrimary : colors.textMuted }]} numberOfLines={1}>
-                {selectedArticle ? selectedArticle.title : '点击选择已搬运的文章'}
+                {selectedArticle ? selectedArticle.title : existingLink ? '已关联文章（点击可更换）' : '点击选择网站文章'}
               </Text>
               <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textMuted} />
             </Pressable>
-            {selectedArticleId && (
-              <Pressable style={styles.clearSelectorButton} onPress={() => setSelectedArticleId(null)}>
+            {(selectedArticleId || existingLink) && (
+              <Pressable style={styles.clearSelectorButton} onPress={() => { setSelectedArticleId(null); setExistingLink(null); }}>
                 <MaterialCommunityIcons name="close-circle" size={18} color="#EF4444" />
               </Pressable>
             )}
@@ -492,7 +553,7 @@ export default function PublishNotificationScreen() {
         </View>
 
         {/* Send Push Notification Toggle */}
-        <View style={[styles.toggleContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {!editingId && <View style={[styles.toggleContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.toggleTextContainer}>
             <Text style={[styles.toggleLabel, { color: colors.textPrimary }]}>同时群发系统推送</Text>
             <Text style={[styles.toggleDesc, { color: colors.textSecondary }]}>开启后将自动向所有已注册用户设备发送手机消息推送</Text>
@@ -504,7 +565,7 @@ export default function PublishNotificationScreen() {
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor="#FFFFFF"
           />
-        </View>
+        </View>}
 
         {/* Submit Button */}
         <Pressable
@@ -516,7 +577,7 @@ export default function PublishNotificationScreen() {
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <Text style={styles.submitButtonText}>
-              {sendPush ? '立即发布并群发推送' : '立即发布'}
+              {editingId ? '保存修改' : sendPush ? '立即发布并群发推送' : '立即发布'}
             </Text>
           )}
         </Pressable>
@@ -527,7 +588,7 @@ export default function PublishNotificationScreen() {
         <View style={styles.modalOverlay}>
           <SafeAreaView style={[styles.modalContent, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>选择关联的微信文章</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>选择关联的网站文章</Text>
               <Pressable onPress={() => { setShowArticleModal(false); setSearchQuery(''); }}>
                 <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
               </Pressable>

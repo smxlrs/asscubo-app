@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
+import { requestWebsiteArticleSync } from '../../lib/websiteArticleSync';
 
 type SyncRun = {
   id: string;
@@ -28,14 +29,13 @@ async function readableSyncError(error: any): Promise<string> {
   const raw = `${detail} ${error?.message || ''}`.toLowerCase();
   if (status === 401 || raw.includes('unauthorized') || raw.includes('jwt')) return '登录状态已过期，请重新登录后再同步。';
   if (status === 403 || raw.includes('permission denied') || raw.includes('row-level security')) return '当前账号没有“文章同步”权限，请联系超级管理员开通。';
-  if (raw.includes('invalid credential') || raw.includes('access_token is invalid')) return '微信公众号凭证已失效，请稍后重试同步。';
-  if (raw.includes('missing wechat credentials')) return '同步服务尚未配置微信公众号凭证，请联系超级管理员。';
   if (status === 429 || raw.includes('rate limit') || raw.includes('too many request')) return '请求过于频繁，请稍后再试。';
+  if (raw.includes('timeout') || raw.includes('超时')) return '等待同步结果超时，服务器可能仍在处理。请稍后刷新同步记录确认结果，避免重复提交。';
   if (raw.includes('sync is already running') || raw.includes('lock')) return '已有同步任务正在运行，请稍后再试。';
-  if (raw.includes('failed to fetch wechat access token') || raw.includes('invalid appid') || raw.includes('invalid appsecret')) return '微信公众号配置无效，请联系超级管理员检查凭证。';
-  if (raw.includes('failed to fetch wechat publications') || raw.includes('wechat api')) return '微信接口暂时不可用，请稍后重试。';
+  if (raw.includes('wechat')) return '服务器仍在使用旧的微信同步服务，请联系管理员切换为网站文章来源。';
+  if (raw.includes('pagination') || raw.includes('website changed')) return '网站文章列表在同步时发生变化或未完整返回，本次未切换文章列表，请重试。';
   if (raw.includes('network') || raw.includes('timeout') || raw.includes('fetch')) return '同步服务或网络暂时不可用，请稍后重试。';
-  return '同步服务暂时不可用，请稍后重试。';
+  return detail || error?.message || '同步服务暂时不可用，请稍后重试。';
 }
 
 function formatDate(value: string | null): string {
@@ -57,7 +57,7 @@ function readableLoadError(error: any): string {
   return '无法读取同步记录，请稍后刷新重试。';
 }
 
-export default function WechatSyncScreen() {
+export default function WebsiteSyncScreen() {
   const { colors } = useTheme();
   const [runs, setRuns] = useState<SyncRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +70,7 @@ export default function WechatSyncScreen() {
       if (error) throw error;
       setRuns((data || []) as SyncRun[]);
     } catch (error: any) {
-      console.error('Failed to load WeChat sync status:', error);
+      console.error('Failed to load website sync status:', error);
       Alert.alert('加载失败', readableLoadError(error));
     } finally {
       setLoading(false);
@@ -81,23 +81,24 @@ export default function WechatSyncScreen() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleSync = () => {
-    Alert.alert('立即同步微信文章', '确定要立即检测并同步微信公众号的最新文章吗？', [
+    Alert.alert('立即同步网站文章', '将从 asscubo.it 读取全部公开文章，更新标题、摘要、封面和阅读链接。确定立即同步吗？', [
       { text: '取消', style: 'cancel' },
       { text: '确定同步', onPress: async () => {
         setSyncing(true);
         try {
-          const { data, error } = await supabase.functions.invoke('wechat-sync', { headers: { 'X-Sync-Trigger': 'manual' } });
-          if (error) throw error;
-          if (data?.status === 'error') throw new Error(data.message || '同步失败');
+          const data = await requestWebsiteArticleSync();
+          if (!data || !['success', 'busy'].includes(data.status)) throw new Error(data?.message || '服务器未返回有效的同步结果，请重试。');
           if (data?.status === 'busy') {
             Alert.alert('同步进行中', '已有自动或手动同步任务正在运行，请稍后再查看结果。');
           } else {
-            Alert.alert('同步完成', `新增同步：${data?.synced ?? 0} 篇\n跳过重复：${data?.skipped ?? 0} 篇`);
+            if (data.source !== 'wordpress') throw new Error('服务器仍在使用旧的微信同步服务，请联系管理员切换为网站文章来源。');
+            Alert.alert('同步完成', `新增：${data.synced ?? 0} 篇\n更新：${data.updated ?? 0} 篇\n无需更新：${data.skipped ?? 0} 篇\n当前可见：${data.visible ?? 0} 篇\n\n旧文章修改后仍按原发布时间排序。`);
           }
           await loadData();
         } catch (error: any) {
-          console.error('Manual WeChat sync error:', error);
-          Alert.alert('同步失败', await readableSyncError(error));
+          console.error('Manual website sync error:', error);
+          Alert.alert('同步提示', await readableSyncError(error));
+          await loadData();
         } finally {
           setSyncing(false);
         }
@@ -109,7 +110,7 @@ export default function WechatSyncScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}><View style={[styles.backArrow, { borderColor: colors.primaryLight }]} /></Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>微信文章同步</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>网站文章同步</Text>
         <View style={styles.headerPlaceholder} />
       </View>
       {loading ? <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View> : (
@@ -127,7 +128,7 @@ export default function WechatSyncScreen() {
               {syncing
                 ? <ActivityIndicator size="small" color={colors.primaryLight} style={styles.syncIcon} />
                 : <MaterialCommunityIcons name="sync" size={20} color={colors.primaryLight} style={styles.syncIcon} />}
-              <Text style={[styles.syncButtonText, { color: colors.textPrimary }]}>{syncing ? '正在同步微信文章...' : '立即同步微信文章'}</Text>
+              <Text style={[styles.syncButtonText, { color: colors.textPrimary }]}>{syncing ? '正在同步网站文章...' : '立即同步网站文章'}</Text>
               <Text style={[styles.syncButtonValue, { color: colors.textSecondary }]}>{syncing ? '请稍候' : '后台检测并同步'}</Text>
               <Text style={[styles.syncArrow, { color: colors.textMuted }]}>›</Text>
             </Pressable>
@@ -140,7 +141,7 @@ export default function WechatSyncScreen() {
             return <View style={[styles.article, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
               <View style={styles.runHeader}><Text style={[styles.articleTitle, { color: colors.textPrimary }]}>{item.trigger === 'manual' ? '管理员手动同步' : '自动同步'}</Text><Text style={[styles.status, { color: failed ? '#D92D20' : item.status === 'running' ? '#C47F00' : '#16805B' }]}>{failed ? '失败' : item.status === 'running' ? '进行中' : '成功'}</Text></View>
               <Text style={[styles.articleMeta, { color: colors.textMuted }]}>开始：{formatDate(item.started_at)} · 完成：{formatDate(item.completed_at)}</Text>
-              <Text style={[styles.detail, { color: colors.textSecondary }]}>抓取 {result.fetched ?? 0} · 新增 {result.synced ?? 0} · 跳过 {result.skipped ?? 0} · 推送失败 {result.push_failures ?? 0}</Text>
+              <Text style={[styles.detail, { color: colors.textSecondary }]}>抓取 {result.fetched ?? 0} · 新增 {result.synced ?? 0} · 更新 {result.updated ?? 0} · 无需更新 {result.skipped ?? 0} · 可见 {result.visible ?? 0} · 推送失败 {result.push_failures ?? 0}</Text>
               {failed && <Text style={[styles.errorText, { color: '#D92D20' }]} numberOfLines={3}>{result.message || '同步失败，请查看服务器日志'}</Text>}
             </View>;
           }}

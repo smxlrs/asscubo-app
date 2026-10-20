@@ -280,7 +280,6 @@ export default function ArticleDetailScreen() {
         </style>
       </head>
       <body data-image-loading="${imageLabels.loading}" data-image-failed="${imageLabels.failed}">
-        <h1>${article.title}</h1>
         <div class="meta">
           ${localized.publishDate}${getLocalDateString(article.created_at, language)}
         </div>
@@ -300,7 +299,7 @@ export default function ArticleDetailScreen() {
           <View style={[styles.backArrow, { borderColor: colors.primaryLight }]} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-          {localized.details}
+          {article.title}
         </Text>
         <View style={styles.headerPlaceholder} />
       </View>

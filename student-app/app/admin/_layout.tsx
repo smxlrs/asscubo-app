@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Stack, router, usePathname } from 'expo-router';
+import { Stack, router, usePathname, useGlobalSearchParams } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
@@ -7,7 +7,6 @@ import { AdminPermission } from '../../lib/adminPermissions';
 
 const ROUTE_PERMISSIONS: Record<string, AdminPermission | AdminPermission[]> = {
   '/admin/notification': 'notifications.publish',
-  '/admin/wechat-import': 'articles.sync',
   '/admin/wechat-sync': 'articles.sync',
   '/admin/manage-articles': 'articles.manage',
   '/admin/manage-notifications': 'notifications.manage',
@@ -22,6 +21,7 @@ export default function AdminLayout() {
   const { user, profile, loading, hasAdminPermission } = useAuth();
   const { colors } = useTheme();
   const pathname = usePathname();
+  const { notificationId } = useGlobalSearchParams<{ notificationId?: string }>();
 
   useEffect(() => {
     if (!loading) {
@@ -41,13 +41,14 @@ export default function AdminLayout() {
       return;
     }
 
-    const requirement = ROUTE_PERMISSIONS[pathname];
+    const requirement = pathname === '/admin/notification' && notificationId
+      ? 'notifications.manage' : ROUTE_PERMISSIONS[pathname];
     if (!requirement) return;
     const authorized = Array.isArray(requirement)
       ? requirement.some(hasAdminPermission)
       : hasAdminPermission(requirement);
     if (!authorized) router.replace('/admin');
-  }, [hasAdminPermission, loading, pathname, profile]);
+  }, [hasAdminPermission, loading, pathname, profile, notificationId]);
 
   if (loading) {
     return (

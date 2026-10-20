@@ -36,3 +36,19 @@ export function notificationPreview(content: string | null | undefined): string 
   return summary[1].replace(/&#39;/g, "'").replace(/&quot;/g, '"')
     .replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
 }
+
+function decodeHtml(value: string): string {
+  return value.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&gt;/g, '>')
+    .replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+}
+
+export function parseNotificationContent(content: string | null | undefined): { summary: string; body: string } {
+  const value = content || '';
+  const structured = value.match(/^<p data-notification-summary="true">([\s\S]*?)<\/p>\s*<div style="white-space:pre-wrap;">([\s\S]*)<\/div>$/);
+  if (structured) return { summary: decodeHtml(structured[1]), body: decodeHtml(structured[2]) };
+  if (!/<[a-z][\s\S]*>/i.test(value)) return { summary: value, body: '' };
+  // Older HTML notices remain editable, including their body images.
+  const body = value.replace(/<br\s*\/?\s*>/gi, '\n').replace(/<\/(?:p|div)>/gi, '\n')
+    .replace(/<(?!img\b)[^>]*>/gi, '');
+  return { summary: notificationPreview(value) || '', body: decodeHtml(body).trim() };
+}

@@ -8,7 +8,7 @@ export const ADMIN_PERMISSION_OPTIONS = [
   {
     key: 'articles.sync',
     label: '文章同步',
-    description: '导入微信公众号文章并立即同步',
+    description: '同步网站文章并查看同步记录',
     icon: 'sync',
   },
   {
@@ -26,7 +26,7 @@ export const ADMIN_PERMISSION_OPTIONS = [
   {
     key: 'notifications.manage',
     label: '通知管理',
-    description: '修改分类、置顶和删除已有通知',
+    description: '编辑内容、修改分类、置顶和删除已有通知',
     icon: 'bell-ring-outline',
   },
   {

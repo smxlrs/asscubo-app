@@ -17,7 +17,7 @@ const equal = (actual, expected) => { assert.deepEqual(actual, expected); checks
 const loadTs = (path, additions = {}) => {
   const source = readFileSync(resolve(root, path), 'utf8');
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  const context = { exports: {}, Response, Request, AbortController, setTimeout, clearTimeout, console,
+  const context = { exports: {}, Response, Request, TextDecoder, AbortController, setTimeout, clearTimeout, console,
     require: name => {
       if (name === './network') return loadTs('student-app/lib/network.ts', additions);
       throw new Error('Unexpected module ' + name);

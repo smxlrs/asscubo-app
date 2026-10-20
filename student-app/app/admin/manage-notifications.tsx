@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, Alert, ActivityIndicator, Modal } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -54,9 +54,9 @@ export default function ManageNotificationsScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  useFocusEffect(useCallback(() => {
+    void fetchNotifications();
+  }, []));
 
   const handleCategoryChange = async (notificationId: string, newCategory: string | null) => {
     try {
@@ -173,6 +173,9 @@ export default function ManageNotificationsScreen() {
         </View>
         
         <View style={styles.actionButtons}>
+          <Pressable accessibilityLabel="编辑通知" style={styles.pinButton} onPress={() => router.push({ pathname: '/admin/notification', params: { notificationId: item.id } })}>
+            <MaterialCommunityIcons name="pencil-outline" size={22} color={colors.primaryLight} />
+          </Pressable>
           <Pressable style={styles.pinButton} onPress={() => handleTogglePin(item)}>
             <MaterialCommunityIcons 
               name={item.is_pinned ? "pin" : "pin-outline"} 

@@ -75,11 +75,7 @@ export default function AdminDashboardScreen() {
 
   const articleItems = [
     hasAdminPermission('articles.sync') && {
-      key: 'wechat-import', icon: 'link-plus', label: '一键导入微信文章', value: '链接抓取',
-      onPress: () => router.push('/admin/wechat-import'),
-    },
-    hasAdminPermission('articles.sync') && {
-      key: 'wechat-sync', icon: 'sync', label: '同步微信文章', value: '查看记录与手动同步',
+      key: 'website-sync', icon: 'sync', label: '网站文章同步', value: '查看记录与手动同步',
       onPress: () => router.push('/admin/wechat-sync'),
     },
     hasAdminPermission('articles.manage') && {

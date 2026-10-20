@@ -396,6 +396,34 @@ try {
   await q('SELECT public.admin_delete_event($1,$2)',[scheduled,scheduledEvent.revision]);
   equal((await q('SELECT status FROM public.event_registration_notification_jobs WHERE event_id=$1',[scheduled])).rows[0].status,'cancelled');
   equal((await q('SELECT count(*)::int AS count FROM cron.job')).rows[0].count,0);
+  // Permanent deletion is a second, explicitly confirmed operation. Exercise
+  // real cascades and reminder cleanup, not a stubbed DELETE statement.
+  {
+  await exec(sql('048_permanent_event_deletion.sql'));
+  await exec(sql('048_permanent_event_deletion.sql'));
+  const disposable = await newEvent({ registration_start_notify_enabled: true,
+    registration_start_at: new Date(Date.now() - 60000).toISOString(), vehicle_selection_mode: 'auto' },
+    [{ name: 'Disposable bus', capacity: 2, reserved_seats: 0, is_active: true }]);
+  await asUser();
+  const disposableRegistration = await submit(disposable);
+  const beforeDelete = await event(disposable);
+  await fail(() => q('SELECT public.admin_permanently_delete_event($1,$2)', [disposable, beforeDelete.revision]), /Move the event/);
+  await q('SELECT public.admin_delete_event($1,$2)', [disposable, beforeDelete.revision]);
+  const deleted = await event(disposable);
+  await fail(() => q('SELECT public.admin_permanently_delete_event($1,$2)', [disposable, beforeDelete.revision]), /reload before deleting/);
+  await exec("SELECT set_config('app.admin','no',false)");
+  await fail(() => q('SELECT public.admin_permanently_delete_event($1,$2)', [disposable, deleted.revision]), /permission is required/);
+  await exec("SELECT set_config('app.admin','yes',false)");
+  await q('SELECT public.admin_permanently_delete_event($1,$2)', [disposable, deleted.revision]);
+  equal(await event(disposable), undefined);
+  equal(await row(disposableRegistration.id), undefined);
+  for (const table of ['event_vehicles', 'event_registrations', 'event_registration_audit_logs', 'event_registration_notification_jobs']) {
+    equal((await q(`SELECT count(*)::int AS n FROM public.${table} WHERE event_id=$1`, [disposable])).rows[0].n, 0);
+  }
+  equal((await q('SELECT count(*)::int AS n FROM public.event_registration_attendees WHERE registration_id=$1', [disposableRegistration.id])).rows[0].n, 0);
+  equal((await q('SELECT count(*)::int AS n FROM cron.job WHERE jobname=$1', ['event-registration-start-' + disposable.replaceAll('-', '')])).rows[0].n, 0);
+  equal((await q("SELECT has_function_privilege('anon','public.admin_permanently_delete_event(uuid,bigint)','EXECUTE') AS allowed")).rows[0].allowed, false);
+  }
   await exec("SELECT set_config('app.admin','no',false)");
   await fail(() => q('SELECT public.admin_event_registration_page($1,0,100)',[bulkEvent]), /permission is required/);
   console.log(`PASS ${assertions} assertions: 040 twice + 041 integration, 200 people/4 buses, queue fairness, real-clock deadlines, Rome DST dates, legacy normalization, single-person security, atomic groups, optimistic conflicts, historical forms, account deletion, legacy files, cursor paging/export, private RPCs.`);
