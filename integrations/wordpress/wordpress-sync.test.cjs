@@ -24,8 +24,8 @@ function db(rows = [], options = {}) {
   const client = { ...state, async rpc(name, args) {
     assert.equal(name, 'activate_wordpress_articles'); state.activations++; client.activations++;
     const ids = new Set(args.p_post_ids); let archived=0, activated=0;
-    for(const row of state.rows) { const publish=ids.has(row.wordpress_post_id); if(row.is_published&&!publish)archived++; if(!row.is_published&&publish)activated++; row.is_published=publish; }
-    return {data:{archived,activated,visible:ids.size},error:null};
+    for(const row of state.rows) { const publish=ids.has(row.wordpress_post_id)&&!row.admin_hidden; if(row.is_published&&!publish)archived++; if(!row.is_published&&publish)activated++; row.is_published=publish; }
+    return {data:{archived,activated,visible:state.rows.filter(row=>row.is_published).length},error:null};
   }, from(table) {
     assert.ok(['articles', 'article_source_settings'].includes(table), `Unexpected table: ${table}`);
     let action = 'read', patch, offset = 0, end = 499; const predicates = [];
@@ -92,6 +92,16 @@ test('full historical import batches are staged silently and repeated sync adds 
 });
 test('only new posts after the existing cutoff qualify for push',async()=>{
  const m=load(api([post(),post({id:11,link:'https://asscubo.it/fresh/',date_gmt:'2026-10-19T12:00:00'})]));const r=await m.syncWebsiteArticles(db());assert.equal(r.pushEligible.length,1);assert.equal(r.pushEligible[0].wordpress_post_id,11);
+});
+
+test('hidden website articles receive content updates without resurrection, reinsertion or repeat push',async()=>{
+ const m=load(api([post({date_gmt:'2026-11-13T00:00:00'})]));
+ const client=db([{id:'hidden',wordpress_post_id:10,link:post().link,title:'Old title',is_published:false,admin_hidden:true}]);
+ const preview=await m.syncWebsiteArticles(client,true);assert.equal(preview.visible,0);assert.equal(client.writes.length,0);
+ const result=await m.syncWebsiteArticles(client);
+ assert.equal(result.synced,0);assert.equal(result.updated,1);assert.equal(result.visible,0);assert.equal(result.pushEligible.length,0);
+ assert.equal(client.rows[0].admin_hidden,true);assert.equal(client.rows[0].is_published,false);
+ assert.equal(client.rows[0].title,'Article & title');
 });
 test('activation SQL is service-role-only and never deletes articles or changes notifications',()=>{
  const sql=fs.readFileSync(path.join(__dirname,'../../supabase/migrations/047_wordpress_only_articles.sql'),'utf8');

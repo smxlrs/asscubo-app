@@ -47,52 +47,34 @@ test('feedback ignores malformed and empty attachments', () => {
     assert.equal(media.getFeedbackMedia(value).length, 0);
   }
 });
-function cleaner(rows, options = {}) {
-  const alerts = [], deleted = [], flags = [];
-  let confirm;
-  const db = {
-    from(table) {
+function articleVisibility(name, error = null) {
+  const writes = [], alerts = []; let confirm; let refreshes = 0;
+  const run = handler('app/admin/manage-articles.tsx', name, {
+    supabase: { from(table) {
       assert.equal(table, 'articles');
-      return {
-        select() { return this; }, order() { return this; },
-        async limit(n) { return { data: rows.slice(0, n), error: options.readError || null }; },
-        delete() { return this; },
-        eq(field, value) { assert.equal(field, 'is_published'); assert.equal(value, false); return this; },
-        async not(field, op, ids) {
-          assert.equal(field, 'id'); assert.equal(op, 'in');
-          const keep = ids.slice(1, -1).split(',');
-          if (options.deleteError) return { error: options.deleteError };
-          deleted.push(...rows.filter(row => !row.is_published && !keep.includes(row.id)));
-          return { error: null, count: deleted.length };
-        },
-      };
-    },
-  };
-  const run = handler('app/admin/index.tsx', 'handleClearOldArticles', {
-    setClearing: value => flags.push(value),
-    supabase: db,
-    Alert: { alert: (...args) => {
-      alerts.push(args);
-      if (Array.isArray(args[2])) confirm = args[2].find(button => button.onPress)?.onPress;
+      return { update(patch) { return { async eq(field, id) {
+        writes.push({ patch, field, id }); return { error };
+      } }; } };
     } },
+    fetchArticles() { refreshes++; },
+    Alert: { alert(...args) { alerts.push(args); if (Array.isArray(args[2])) confirm = args[2].find(b => b.onPress)?.onPress; } },
   });
-  return { async run() { run(); await confirm(); }, deleted, alerts, flags };
+  return { async run() { run({ id: 'chosen', title: 'Website article' }); await confirm(); }, writes, alerts, refreshes: () => refreshes };
 }
-const rows = Array.from({ length: 16 }, (_, i) => ({ id: String(i), is_published: i === 12 }));
-test('real cleanup removes only old unpublished rows, preserving latest ten and published rows', async () => {
-  const c = cleaner(rows); await c.run();
-  assert.deepEqual(c.deleted.map(row => row.id), ['10', '11', '13', '14', '15']);
-  assert.deepEqual(c.flags, [true, false]);
+test('article hide and restore retain the source record and persist the administrator override', async () => {
+  const hidden = articleVisibility('handleDelete'); await hidden.run();
+  assert.equal(hidden.writes[0].id, 'chosen');
+  assert.equal(hidden.writes[0].patch.is_published, false);
+  assert.equal(hidden.writes[0].patch.admin_hidden, true);
+  const restored = articleVisibility('handleRestore'); await restored.run();
+  assert.equal(restored.writes[0].patch.is_published, true);
+  assert.equal(restored.writes[0].patch.admin_hidden, false);
+  assert.equal(restored.refreshes(), 1);
 });
-test('cleanup skips ten or fewer rows and surfaces database errors', async () => {
-  for (const data of [[], rows.slice(0, 10)]) {
-    const c = cleaner(data); await c.run(); assert.equal(c.deleted.length, 0);
-    assert.equal(c.alerts.at(-1)[0], '提示');
-  }
-  for (const options of [{ readError: { message: 'denied' } }, { deleteError: { message: 'denied' } }]) {
-    const c = cleaner(rows, options); await c.run(); assert.equal(c.deleted.length, 0);
-    assert.equal(c.alerts.at(-1)[0], '清理失败');
-    assert.equal(c.flags.at(-1), false);
+test('failed article visibility changes report the failure without announcing success', async () => {
+  for (const name of ['handleDelete','handleRestore']) {
+    const action = articleVisibility(name, { message: 'denied' }); await action.run();
+    assert.match(action.alerts.at(-1)[0], /失败/); assert.equal(action.refreshes(), 0);
   }
 });
 function suggestionEffect(file, marker, globals) {

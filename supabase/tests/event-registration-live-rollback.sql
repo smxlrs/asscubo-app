@@ -1,4 +1,4 @@
--- LIVE, TRANSACTION-CONTAINED REGISTRATION TEST (040 + 041 required).
+-- LIVE, TRANSACTION-CONTAINED REGISTRATION TEST (040 + 041 + 050 required).
 -- Run this ENTIRE file in the Supabase SQL Editor as postgres.
 -- It creates only randomly identified fixtures with reserved example.invalid
 -- email addresses. It never updates/deletes an existing real user or event.
@@ -122,6 +122,9 @@ BEGIN
   INSERT INTO public.admin_permissions(admin_id, permission, granted_by)
   VALUES(admin_id, 'events.manage', admin_id), (admin_id, 'users.delete', admin_id);
 
+  -- A fixture-only email nonce for the verified deletion flow. No mail is sent.
+  UPDATE auth.users SET reauthentication_token=encode(sha224(convert_to(email||'123456','UTF8')),'hex'),
+    reauthentication_sent_at=now() WHERE id=people[206];
   EXECUTE 'SET LOCAL ROLE authenticated';
   PERFORM pg_temp.live_check('RPC execution really uses the authenticated database role', current_user = 'authenticated');
   PERFORM pg_temp.live_actor(admin_id);
@@ -348,25 +351,21 @@ BEGIN
   SELECT r.registration_id INTO self_delete_waiter FROM public.submit_event_registration_checked(self_delete_event,'self',NULL,1,
     '{"name":"Self delete waiter","email":"self-wait@example.invalid","date":"2026-10-01"}','[{"name":"Self delete waiter"}]',NULL,'app',current_form_version) r;
   PERFORM pg_temp.live_actor(people[206]);
-  IF to_regprocedure('public.delete_user_account()') IS NULL THEN
+  IF to_regprocedure('public.delete_user_account(text)') IS NULL THEN
     INSERT INTO pg_temp.event_live_results(test,passed,details)
     VALUES('self account deletion releases the place and promotes waiter',FALSE,
-      jsonb_build_object('reason','missing self-delete RPC','missing_function','public.delete_user_account()',
+      jsonb_build_object('reason','missing self-delete RPC','missing_function','public.delete_user_account(text)',
         'execution','Skipped this unavailable operation; no function was created or deployment changed.'));
   ELSE
     PERFORM pg_temp.live_check('self deletion only grants execution to authenticated users',
-      has_function_privilege('authenticated','public.delete_user_account()','EXECUTE')
-      AND NOT has_function_privilege('anon','public.delete_user_account()','EXECUTE'));
+      has_function_privilege('authenticated','public.delete_user_account(text)','EXECUTE')
+      AND NOT has_function_privilege('anon','public.delete_user_account(text)','EXECUTE')
+      AND NOT has_function_privilege('authenticated','public.delete_user_account()','EXECUTE'));
     PERFORM pg_temp.live_actor(NULL);
-    caught := FALSE;
-    BEGIN
-      PERFORM public.delete_user_account();
-    EXCEPTION WHEN insufficient_privilege THEN
-      caught := TRUE;
-    END;
+    caught := NOT public.delete_user_account('123456');
     PERFORM pg_temp.live_check('self deletion without caller identity is rejected', caught);
     PERFORM pg_temp.live_actor(people[206]);
-    PERFORM public.delete_user_account();
+    IF NOT public.delete_user_account('123456') THEN RAISE EXCEPTION 'Valid fixture deletion code rejected'; END IF;
     deleted_fixture_accounts := deleted_fixture_accounts + 1;
     PERFORM pg_temp.live_actor(admin_id);
     PERFORM pg_temp.live_check('self account deletion releases the place and promotes waiter',
@@ -376,12 +375,7 @@ BEGIN
       AND (SELECT r.status = 'confirmed' AND r.vehicle_id IS NOT NULL FROM public.event_registrations r WHERE r.id = self_delete_waiter)
       AND (SELECT count(*) FROM public.event_registrations r WHERE r.event_id = self_delete_event AND r.status = 'confirmed') = 1);
     PERFORM pg_temp.live_actor(people[206]);
-    caught := FALSE;
-    BEGIN
-      PERFORM public.delete_user_account();
-    EXCEPTION WHEN insufficient_privilege THEN
-      caught := TRUE;
-    END;
+    caught := NOT public.delete_user_account('123456');
     PERFORM pg_temp.live_check('deleted-account token cannot remove another account', caught);
   END IF;
   PERFORM pg_temp.live_actor(admin_id);

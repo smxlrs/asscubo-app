@@ -38,7 +38,7 @@ function publisher(options = {}) {
     console, supabase: { from: table => {
       assert.equal(table, 'notifications');
       return {
-        insert: async rows => { inserts.push(...rows); return { error: null }; },
+        insert: rows => { inserts.push(...rows); return { select: () => ({ single: async () => ({ data: { id: 'saved-notification' }, error: null }) }) }; },
         update: payload => ({ eq: (column, id) => {
           assert.equal(column, 'id'); updates.push({ id, payload });
           return { select: () => ({ single: async () => ({ data: { id }, error: null }) }) };
@@ -58,6 +58,17 @@ test('real publisher persists body and uploaded images in notifications, not art
   assert.match(p.inserts[0].content, /正文第一行/);
   assert.match(p.inserts[0].content, /正文第二行/);
   assert.equal(content.notificationPreview(p.inserts[0].content), '列表简述 & 推送');
+});
+
+test('new manual push carries the saved notification ID and editing never needs a second record', async () => {
+  const calls = [];
+  const p = publisher({ sendPush: true, broadcastPushNotification: async (...args) => {
+    calls.push(args); return { success: true, sentCount: 1 };
+  } });
+  await p.run();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][7], 'saved-notification');
+  assert.equal(p.inserts.length, 1);
 });
 
 test('cover and body uploads must finish before saving', async () => {

@@ -30,13 +30,13 @@ const LOCALIZED = {
     sendOtpError: '发送失败',
     sendOtpErrorMsg: '无法发送验证码，请稍后再试。',
     enterOtpTitle: '请输入完整的 6 位验证码。',
-    otpCodeError: '验证码错误，请重新输入',
+    otpCodeError: '验证码无效或已过期。连续失败 5 次后，请等待 15 分钟再试。',
     deleteSuccess: '注销成功',
     deleteSuccessMsg: '您的账户及数据已被永久删除。',
     deleteFail: '验证失败',
     deleteFailMsg: '无法完成账户删除，请联系管理员或重试。',
     modalTitle: '安全身份验证',
-    modalSub: '我们已向您的邮箱 {email} 发送了一个 6 位验证码，请在下方输入以确认注销账户。',
+    modalSub: '我们已向您的邮箱 {email} 发送了一个 6 位验证码，请在 10 分钟内输入以确认注销账户。',
     confirmDeleteBtn: '确认注销',
     cssaCardBtn: '查看我的学联卡',
     cssaCardMsg: '该功能正在开发中，敬请期待！',
@@ -61,13 +61,13 @@ const LOCALIZED = {
     sendOtpError: '發送失敗',
     sendOtpErrorMsg: '無法發送驗證碼，請稍後再試。',
     enterOtpTitle: '請輸入完整的 6 位驗證碼。',
-    otpCodeError: '驗證碼錯誤，請重新輸入',
+    otpCodeError: '驗證碼無效或已過期。連續失敗 5 次後，請等待 15 分鐘再試。',
     deleteSuccess: '注銷成功',
     deleteSuccessMsg: '您的帳戶及數據已被永久刪除。',
     deleteFail: '驗證失敗',
     deleteFailMsg: '無法完成帳戶刪除，請聯繫管理員或重試。',
     modalTitle: '安全身份驗證',
-    modalSub: '我們已向您的郵箱 {email} 發送了一個 6 位驗證碼，請在下方輸入以確認注銷帳戶。',
+    modalSub: '我們已向您的郵箱 {email} 發送了一個 6 位驗證碼，請在 10 分鐘內輸入以確認註銷帳戶。',
     confirmDeleteBtn: '確認注銷',
     cssaCardBtn: '查看我的學聯卡',
     cssaCardMsg: '該功能正在開發中，敬請期待！',
@@ -92,13 +92,13 @@ const LOCALIZED = {
     sendOtpError: 'Failed to Send',
     sendOtpErrorMsg: 'Unable to send verification code, please try again later.',
     enterOtpTitle: 'Please enter a complete 6-digit verification code.',
-    otpCodeError: 'Invalid code, please try again',
+    otpCodeError: 'The code is invalid or expired. After 5 failed attempts, wait 15 minutes before trying again.',
     deleteSuccess: 'Account Deleted',
     deleteSuccessMsg: 'Your account and data have been permanently deleted.',
     deleteFail: 'Verification Failed',
     deleteFailMsg: 'Unable to complete account deletion, please contact support or try again.',
     modalTitle: 'Security Reauthentication',
-    modalSub: 'We have sent a 6-digit verification code to your email {email}. Please enter it below to confirm account deletion.',
+    modalSub: 'We have sent a 6-digit verification code to your email {email}. Enter it within 10 minutes to confirm account deletion.',
     confirmDeleteBtn: 'Confirm Deletion',
     cssaCardBtn: 'View My CSSA Card',
     cssaCardMsg: 'This feature is under development.',
@@ -123,13 +123,13 @@ const LOCALIZED = {
     sendOtpError: 'Invio Fallito',
     sendOtpErrorMsg: 'Impossibile inviare il codice di verifica, riprova più tardi.',
     enterOtpTitle: 'Inserisci un codice di verifica a 6 cifre completo.',
-    otpCodeError: 'Codice non valido, riprova',
+    otpCodeError: 'Codice non valido o scaduto. Dopo 5 tentativi falliti, attendi 15 minuti prima di riprovare.',
     deleteSuccess: 'Account Eliminato',
     deleteSuccessMsg: 'Il tuo account e i tuoi dati sono stati eliminati permanentemente.',
     deleteFail: 'Verifica Fallita',
     deleteFailMsg: 'Impossibile completare l\'eliminazione dell\'account, contatta l\'assistenza o riprova.',
     modalTitle: 'Verifica di Sicurezza',
-    modalSub: 'Abbiamo inviato un codice di verifica a 6 cifre alla tua email {email}. Inseriscilo qui sotto per confermare l\'eliminazione dell\'account.',
+    modalSub: 'Abbiamo inviato un codice di verifica a 6 cifre alla tua email {email}. Inseriscilo entro 10 minuti per confermare l\'eliminazione dell\'account.',
     confirmDeleteBtn: 'Conferma Eliminazione',
     cssaCardBtn: 'Vedi Tessera ASSCUBO',
     cssaCardMsg: 'Servizio in fase di sviluppo.',
@@ -218,18 +218,9 @@ export default function ProfileScreen() {
     
     setVerifying(true);
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: user?.email || '',
-        token: otpToken,
-        type: 'reauthentication'
-      });
-      
-      if (verifyError) {
-        throw new Error(verifyError.message || localized.otpCodeError);
-      }
-      
-      const { error: deleteError } = await supabase.rpc('delete_user_account');
+      const { data: deleted, error: deleteError } = await supabase.rpc('delete_user_account', { p_nonce: otpToken });
       if (deleteError) throw deleteError;
+      if (deleted !== true) throw new Error(localized.otpCodeError);
       
       setIsOtpModalVisible(false);
       await signOut();

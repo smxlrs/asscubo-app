@@ -20,7 +20,8 @@ export async function broadcastPushNotification(
   link?: string,
   articleId?: string,
   eventId?: string,
-  recipientUserId?: string
+  recipientUserId?: string,
+  notificationId?: string
 ): Promise<PushSendResult> {
   try {
     if (recipientUserId && !eventId) throw new Error('Targeted event push requires an event.');
@@ -54,7 +55,8 @@ export async function broadcastPushNotification(
       sound: 'default' as const,
       title,
       body,
-      data: { category, link, articleId, eventId },
+      // articleId fallback also lets older App versions open manual notifications.
+      data: { category, link, articleId: articleId || notificationId, eventId, notificationId },
     })));
   } catch (error) {
     console.warn('Failed to load push recipients:', error);

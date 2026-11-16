@@ -122,7 +122,7 @@ export default function ManageArticlesScreen() {
   const handleDelete = (article: Article) => {
     Alert.alert(
       '确认删除',
-      `确定要彻底删除文章《${article.title.slice(0, 20)}...》吗？此操作无法撤销。`,
+      `确定在 App 中隐藏文章《${article.title.slice(0, 20)}...》吗？网站内容不受影响，后续同步也不会自动恢复；可在已删除列表恢复。`,
       [
         { text: '取消', style: 'cancel' },
         {
@@ -130,16 +130,16 @@ export default function ManageArticlesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Soft delete by setting is_published to false
+              // Keep the source identity for deduplication and remember the App override.
               const { error: artError } = await supabase
                 .from('articles')
-                .update({ is_published: false })
+                .update({ is_published: false, admin_hidden: true })
                 .eq('id', article.id);
 
               if (artError) throw artError;
 
               void fetchArticles();
-              Alert.alert('删除成功', '文章已成功删除。');
+              Alert.alert('已隐藏', '文章已从 App 隐藏，可在已删除列表恢复。');
             } catch (err: any) {
               console.error(err);
               Alert.alert('删除失败', err.message || '删除出错，请重试。');
@@ -162,7 +162,7 @@ export default function ManageArticlesScreen() {
             try {
               const { error } = await supabase
                 .from('articles')
-                .update({ is_published: true })
+                .update({ is_published: true, admin_hidden: false })
                 .eq('id', article.id);
 
               if (error) throw error;

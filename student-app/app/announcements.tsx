@@ -1,6 +1,6 @@
 import { LoadingImage } from '../components/LoadingImage';
-import { networkErrorKey } from '../lib/network';
-import { notificationPreview } from '../lib/notificationContent';
+import { usePublicationFeed } from '../hooks/usePublicationFeed';
+import { useAuth } from '../context/AuthContext';
 import { localDateInput } from '../lib/eventTime';
 import React, { useEffect, useState, useRef } from 'react';
 import {
@@ -11,22 +11,9 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS, FONTS, SIZES, SPACING, RADIUS } from '../constants/theme';
 import { useAndroidBackHandler } from '../hooks/useAndroidBackHandler';
-
-type NotificationItem = {
-  id: string;
-  title: string;
-  summary: string | null;
-  category: string;
-  cover_image: string | null;
-  created_at: string;
-  link?: string | null;
-  is_pinned: boolean;
-  type: 'notification' | 'article';
-};
 
 const CATEGORIES = [
   { key: 'all', label: '全部' },
@@ -53,161 +40,15 @@ const getCategoryColor = (category: string) => {
 export default function AnnouncementsScreen() {
   const { colors, isDark, t } = useTheme();
 
-  // Loaded database items
-  const [loadedNotifications, setLoadedNotifications] = useState<NotificationItem[]>([]);
-
-  // Pagination limits and offset
-  const [displayLimit, setDisplayLimit] = useState(15);
-  const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [errorReason, setErrorReason] = useState('requestErrorUnknown');
-  const [loadingMore, setLoadingMore] = useState(false);
-  const loadingMoreRef = useRef(false);
-
-  // Filters
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
-
-  // Combined, filtered, and sliced items currently shown in FlatList
-  const [displayItems, setDisplayItems] = useState<NotificationItem[]>([]);
-
-  async function fetchInitialData() {
-    try {
-      setHasError(false);
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      const notificationQuery = supabase
-        .from('notifications')
-        .select('id, title, content, category, cover_image, created_at, link, is_pinned')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      const scopedNotificationQuery = user
-        ? notificationQuery.or(`target_type.neq.user,target_value.eq.${user.id}`)
-        : notificationQuery.neq('target_type', 'user');
-
-      const [notificationsRes, articlesRes] = await Promise.all([
-        scopedNotificationQuery,
-        supabase
-          .from('articles')
-          .select('id, title, summary, category, cover_image, created_at, link, is_pinned')
-          .eq('is_published', true)
-          .order('created_at', { ascending: false })
-          .limit(20)
-      ]);
-
-      if (notificationsRes.error) throw { ...notificationsRes.error, status: notificationsRes.status };
-      if (articlesRes.error) throw { ...articlesRes.error, status: articlesRes.status };
-
-      const notificationsData = (notificationsRes.data || []).map(item => ({
-        id: item.id,
-        title: item.title,
-        summary: notificationPreview(item.content),
-        category: item.category || 'general',
-        cover_image: item.cover_image || null,
-        created_at: item.created_at,
-        link: item.link || null,
-        is_pinned: item.is_pinned,
-        type: 'notification' as const
-      }));
-
-      const articlesData = (articlesRes.data || []).map(item => ({
-        id: item.id,
-        title: item.title,
-        summary: item.summary || null,
-        category: item.category || 'general',
-        cover_image: item.cover_image || null,
-        created_at: item.created_at,
-        link: item.link || null,
-        is_pinned: item.is_pinned,
-        type: 'article' as const
-      }));
-
-      const combined = [...notificationsData, ...articlesData];
-
-      // Sort by is_pinned DESC, then created_at DESC
-      combined.sort((a, b) => {
-        if (a.is_pinned && !b.is_pinned) return -1;
-        if (!a.is_pinned && b.is_pinned) return 1;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
-
-      setLoadedNotifications(combined);
-      setHasMoreNotifications(false); // Cap reached
-      setDisplayLimit(40);
-    } catch (e) {
-      console.error('Failed to fetch initial announcements data:', e);
-      setErrorReason(networkErrorKey(e));
-      setHasError(true);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
-
-  async function loadMoreNotifications() {
-    setHasMoreNotifications(false);
-  }
-
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchInitialData();
-  };
-
-  // Filter, sort and slice list items
-  useEffect(() => {
-    let combined = [...loadedNotifications];
-
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      combined = combined.filter(item => {
-        if (item.type === 'article') {
-          if (selectedCategory === 'events') return item.category === 'event_news';
-          if (selectedCategory === 'academic') return item.category === 'notice';
-          if (selectedCategory === 'life') return item.category === 'news';
-          if (selectedCategory === 'general') return item.category === 'general';
-          return item.category === selectedCategory;
-        } else {
-          return item.category === selectedCategory;
-        }
-      });
-    }
-
-    // Filter by search
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      combined = combined.filter(item =>
-        item.title.toLowerCase().includes(q) ||
-        (item.summary && item.summary.toLowerCase().includes(q))
-      );
-    }
-
-    // Sort by is_pinned DESC, then created_at DESC
-    combined.sort((a, b) => {
-      if (a.is_pinned && !b.is_pinned) return -1;
-      if (!a.is_pinned && b.is_pinned) return 1;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-
-    setDisplayItems(combined.slice(0, displayLimit));
-  }, [loadedNotifications, selectedCategory, search, displayLimit]);
-
-  const handleEndReached = () => {
-    if (displayItems.length >= displayLimit) {
-      if (hasMoreNotifications) {
-        loadMoreNotifications();
-      } else {
-        setDisplayLimit(prev => prev + 15);
-      }
-    }
-  };
+  const feed = usePublicationFeed({ kind: 'all', category: selectedCategory, search }, user?.id ?? null);
+  const { items: displayItems, loading, refreshing, loadingMore, hasError, errorReason } = feed;
+  const onRefresh = () => { void feed.refresh(); };
+  const handleEndReached = () => { void feed.loadMore(); };
 
   const closeSearch = () => {
     setIsSearching(false);
@@ -311,7 +152,6 @@ export default function AnnouncementsScreen() {
               ]}
               onPress={() => {
                 setSelectedCategory(cat.key);
-                setDisplayLimit(15); // reset limit on category change
               }}
             >
               <Text style={[
@@ -343,8 +183,7 @@ export default function AnnouncementsScreen() {
           <TouchableOpacity
             style={[styles.retryBtn, { backgroundColor: colors.primary }]}
             onPress={() => {
-              setLoading(true);
-              fetchInitialData();
+              void feed.refresh();
             }}
           >
             <Text style={styles.retryBtnText}>{t('retry') || '重新连接'}</Text>
@@ -353,7 +192,7 @@ export default function AnnouncementsScreen() {
       ) : (
         <FlatList
           data={displayItems}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => `${item.type}:${item.id}`}
           style={{ backgroundColor: bgColor }}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}

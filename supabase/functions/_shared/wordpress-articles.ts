@@ -90,14 +90,15 @@ export async function syncWebsiteArticles(supabase: any, preview = false) {
   const existing: any[] = [];
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await supabase.from('articles')
-      .select('id,title,summary,link,original_link,source,source_id,wordpress_post_id,cover_image,created_at,is_published').order('id').range(offset, offset + 499);
+      .select('id,title,summary,link,original_link,source,source_id,wordpress_post_id,cover_image,created_at,is_published,admin_hidden').order('id').range(offset, offset + 499);
     if (error) throw error;
     existing.push(...data); if (data.length < 500) break;
   }
   const plan = planWebsiteArticles(existing, posts);
   const ids = posts.map(p => p.id), visible = new Set(ids);
   const result = { source: 'wordpress', fetched: posts.length, synced: 0, updated: 0, skipped: plan.skipped,
-    archived: 0, activated: 0, visible: posts.length, blocked: [] as any[], pushEligible: [] as any[] };
+    archived: 0, activated: 0, visible: posts.length - existing.filter(a => a.admin_hidden && visible.has(a.wordpress_post_id)).length,
+    blocked: [] as any[], pushEligible: [] as any[] };
   if (preview) return { ...result, preview: true, would_update: plan.updates.length, would_insert: plan.inserts.length,
     would_archive: existing.filter(a => a.is_published && !visible.has(a.wordpress_post_id)).length,
     updates: plan.updates.map(x => ({ id: x.current.id, title: x.post.title, from: x.current.link, to: x.post.link })) };

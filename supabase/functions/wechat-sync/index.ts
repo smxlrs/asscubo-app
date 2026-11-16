@@ -368,7 +368,7 @@ async function sendPushNotifications(supabase: any, articles: InsertedArticle[])
     sound: "default",
     title: `【综合通知】${article.title}`,
     body: article.summary || "学联发布了新文章",
-    data: { category: "general" },
+    data: { category: "general", articleId: article.id, link: article.link },
   })));
 
   const batches = chunk(payloads, EXPO_BATCH_SIZE);

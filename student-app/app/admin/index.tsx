@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,68 +20,10 @@ export default function AdminDashboardScreen() {
     });
     return () => { active = false; };
   }, []));
-  const [clearing, setClearing] = useState(false);
-
-  const handleClearOldArticles = () => {
-    Alert.alert(
-      '清理历史已删文章',
-      '确定要彻底删除除了最新10篇之外的所有【已删除/未发布】的历史文章吗？此操作不可逆。未被删除的正常文章将继续保留。',
-      [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定清理',
-          style: 'destructive',
-          onPress: async () => {
-            setClearing(true);
-            try {
-              // 1. 多取一篇判断是否有历史文章，保留最新10篇的ID（包括软删的，防止因误删而在此期间被微信重新同步）
-              const { data, error } = await supabase
-                .from('articles')
-                .select('id')
-                .order('created_at', { ascending: false })
-                .limit(11);
-
-              if (error) throw error;
-
-              if (!data || data.length <= 10) {
-                const count = data ? data.length : 0;
-                Alert.alert('提示', `无需清理，当前数据库中总共仅有 ${count} 篇文章。`);
-                return;
-              }
-
-              const latestIds = data.slice(0, 10).map(item => item.id);
-              
-              // 2. 仅删除除了最新10个ID之外且【已被软删除/未发布】的文章
-              const { error: deleteError, count: deletedCount } = await supabase
-                .from('articles')
-                .delete({ count: 'exact' })
-                .eq('is_published', false)
-                .not('id', 'in', `(${latestIds.join(',')})`);
-
-              if (deleteError) throw deleteError;
-
-              Alert.alert('清理成功', '已清理 ' + (deletedCount ?? 0) + ' 篇旧的已删除/未发布文章。');
-            } catch (err: any) {
-              console.error('Failed to clear old articles:', err);
-              Alert.alert('清理失败', err.message || '请检查网络或权限后重试。');
-            } finally {
-              setClearing(false);
-            }
-          }
-        }
-      ]
-    );
-  };
-
   const articleItems = [
     hasAdminPermission('articles.sync') && {
       key: 'website-sync', icon: 'sync', label: '网站文章同步', value: '查看记录与手动同步',
       onPress: () => router.push('/admin/wechat-sync'),
-    },
-    hasAdminPermission('articles.manage') && {
-      key: 'clear-articles', icon: 'trash-can-outline',
-      label: clearing ? '正在清理已删文章...' : '清理历史已删文章',
-      value: '保留最新10篇的排重', onPress: handleClearOldArticles, disabled: clearing, loading: clearing,
     },
     hasAdminPermission('articles.manage') && {
       key: 'manage-articles', icon: 'playlist-edit', label: '管理已有文章及分类', value: '分类与删除',
@@ -114,6 +56,10 @@ export default function AdminDashboardScreen() {
   }>;
 
   const userItems = [
+    (hasAdminPermission('analytics.summary') || hasAdminPermission('analytics.users')) && {
+      key: 'usage-analytics', icon: 'chart-bar', label: '使用统计', value: '总览、工具与用户明细',
+      onPress: () => router.push('/admin/usage-analytics'),
+    },
     (hasAdminPermission('users.moderate') || hasAdminPermission('users.delete')) && {
       key: 'manage-users', icon: 'account-multiple-outline', label: '已注册用户管理', value: '审核与账号安全',
       onPress: () => router.push('/admin/manage-users'),

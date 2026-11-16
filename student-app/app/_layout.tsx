@@ -2,7 +2,9 @@ import { checkStoreUpdateOnColdStart } from '../lib/storeUpdate';
 import React, { useEffect, useState, useRef } from 'react';
 import { initLogger, recordDebugEvent } from '../lib/logger';
 initLogger();
-import { Stack, router, usePathname } from 'expo-router';
+import { Stack, router, usePathname, useRootNavigationState } from 'expo-router';
+import { createNotificationResponseQueue } from '../lib/notificationNavigation';
+import { UsageAnalyticsObserver } from '../components/UsageAnalyticsObserver';
 import { StatusBar } from 'expo-status-bar';
 import { AppState, Platform, BackHandler, ToastAndroid, View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -126,6 +128,18 @@ function AppContent() {
   const { colors, isDark, isReady, t } = useTheme();
   const { user, profile, loading, networkError, retryInit, signOut } = useAuth();
   const splashHiddenRef = useRef(false);
+  const navigationState = useRootNavigationState();
+  const notificationQueue = useRef<ReturnType<typeof createNotificationResponseQueue> | null>(null);
+  if (!notificationQueue.current) {
+    notificationQueue.current = createNotificationResponseQueue(
+      destination => router.push(destination as any),
+      async () => { await Notifications?.clearLastNotificationResponseAsync(); },
+      Notifications?.DEFAULT_ACTION_IDENTIFIER,
+    );
+  }
+  useEffect(() => {
+    notificationQueue.current?.setReady(!!navigationState?.key && isReady && !loading);
+  }, [navigationState?.key, isReady, loading]);
 
   const hideSplash = () => {
     if (splashHiddenRef.current) return;
@@ -179,22 +193,17 @@ function AppContent() {
   useEffect(() => {
     if (!Notifications) return;
 
-    // Handle notification click responses (deep linking)
+    let active = true;
+    let receivedLiveResponse = false;
     const subscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
-      const data = response.notification.request.content.data;
-      if (data && typeof data.link === 'string') {
-        router.push(`/article/web?url=${encodeURIComponent(data.link)}&title=${encodeURIComponent((response.notification.request.content.title as string) || t('details'))}` as any);
-      } else if (data && typeof data.articleId === 'string') {
-        router.push(`/article/${data.articleId}` as any);
-      } else if (data && typeof data.eventId === 'string') {
-        router.push({ pathname: '/tools/events', params: { eventId: data.eventId, detail: '1' } } as any);
-      } else {
-        router.push('/(tabs)');
-      }
+      receivedLiveResponse = true;
+      notificationQueue.current?.receive(response);
     });
-
-    return () => subscription.remove();
-  }, [t]);
+    void Notifications.getLastNotificationResponseAsync().then((response: any) => {
+      if (active && !receivedLiveResponse) notificationQueue.current?.receive(response);
+    }).catch((error: unknown) => console.warn('Could not restore notification response:', error));
+    return () => { active = false; subscription.remove(); };
+  }, []);
 
   useEffect(() => {
     // Expo Router owns the JavaScript navigation stack, so handle Android back events here.
@@ -260,6 +269,7 @@ function AppContent() {
   return (
     <NavigationProvider value={navTheme}>
       <DebugNavigationTracker />
+      <UsageAnalyticsObserver />
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={{ flex: 1, backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF' }}>
         <Stack screenOptions={{ 

@@ -1,5 +1,5 @@
 import { LoadingImage } from '../../components/LoadingImage';
-import { networkErrorKey } from '../../lib/network';
+import { usePublicationFeed } from '../../hooks/usePublicationFeed';
 import { localDateInput } from '../../lib/eventTime';
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, RefreshControl, TextInput, Animated, Platform, TouchableOpacity } from 'react-native';
@@ -8,7 +8,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
 import { ScrollView } from 'react-native';
 import { useAndroidBackHandler } from '../../hooks/useAndroidBackHandler';
 
@@ -34,18 +33,17 @@ const CATEGORY_DETAILS = {
 
 export default function NotificationsScreen() {
   const { colors, isDark, t, tabBarStyle, tabOpacities, tabGestureActive } = useTheme();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [errorReason, setErrorReason] = useState('requestErrorUnknown');
-  const [loadingMore, setLoadingMore] = useState(false);
-  const loadingMoreRef = useRef(false);
-  const [hasMore, setHasMore] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const feed = usePublicationFeed({ kind: 'articles', category: selectedFilter, search: searchQuery });
+  const { loading, refreshing, loadingMore, hasError, errorReason } = feed;
+  const notifications: Notification[] = feed.items.map(item => ({ ...item,
+    content: item.summary || t('viewArticleDetail'), link: item.link || undefined,
+    cover_image: item.cover_image || undefined,
+  }));
 
   // Toast State for Refresh feedback
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -90,82 +88,6 @@ export default function NotificationsScreen() {
     };
   }, []);
 
-  async function fetchNotifications(isRefresh = false, filter = selectedFilter, showToast = false) {
-    if (!isRefresh && loadingMoreRef.current) return;
-    try {
-      setHasError(false);
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        loadingMoreRef.current = true;
-        setLoadingMore(true);
-      }
-
-      const currentOffset = isRefresh ? 0 : notifications.length;
-
-      let query = supabase
-        .from('articles')
-        .select('id, title, summary, category, cover_image, created_at, link, is_pinned')
-        .eq('is_published', true)
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false })
-        .range(currentOffset, currentOffset + 14);
-
-      if (filter !== 'all') {
-        query = query.eq('category', filter);
-      }
-
-      const { data, error, status } = await query;
-
-      if (error) {
-        throw { ...error, status };
-      }
-
-      if (data) {
-        const mapped = data.map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          content: item.summary || t('viewArticleDetail'),
-          category: item.category || 'general',
-          link: item.link || undefined,
-          cover_image: item.cover_image || undefined,
-          created_at: item.created_at,
-          is_pinned: item.is_pinned
-        })) as Notification[];
-
-        setNotifications(prev => {
-          if (isRefresh) return mapped;
-          const combined = [...prev, ...mapped];
-          return combined.filter((item, index, self) => 
-            self.findIndex(n => n.id === item.id) === index
-          );
-        });
-        setHasMore(data.length === 15);
-      }
-    } catch (e) {
-      console.log('Failed to fetch from articles table:', e);
-      setErrorReason(networkErrorKey(e));
-      setHasError(true);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
-      loadingMoreRef.current = false;
-      if (isRefresh && showToast) {
-        setTimeout(() => {
-          triggerToast('refresh_success');
-        }, 150);
-      }
-    }
-  }
-
-  useEffect(() => {
-    setNotifications([]);
-    setHasMore(true);
-    setLoading(true);
-    fetchNotifications(true, selectedFilter, false);
-  }, [selectedFilter]);
-
   useAndroidBackHandler(() => {
     if (isSearching) {
       setIsSearching(false);
@@ -176,7 +98,7 @@ export default function NotificationsScreen() {
   }, [isSearching]);
 
   const onRefresh = () => {
-    fetchNotifications(true, selectedFilter, true);
+    void feed.refresh().then(success => { if (success) triggerToast('refresh_success'); });
   };
 
   const handlePressNotification = (item: Notification) => {
@@ -187,11 +109,7 @@ export default function NotificationsScreen() {
     }
   };
 
-  const filteredNotifications = notifications.filter(n => 
-    !searchQuery.trim() || 
-    n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    n.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredNotifications = notifications;
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -269,8 +187,7 @@ export default function NotificationsScreen() {
           <TouchableOpacity
             style={[styles.retryBtn, { backgroundColor: colors.primary }]}
             onPress={() => {
-              setLoading(true);
-              fetchNotifications(true);
+              void feed.refresh();
             }}
           >
             <Text style={styles.retryBtnText}>{t('retry') || '重新连接'}</Text>
@@ -283,9 +200,7 @@ export default function NotificationsScreen() {
           contentContainerStyle={[styles.listContent, { paddingBottom: tabBarStyle === 'glassmorphism' ? 110 : 20 }]}
           showsVerticalScrollIndicator={false}
           onEndReached={() => {
-            if (hasMore && !loadingMore) {
-              fetchNotifications(false);
-            }
+            void feed.loadMore();
           }}
           onEndReachedThreshold={0.2}
           refreshControl={

@@ -320,9 +320,10 @@ export default function PublishNotificationScreen() {
         return;
       }
 
-      const { error: notificationError } = await supabase
+      const { data: savedNotification, error: notificationError } = await supabase
         .from('notifications')
-        .insert([{ ...notificationPayload, created_at: new Date().toISOString() }]);
+        .insert([{ ...notificationPayload, created_at: new Date().toISOString() }])
+        .select('id').single();
 
       if (notificationError) {
         throw notificationError;
@@ -335,7 +336,8 @@ export default function PublishNotificationScreen() {
           summary.trim(),
           category || 'general', // Fallback to general for preference delivery
           finalLink || undefined,
-          undefined // No native article ID for pure notifications
+          undefined, undefined, undefined,
+          savedNotification.id
         );
 
         if (pushResult.success) {

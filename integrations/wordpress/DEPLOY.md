@@ -2,6 +2,8 @@
 
 App 的 articles 表以 https://asscubo.it 的全部公开、无密码 WordPress 文章为来源。不再要求微信来源元数据，不读取 WordPress 页面或草稿。notifications 表独立保留，完全不参与此次同步。
 
+2026-11-13 更新：当前关联项目已安装 049_publication_visibility_and_feed.sql、050_verified_account_deletion.sql，并部署本轮 wechat-sync。049 增加 App 独立隐藏和网站身份防删除保护；同步会保留人工隐藏，返回的 visible 数量可能低于网站公开数量。以下旧的 046/047 首次部署步骤仅供新环境参考；新环境还需按顺序安装 049/050，再部署函数及新版 App。不要在已更新环境重跑 047 覆盖新版激活函数。详见 ../../reports/publication-account-fixes-2026-11-13.md。
+
 ## 同步行为
 
 - 每页读取 100 篇直到读完；校验总数、页数、唯一 ID。网络失败或分页不完整时不切换展示集合。每次网站请求超时 20 秒。

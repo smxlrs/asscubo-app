@@ -1,5 +1,17 @@
 export const ADMIN_PERMISSION_OPTIONS = [
   {
+    key: 'analytics.summary',
+    label: '查看使用统计',
+    description: '查看注册总数、使用总览和各工具汇总；默认关闭，由超级管理员分配',
+    icon: 'chart-bar',
+  },
+  {
+    key: 'analytics.users',
+    label: '查看用户使用明细',
+    description: '查看具体用户的注册、登录和工具访问时间；默认关闭，由超级管理员分配',
+    icon: 'account-clock-outline',
+  },
+  {
     key: 'feedback.manage',
     label: '用户反馈管理',
     description: '查看、回复、标记和删除用户反馈',

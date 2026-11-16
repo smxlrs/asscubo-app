@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { AdminPermission } from '../../lib/adminPermissions';
 
 const ROUTE_PERMISSIONS: Record<string, AdminPermission | AdminPermission[]> = {
+  '/admin/usage-analytics': ['analytics.summary', 'analytics.users'],
   '/admin/notification': 'notifications.publish',
   '/admin/wechat-sync': 'articles.sync',
   '/admin/manage-articles': 'articles.manage',

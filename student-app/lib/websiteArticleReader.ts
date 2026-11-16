@@ -16,8 +16,9 @@ export function websiteArticleReaderScript(colors: ReaderColors, isDark: boolean
     body.single-post .article-meta, body.single-post .entry-header .entry-meta,
     body.single-post .entry-footer, body.single-post .post-navigation,
     body.single-post #comments, body.single-post .back-to-top { display:none !important; }
+    body.single-post article.type-post > figure.post-thumbnail { display:none !important; }
 
-    /* Retain only the paths to the title, featured image and complete article body.
+    /* Retain only the paths to the title and complete article body.
        No selector trims descendants of the body, including its images/QR codes. */
     html[data-boxue-reader] [data-boxue-reader-path] > :not([data-boxue-reader-path]):not([data-boxue-reader-keep]):not(style):not(link) {
       display:none !important;
@@ -44,9 +45,6 @@ export function websiteArticleReaderScript(colors: ReaderColors, isDark: boolean
       color:${colors.textPrimary} !important; margin:0 0 20px !important;
       padding:0 !important; overflow-wrap:anywhere;
     }
-    html[data-boxue-reader] [data-boxue-reader-keep="cover"] {
-      margin:0 0 20px !important; padding:0 !important; width:100% !important;
-    }
     html[data-boxue-reader] [data-boxue-reader-keep="content"] {
       margin:0 !important; padding:0 !important; width:100% !important;
       font-size:16px; line-height:1.75; overflow-wrap:break-word;
@@ -57,6 +55,14 @@ export function websiteArticleReaderScript(colors: ReaderColors, isDark: boolean
       max-width:100% !important; height:auto !important;
     }
     html[data-boxue-reader] [data-boxue-reader-keep="content"] iframe { max-width:100% !important; }
+    /* Imported WeChat layouts contain non-shrinking flex sections and offset
+       decorations. Fit the sections, then contain decorative paint locally. */
+    html[data-boxue-reader] [data-boxue-reader-keep="content"] .wxsync-article {
+      display:flow-root; max-width:100%; min-width:0; overflow-x:clip;
+    }
+    html[data-boxue-reader] [data-boxue-reader-keep="content"] .wxsync-article section {
+      min-width:0 !important; flex-shrink:1 !important;
+    }
     ${isDark ? `
       html[data-boxue-reader] [data-boxue-reader-keep="content"] :where(p,span,section,div,h1,h2,h3,h4,h5,h6,li,blockquote) {
         color:${colors.textPrimary} !important; background-color:transparent !important;
@@ -88,8 +94,6 @@ export function websiteArticleReaderScript(colors: ReaderColors, isDark: boolean
         // A non-article destination or changed theme must never become a blank page.
         if (!content || !title) return;
         mark(title, 'title'); mark(content, 'content');
-        var cover = article.querySelector('figure.post-thumbnail');
-        if (cover && !content.contains(cover)) mark(cover, 'cover');
         document.documentElement.setAttribute('data-boxue-reader', '');
       }
       window.__boxueWebsiteReader = apply;
