@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { AdminPermission } from '../../lib/adminPermissions';
 
 const ROUTE_PERMISSIONS: Record<string, AdminPermission | AdminPermission[]> = {
+  '/admin/usage-analytics-user': 'analytics.users',
   '/admin/usage-analytics': ['analytics.summary', 'analytics.users'],
   '/admin/notification': 'notifications.publish',
   '/admin/wechat-sync': 'articles.sync',
@@ -14,7 +15,6 @@ const ROUTE_PERMISSIONS: Record<string, AdminPermission | AdminPermission[]> = {
   '/admin/manage-handbook': 'handbook.manage',
   '/admin/handbook-editor': 'handbook.manage',
   '/admin/manage-feedbacks': 'feedback.manage',
-  '/admin/manage-users': ['users.moderate', 'users.delete'],
   '/admin/manage-events': 'events.manage',
 };
 
@@ -35,12 +35,6 @@ export default function AdminLayout() {
 
   useEffect(() => {
     if (loading || !profile || pathname === '/admin') return;
-
-    if (pathname.startsWith('/admin/manage-user/')) {
-      const authorized = hasAdminPermission('users.moderate') || hasAdminPermission('users.delete');
-      if (!authorized) router.replace('/admin');
-      return;
-    }
 
     const requirement = pathname === '/admin/notification' && notificationId
       ? 'notifications.manage' : ROUTE_PERMISSIONS[pathname];

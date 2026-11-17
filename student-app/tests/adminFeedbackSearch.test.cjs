@@ -30,6 +30,25 @@ function deferred() {
   return { promise, resolve, reject };
 }
 const media = load(source('lib/feedbackMedia.ts'));
+
+test('registered user list and detail use read-only RPC for administrators without management grants', async () => {
+  for (const permitted of [false, true]) {
+    const requests = [], results = [];
+    const target = { id: 'target', role: 'student', created_at: '2026-01-09T12:00:00Z' };
+    const globals = {
+      canManage: permitted, isSuperAdmin: permitted, canModerate: false, canDelete: false,
+      userId: 'target', ROLE_ORDER: { super_admin: 0, admin: 1, student: 2 },
+      supabase: { rpc: async name => { requests.push(name); return { data: [target], error: null }; } },
+      setUsers: value => results.push(value), setUser: value => results.push(value),
+      setLoading() {}, setRefreshing() {}, setAdminEnabled() {}, setPermissions() {},
+      Alert: { alert: () => assert.fail('unexpected failure') }, router: {},
+    };
+    await handler('app/admin/manage-users.tsx', 'fetchUsers', globals)();
+    await handler('app/admin/manage-user/[userId].tsx', 'loadUser', globals)();
+    assert.deepEqual(requests, Array(2).fill(permitted ? 'admin_get_users' : 'admin_get_registered_users'));
+    assert.equal(results[0][0].id, 'target'); assert.equal(results[1].id, 'target');
+  }
+});
 test('feedback supports multiple image and video attachments and legacy URL', () => {
   const parsed = media.getFeedbackMedia(JSON.stringify([
     { url: 'https://example.invalid/a.jpg', type: 'image' },

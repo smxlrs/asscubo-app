@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 type UserProfile = {
   id: string;
@@ -13,6 +14,7 @@ type UserProfile = {
   email: string;
   role: 'student' | 'admin' | 'super_admin';
   push_token: string | null;
+  has_push_token?: boolean;
   is_banned: boolean;
   created_at: string;
 };
@@ -25,6 +27,8 @@ const ROLE_ORDER: Record<UserProfile['role'], number> = {
 
 export default function ManageUsersScreen() {
   const { colors } = useTheme();
+  const { profile, hasAdminPermission } = useAuth();
+  const canManage = profile?.role === 'super_admin' || hasAdminPermission('users.moderate') || hasAdminPermission('users.delete');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,7 +36,7 @@ export default function ManageUsersScreen() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_users');
+      const { data, error } = await supabase.rpc(canManage ? 'admin_get_users' : 'admin_get_registered_users');
       if (error) throw error;
 
       const sorted = ([...(data || [])] as UserProfile[]).sort((a, b) => {
@@ -64,6 +68,7 @@ export default function ManageUsersScreen() {
   const renderUser = ({ item }: { item: UserProfile }) => {
     const roleLabel = item.role === 'super_admin' ? '超级管理员' : item.role === 'admin' ? '管理员' : '普通用户';
     const roleColor = item.role === 'super_admin' ? '#D97706' : item.role === 'admin' ? colors.primaryLight : colors.textSecondary;
+    const hasPush = item.has_push_token ?? !!item.push_token;
 
     return (
       <Pressable
@@ -90,9 +95,9 @@ export default function ManageUsersScreen() {
                 <Text style={[styles.roleText, { color: '#EF4444' }]}>已封禁</Text>
               </View>
             )}
-            <View style={[styles.roleBadge, { backgroundColor: item.push_token ? colors.primary + '18' : colors.surfaceElevated }]}>
-              <Text style={[styles.roleText, { color: item.push_token ? colors.primary : colors.textMuted }]}>
-                推送{item.push_token ? '已开启' : '未开启'}
+            <View style={[styles.roleBadge, { backgroundColor: hasPush ? colors.primary + '18' : colors.surfaceElevated }]}>
+              <Text style={[styles.roleText, { color: hasPush ? colors.primary : colors.textMuted }]}>
+                推送{hasPush ? '已开启' : '未开启'}
               </Text>
             </View>
           </View>

@@ -26,23 +26,24 @@ try {
     CREATE SCHEMA auth; GRANT USAGE ON SCHEMA auth TO anon,authenticated,service_role;
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('test.user',true),'')::uuid $$;
     CREATE TABLE auth.users(id uuid PRIMARY KEY,email text,created_at timestamptz DEFAULT now(),last_sign_in_at timestamptz);
-    CREATE TABLE profiles(id uuid PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,name text,role text,is_banned boolean DEFAULT false);
+    CREATE TABLE profiles(id uuid PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,name text,avatar_url text,role text,is_banned boolean DEFAULT false);
     CREATE TABLE admin_permissions(admin_id uuid REFERENCES profiles ON DELETE CASCADE,permission text,granted_by uuid REFERENCES profiles,PRIMARY KEY(admin_id,permission));`);
   const original = migration('012_admin_permissions.sql');
   await db.exec(original.slice(original.indexOf('CREATE OR REPLACE FUNCTION public.has_admin_permission'), original.indexOf('CREATE OR REPLACE FUNCTION public.get_my_admin_permissions')));
   await db.exec(migration('016_add_cssa_card_admin_permission.sql'));
-  await db.exec(migration('051_tool_usage_analytics.sql'));
-  await db.exec(migration('051_tool_usage_analytics.sql'));
+  await db.exec(migration('051_tool_usage_analytics.sql')); await db.exec(migration('053_tool_usage_avatars.sql'));
+  await db.exec(migration('051_tool_usage_analytics.sql')); await db.exec(migration('053_tool_usage_avatars.sql'));
   checks++;
   const [superId, admin, viewer, other, unused] = Array.from({ length: 5 }, randomUUID);
   for (const [i, id] of [superId, admin, viewer, other, unused].entries()) {
     await q("INSERT INTO auth.users(id,email,last_sign_in_at) VALUES($1,$2,now()-interval '1 hour')", [id, `user${i}@test.invalid`]);
     await q('INSERT INTO profiles(id,name,role) VALUES($1,$2,$3)', [id, `User ${i}`, i === 0 ? 'super_admin' : i === 1 ? 'admin' : 'student']);
   }
+  await q('UPDATE profiles SET avatar_url=$1 WHERE id=$2', ['data:image/png;base64,sample', viewer]);
   await as(viewer);
   eq((await q('SELECT tool_usage_collection_status() value')).rows[0].value, true);
   await as(superId); await q('SELECT super_admin_set_tool_usage_collection(false)');
-  await root(); await db.exec(migration('051_tool_usage_analytics.sql'));
+  await root(); await db.exec(migration('051_tool_usage_analytics.sql')); await db.exec(migration('053_tool_usage_avatars.sql'));
   await as(viewer);
   eq((await q('SELECT tool_usage_collection_status() value')).rows[0].value, false);
   await as(admin);
@@ -81,11 +82,13 @@ try {
   await as(superId); await q('SELECT super_admin_set_admin_access($1,true,$2)', [admin, ['analytics.users']]);
   await as(admin); await deny('SELECT admin_tool_usage_summary($1,$2)', [from, to]);
   let people = (await q('SELECT admin_tool_usage_users($1,$2) value', [from, to])).rows[0].value;
+  eq(people.users.find(u => u.id === viewer).avatar_url, 'data:image/png;base64,sample');
+  eq(people.users.find(u => u.id === unused).avatar_url, null);
   eq(people.total, 5); eq(people.users.find(u => u.id === unused).visits, 0);
   eq(people.users.find(u => u.id === viewer).last_sign_in_at !== null, true);
   eq((await q('SELECT admin_tool_usage_users($1,$2,$3,0,1) value', [from, to, 'user2@'])).rows[0].value.users.length, 1);
   const detail = (await q('SELECT admin_tool_usage_user($1,$2,$3,0,1) value', [viewer, from, to])).rows[0].value;
-  eq(detail.totals.visits, 2); eq(detail.sessions.length, 1); eq(detail.user.id, viewer); eq(detail.tools.length, 2);
+  eq(detail.totals.visits, 2); eq(detail.sessions.length, 1); eq(detail.user.id, viewer); eq(detail.user.avatar_url, 'data:image/png;base64,sample'); eq(detail.tools.length, 2);
   await root(); await q('UPDATE profiles SET is_banned=true WHERE id=$1', [admin]);
   await as(admin); await deny('SELECT admin_tool_usage_users($1,$2)', [from, to]);
   await root(); await q('UPDATE profiles SET is_banned=false WHERE id=$1', [admin]);

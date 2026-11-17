@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function AdminDashboardScreen() {
   const { colors } = useTheme();
-  const { hasAdminPermission, refreshProfile } = useAuth();
+  const { profile, hasAdminPermission, refreshProfile } = useAuth();
   const [refreshingAccess, setRefreshingAccess] = useState(true);
 
   useFocusEffect(useCallback(() => {
@@ -60,7 +60,7 @@ export default function AdminDashboardScreen() {
       key: 'usage-analytics', icon: 'chart-bar', label: '使用统计', value: '总览、工具与用户明细',
       onPress: () => router.push('/admin/usage-analytics'),
     },
-    (hasAdminPermission('users.moderate') || hasAdminPermission('users.delete')) && {
+    (profile?.role === 'admin' || profile?.role === 'super_admin') && {
       key: 'manage-users', icon: 'account-multiple-outline', label: '已注册用户管理', value: '审核与账号安全',
       onPress: () => router.push('/admin/manage-users'),
     },

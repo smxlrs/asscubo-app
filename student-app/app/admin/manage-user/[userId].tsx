@@ -22,6 +22,12 @@ type ManagedUser = {
   created_at: string;
 };
 
+function registrationDate(value: string): string {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return '暂无记录';
+  return date.toLocaleDateString('zh-CN', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
 export default function ManageUserDetailScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { colors, isDark } = useTheme();
@@ -41,7 +47,8 @@ export default function ManageUserDetailScreen() {
 
   const loadUser = async () => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_users');
+      const canManage = isSuperAdmin || canModerate || canDelete;
+      const { data, error } = await supabase.rpc(canManage ? 'admin_get_users' : 'admin_get_registered_users');
       if (error) throw error;
       const target = ((data || []) as ManagedUser[]).find((item) => item.id === userId);
       if (!target) throw new Error('用户不存在或已被删除。');
@@ -206,6 +213,7 @@ export default function ManageUserDetailScreen() {
           </View>
           <Text style={[styles.name, { color: colors.textPrimary }]}>{user.name || '未设置昵称'}</Text>
           <Text style={[styles.email, { color: colors.textSecondary }]}>{user.email}</Text>
+          <Text style={[styles.registrationDate, { color: colors.textSecondary }]}>注册时间：{registrationDate(user.created_at)}</Text>
           <View style={styles.statusLine}>
             <Text style={[styles.statusText, { color: targetProtected ? '#D97706' : user.role === 'admin' ? colors.primaryLight : colors.textSecondary }]}>{roleLabel}</Text>
             {user.is_banned && <Text style={[styles.statusText, { color: '#EF4444' }]}>已封禁</Text>}
@@ -339,6 +347,7 @@ const styles = StyleSheet.create({
   avatarImage: { width: 82, height: 82 },
   name: { fontSize: 20, fontWeight: '700', marginTop: 12 },
   email: { fontSize: 13, marginTop: 4 },
+  registrationDate: { fontSize: 12, marginTop: 6 },
   statusLine: { flexDirection: 'row', gap: 12, marginTop: 9 },
   statusText: { fontSize: 12, fontWeight: '700' },
   notice: { marginHorizontal: 16, borderWidth: 1, borderRadius: 8, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },

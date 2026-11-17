@@ -150,9 +150,11 @@ test('new builds enable collection by default independently of administrator vie
   assert.ok(observer.UsageAnalyticsObserver());
 });
 
-function adminHarness(permissions) {
+function adminHarness(permissions, props = {}) {
   const slots = [], effects = [], requests = [];
-  let cursor = 0;
+  let cursor = 0, focused = true;
+  let prevention;
+  const backListeners = new Set(), navigation = [];
   const react = {
     createElement: (type, props, ...children) => ({ type, props, children }),
     useState(value) { const n = cursor++; if (!slots[n]) slots[n] = { value };
@@ -163,20 +165,31 @@ function adminHarness(permissions) {
     useEffect(fn, deps) { const n = cursor++; const previous = slots[n];
       if (!previous || deps.some((v, i) => v !== previous.deps[i])) effects.push(() => { previous?.cleanup?.(); slots[n] = { deps, cleanup: fn() }; }); },
   };
+  react.useCallback = (fn, deps) => react.useMemo(() => fn, deps);
   const auth = { user: { id: 'admin' }, hasAdminPermission: p => permissions.includes(p) };
-  const screen = load('app/admin/usage-analytics.tsx', { react,
-    'react-native': { StyleSheet: { create: x => x }, Text: 'Text', View: 'View', Pressable: 'Pressable', ScrollView: 'ScrollView', TextInput: 'TextInput', ActivityIndicator: 'ActivityIndicator' },
-    'expo-router': { router: { back() {} } }, 'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+  const screenModule = load('components/admin/UsageAnalyticsScreen.tsx', { react, '@expo/vector-icons': { MaterialCommunityIcons: 'Icon' },
+    'react-native': { StyleSheet: { create: x => x }, Text: 'Text', View: 'View', Pressable: 'Pressable', ScrollView: 'ScrollView', TextInput: 'TextInput', ActivityIndicator: 'ActivityIndicator', Image: 'Image', Keyboard: { dismiss() {} }, BackHandler: { addEventListener: (_name, fn) => { backListeners.add(fn); return { remove: () => backListeners.delete(fn) }; } } },
+    'expo-router': { useIsFocused: () => focused, useFocusEffect: callback => react.useEffect(() => focused ? callback() : undefined, [callback, focused]), router: { canGoBack: () => true, back: () => navigation.push('back'), replace: route => navigation.push(route), push: route => navigation.push(route) } },
+    'expo-router/react-navigation': { usePreventRemove: (enabled, callback) => { prevention = { enabled, callback }; } }, 'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
     '../../context/AuthContext': { useAuth: () => auth }, '../../context/ThemeContext': { useTheme: () => ({ colors: {} }) },
     '../../lib/toolUsageCatalog': catalog,
     '../../lib/supabase': { supabase: { rpc: (name, params) => new Promise(resolve => requests.push({ name, params, resolve })) } },
-  }).default;
+  });
+  const screen = screenModule.default;
   let tree;
   const all = node => !node || typeof node !== 'object' ? [] : [node, ...(node.children || []).flat(Infinity).flatMap(all)];
   const text = node => typeof node === 'string' || typeof node === 'number' ? String(node) : !node || typeof node !== 'object' ? '' : (node.children || []).flat(Infinity).map(text).join('');
-  return { requests, auth,
-    render() { cursor = 0; tree = screen(); while (effects.length) effects.shift()(); return text(tree); },
-    press(label) { const button = all(tree).find(n => n.type === 'Pressable' && text(n) === label); assert.ok(button, label); button.props.onPress(); },
+  return { requests, auth, navigation,
+    render() { cursor = 0; tree = screen(props); while (effects.length) effects.shift()(); return text(tree); },
+    renderAvatar(uri) { cursor = 0; tree = screenModule.UsageAccountAvatar({ uri }); return tree; },
+    nodes: () => all(tree),
+    press(label) { const button = all(tree).find(n => n.type === 'Pressable' && (text(n) === label || n.props?.accessibilityLabel === label)); assert.ok(button, label); button.props.onPress(); },
+    pressUser(id) { const button = all(tree).find(n => n.type === 'Pressable' && n.props?.key === id); assert.ok(button, id); button.props.onPress(); },
+    type(value) { all(tree).find(n => n.type === 'TextInput').props.onChangeText(value); },
+    input: () => all(tree).find(n => n.type === 'TextInput')?.props.value,
+    systemBack() { return [...backListeners].reverse().some(fn => fn()); },
+    attemptLeave() { if (prevention.enabled) { prevention.callback({ data: { action: { type: 'GO_BACK' } } }); return false; } return true; },
+    blur() { focused = false; },
   };
 }
 const flush = () => new Promise(r => setImmediate(r));
@@ -186,8 +199,8 @@ test('admin summary displays overall deduplicated totals, eight tools and daily 
   h.requests[0].resolve({ data: { collection_enabled: false, total_registered: 12, new_registered: 3,
     totals: { visits: 9, users: 2, duration_ms: 60000 }, tools: [{ tool: 'bus', visits: 6, users: 2, duration_ms: 30000 }],
     daily: [{ day: '2026-11-13', visits: 9, users: 2, duration_ms: 60000 }] } }); await flush();
-  const text = h.render(); assert.match(text, /全部工具合计：9 次/); assert.match(text, /去重使用人数：2 人/);
-  assert.match(text, /注册账号总数：12/); assert.match(text, /火车：0 次/); assert.match(text, /2026-11-13/);
+  const text = h.render(); assert.match(text, /全部工具合计9 次/); assert.match(text, /去重使用人数2 人/);
+  assert.match(text, /注册账号总数12/); assert.match(text, /火车0 次/); assert.match(text, /2026-11-13/);
   assert.equal(text.includes('用户明细'), false);
 });
 test('users-only permission fetches users without requesting summary or moderation', async () => {
@@ -242,4 +255,77 @@ test('active observer evaluates bundled collectors only after startup and cleans
     assert.equal(disposed, failure === 'load' ? 0 : 1);
     assert.equal(removed, failure === 'none' || failure === 'tick' ? 1 : 0);
   }
+});
+
+const sampleAccount = { id: 'sample-user', name: '示例用户', email: 'sample@example.invalid',
+  avatar_url: 'data:image/png;base64,sample', registered_at: '2026-11-01T12:00:00Z', last_sign_in_at: null,
+  last_used_at: null, visits: 3, duration_ms: 30000 };
+
+test('analytics avatar renders stored URI and falls back after an image error or absent avatar', () => {
+  const h = adminHarness([]); h.renderAvatar(sampleAccount.avatar_url);
+  const image = h.nodes().find(n => n.type === 'Image');
+  assert.equal(image.props.source.uri, sampleAccount.avatar_url);
+  image.props.onError(); h.renderAvatar(sampleAccount.avatar_url);
+  assert.equal(h.nodes().some(n => n.type === 'Image'), false);
+  assert.equal(h.nodes().some(n => n.type === 'Icon' && n.props.name === 'account'), true);
+  const missing = adminHarness([]); missing.renderAvatar(null);
+  assert.equal(missing.nodes().some(n => n.type === 'Image'), false);
+});
+
+test('user search has one magnifier as its trailing accessible submit button', () => {
+  const h = adminHarness(['analytics.users']); h.render();
+  const search = h.nodes().find(n => n.type === 'Pressable' && n.props.accessibilityLabel === '搜索');
+  assert.ok(search); assert.equal(search.children[0].props.name, 'magnify');
+  assert.equal(h.nodes().filter(n => n.type === 'Icon' && n.props.name === 'magnify').length, 1);
+});
+
+test('user rows push a separate detail route and retain the parent search and pagination', async () => {
+  const h = adminHarness(['analytics.users']); h.render();
+  h.type('sample'); h.render(); h.press('搜索'); h.render();
+  h.requests.at(-1).resolve({ data: { total: 26, users: [sampleAccount] } }); await flush(); h.render();
+  h.press('下一页'); h.render();
+  h.requests.at(-1).resolve({ data: { total: 26, users: [sampleAccount] } }); await flush(); h.render();
+  assert.equal(h.requests.at(-1).params.p_offset, 25);
+  h.pressUser('sample-user');
+  assert.equal(h.navigation.at(-1).pathname, '/admin/usage-analytics-user');
+  assert.equal(h.navigation.at(-1).params.userId, 'sample-user');
+  assert.equal(h.navigation.at(-1).params.days, '7');
+  assert.equal(h.input(), 'sample');
+  const requestCount = h.requests.length;
+  h.blur(); h.render();
+  assert.equal(h.systemBack(), false); assert.equal(h.attemptLeave(), true);
+  assert.equal(h.requests.length, requestCount); assert.equal(h.input(), 'sample');
+  const detail = adminHarness(['analytics.users'], { detailUserId: 'sample-user', initialDays: 30 }); detail.render();
+  assert.equal(detail.requests[0].name, 'admin_tool_usage_user');
+  assert.equal(detail.requests[0].params.p_user_id, 'sample-user');
+  assert.equal(detail.requests[0].params.p_offset, 0);
+  assert.equal(detail.requests[0].params.p_search, undefined);
+  assert.equal(detail.input(), undefined);
+  detail.press('返回用户列表'); assert.equal(detail.navigation.at(-1), 'back');
+});
+
+for (const method of ['header', 'hardware', 'gesture']) {
+  test(`search back via ${method} clears query before leaving and rejects the old response`, async () => {
+    const h = adminHarness(['analytics.users']); h.render();
+    h.type('old-search'); h.render(); h.press('搜索'); h.render();
+    const old = h.requests.at(-1);
+    assert.equal(old.params.p_search, 'old-search');
+    if (method === 'header') h.press('返回');
+    if (method === 'hardware') assert.equal(h.systemBack(), true);
+    if (method === 'gesture') assert.equal(h.attemptLeave(), false);
+    h.render();
+    assert.equal(h.input(), ''); assert.equal(h.navigation.length, 0);
+    assert.equal(h.requests.at(-1).params.p_search, ''); assert.equal(h.requests.at(-1).params.p_offset, 0);
+    old.resolve({ data: { total: 1, users: [{ ...sampleAccount, name: 'STALE RESULT' }] } }); await flush();
+    assert.equal(h.render().includes('STALE RESULT'), false);
+    assert.equal(h.systemBack(), false); assert.equal(h.attemptLeave(), true);
+    h.press('返回'); assert.equal(h.navigation.at(-1), 'back');
+  });
+}
+
+test('unsubmitted search text also clears on back; detail route still requires user analytics permission', () => {
+  const h = adminHarness(['analytics.users']); h.render(); h.type('draft'); h.render();
+  assert.equal(h.systemBack(), true); h.render(); assert.equal(h.input(), ''); assert.equal(h.navigation.length, 0);
+  const denied = adminHarness(['analytics.summary'], { detailUserId: 'sample-user' });
+  assert.match(denied.render(), /暂无查看统计的权限/); assert.equal(denied.requests.length, 0);
 });
