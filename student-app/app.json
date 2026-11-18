@@ -2,7 +2,7 @@
   "expo": {
     "name": "博学",
     "slug": "union-student-app",
-    "version": "1.1.13",
+    "version": "1.1.14",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -80,6 +80,7 @@
       "./plugins/withLiquidGlassAndroid",
       "./plugins/withPlayStoreUpdateAndroid",
       "./plugins/withAndroidReleaseOptimization",
+      "./plugins/withOptionalPortraitFeature",
       "expo-sharing",
       "@react-native-community/datetimepicker"
     ],

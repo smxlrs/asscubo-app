@@ -1,6 +1,12 @@
 # 博学 ASSCUBO 项目交接
 
-更新日期：2026-11-18。应用版本为 1.1.12，本轮已按用户要求提交自习室与空教室兼容修复至 main；推送时连续遇到 GitHub 连接重置 / 443 连接失败，尚未完成 push，网络恢复后需继续推送。用户已明确确认 052/053 均已执行；此前 051 用户已手动安装。本轮不构建、不部署，代码推送不等同于商店发布。
+更新日期：2026-11-18。应用版本为 1.1.14；自习室与空教室修复已推送（5a8d627），随后远端仅版本升级至 1.1.13（9f1ee1f），本地已快进合入。本轮按用户要求将 Android 竖屏硬件声明为可选并准备提交 / push，最终推送结果以 Git 为准。用户已明确确认 052/053 均已执行；此前 051 用户已手动安装。本轮不构建、不部署，代码推送不等同于商店发布。
+
+## 2026-11-18：1.1.14 Android 竖屏硬件声明
+
+- Google Play 对 1.1.13 提示 `android.hardware.screen.portrait` 必需硬件导致设备范围受限。新增并注册 `withOptionalPortraitFeature` config plugin，在生成的 AndroidManifest.xml 中显式写入该 feature 的 `android:required="false"`，并避免重复声明；保留 `orientation: portrait` 和 MainActivity 的竖屏设置。
+- 原生 android/ 是被 Git 忽略的生成目录，修复保存在 Expo plugin 中，供后续 prebuild / EAS 构建持续应用。该声明属于原生安装包配置，需要重新构建、上传新 AAB 后 Google Play 才会重新检查，Expo Go / OTA 不能更改已上传包的硬件声明。本轮只修改并推送代码，不启动构建或商店提交。
+- 验证：运行实际 Expo config introspect，确认生成的 Android manifest 中该 feature 唯一且 required=false、MainActivity 仍为 portrait；核对 app/package/lock 版本一致为 1.1.14、插件 JS 语法及 git diff --check 通过。未构建 AAB，商店检查结果需以上传后的报告为准。
 
 ## 2026-11-18：1.1.12 自习室 / 空教室上游兼容修复
 
