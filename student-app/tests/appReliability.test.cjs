@@ -83,10 +83,10 @@ test('studyroom network failure, invalid data, and real empty occupancy are dist
   reply = new Error('offline');
   let result = await study.fetchStudyRoomStatus(room);
   assert.equal(result.state, 'offline'); assert.equal(result.availableSeats, null); assert.equal(result.isOpen, null);
-  reply = { data: { current_forecast: { opened: true } } };
+  reply = { data: { status: { isOpen: true }, liveAttendance: { occupancy: null } } };
   result = await study.fetchStudyRoomStatus(room);
   assert.equal(result.state, 'no_data'); assert.equal(result.occupancyPercent, null);
-  reply = { data: { current_forecast: { occupancy: 0, opened: true } } };
+  reply = { data: { status: { isOpen: true }, liveAttendance: { occupancy: 0 } } };
   result = await study.fetchStudyRoomStatus(room);
   assert.equal(result.state, 'available'); assert.equal(result.availableSeats, room.capacity);
 });

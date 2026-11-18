@@ -1,6 +1,8 @@
 import { networkErrorText } from '../../../lib/networkMessages';
 import { AppState } from 'react-native';
-import { fetchWithDeadline, NetworkError, networkErrorKey, requireSuccessfulResponse } from '../../../lib/network';
+import { networkErrorKey } from '../../../lib/network';
+import { ClassroomBrowserRequired, fetchClassroomData } from '../../../lib/classroomService';
+import { useClassroomBrowser } from '../../../hooks/useClassroomBrowser';
 import { romeDay, romeMinutes } from '../../../lib/romeTime';
 import { romeToIso } from '../../../lib/eventTime';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -28,12 +30,6 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAndroidBackHandler } from '../../../hooks/useAndroidBackHandler';
 
 const { width } = Dimensions.get('window');
-
-// API configurations
-const CLIENT_ID = '5ad08435b6ca5357dbac609e';
-const CALENDAR_ID = '5f632ffc78b5fe001d1ea638';
-const AULE_API = 'https://unibo.prod.up.cineca.it/api/Aule/getAulePerCalendarioPubblico';
-const IMPEGNI_API = 'https://unibo.prod.up.cineca.it/api/Impegni/getImpegniCalendarioPubblico';
 
 // TypeScript Types
 interface Building {
@@ -867,6 +863,7 @@ export default function EmptyClassroomScreen() {
   const [clockNow, setClockNow] = useState(() => Date.now());
   const fetchGeneration = useRef(0);
   const loadedDay = useRef('');
+  const { loadInBrowser, browser } = useClassroomBrowser();
   const fetchData = async (isRefresh = false) => {
     const generation = ++fetchGeneration.current;
     setClockNow(Date.now());
@@ -877,47 +874,20 @@ export default function EmptyClassroomScreen() {
     }
     setError(null);
     try {
-      // Fetch Classrooms
-      const auleResponse = await fetchWithDeadline(AULE_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-        body: JSON.stringify({
-          linkCalendarioId: CALENDAR_ID,
-          clienteId: CLIENT_ID,
-          ricercaPerTesto: '',
-          limit: 100
-        })
-      });
-
-      requireSuccessfulResponse(auleResponse);
-      const auleData = await auleResponse.json();
-
-      // Determine date range for today (slightly expanded to prevent timezone missing bookings)
-      const now = new Date();
-      const todayStr = romeDay(now);
-      const dataInizio = romeToIso(todayStr + ' 00:00')!;
-      const dataFine = new Date(new Date(romeToIso(todayStr + ' 23:59')!).getTime() + 59999).toISOString();
-
-      // Fetch Today's Impegni
-      const impegniResponse = await fetchWithDeadline(IMPEGNI_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-        body: JSON.stringify({
-          mostraImpegniAnnullati: true,
-          mostraIndisponibilitaTotali: false,
-          linkCalendarioId: CALENDAR_ID,
-          clienteId: CLIENT_ID,
-          pianificazioneTemplate: false,
-          dataInizio,
-          dataFine
-        })
-      });
-
-      requireSuccessfulResponse(impegniResponse);
-      const impegniData = await impegniResponse.json();
-
+      const todayStr = romeDay(new Date());
+      const from = romeToIso(todayStr + ' 00:00')!;
+      const to = new Date(new Date(romeToIso(todayStr + ' 23:59')!).getTime() + 59999).toISOString();
+      const payload = { from, to };
+      let data;
+      try { data = await fetchClassroomData(payload); }
+      catch (error) {
+        if (!(error instanceof ClassroomBrowserRequired)) throw error;
+        if (generation !== fetchGeneration.current) return;
+        data = await loadInBrowser(payload);
+      }
       if (generation !== fetchGeneration.current) return;
-      if (!Array.isArray(auleData) || !Array.isArray(impegniData)) throw new NetworkError('data', 'Invalid classroom data');
+      const auleData = data.classrooms as Classroom[];
+      const impegniData = data.bookings as Impegno[];
       loadedDay.current = todayStr;
       setClassrooms(auleData);
       setImpegni(impegniData);
@@ -1220,6 +1190,7 @@ export default function EmptyClassroomScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      {browser}
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={handleBack}>

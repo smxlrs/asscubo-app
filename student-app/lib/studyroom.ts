@@ -487,17 +487,21 @@ export async function fetchStudyRoomStatus(room: StudyRoom): Promise<StudyRoomSt
     state, occupancyPercent: null, availableSeats: null, isOpen: null, openingHours: '',
   });
   try {
-    const response = await fetchWithDeadline(`https://api.affluences.com/app/v3/sites/${room.affluencesId}`, {
+    const response = await fetchWithDeadline(`https://api.affluences.com/app/v4/sites/${encodeURIComponent(room.id)}/live-data`, {
       headers: { Accept: 'application/json', 'x-service-name': 'website' },
     });
     requireSuccessfulResponse(response);
     const json = await response.json();
-    const forecast = json?.data?.current_forecast;
-    if (!forecast || typeof forecast.occupancy !== 'number' || !Number.isFinite(forecast.occupancy)
-      || forecast.occupancy < 0 || forecast.occupancy > 100 || typeof forecast.opened !== 'boolean') return empty('no_data');
-    return { state: 'available', occupancyPercent: forecast.occupancy,
-      availableSeats: Math.max(0, Math.round(room.capacity * (1 - forecast.occupancy / 100))),
-      isOpen: forecast.opened, openingHours: '' };
+    const data = json?.data;
+    const occupancy = data?.liveAttendance?.occupancy;
+    const isOpen = data?.status?.isOpen;
+    if (typeof isOpen !== 'boolean') return empty('no_data');
+    const hasOccupancy = typeof occupancy === 'number' && Number.isFinite(occupancy) && occupancy >= 0 && occupancy <= 100;
+    // A venue can publish its opening state without publishing live attendance.
+    // Preserve that state, but never turn absent attendance into empty seats.
+    return { state: hasOccupancy ? 'available' : 'no_data', occupancyPercent: hasOccupancy ? occupancy : null,
+      availableSeats: hasOccupancy ? Math.max(0, Math.round(room.capacity * (1 - occupancy / 100))) : null,
+      isOpen, openingHours: '' };
   } catch (error) {
     return { ...empty(error instanceof NetworkError && ['network', 'timeout'].includes(error.kind) ? 'offline' : 'no_data'), errorReason: networkErrorKey(error) };
   }

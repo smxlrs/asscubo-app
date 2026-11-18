@@ -495,7 +495,7 @@ export default function StudyRoomsScreen() {
                       styles.statusTagText, 
                       { color: item.status.isOpen ? '#10B981' : '#EF4444' }
                     ]}>
-                      {item.status.state !== 'available' ? networkErrorText('requestErrorNoData', language) : item.status.isOpen ? localized.openNow : localized.closed}
+                      {item.status.isOpen === null ? networkErrorText('requestErrorNoData', language) : item.status.isOpen ? localized.openNow : localized.closed}
                     </Text>
                   </View>
                 </View>
@@ -503,6 +503,11 @@ export default function StudyRoomsScreen() {
                 {item.status.errorReason && (
                   <Text style={{ color: colors.error, fontSize: 13, lineHeight: 20, marginBottom: 12 }}>
                     {networkErrorText(item.status.errorReason, language)}
+                  </Text>
+                )}
+                {item.status.state === 'no_data' && !item.status.errorReason && (
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
+                    {networkErrorText('requestErrorNoData', language)}
                   </Text>
                 )}
                 {/* Meta details */}
@@ -514,7 +519,7 @@ export default function StudyRoomsScreen() {
                   </View>
                 </View>
 
-                {item.status.isOpen && (
+                {item.status.isOpen && item.status.occupancyPercent !== null && (
                   <View style={styles.occupancySection}>
                     <View style={styles.occupancyHeader}>
                       <Text style={[styles.occupancyLabel, { color: colors.textSecondary }]}>
