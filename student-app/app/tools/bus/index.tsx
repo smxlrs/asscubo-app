@@ -1,5 +1,5 @@
 import { networkErrorText } from '../../../lib/networkMessages';
-import { romeParts, romeMinutes } from '../../../lib/romeTime';
+import { busMinutesUntil } from '../../../lib/busTime';
 import { NetworkError, networkErrorKey } from '../../../lib/network';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
@@ -615,6 +615,7 @@ const getMapHtml = (isDark: boolean, localized: any) => `
 export default function BusBoardScreen() {
   const { colors, isDark, language, t } = useTheme();
   const localized = LOCALIZED[language as keyof typeof LOCALIZED] || LOCALIZED.zh;
+  const mapSource = useMemo(() => ({ html: getMapHtml(isDark, localized) }), [isDark, localized]);
   const webViewRef = useRef<WebView>(null);
 
   // Input states
@@ -667,6 +668,12 @@ export default function BusBoardScreen() {
   // Arrivals data states
   const [arrivals, setArrivals] = useState<BusArrival[]>([]);
   const [allArrivals, setAllArrivals] = useState<BusArrival[]>([]);
+  const [, refreshCountdown] = useState(0);
+  useEffect(() => {
+    if (!activeStopCode) return;
+    const timer = setInterval(() => refreshCountdown(value => value + 1), 15000);
+    return () => clearInterval(timer);
+  }, [activeStopCode]);
   const [queryLoading, setQueryLoading] = useState(false);
   const [queryError, setQueryError] = useState<string | null>(null);
   const [serviceAlerts, setServiceAlerts] = useState<TperServiceAlert[]>([]);
@@ -1013,20 +1020,8 @@ export default function BusBoardScreen() {
         const combined = results.flat();
 
         // Sort all arrivals by remaining minutes (handling midnight crossing)
-        combined.sort((a, b) => {
-          const [ah, am] = a.time.split(':').map(Number);
-          const [bh, bm] = b.time.split(':').map(Number);
-          const now = new Date();
-          const nowMin = romeMinutes(now);
-          
-          let aMin = ah * 60 + am;
-          let bMin = bh * 60 + bm;
-          
-          if (aMin - nowMin < -120) aMin += 24 * 60;
-          if (bMin - nowMin < -120) bMin += 24 * 60;
-          
-          return aMin - bMin;
-        });
+        const monotonicNow = performance.now();
+        combined.sort((a, b) => busMinutesUntil(a.time, a.clock, monotonicNow) - busMinutesUntil(b.time, b.clock, monotonicNow));
 
         // Filter duplicates
         finalArrivals = combined.filter((item, index, self) =>
@@ -1243,16 +1238,8 @@ export default function BusBoardScreen() {
   };
 
   // Convert arrival time to human countdown string
-  const getCountdownString = (timeStr: string) => {
-    const [arrH, arrM] = timeStr.split(':').map(Number);
-    const now = new Date();
-    const nowH = romeParts(now).hour;
-    const nowM = romeParts(now).minute;
-
-    let diff = (arrH * 60 + arrM) - (nowH * 60 + nowM);
-    if (diff < -120) {
-      diff += 24 * 60;
-    }
+  const getCountdownString = (arrival: BusArrival) => {
+    const diff = busMinutesUntil(arrival.time, arrival.clock);
 
     if (diff < 0) {
       return localized.leftStop;
@@ -1581,7 +1568,7 @@ export default function BusBoardScreen() {
                     {/* Countdown */}
                     <View style={styles.arrivalRight}>
                       <Text numberOfLines={1} style={[styles.countdownText, { color: colors.primary }]}>
-                        {getCountdownString(bus.time)}
+                        {getCountdownString(bus)}
                       </Text>
                     </View>
                   </Pressable>
@@ -1879,7 +1866,7 @@ export default function BusBoardScreen() {
             <WebView
               ref={webViewRef}
               originWhitelist={['*']}
-              source={{ html: getMapHtml(isDark, localized) }}
+              source={mapSource}
               style={{ flex: 1 }}
               onMessage={handleMapMessage}
               onLoadEnd={() => setMapReady(true)}
@@ -2076,7 +2063,7 @@ export default function BusBoardScreen() {
                 {/* Countdown & Time */}
                 <View style={{ alignItems: 'center', marginVertical: 8 }}>
                   <Text style={{ fontSize: 28, fontWeight: 'bold', color: colors.primary }}>
-                    {getCountdownString(selectedArrival.time)}
+                    {getCountdownString(selectedArrival)}
                   </Text>
                   <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>
                     {localized.estArrival}{selectedArrival.time}

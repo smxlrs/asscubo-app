@@ -1,5 +1,6 @@
 import { fetchWithDeadline, NetworkError, requireSuccessfulResponse } from './network';
 import { supabase } from './supabase';
+import { BusClock, createBusClock } from './busTime';
 
 export interface BusArrival {
   line: string;
@@ -8,6 +9,7 @@ export interface BusArrival {
   hasRamp: boolean;
   busNumber?: string;
   raw: string;
+  clock?: BusClock;
 }
 
 export interface BusStop {
@@ -65,6 +67,7 @@ export async function fetchBusArrivals(stopCode: string, lineCode = ''): Promise
     });
 
     requireSuccessfulResponse(response);
+    const clock = createBusClock(response.headers.get('Date'));
 
     const xmlResponse = await response.text();
     
@@ -90,7 +93,7 @@ export async function fetchBusArrivals(stopCode: string, lineCode = ''): Promise
       return [];
     }
 
-    return parseHelloBusString(resultText);
+    return parseHelloBusString(resultText).map(arrival => ({ ...arrival, clock }));
   } catch (error: any) {
     // Log as info to avoid triggering React Native RedBox overlay in development
     console.log('HelloBus Query Error:', error.message || error);
